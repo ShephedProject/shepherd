@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.5.9';
+my $version  = '3.5.10';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -89,6 +89,8 @@ my $version  = '3.5.9';
 # 3.5.6   : Bugfix : channel name changes
 # 3.5.7   : Bugfix : parse "rest of day" guide page correctly
 # 3.5.8   : Bugfix : don't die on failed cache write
+# 3.5.9   : Code change: use Shepherd::Common::read/write cache
+# 3.5.10  : Bugfix : don't exit on unknown option
 
 use strict;
 use Getopt::Long;
@@ -1034,8 +1036,7 @@ sub get_command_line_options
 
   if (@ARGV)
   {
-    print "\nERROR: Unknown option(s): @ARGV\n";
-    help();
+    print "\nWARNING: Ignoring unknown option(s): @ARGV\n\n";
   }
 }
 
