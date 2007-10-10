@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.0';
+my $version  = '3.6.1';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -826,31 +826,23 @@ sub parse_details
   {
     $block = $block->right();
   }
+  my $live = 0;
   foreach my $tag ($block->look_down('_tag' => 'tr'))
   {
     $str = $tag->as_text();
     if ($str =~ /Genre:(.+)/)
     {
       $str = strip_whitespace($1);
-      if ($str eq 'N/A')
+      $show->{'category'} = [[ &Shepherd::Common::translate_category($str), $lang ]];
+      if ($str =~ /Sport/i)
       {
-        @extra = ( $str );
-      }
-      else
-      {
-        @extra = split(/\//, $str);
+        push (@{$show->{'category'}}, [ 'sports' ]);
       }
       $str = $tree->find('h5');
       if ($str and $str->as_text() =~ /movie/i)
       {
-        push (@extra, 'movie');
+        push (@{$show->{'category'}}, [ 'movie' ]);
       }
-
-      foreach (@extra)
-      {
-        $_ = [ translate_category($_), $lang ];
-      }
-      $show->{'category'} = [ @extra ];
     }
     elsif ($str =~ /Rating:(.+)/)
     {
@@ -899,7 +891,7 @@ sub parse_details
       next unless (strip_whitespace($1));
       $str = $tag->as_HTML();
       @extra = split(/<br ?\/?>/, $tag->as_HTML());
-      my (@to_add, %video);
+      my %video;
       foreach my $bit (@extra)
       {
         $bit =~ s/<.*>//;
@@ -925,9 +917,21 @@ sub parse_details
 	{
 	    $video{'quality'} = 'HDTV';
 	}
-	push (@to_add, $bit);
+	elsif ($bit eq 'LIVE')
+	{
+	    $live = 1;
+	}
 	$show->{'video'} = \%video if (%video);
       }
+    }
+  }
+  if ($live == 1) {
+    if ($show->{'category'} &&
+        $show->{'category'}[0][0] ne 'sports' &&
+        $show->{'category'}[0][0] ne 'movie') {
+      $show->{'category'}[0][0] = 'Live ' . $show->{'category'}[0][0];
+    } else {
+      unshift (@{$show->{'category'}}, [ 'Live' ]);
     }
   }
 
@@ -949,20 +953,6 @@ sub bad_parse
       die "Major parsing error";
   }
   return 0;
-}
-
-sub translate_category
-{
-  my %translation = (	'Sport' => 'sports',
-  			'Soap Opera' => 'Soap',
-			'Science and Technology' => 'Science/Nature',
-			'Real Life' => 'Reality',
-			'Cartoon' => 'Animation',
-			'Family' => 'Children',
-			'Murder' => 'Crime' );
-			
-  return $translation{$_} if $translation{$_};
-  return $_;
 }
 
 sub is_outside_gaps

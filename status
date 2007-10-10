@@ -3,7 +3,7 @@ reference       channel_list        6
 reference       Shepherd/Common.pm  0.28
 reference       Shepherd/MythTV.pm  0.6
 grabber         yahoo7widget        1.92
-grabber         rex                 3.6.0
+grabber         rex                 3.6.1
 grabber         abc_website         3.14
 grabber         sbsnews_website     0.18
 grabber         oztivo              1.13
