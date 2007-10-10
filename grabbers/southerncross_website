@@ -33,7 +33,7 @@
 use strict;
 
 my $progname = "southerncross_website";
-my $version = "0.14";
+my $version = "0.15";
 
 #use LWP::UserAgent;
 #use LWP::ConnCache;
@@ -681,9 +681,9 @@ sub parse_page
       if ($text) { # verbose rating
         $post_desc .= $text;
         if ($rating) {
-          $rating .= " " . subrating($text);
+          $rating .= " " . &Shepherd::Common::subrating($text);
         } else {
-          $rating = subrating($text);
+          $rating = &Shepherd::Common::subrating($text);
         }
         &log("parse_page debug: verbose rating : $text") if $opt->{debug};
       }
@@ -759,32 +759,4 @@ sub prepend_category
     push(@categories, [$item, $opt->{lang}]);
   }
   return @categories;
-}
-
-# (Adult Themes)
-# (Some Violence, Adult Themes, Supernatural Themes)
-# (Drug References, Adult Themes)
-# (Very Coarse Language, Sexual References, Drug References, Adult Themes, Nudity)
-# (Some Violence)
-# (Drug Use, Strong Adult Themes)
-# (Some Violence, Adult Themes)
-# (Some Coarse Language)
-# (Sexual References)
-# (Mild Coarse Language, Sexual References)
-# (Sex Scenes, Adult Themes, Supernatural Themes)
-## (Qualifying - Sat)
-sub subrating
-{
-  my $string = shift;
-  my @subrating;
-
-  push(@subrating, "v") if $string =~ /Violence/i;
-  push(@subrating, "l") if $string =~ /Language/i;
-  push(@subrating, "s") if $string =~ /Sex/i;
-  push(@subrating, "d") if $string =~ /Drug/i;
-  push(@subrating, "a") if $string =~ /Adult/i;
-  push(@subrating, "n") if $string =~ /Nudity/i;
-  push(@subrating, "h") if $string =~ /Supernatural/i;
-
-  return join(",",@subrating);
 }

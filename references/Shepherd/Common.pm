@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.27';
+my $version = '0.28';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -765,6 +765,36 @@ sub translate_category
         'Murder' => 'Crime' );
     return $translation{$genre} if defined $translation{$genre};
     return $genre;
+}
+
+##########################################################################
+
+# (Adult Themes)
+# (Some Violence, Adult Themes, Supernatural Themes)
+# (Drug References, Adult Themes)
+# (Very Coarse Language, Sexual References, Drug References, Adult Themes, Nudity)
+# (Some Violence)
+# (Drug Use, Strong Adult Themes)
+# (Some Violence, Adult Themes)
+# (Some Coarse Language)
+# (Sexual References)
+# (Mild Coarse Language, Sexual References)
+# (Sex Scenes, Adult Themes, Supernatural Themes)
+## (Qualifying - Sat)
+sub subrating
+{
+  my $string = shift;
+  my @subrating;
+
+  push(@subrating, "v") if $string =~ /Violence/i;
+  push(@subrating, "l") if $string =~ /Language/i;
+  push(@subrating, "s") if $string =~ /Sex/i;
+  push(@subrating, "d") if $string =~ /Drug/i;
+  push(@subrating, "a") if $string =~ /Adult/i;
+  push(@subrating, "n") if $string =~ /Nudity/i;
+  push(@subrating, "h") if $string =~ /Horror|Supernatural/i;
+
+  return join(",",@subrating);
 }
 
 ##########################################################################

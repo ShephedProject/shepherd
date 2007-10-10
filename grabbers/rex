@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.5.10';
+my $version  = '3.6.0';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -91,6 +91,10 @@ my $version  = '3.5.10';
 # 3.5.8   : Bugfix : don't die on failed cache write
 # 3.5.9   : Code change: use Shepherd::Common::read/write cache
 # 3.5.10  : Bugfix : don't exit on unknown option
+# 3.6.0   : Code change: use Shepherd::Common::print_stats
+#           Feature: cache guide pages for 3 hours, add subratings,
+#           Feature: capture director, writer, country, language
+#           Bugfix : fix previously-shown, aspect, subtitles, premiere, quality
 
 use strict;
 use Getopt::Long;
@@ -211,6 +215,8 @@ write_xml();
 
 print stats(1);
 
+Shepherd::Common::print_stats($progname, $version, $runtime, %stats);
+
 exit 0;
 
 # ---------------------------------------------------------------------------
@@ -241,7 +247,17 @@ sub get_guide_data
     {
       # Special bandwidth-saving URL for day 0
 
-      $guidedata = get_page($DATASOURCE_GUIDE_TODAY);
+      my $cacheid = $DATASOURCE_GUIDE_TODAY;
+      if ($cached->{$cacheid}) {
+        $guidedata = $cached->{$cacheid}->{data};
+      } else {
+        $guidedata = get_page($DATASOURCE_GUIDE_TODAY);
+        if ($guidedata) {
+          $cached->{$cacheid}->{data} = $guidedata;
+          $cached->{$cacheid}->{stop} = POSIX::strftime("%Y%m%d%H%M%S", localtime($runtime));
+          $cached->{$cacheid}->{title}[0][0] = $cacheid;
+        }
+      }
       parse_guide($guidedata, $date) if ($guidedata);
     }
     else
@@ -250,15 +266,25 @@ sub get_guide_data
       my $rid = $opt->{region};
       for (1 .. 4)
       {
-        $guidedata = get_page(url => $DATASOURCE_GUIDE,
-			postvars => 
-		        [ 'action' => "sessionTimes",
-		          'region_id' => $rid,
-		          'date' => $date,
-		          'period' => $_,
-		          'submit' => 'submit'
-		        ]);
-	parse_guide($guidedata, $date, $_) if ($guidedata);
+        my $cacheid = "${DATASOURCE_GUIDE}?r=${rid}&d=${date}&p=$_";
+        if ($cached->{$cacheid}) {
+          $guidedata = $cached->{$cacheid}->{data};
+        } else {
+          $guidedata = get_page(url => $DATASOURCE_GUIDE,
+                        postvars =>
+                        [ 'action' => "sessionTimes",
+                          'region_id' => $rid,
+                          'date' => $date,
+                          'period' => $_,
+                          'submit' => 'submit'
+                        ]);
+          if ($guidedata) {
+            $cached->{$cacheid}->{data} = $guidedata;
+            $cached->{$cacheid}->{stop} = POSIX::strftime("%Y%m%d%H%M%S", localtime($runtime));
+            $cached->{$cacheid}->{title}[0][0] = $cacheid;
+          }
+        }
+        parse_guide($guidedata, $date, $_) if ($guidedata);
       }
     }
   }
@@ -512,7 +538,7 @@ sub restore_cache
 
 sub clean_cache
 {
-    my $r = expand_date(localtime(time() - 3600)."");
+    my $r = expand_date(localtime(time() - 3*3600)."");
     my $c = 0;
     print "Removing cache items that finish earlier than $r.\n" if ($debug);
     foreach (keys %$cached)
@@ -817,7 +843,7 @@ sub parse_details
       $str = $tree->find('h5');
       if ($str and $str->as_text() =~ /movie/i)
       {
-        unshift (@extra, 'movie');
+        push (@extra, 'movie');
       }
 
       foreach (@extra)
@@ -836,7 +862,8 @@ sub parse_details
 	{
 	  $_ = [ $_, 'advisory', undef ];
 	}
-	$show->{'rating'} = [[ $1, 'ABA', undef],  @extra ];
+	my $sr = &Shepherd::Common::subrating($2);
+	$show->{'rating'} = [[ $sr ? "$1 $sr" : $1, 'ABA', undef],  @extra ];
       }
       else
       {
@@ -847,15 +874,31 @@ sub parse_details
     {
       $show->{'credits'}{'actor'} = [ split(/, /, strip_whitespace($1)) ];
     }
+    elsif ($str =~ /Director: (.+)/)
+    {
+      $show->{'credits'}{'director'} = [ split(/, /, strip_whitespace($1)) ];
+    }
+    elsif ($str =~ /Writer: (.+)/)
+    {
+      $show->{'credits'}{'writer'} = [ split(/, /, strip_whitespace($1)) ];
+    }
     elsif ($str =~ /Year:\s*(\d+)/)
     {
       $show->{'date'} = strip_whitespace($1);
+    }
+    elsif ($str =~ /Country: (.+)/)
+    {
+      $show->{'country'} = [[ split(/, /, strip_whitespace($1)) ]];
+    }
+    elsif ($str =~ /Language: (.+)/)
+    {
+      $show->{'language'} = [ strip_whitespace($1) ];
     }
     elsif ($str =~ /Other:(.+)/)
     {
       next unless (strip_whitespace($1));
       $str = $tag->as_HTML();
-      @extra = split(/<br \/>/, $tag->as_HTML());
+      @extra = split(/<br ?\/?>/, $tag->as_HTML());
       my (@to_add, %video);
       foreach my $bit (@extra)
       {
@@ -865,8 +908,6 @@ sub parse_details
 	if ($bit eq 'Repeat')
 	{
 	    $show->{'previously-shown'} = { };
-	    next;   # Don't need this in the desc as well as it's
-	            # highlighted by MythTV
 	}
 	elsif ($bit eq 'Widescreen')
 	{
@@ -875,9 +916,8 @@ sub parse_details
 	elsif ($bit eq 'Closed Captions')
 	{
 	    $show->{'subtitles'} = [ { 'type' => 'teletext' } ];
-	    next;   # Just clutters up the desc
 	}
-	elsif ($bit eq 'Premiere')
+	elsif ($bit eq 'Premiere' || $bit eq 'New Episode')
 	{
 	    $show->{'premiere'} = [ $bit ];
 	}
@@ -887,17 +927,6 @@ sub parse_details
 	}
 	push (@to_add, $bit);
 	$show->{'video'} = \%video if (%video);
-      }
-      foreach (@to_add)
-      {
-        if ($show->{'desc'})
-        {
-          $show->{'desc'}[0][0] .= " $_.";
-        }
-        else
-        {
-          $show->{'desc'} = [[ "$_.", $lang ]];
-        }
       }
     }
   }
