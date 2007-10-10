@@ -1,0 +1,255 @@
+#!/usr/bin/perl -w
+
+# Augment XMLTV start/stop times with the local timezone if MythTV's
+# TimeOffset setting is anything other than "None"
+#  * to be used as a postprocessor for XMLTV data
+#  * can be used in conjunction with 'shepherd' XMLTV reconciler or standalone
+#    (pipe-through)
+#  * no configuration necessary
+#
+#  input XMLTV files will either have programme start/stop with or without
+#  timezones.  If no timezone is present, Shepherd assumes the input
+#  start/stop times are in 'localtime'.
+#
+#  If MythTV's "TimeOffset" setting is set to anything other than 'None',
+#  this can cause programming information to be out:
+#   - if set to 'All', all programs will be out by the difference between
+#     GMT and locatime ('All' means MythTV is expecting all start/stop times
+#     in GMT)
+#   - if explicitly set to GMT +/- XX then this will cause programming to
+#     be out whenever there is a switchover to/from daylight savings
+#
+#  this postprocessor addresses this by explicitly putting a timezone
+#  on every programme that doesn't already have one, BUT ONLY IF
+#  MythTV is configured to anything other than 'None'.
+#
+#  provided your unix system is configured into the correct timezone,
+#  this will work just fine including boundaries crossing daylight savings.
+#
+#  it means that it doesn't matter if MythTV's "TimeOffset" is set to
+#  'All' or 'None', or something inbetween, the data will be right regardless.
+
+# Specific enhancement for Broken Hill:
+#  it seems ABC broadcasts to Broken Hill with incorrect times. They're using
+#  a satellite feed from NSW so Broken Hill is always out by 30 minutes _just_
+#  for ABC (not ABC2 or any other stations).
+#  Since this seems to happen across all ABC data from all grabbers (i.e. all
+#  data sources get this wrong), fix it up in this postprocessor
+
+
+use strict;
+my $progname = "augment_timezone";
+my $version = "0.17";
+
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use IO::File;
+use Shepherd::MythTV;
+
+$| = 1;
+my %stats;
+my $channels, my $opt_channels;
+
+my $opt = { };
+$opt->{output_file} =	"output.xmltv";
+$opt->{debug} =			0;
+
+# parse command line
+GetOptions(
+	'output=s'		=> \$opt->{output_file},
+	'mysql_file=s'		=> \$opt->{mysql_file},
+	'timeoffset=s'		=> \$opt->{timeoffset},
+
+	'region=i'		=> \$opt->{region},
+	'days=i'		=> \$opt->{days},		# ignored
+	'offset=i'		=> \$opt->{offset},		# ignored
+	'timezone=s'		=> \$opt->{timezone},		# ignored
+	'channels_file=s'	=> \$opt->{channels_file},
+	'config-file=s'		=> \$opt->{configfile},		# ignored
+
+	'help'			=> \$opt->{help},
+	'verbose'		=> \$opt->{help},
+	'version'		=> \$opt->{version},
+	'ready'			=> \$opt->{ready},
+	'desc'			=> \$opt->{desc},
+	'v'			=> \$opt->{version});
+
+printf "%s v%s\n",$progname,$version;
+
+if ($opt->{version} || $opt->{desc} || $opt->{help} || $opt->{ready} ||
+    $opt->{output_file} eq "") {
+	printf "Automatically adjust the XMLTV start/stop timezone based on MythTV's\n".
+	    "TImeOffset setting.\n" if $opt->{desc};
+
+	printf "$progname is ready for operation.\n" if ($opt->{ready});
+
+	printf "No --output file specified.\n" if ($opt->{output_file} eq "");
+
+	if ($opt->{help} || $opt->{output_file} eq "") {
+	        my $default_loc = &Shepherd::MythTV::standard_mysql_locations;
+		print<<EOF
+
+usage: $0 [options] {FILE(s)}
+
+Supported options include:
+  --output={file}      Send final XMLTV output to {file} (default: $opt->{output_file})
+  --mysql_file={file}  File where we look for mythtv database user/pass/dbi (default: $default_loc)
+  --timeoffset={s}     Specify MythTV's setting, rather than try to look it up
+                       in MythTV's database. (E.g. "Auto", "None", "+1000")
+
+EOF
+;
+	}
+	exit(0);
+}
+
+unless ($opt->{timeoffset}) {
+	# Specify a non-standard location for mysql.txt
+	Shepherd::MythTV::setup($opt->{mysql_file}) if ($opt->{mysql_file});
+
+	my $sql = "SELECT data FROM settings WHERE value LIKE 'TimeOffset'";
+	($opt->{timeoffset}) = Shepherd::MythTV::query($sql);
+	unless ($opt->{timeoffset}) {
+		print "         Won't augment any timezones!\n" .
+                      "         Assuming MythTV's timezone is \"None\".\n".
+		      "         *** If this is wrong, guide data may be in wrong timezone! ***\n\n";
+	}
+}
+
+$opt->{timeoffset} = "None" if (!defined $opt->{timeoffset});
+if ($opt->{timeoffset} eq "None") {
+	print " - MythTV's TimeOffset setting is set to \"None\". No need to do anything.\n";
+} else {
+	printf " - MythTV's TimeOffset setting is set to \"%s\". Adding timezones.\n",$opt->{timeoffset};
+}
+
+
+# ABC fixup for Broken Hill
+if ((defined $opt->{region}) && ($opt->{region} == 63)) {
+	die "no channel file specified\n", if (!$opt->{channels_file});
+
+	# read channels file
+	if (-r $opt->{channels_file}) {
+		local (@ARGV, $/) = ($opt->{channels_file});
+		no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		die "WARNING: channels file $opt->{channels_file} could not be read\n";
+	}
+
+	print " - System is in Broken Hill. Adjusting ABC guide data by 30 minutes!\n" if (defined $channels->{ABC});
+}
+
+
+my %writer_args = ( encoding => 'ISO-8859-1' );
+my $fh = new IO::File(">".$opt->{output_file}) || die "can't open $opt->{output_file} for writing: $!";
+$writer_args{OUTPUT} = $fh;
+
+my $writer = new XMLTV::Writer(%writer_args);
+$writer->start( {
+	'source-info-name' => "$progname $version",
+	'generator-info-name' => "$progname $version"} );
+
+foreach my $file (@ARGV) {
+	printf " - parsing: %s\n", ($file eq "-" ? "(from-stdin, hit control-D to finish)" : $file);
+	XMLTV::parsefiles_callback(undef, undef, \&channel_cb,\&programme_cb, $file);
+}
+
+$writer->end();
+
+printf "Finished parsing, output in $opt->{output_file}\n";
+printf "STATS: TimeOffset=".$opt->{timeoffset};
+foreach my $k (keys %stats) {
+	printf ", %d %s", $stats{$k}, $k;
+}
+printf "\n";
+
+exit(0);
+
+##############################################################################
+
+sub channel_cb( $ )
+{
+	my $c = shift;
+	# printf "got channel ".Dumper($c);
+	$writer->write_channel($c);
+}
+
+##############################################################################
+
+sub programme_cb( $ )
+{
+	my $prog=shift;
+
+	# ABC fixup for Broken Hill
+	if ((defined $opt->{region}) && ($opt->{region} == 63) &&
+	    (defined $channels->{ABC}) && ($prog->{channel} eq $channels->{ABC})) {
+		$prog->{start} = POSIX::strftime("%Y%m%d%H%M00",localtime(parse_xmltv_date($prog->{start})-(30*60)));
+		$prog->{stop} = POSIX::strftime("%Y%m%d%H%M00",localtime(parse_xmltv_date($prog->{stop})-(30*60)));
+	}
+
+	if ($opt->{timeoffset} ne "None") {
+		# if there is no timezone present in start time, put one there
+		if (($prog->{start} !~ /\+/) && ($prog->{start} !~ /\-/)) {
+			$prog->{start} = POSIX::strftime("%Y%m%d%H%M00 %z",localtime(parse_xmltv_date($prog->{start})));
+			$stats{start_tz_added}++;
+		}
+
+		# if there is no timezone present in stop time, put one there
+		if (($prog->{stop} !~ /\+/) && ($prog->{stop} !~ /\-/)) {
+			$prog->{stop} = POSIX::strftime("%Y%m%d%H%M00 %z",localtime(parse_xmltv_date($prog->{stop})));
+			$stats{stop_tz_added}++;
+		}
+	}
+
+	$writer->write_programme($prog);
+}
+
+##############################################################################
+
+# strptime type date parsing - BUT - if no timezone is present, treat time
+# as being in localtime rather than the various other perl implementation
+# which treat it as being in UTC/GMT
+
+sub parse_xmltv_date
+{
+        my $datestring = shift;
+        my @t; # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+        my $tz_offset = 0;
+
+        if ($datestring =~ /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/) {
+                ($t[5],$t[4],$t[3],$t[2],$t[1],$t[0]) = (int($1)-1900,int($2)-1,int($3),int($4),int($5),0);
+                ($t[6],$t[7],$t[8]) = (-1,-1,-1);
+
+                my $e = mktime(@t);
+
+                # if input data has a timezone offset, then offset by that
+                if ($datestring =~ /\+(\d{2})(\d{2})/) {
+                        $tz_offset = calc_gmt_offset($e) - (($1*(60*60)) + ($2*60));
+                } elsif ($datestring =~ /\-(\d{2})(\d{2})/) {
+                        $tz_offset = calc_gmt_offset($e) + (($1*(60*60)) + ($2*60));
+                }
+
+                return ($e+$tz_offset) if ($e > 1);
+        }
+        return undef;
+}
+
+##############################################################################
+
+# given a particular date (in epoch time), return the local timezone offset
+# on that date in -/+ seconds from GMT
+
+sub calc_gmt_offset
+{
+	my $e = shift;
+	my $gmt_offset;
+
+	my $tzstring = strftime("%z", localtime($e));
+	$gmt_offset = (60*60) * int(substr($tzstring,1,2));	# hr
+	$gmt_offset += (60 * int(substr($tzstring,3,2)));	# min
+	$gmt_offset *= -1 if (substr($tzstring,0,1) eq "-");	# +/-
+
+	return $gmt_offset;
+}
+

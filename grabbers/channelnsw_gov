@@ -1,0 +1,359 @@
+#!/usr/bin/perl -w
+
+# channelnsw_gov TV guide grabber
+#  * adapted from sbsnews_website, written by ltd
+#  * gets data from http://www.nsw.gov.au/channelnsw/guide.asp
+#  * does not use any config file - all settings are passed via command-line
+
+#  0.1	04MAY07	First version: no details, just show names & times
+#  0.5  15MAY07 Use Shepherd::Common
+
+use strict;
+
+my $progname = "channelnsw_gov";
+my $version = "0.8";
+my $DATASOURCE = 'http://www.nsw.gov.au/channelnsw';
+my $GUIDE = "$DATASOURCE/guide.asp";
+
+use LWP::UserAgent;
+use XMLTV;
+use POSIX qw(strftime);
+use Getopt::Long;
+use Data::Dumper;
+use HTML::TreeBuilder;
+use Shepherd::Common;
+
+#
+# some initial cruft
+#
+
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels, my $gaps;
+my $tv_guide;
+my $zerohr;
+
+$| = 1;
+
+#
+# parse command line
+#
+
+my $opt;
+$opt->{days} =		7;	# default
+$opt->{offset} =	0;	# default
+$opt->{outputfile} =	"output.xmltv"; # default
+$opt->{channels_file} =  "";	# mandatory for user to specify
+$opt->{debug} =		0;	# default
+$opt->{lang} =		"en";	# default
+
+Getopt::Long::Configure(qw/pass_through/);  # Don't complain about unknown options
+GetOptions(
+	'days=i'	=> \$opt->{days},
+	'offset=i'	=> \$opt->{offset},
+	'channels_file=s' => \$opt->{channels_file},
+	'gaps_file=s'	=> \$opt->{gaps_file},
+	'output=s'	=> \$opt->{outputfile},
+	'fast'		=> \$opt->{fast},
+	'debug+'	=> \$opt->{debug},
+	'lang=s'	=> \$opt->{lang},
+	'no-retry'	=> \$opt->{dont_retry},
+	'help'		=> \$opt->{help},
+	'verbose'	=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'desc'		=> \$opt->{desc},
+	'ready'		=> \$opt->{version}
+    );
+
+&help if ($opt->{help});
+
+if ($opt->{version}) {
+	printf "%s %s\n",$progname,$version;
+	printf "Gathers guide data from $DATASOURCE." if $opt->{desc};
+	exit(0);
+}
+
+die "no channel file specified, see --help for instructions\n", if ($opt->{channels_file} eq "");
+
+#
+# go go go!
+#
+
+&log(sprintf "going to %sfetch %d days%s of data into %s (%s)",
+	(defined $opt->{gaps_file} ? "micro-gap " : ""),
+	$opt->{days},
+	($opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+	$opt->{outputfile},
+	($opt->{fast} ? "with haste" : "slowly"));
+
+# read channels file
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt->{channels_file} could not be read: $!\n";
+}
+
+die "Nothing to do! Channel NSW not defined in $opt->{channels_file}\n"
+  unless (defined $channels->{'Channel NSW'});
+
+if (defined $opt->{gaps_file}) {
+	if (-r $opt->{gaps_file}) {
+		local (@ARGV, $/) = ($opt->{gaps_file});
+		no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		die "WARNING: gaps file $opt->{gaps_file} could not be read: $!\n";
+	}
+
+	die "No Channel NSW in gaps lineup, nothing to do!\n"
+	  unless ((defined $gaps) && (defined $gaps->{'Channel NSW'}));
+}
+
+&get_data;
+&insert_stop_times;
+&fill_first_day;
+&write_data;
+&print_stats;
+exit(0);
+
+######################################################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+Command-line options:
+  --help                Display this page
+  --days=n              Try to fetch up to n days of data (default: $opt->{days})
+  --output=file         Write XML output to file (default: "$opt->{outputfile}")
+  --fast                Download data ASAP (not recommended: impolite)
+  --debug               Display debugging messages
+  --no-retry            Don't retry on network failure
+  --lang=[s]            Set language in output data (default $opt->{lang})
+  --channels_file=file  Specify where to read channels data from
+  --gaps_file=file      Specify where to read gaps data from
+
+EOF
+;
+
+	exit(0);
+}
+
+######################################################################################################
+
+sub get_data
+{
+	# 7 days in one URL
+	my ($data, $success, $status, $bytes, $slept_for, $failed_attempts) = 
+	    Shepherd::Common::get_url( url => $GUIDE, fake => 0 );
+	die "Download failed: $status" unless ($success);
+
+	#
+	# set up @day_range and %day_range_names
+	#
+	my $t = time;
+	my @today = localtime($t); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+	# set zerohr to midnight on day 0
+	$zerohr = $t - (($today[0]) + ($today[1]*60) + ($today[2]*60*60));
+	my @day_range;
+	my %day_range_names = (sunday=>0,monday=>1,tuesday=>2,wednesday=>3,thursday=>4,friday=>5,saturday=>6);
+	foreach my $daynum (0..6) {
+		my $d = ($today[6] + $daynum) % 7;
+		$day_range[$d] = $zerohr + ($daynum * (60*60*24));
+		&log((sprintf "calculated day %d wkdaynum %d epoch to %d",
+			$daynum, $d, $day_range[$d])) if $opt->{debug};
+	}
+
+	my $tree = HTML::TreeBuilder->new_from_content($data);
+
+	my @seen_day_tag, my @column_is_day, my @column_maps_to_time;
+	my @time_column_wrapped_over_midnight;
+	my @prev_row_prog_tag;
+
+	my $seen_time_tag_column = -1;
+	&log("state machine is 0, looking for start of table") if $opt->{debug};
+
+	my @tables =  $tree->look_down('_tag' => 'table');
+
+	# Guide data is in tables # 10-16 (one per day, starting with Sunday)
+	my $table_offset = 10;
+	for (my $i = $table_offset; $i <= $table_offset + 6; $i++)
+	{
+	    foreach my $tr ($tables[$i]->look_down('_tag' => 'tr')) 
+	    {
+		my $prog;
+		$prog->{channel} = $channels->{'Channel NSW'};
+		$prog->{daynum} = ($i - $table_offset - $today[6]) % 7;
+
+		my ($timetag, $nametag) = $tr->look_down('_tag' => 'td');
+
+		# Set name
+		my $name = $nametag->as_text();
+		$prog->{'previously-shown'} = { } if ($name =~ /\(Rpt\)/);
+		# Anything in brackets isn't part of title
+		$name =~ s/ ?\(.*?\)//g;
+		$prog->{title} = [[ $name, $opt->{lang} ]];
+
+		# Set link to details
+		my $atag = $nametag->look_down('_tag' => 'a');
+		$prog->{url} = [ $DATASOURCE . '/' . $atag->attr('href') ];
+
+		# Set the time
+		my $time;
+		if ($timetag->as_HTML() =~ /<span>(\d+):(\d+) ([ap]m):&nbsp;/)
+		{
+		    $time = $1;
+		    $time = 0 if ($time == 12);
+		    $time += 12 if ($3 eq 'pm');
+		    $time = ($time * 60 * 60) + ($2 * 60); # in seconds past midnight
+
+		    $time += $day_range[$i - $table_offset];
+
+		    $prog->{starttime} = $time;
+		}
+		else
+		{
+		    die "Couldn't parse time tag: " . $timetag->as_HTML . "\n";
+		}
+
+		$tv_guide->{($prog->{starttime})} = $prog;
+
+		if ($opt->{debug})
+		{
+		    print localtime($time) . ": $name\n";
+#		    print Dumper($prog);
+		}
+	    }
+	}
+	$tree->delete;
+}
+
+######################################################################################################
+#
+# Insert stop times
+#
+
+sub insert_stop_times
+{
+    my $stoptime;
+    foreach my $starttime (reverse sort keys %$tv_guide)
+    {
+	my $prog = $tv_guide->{$starttime};
+
+	# Little hack for the last program of each day: assume it runs for 2hrs
+	# (because it's always "Late night Languages", which does)
+	unless (defined $stoptime)
+	{
+	    $stoptime = $starttime + (2 * 60 * 60);
+	}
+	$tv_guide->{$starttime}->{stoptime} = $stoptime;
+	$stoptime = $starttime;
+    }
+}
+
+# Copy the last program on day 6 to the start of day 0. Otherwise
+# we have a hole on day 0 until the first program starts (at
+# 12:30am).
+sub fill_first_day
+{
+    my $lastprog = (reverse sort keys %$tv_guide)[0];
+    my %h = %{$tv_guide->{$lastprog}};
+    $h{stoptime} -= (7 * 86400);
+    $h{starttime} -= (7 * 86400);
+    $tv_guide->{$h{starttime}} = \%h;
+}
+
+######################################################################################################
+#
+#
+
+sub log
+{
+	my ($entry) = @_;
+	printf "%s\n",$entry;
+}
+
+######################################################################################################
+
+sub nice_time
+{
+	my $t = shift;
+	return POSIX::strftime("%Y%m%d%H%M",localtime($t));
+}
+
+######################################################################################################
+
+sub print_stats
+{
+	printf "STATS: %s v%s completed in %d seconds",$progname, $version, (time-$script_start_time);
+	foreach my $key (sort keys %stats) {
+		printf ", %d %s",$stats{$key},$key;
+	}
+	printf "\n";
+}
+
+######################################################################################################
+
+sub write_data
+{
+	my $writer;
+
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	my $fh = new IO::File(">$opt->{outputfile}") || die "can't open $opt->{outputfile}: $!";
+	$writer_args{OUTPUT} = $fh;
+
+	$writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-name'   => "$progname $version",
+	      'generator-info-name' => "$progname $version"} );
+
+	$writer->write_channel( {
+		'display-name' => [[ 'Channel NSW', $opt->{lang} ]],
+		'id' => $channels->{'Channel NSW'} } );
+
+	foreach my $prog (sort keys %$tv_guide) {
+		if ($tv_guide->{$prog}->{stoptime} >= ($zerohr + ($opt->{offset} * 86400)) and
+		    ($tv_guide->{$prog}->{starttime} < ($zerohr + ($opt->{days} * 86400)))) {
+
+			# if we are fetching microgaps, skip if this isn't
+			# in a micro-gap
+			if (defined $opt->{gaps_file}) {
+				my $found_gap_match = 0;
+				foreach my $g (@{($gaps->{'Channel NSW'})}) {
+					my ($s, $e) = split(/-/,$g);
+
+					$found_gap_match = 1 if
+					   ((($s >= $tv_guide->{$prog}->{starttime}) &&
+					     ($s <= $tv_guide->{$prog}->{stoptime})) ||
+					    (($e >= $tv_guide->{$prog}->{starttime}) &&
+					     ($e <= $tv_guide->{$prog}->{stoptime})) ||
+					    (($s <= $tv_guide->{$prog}->{starttime}) &&
+					     ($e >= $tv_guide->{$prog}->{stoptime})));
+				}
+				if (!$found_gap_match) {
+					$stats{gaps_skipped}++;
+					next;
+				} else {
+					$stats{gaps_included}++;
+				}
+			}
+
+			$tv_guide->{$prog}->{start} = &nice_time($tv_guide->{$prog}->{starttime});
+			$tv_guide->{$prog}->{stop} = &nice_time($tv_guide->{$prog}->{stoptime});
+			delete $tv_guide->{$prog}->{daynum};
+			delete $tv_guide->{$prog}->{starttime};
+			delete $tv_guide->{$prog}->{stoptime};
+			&Shepherd::Common::cleanup($tv_guide->{$prog});
+
+			$writer->write_programme($tv_guide->{$prog});
+			$stats{progs}++;
+		}
+	}
+
+	$writer->end();
+}
+
+######################################################################################################

@@ -1,0 +1,111 @@
+<html>
+<head>
+ <title>Shepherd Statistics :: <TMPL_VAR NAME=NAME></title>
+ <link rel="stylesheet" type="text/css" href="/statstyles.css" media="all" />
+</head>
+<body class='home'>
+<h1>Component Statistics: <TMPL_VAR NAME=NAME> <font size=-1>(as of <TMPL_VAR NAME=NOW>)</font></h1>
+<table align=left>
+
+<tr><td align=left valign=top nowrap>
+<h2>Overview</h2>
+<p>by unique systems</p>
+<b><font color="lightgreen">Successes</font></b>
+<TMPL_LOOP NAME=SUCCESS>
+ <li>in last <TMPL_VAR NAME=TIMESLICE>: <b><TMPL_VAR NAME=SEEN></b> (previous <TMPL_VAR NAME=PREVIOUS>)</li>
+</TMPL_LOOP>
+<!-- <b>TOTAL: <u><TMPL_VAR NAME=SUCCESS_TOTAL></u></b><br> -->
+<br><b><font color="pink">Failures</font></b>
+<TMPL_LOOP NAME=FAILURE>
+ <li>in last <TMPL_VAR NAME=TIMESLICE>: <b><TMPL_VAR NAME=SEEN></b> (previous <TMPL_VAR NAME=PREVIOUS>)</li>
+</TMPL_LOOP>
+<!-- <b>TOTAL: <u><TMPL_VAR NAME=FAILURE_TOTAL></u></b> -->
+<br><b><font color="lightblue">Missing Data</font></b>
+<TMPL_LOOP NAME=MISSING>
+ <li>in last <TMPL_VAR NAME=TIMESLICE>: <b><TMPL_VAR NAME=SEEN></b> (previous <TMPL_VAR NAME=PREVIOUS>)</li>
+</TMPL_LOOP>
+<!-- <b>TOTAL: <u><TMPL_VAR NAME=MISSING_TOTAL></u></b> -->
+</td><td nowrap><br>
+<TMPL_LOOP NAME=GRAPHS_USAGE>
+ <TMPL_VAR NAME=GRAPH>
+</TMPL_LOOP>
+<TMPL_LOOP NAME=GRAPHS_MISSING>
+ <br><TMPL_VAR NAME=GRAPH>
+</TMPL_LOOP>
+</td></tr>
+
+<tr><td align=left valign=top nowrap colspan=2>
+<h2>Failures</h2>
+<p>Output from recent failures</p>
+<TMPL_LOOP NAME=FAILURE_MSGS>
+ <li><a href="/dev/stats/<TMPL_VAR NAME=FILE>.done"><TMPL_VAR NAME=TIMESTAMP></a> [<TMPL_VAR NAME=SYSID>]: exit code <b><TMPL_VAR NAME=CODE></b>: <TMPL_VAR NAME=MSG></li>
+</TMPL_LOOP>
+</td></tr>
+
+<tr><td align=left valign=top nowrap>
+<h2>Runs</h2>
+<p># of times <TMPL_VAR NAME=NAME> ran</p>
+<TMPL_LOOP NAME=RUNS_SEEN>
+ <li>in last <TMPL_VAR NAME=TIMESLICE>:<b><TMPL_VAR NAME=SEEN></b> (previous <TMPL_VAR NAME=PREVIOUS>)</li>
+</TMPL_LOOP>
+<b>TOTAL: <u><TMPL_VAR NAME=RUNS_SEEN_TOTAL></u></b>
+</td><td nowrap><br>
+<TMPL_LOOP NAME=GRAPHS_RUNS>
+ <TMPL_VAR NAME=GRAPH>
+</TMPL_LOOP>
+</td></tr>
+
+<TMPL_LOOP NAME=SUCCESS_FAILURE>
+  <tr><td align=left valign=top nowrap colspan=2>
+  <h2>Versions (<TMPL_VAR NAME=NAME>)</h2>
+  <TMPL_LOOP NAME=SFV_TIMESLICES>
+   <b>in last <TMPL_VAR NAME=TIMESLICE>:</b><br>
+   <TMPL_LOOP NAME=VERSIONS>
+     &nbsp;&nbsp;&nbsp;<b><TMPL_VAR NAME=TIMES></b>: <TMPL_VAR NAME=VERSION><br>
+   </TMPL_LOOP>
+  </TMPL_LOOP>
+  <tr><td align=left valign=top nowrap>
+  
+  <h2>Duration (<TMPL_VAR NAME=NAME>)</h2>
+  <b>How long <TMPL_VAR NAME=NAME> took to run (<TMPL_VAR NAME=NAME>):</b><br>
+  <TMPL_LOOP NAME=DURATIONS>
+   <li><b>in last <TMPL_VAR NAME=TIMESLICE>:</b><br>
+   &nbsp;&nbsp;&nbsp;Avg: <TMPL_VAR NAME=AVG> <i><font color=lightgreen>(green)</font></i><br>
+   &nbsp;&nbsp;&nbsp;Min: <TMPL_VAR NAME=MIN> <i><font color=lightblue>(blue)</font></i><br>
+   &nbsp;&nbsp;&nbsp;Max: <TMPL_VAR NAME=MAX> <i><font color=pink>(red)</font></i><br>
+   </li>
+  </TMPL_LOOP>
+  </td><td nowrap align=left>
+  
+  <TMPL_LOOP NAME=GRAPHS_DURATIONS>
+   <TMPL_VAR NAME=GRAPH>
+  </TMPL_LOOP>
+  </td></tr>
+</TMPL_LOOP>
+
+</table><br><br>
+<h2>Grabber-specific statistics</h2>
+<table align=left>
+
+<TMPL_LOOP NAME=STATISTICS>
+ <tr><td align=left valign=top nowrap>
+ <h2><TMPL_VAR NAME=STATNAME></h2>
+ <TMPL_LOOP NAME=TIMESLICES>
+  <li><b>in last <TMPL_VAR NAME=TIMESLICE>:</b><br>
+   &nbsp;&nbsp;&nbsp;Avg: <TMPL_VAR NAME=AVG> <i><font color=lightgreen>(green)</font></i><br>
+   &nbsp;&nbsp;&nbsp;Min: <TMPL_VAR NAME=MIN> <i><font color=lightblue>(blue)</font></i><br>
+   &nbsp;&nbsp;&nbsp;Max: <TMPL_VAR NAME=MAX> <i><font color=pink>(red)</font></i><br>
+   </li>
+ </TMPL_LOOP>
+ </td><td nowrap align=left>
+
+ <TMPL_LOOP NAME=GRAPHS_STATISTICS>
+  <TMPL_VAR NAME=GRAPH>
+ </TMPL_LOOP>
+
+</TMPL_LOOP>
+
+</td></tr></table>
+<br clear=all>
+</body>
+</html>

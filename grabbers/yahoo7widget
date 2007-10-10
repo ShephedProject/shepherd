@@ -1,0 +1,601 @@
+#!/usr/bin/perl -w
+
+# yahoo7_widget au_tv guide grabber - runs from "Shepherd" master grabber
+#  * written by ltd
+#  * uses yahoo7 widget for ABC/7/9/10/SBS (all they have)
+#  * when used in conjunction with Shepherd, shepherd can collect other channels
+#    using other grabbers
+#  * this does NOT use any config file - all settings are passed in from shepherd
+
+#  changelog:
+#    1.50  22sep06	added support for "shepherd" master grabber script
+#    1.51  02oct06      --ready option
+#    1.52  03oct06      split out yahoo7 grabber into its own grabber
+#    1.54  16oct06      put date/cast/credits/year into correct xmltv fields
+#    1.70  15dec06	sometimes there are holes in data; augment those from yahoo7web
+#    1.78  04feb07	remove augmenting - micrograbbing from other grabbers
+#			can now fill those in
+#    1.80  22feb07	bugfix: stop throwing away multiple category data
+#    1.81  01mar07      more informative error on no connectivity
+
+use strict;
+
+my $progname = "yahoo7widget";
+my $version = "1.92";
+
+use XMLTV;
+use XML::DOM;
+use XML::DOM::NodeList;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use HTML::TreeBuilder;
+use Data::Dumper;
+use Shepherd::Common;
+
+#
+# some initial cruft
+#
+
+my %month_map = ( qw{ Jan 0 Feb 1 Mar 2 Apr 3 May 4 Jun 5 Jul 6 Aug 7 Sep 8 Oct 9 Nov 10 Dec 11 } );
+
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels;
+my $tv_guide;
+my $time_offset = 0;
+my $input_xml;
+my $d;
+$| = 1;
+
+#
+# parse command line
+#
+
+my $opt;
+$opt->{outputfile} = 	"output.xmltv";	# default
+$opt->{days} = 		7;		# default
+$opt->{lang} =		"en";
+$opt->{region} =	94;
+
+GetOptions(
+	'region=i'	=> \$opt->{region},
+	'days=i'	=> \$opt->{days},
+	'offset=i'	=> \$opt->{offset},
+	'timezone=s'	=> \$opt->{timezone},
+	'channels_file=s' => \$opt->{channels_file},
+	'cachefile=s' => \$opt->{obsolete},
+	'output=s'	=> \$opt->{outputfile},
+	'fast'		=> \$opt->{fast},
+	'warper'	=> \$opt->{warper},
+	'lang=s'	=> \$opt->{lang},
+	'obfuscate'	=> \$opt->{obfuscate},
+	'rawout=s'	=> \$opt->{rawout},
+	'rawin=s'	=> \$opt->{rawin},
+	'scan-chan=s'	=> \$opt->{scanchan},
+	'debug+'	=> \$opt->{debug},
+	'help'		=> \$opt->{help},
+	'verbose'	=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'ready'		=> \$opt->{version},
+	'desc'		=> \$opt->{desc},
+	'v'		=> \$opt->{help});
+
+&help if (defined $opt->{help});
+
+if (defined $opt->{version} || defined $opt->{desc}) {
+	printf "%s %s\n",$progname,$version;
+	printf "%s is a details-aware grabber that collects very high quality data (full title/subtitle/description/genre and year/cast/credits data) using the Yahoo7 widget for ABC/7/9/10/SBS only.",$progname if (defined $opt->{desc});
+	exit(0);
+}
+
+# set defaults
+Shepherd::Common::set_default("debug", ($opt->{debug} * 2)) if (defined $opt->{debug});
+Shepherd::Common::set_default("webwarper", 1) if (defined $opt->{warper});
+Shepherd::Common::set_default("squid", 1) if (defined $opt->{obfuscate});
+Shepherd::Common::set_default("referer", "last");
+Shepherd::Common::set_default("retry_delay", 10);
+Shepherd::Common::setup_ua('agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)');
+
+&scan_channels if (defined $opt->{scanchan});
+die "no channel file specified, see --help for instructions\n", unless (defined $opt->{channels_file});
+
+$opt->{days} = 8 if $opt->{days} > 8;	# no data beyond 8 days
+
+#
+# go go go!
+#
+
+# normalize starttime to an hour..
+my $starttime = time - $time_offset;
+my $endtime = $starttime + ($opt->{days} * 86400);
+$starttime += (86400 * $opt->{offset}) if (defined $opt->{offset});
+&calculate_time_offset;
+
+&log(sprintf "going to grab %d days%s of data into %s (%s%s) region %s, time offset %d",
+	$opt->{days},
+	($opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+	$opt->{outputfile},
+	(defined $opt->{fast} ? "with haste" : "slowly"),
+	(defined $opt->{warper} ? ", anonymously" : ""),
+	$opt->{region}, $time_offset);
+
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt->{channels_file} could not be read\n";
+}
+
+unlink($opt->{rawout}) if (defined $opt->{rawout});
+
+if (defined $opt->{rawin}) {
+	&log("using previously fetched raw xml data from ".$opt->{rawin});
+	open(F,"<$opt->{rawin}") || die "could not read raw input $opt->{rawin}: $!\n";
+	while(<F>) {
+		$input_xml .= $_;
+	}
+	close(F);
+	&parse_xml_data($input_xml);
+} else {
+	for (my $currtime = $starttime; $currtime < $endtime; $currtime += 86400) {
+		# pace ourselves
+		if (($currtime != $starttime) && (!defined $opt->{fast})) {
+			my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
+			$stats{slept_for} += $sleeptimer;
+			sleep $sleeptimer;
+		}
+
+		# get data
+		my $tries = 5;
+		my $url = sprintf "http://au.tv.yahoo.com/widget.html?rg=%d&st=%d&et=%d", $opt->{region}, $currtime,($currtime+86400);
+		my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) = 
+		  Shepherd::Common::get_url(url => $url, retries => ($tries-1));
+
+		$stats{failed_requests} += $failed_attempts;
+		$stats{slept_for} += $seconds_slept;
+		$stats{bytes_fetched} += $bytes_fetched;
+
+		if ((!$data) || (!$success)) {
+			&log("Failed to fetch '$url' after $tries attempts.");
+
+			# if its our first page, abort now
+			if ($currtime == $starttime) {
+				&log("Aborting: likely format change or blocked!");
+				exit 10;
+			}
+			next;
+		}
+
+		if ($response and $response->header('Content-type') and $response->header('Content-type') eq 'xapplication/ywe-octet-stream') {
+			$stats{transformed_pages}++;
+			$data = &transform_output($data);
+		}
+
+		$stats{http_successful_requests}++;
+		&parse_xml_data($data);
+	}
+}
+
+&write_data;
+&print_stats;
+exit(0);
+
+######################################################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+$0 [options]
+    options are as follows:
+	--region=N		set region for where to collect data from (default: $opt->{region})
+	--channels_file=file	where to get channel data from (MANDATORY)
+	--days=N		fetch 'n' days of data (default: $opt->{days})
+	--output=file		send xml output to file (default: "$opt->{outputfile}")
+
+	--fast			don't run slow - get data as quick as you can - not recommended
+	--debug			increase debug level
+	--warper		fetch data using WebWarper web anonymizer service
+	--obfuscate		pretend to be a proxy servicing multiple clients
+	--lang=[s]		set language of xmltv output data (default $opt->{lang})
+	--timezone=HHMM		timezone for channel data (default: system-local timezone)
+
+	--scan-chan=(chanfile)	(debugging) check channel discrepancies
+	--rawin=(file), --rawout=(file) (debugging) feed raw XML in/out
+
+EOF
+;
+
+	exit(0);
+}
+
+######################################################################################################
+# yahoo7widget times are always localtime on Eastern States ..
+# we need to calculate the amount of time to offset the data to the user's local timezone.
+
+sub calculate_time_offset
+{
+	my $local_time_offset = POSIX::strftime("%z",localtime(time));
+
+	$ENV{TZ}="Australia/Melbourne";
+	my $melbourne_time_offset = POSIX::strftime("%z",localtime(time));
+
+	$time_offset =
+		((int(substr($melbourne_time_offset,1,2))-int(substr($local_time_offset,1,2)))*(60*60)) +
+		((int(substr($melbourne_time_offset,3,2))-int(substr($local_time_offset,3,2)))*(60));
+
+	# set TZ variable back to an appropriate setting
+	if ($opt->{region} =~ /^(74|108|81|107|82|83|85|86)$/) {
+		$ENV{TZ} = "Australia/Adelaide";	# NT/SA
+	} elsif ($opt->{region} =~ /^(101|102)$/) {
+		$ENV{TZ} = "Australia/Perth";		# WA
+	} elsif ($opt->{region} =~ /^(75|78|79|114)$/) {
+		$ENV{TZ} = "Australia/Brisbane";	# QLD
+	} elsif ($opt->{region} =~ /^(88)$/) {
+		$ENV{TZ} = "Australia/Hobart";		# TAS
+	} elsif ($opt->{region} =~ /^(63)$/) {
+		$ENV{TZ} = "Australia/Broken_Hill";	# NSW Broken Hill
+	} else {
+		$ENV{TZ} = "Australia/Melbourne";	# VIC/NSW
+	}
+}
+
+######################################################################################################
+# fixup any channel name quirks for this region
+
+sub region_channels
+{
+	my $r = shift;
+	my %chan_map;
+
+	if ($r == 71) { # Region 71 (NSW: Southern NSW)
+		push (@{($chan_map{"TEN"})}, "TEN (NSW: Southern NSW)", "TEN (Mildura Digital)");
+	} elsif ($r == 79) { # Region 79 (QLD: Regional)
+		push (@{($chan_map{"Seven"})}, "Seven (Rockhampton/Toowoomba)", "Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)", "Seven (Cairns)");
+		push (@{($chan_map{"WIN"})}, "WIN (QLD: Regional)", "WIN (Mackay/Wide Bay)");
+	} elsif ($r == 90) { # Region 90 (VIC: Eastern Victoria)
+		push (@{($chan_map{"Prime"})}, "Prime (Regional)", "Prime (Albury)");
+	}
+
+	return %chan_map;
+}
+
+######################################################################################################
+
+sub scan_channels
+{
+	my %REGIONS = (
+		126 => "ACT",               73 => "NSW: Sydney",            184 => "NSW: Newcastle",
+		66 => "NSW: Central Coast", 67 => "NSW: Griffith",          63 => "NSW: Broken Hill",
+		69 => "NSW: Northern NSW",  71 => "NSW: Southern NSW",      106 => "NSW: Remote and Central",
+		74 => "NT: Darwin",         108 => "NT: Remote & Central",  75 => "QLD: Brisbane",
+		78 => "QLD: Gold Coast",    79 => "QLD: Regional",          114 => "QLD: Remote & Central",
+		81 => "SA: Adelaide",       82 => "SA: Renmark",            83 => "SA: Riverland",
+		85 => "SA: South East SA",  86 => "SA: Spencer Gulf",       107 => "SA: Remote & Central",
+		88 => "Tasmania",           94 => "VIC: Melbourne",         93 => "VIC: Geelong",
+		90 => "VIC: Eastern Victoria", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Western Victoria",
+		101 => "WA: Perth",         102 => "WA: Regional");
+
+	my $now = time;
+	my %all_channels;
+
+	printf "\nScanning channels: (".$opt->{scanchan}.")\n\n";
+
+	#
+	# read shepherd channels
+	#
+	open(F,"<".$opt->{scanchan}) || die "could not open ".$opt->{scanchan}." for reading: $!\n";
+	while (<F>) {
+		chop;
+		$all_channels{$1} = $2 if (/^(\d+):(.*)$/);
+	}
+	close(F);
+
+	foreach my $r (sort { $a <=> $b } keys %REGIONS) {
+		printf "Region %d (%s): [%s]\n",$r,$REGIONS{$r},$all_channels{$r};
+
+		my %local_chan_map = region_channels($r);
+
+		# get shepherd channels
+		my %shepherd_channels;
+		foreach my $ch (split(/,/,$all_channels{$r})) {
+			$shepherd_channels{$ch} = 1;
+		}
+
+		#
+		# get widget channels
+		#
+		my $url = sprintf "http://au.tv.yahoo.com/widget.html?rg=%d&st=%d&et=%d", $r, $now,($now+86400);
+		my $tries = 2;
+		my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) = 
+		  Shepherd::Common::get_url(url => $url, retries => ($tries-1));
+
+		if ((!$data) || (!$success)) {
+			print "Failed to fetch '$url' after $tries attempts.";
+			next;
+		}
+
+		$data = &transform_output($data) if ($response->header('Content-type') and $response->header('Content-type') eq 'xapplication/ywe-octet-stream');
+
+		my $parser = new XML::DOM::Parser;
+		my $tree = $parser->parse($data);
+		my $tree_channels = $tree->getElementsByTagName("venue");
+		for (my $i = 0; $i < $tree_channels->getLength; $i++) {
+			my $channel = $tree_channels->item($i)->getAttributeNode("co_short")->getValue;
+
+			my $old_channel = "", my $new_channel;
+			$new_channel = splice(@{($local_chan_map{$channel})},0,1) if (defined $local_chan_map{$channel});
+			if (defined $new_channel) {
+				$old_channel = $channel;
+				$channel = $new_channel;
+			}
+
+			# for this channel get every programme ('event')
+			my $events = $tree_channels->item($i)->getElementsByTagName("event");
+
+			if (!defined $shepherd_channels{$channel}) {
+				$shepherd_channels{$channel} = 0;	# shepherd doesn't know about this channel, widget does
+			} elsif ($shepherd_channels{$channel} == 1) {
+				$shepherd_channels{$channel} = 2;	# both shepherd & widget know about channel
+			} elsif ($shepherd_channels{$channel} == 2) {
+				$shepherd_channels{$channel} = 3;	# shepherd/widget knew about channel but was duplicated!
+			} elsif ($shepherd_channels{$channel} == 0) {
+				;					# aiee. a duplicate of a channel that shepherd doesn't know about!
+			} else {
+				die "unhandled shepherd_channels case for '$channel' value ".$shepherd_channels{$channel};
+			}
+
+			printf "  %30s %s%s%s (%d progs)%s\n",
+				$channel, 
+				($shepherd_channels{$channel} == 0 ? "[Only known to Widget]" : ""),
+				($shepherd_channels{$channel} == 2 ? "[Known to both (good!)]" : ""),
+				($shepherd_channels{$channel} == 3 ? "[Known to both (good), but duplicate in widget]" : ""),
+				$events->getLength,
+				($old_channel ne "" ? " [translated from '$old_channel']" : "");
+		}
+
+		# any channels in Shepherd that Widget didn't return?
+		foreach my $ch (keys %shepherd_channels) {
+			printf "  %30s [Only known to Shepherd]\n", $ch if ($shepherd_channels{$ch} == 1);
+		}
+
+		printf "\n";
+	}
+
+	exit(0);
+}
+
+######################################################################################################
+# transcode ywe-octet-stream back into text
+
+sub transform_output
+{
+	my $data = shift;
+	my $datasize = length($data);
+
+	my @xform_map = (
+	  0x39, 0x9E, 0x05, 0x72, 0x6C, 0x06, 0x38, 0x15, 0x42, 0x1E, 0xB9, 0xFD, 0x4D, 0x08, 0x0C, 0x2E,
+	  0x57, 0xC7, 0x62, 0x6E, 0xC5, 0x3A, 0x3C, 0xA4, 0x1D, 0xC6, 0x3D, 0x18, 0x2D, 0x1B, 0x83, 0x20,
+	  0x78, 0xFC, 0xA5, 0xDE, 0x28, 0xE8, 0x3E, 0x9B, 0x7C, 0x22, 0x1C, 0x89, 0xFF, 0x52, 0x54, 0x43,
+	  0x51, 0x7F, 0x71, 0x40, 0x7A, 0xCF, 0x65, 0xE4, 0x36, 0xEB, 0xC9, 0x1F, 0x80, 0x9A, 0x31, 0x4A,
+	  0x45, 0xD4, 0x2B, 0x02, 0x4C, 0xF4, 0x53, 0xBD, 0xA8, 0xF9, 0x50, 0x61, 0x8A, 0xD5, 0xBF, 0x81,
+	  0xC0, 0xDB, 0xFE, 0xF7, 0xBA, 0xEC, 0xFA, 0x73, 0xA9, 0x8F, 0xB1, 0x70, 0x33, 0xCE, 0x60, 0xAC,
+	  0xB2, 0x58, 0x26, 0x85, 0x6B, 0x7D, 0x93, 0x03, 0x64, 0x47, 0x04, 0x88, 0x01, 0xA6, 0x3B, 0x90,
+	  0x98, 0xF5, 0x97, 0x3F, 0xF6, 0xD3, 0x94, 0xB7, 0x29, 0x07, 0x96, 0x6F, 0x14, 0x35, 0x8D, 0x2A,
+	  0x16, 0x17, 0x8B, 0xD1, 0x48, 0xD6, 0xF1, 0xE2, 0x79, 0x2C, 0x41, 0x5B, 0xBC, 0xB5, 0x68, 0xDC,
+	  0x49, 0xD2, 0x6A, 0xCC, 0x25, 0xB4, 0xAA, 0x63, 0x9C, 0x56, 0x4B, 0xB8, 0x87, 0x5E, 0x86, 0x09,
+	  0xC4, 0x95, 0xB6, 0x12, 0xF8, 0x84, 0x4E, 0x21, 0x32, 0xCA, 0x66, 0xC3, 0xBB, 0x27, 0xEE, 0xE0,
+	  0x1A, 0xD8, 0x6D, 0x4F, 0xAF, 0x82, 0xEF, 0xCD, 0x5F, 0x8C, 0x67, 0xA2, 0xCB, 0xED, 0xAB, 0xB0,
+	  0xA7, 0x92, 0x75, 0x5A, 0xF2, 0x0A, 0x0E, 0xE6, 0x7E, 0xC8, 0xE9, 0x19, 0x24, 0x37, 0x11, 0xA0,
+	  0xE3, 0xDD, 0xD7, 0x23, 0x9F, 0x00, 0xA1, 0xC1, 0x74, 0xF0, 0x99, 0x77, 0xAE, 0x91, 0x7B, 0xFB,
+	  0xD9, 0xDA, 0xC2, 0x44, 0x0D, 0x76, 0x10, 0x9D, 0xEA, 0xE7, 0xE5, 0x59, 0xF3, 0xD0, 0x5D, 0x2F,
+	  0x69, 0xAD, 0x34, 0x0F, 0x5C, 0x8E, 0xBE, 0x13, 0x30, 0x55, 0xE1, 0xDF, 0x0B, 0xB3, 0x46, 0xA3);
+	my ($xlate_pos1, $xlate_pos2, $xlate_pos3, $xlate_pos4) = (0,0,0,0);
+	my $outputdata;
+
+	return undef if (($datasize < 1) || (ord(substr($data,0,1)) != 1)); # not valid
+
+	for (my $pos = 1; $pos < $datasize; $pos++) {
+		$xlate_pos1 = ($xlate_pos1 + 1) % 256;
+		$xlate_pos3 = $xform_map[$xlate_pos1];
+		$xlate_pos4 = ($xlate_pos2 + $xlate_pos3) % 256;
+		$xlate_pos2 = $xform_map[$xlate_pos4];
+		$xform_map[$xlate_pos1] = $xlate_pos2;
+		$xlate_pos2 += $xlate_pos3;
+		$xform_map[$xlate_pos4] = $xlate_pos3;
+		$xlate_pos2 = $xlate_pos2 % 256;
+		$xlate_pos3 = $xform_map[$xlate_pos2];
+		$xlate_pos2 = $xlate_pos4;
+		$outputdata .= chr((((ord(substr($data,$pos,1))) % 256) ^ ($xlate_pos3 % 256)) % 256);
+	}
+	if (defined $opt->{rawout}) {
+		if (open(F,">>$opt->{rawout}")) {
+			print F $outputdata;
+			close F;
+		}
+	}
+	return($outputdata);
+}
+
+######################################################################################################
+
+sub log
+{
+	my ($entry) = @_;
+	printf "%s\n",$entry;
+}
+
+######################################################################################################
+
+sub print_stats
+{
+	printf "STATS: %s v%s completed in %d seconds",$progname,$version,(time-$script_start_time);
+	foreach my $key (sort keys %stats) {
+		printf ", %d %s",$stats{$key},$key;
+	}
+	printf "\n";
+}
+
+######################################################################################################
+# given yahoo7 xml data, parse it into 'shows' ..
+# parse it into $tv_guide->{$channel}->{data}->{$event_id}-> structures..
+
+sub parse_xml_data
+{
+	my $data = shift;
+
+	unless ($data) {
+	    print STDERR "ERROR: no data to parse.\n";
+	    return;
+	}
+
+	my %local_chan_map = region_channels($opt->{region});
+
+	my $parser = new XML::DOM::Parser;
+	my $tree = $parser->parse($data);
+	my $tree_channels = $tree->getElementsByTagName("venue");
+	for (my $i = 0; $i < $tree_channels->getLength; $i++) {
+		my $channel = $tree_channels->item($i)->getAttributeNode("co_short")->getValue;
+
+		# see if we need to do any mappings for this channel
+		my @mapped_channels;
+
+		if (defined $local_chan_map{$channel}) {
+			my $new_channel = splice(@{($local_chan_map{$channel})},0,1);
+			if (not $new_channel) {
+				&log("new unmapped channel for '$channel'");
+			} else {
+				&log("mapped '$channel' to '$new_channel'") if (defined $opt->{debug});
+				$channel = $new_channel;
+			}
+		}
+
+		if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
+			if (!defined $d->{ignored_channels}->{$channel}) {
+				$d->{ignored_channels}->{$channel} = 1;
+				$stats{skipped_channels}++;
+				&log("ignoring unknown channel '$channel'");
+			}
+			next;
+		}
+
+		# for this channel get every programme ('event')
+		my $events = $tree_channels->item($i)->getElementsByTagName("event");
+		for (my $j = 0; $j < $events->getLength; $j++) {
+			my $event = $events->item($j);
+			my $event_id = $event->getElementsByTagName("event_id")->item(0)->getFirstChild->getNodeValue;
+
+			# mandatory fields
+			my $event_start = 	$event->getElementsByTagName("event_date")->item(0)->getFirstChild->getNodeValue;
+			my $event_end =   	$event->getElementsByTagName("end_date")->item(0)->getFirstChild->getNodeValue;
+
+			if ($event_start < 10) {
+				$stats{progs_with_invalid_start}++;
+				printf "WARNING: programme with event_id '$event_id' had an invalid start time of '$event_start'; skipped\n";
+				next;
+			}
+			if ($event_end < 10) {
+				$stats{progs_with_invalid_end}++;
+				printf "WARNING: programme with event_id '$event_id' had an invalid end time of '$event_end'; skipped\n";
+				next;
+			}
+
+			$event_id = $event_start.":".$event_end.":".$event_id; # event_id actually isn't unique - so make it so
+
+			$stats{programmes}++;
+			$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
+
+			# wrap these non-mandatory fields in an eval so if they don't exist the script doesn't barf out
+			my %e;
+			foreach my $field ('title', 'subtitle', 'description_1', 'main_cast', 'year_released', 'rating',
+			  'genre', 'running_time', 'repeat', 'country', 'movie', 'premiere', 'final', 'captions', 'warnings', 
+			  'color', 'language', 'director', 'live') {
+				eval { $e{$field} = $event->getElementsByTagName("$field")->item(0)->getFirstChild->getNodeValue; };
+			}
+			# other fields we dont pick up but exist in source xml data include:
+			#  other_title, description_2, genre_id, highlight, ext_url, y7_url
+
+			my @categories;
+
+			push(@categories, [ "movie",$opt->{lang} ] ) if (($e{movie}) && ($e{movie} == 1));
+			push(@categories, [ "final",$opt->{lang} ] ) if (($e{final}) && ($e{final} == 1));
+			push(@categories, [ "live",$opt->{lang} ] ) if (($e{live}) && ($e{live} == 1));
+			push(@categories, [ Shepherd::Common::translate_category($e{genre}),$opt->{lang} ] ) if (($e{genre}) && ($e{genre} ne ""));
+
+			my %video_details;
+			$video_details{'colour'} = "yes" if $e{color};
+
+			my $rating = "";
+			$rating .= $e{rating} if $e{rating};
+			$rating .= " " if $e{rating} and $e{warnings};
+			$rating .= lc $e{warnings} if $e{warnings};
+
+			# store it in the correct XMLTV schema!
+			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channels->{$channel} if (defined $channels->{$channel});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $opt_channels->{$channel} if (defined $opt_channels->{$channel});
+
+			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = 	POSIX::strftime("%Y%m%d%H%M", localtime($event_start+$time_offset));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 		POSIX::strftime("%Y%m%d%H%M", localtime($event_end+$time_offset));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $e{title}, $opt->{lang} ]] if $e{title};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $e{subtitle}, $opt->{lang} ]] if $e{subtitle};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $e{description_1}, $opt->{lang} ]] if $e{description_1};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ @categories ] if @categories;
+			$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[[ $e{country}, $opt->{lang} ]] if $e{country};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'premiere'} = 	[ 'premiere', $opt->{lang} ] if $e{premiere};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]] if $rating ne "";
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $e{main_cast}) ] if $e{main_cast};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'director'} = [ split(/, /, $e{director}) ] if $e{director};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'date'} = 	$e{year_released} if $e{year_released};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'previously-shown'} = { } if $e{repeat};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ] if $e{captions};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'last-chance'} = 	[ 'final', $opt->{lang} ] if $e{final};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'video'} = 	\%video_details;
+			$tv_guide->{$channel}->{data}->{$event_id}->{'length'} = 	($e{running_time} * 60) if $e{running_time};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'language'} = 	[ $e{language}, $opt->{lang} ] if $e{language};
+
+			$d->{seen_progs}->{$channel}++;
+		}
+	}
+	$tree->dispose;
+}
+
+######################################################################################################
+
+sub write_data
+{
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($opt->{outputfile}) {
+		my $fh = new IO::File(">$opt->{outputfile}")  or die "can't open $opt->{outputfile}: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	my $writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-name'   => "$progname $version",
+	      'generator-info-name' => "$progname $version"} );
+
+	for my $channel (sort keys %{$channels}) {
+		$writer->write_channel( {'display-name' => [[ $channel, $opt->{lang} ]], 'id' => $channels->{$channel}} )
+		  if (defined $d->{seen_progs}->{$channel});
+	}
+	for my $channel (sort keys %{$opt_channels}) {
+		$writer->write_channel( {'display-name' => [[ $channel, $opt->{lang} ]], 'id' => $opt_channels->{$channel}} )
+		  if (defined $d->{seen_progs}->{$channel});
+	}
+
+	for my $channel (sort keys %{($d->{seen_progs})}) {
+		for my $event_id (sort {$a cmp $b} keys %{($tv_guide->{$channel}->{data})}) {
+			my $show = $tv_guide->{$channel}->{data}->{$event_id};
+			Shepherd::Common::cleanup($show);
+			$writer->write_programme($show);
+		}
+	}
+
+	$writer->end();
+}
+
+######################################################################################################
+

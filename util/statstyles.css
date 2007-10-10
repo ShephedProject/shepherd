@@ -1,0 +1,50 @@
+a { 
+    color: #F6B620; 
+    text-decoration: none; 
+    border-bottom: 1px dotted #F6B620; 
+}
+a:hover { 
+    border: 1px dotted #FFEE40; 
+}
+html, body, table { 
+    margin: 0; 
+    padding: 0; 
+    color: #c0bcb0; 
+    font: normal 12px Verdana; 
+}
+body { 
+    text-align: left; 
+    margin: 1em 10 10 20; 
+}
+body.home { 
+    background: #474642; 
+}
+body.home h1 { 
+    font: bold 36px/.8em Slyphaen, Times, serif; 
+    color: #F6B620; 
+    border-bottom: 3px solid #F6B620; 
+    padding: 0; 
+    clear: both; 
+    text-align: left; 
+}
+body.home h2 { 
+    font: normal 24px/.8em Slyphaen, Times, serif; 
+    color: #DFB020; 
+    padding: 0; 
+    clear: both; 
+    margin: 20 0 10 0; 
+}
+body.home p { 
+    clear: both; 
+}
+table { 
+    border-top: 1px dotted; 
+    padding: 3px; 
+    cellpadding: 3px; 
+}
+td { 
+    border-bottom: 1px dotted; 
+}
+input { 
+    font: bold 12px Arial; 
+}

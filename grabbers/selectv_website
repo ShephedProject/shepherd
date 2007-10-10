@@ -1,0 +1,625 @@
+#!/usr/bin/perl -w
+
+# selectv_website - 2nd australian satellite paytv grabber
+# based on foxtel_swf
+#  * grabs data from www.selectv.com
+#  * this does NOT use any config file - all settings (channels) are passed in from shepherd
+
+# program flow:
+# 1  generic shepherd init stuff
+# 2  scrape the main tv guide page at http://www.selectv.com/go/tv-guide
+# 3  for each day (today to +7 days) 
+#  3.1  for each channel
+#   3.1.1  grab the file /files/tvguide/${CHANID}DAY${DATE(YYYYMMDD)}.html
+#   3.1.2  parse this file - these pages are SIMPLE to parse!
+#   3.1.3  stuff parsed data into program guide data structure
+# 4  write xmltv file
+
+use strict;
+
+my $progname = "selectv_website";
+my $version = "0.02";
+
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use Data::Dumper;
+use Shepherd::Common;
+
+#
+# global variables and settings
+#
+
+$| = 1;
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels, my $gaps;
+my $writer;
+my $opt;
+
+#
+# parse command line
+#
+
+$opt->{days} =          7;			# default
+$opt->{outputfile} =    "output.xmltv";		# default
+$opt->{lang} =		"en";
+
+GetOptions(
+	'log-http'	=> \$opt->{log_http},
+	'region=i'	=> \$opt->{region},
+	'days=i'	=> \$opt->{days},
+	'offset=i'	=> \$opt->{offset},
+	'timezone=s'	=> \$opt->{timezone},
+	'channels_file=s' => \$opt->{channels_file},
+	'gaps_file=s'	=> \$opt->{gaps_file},
+	'output=s'	=> \$opt->{outputfile},
+	'fast'		=> \$opt->{fast},
+	'debug+'	=> \$opt->{debug},
+	'all_channels'	=> \$opt->{all_channels},
+	'warper'	=> \$opt->{warper},
+	'lang=s'	=> \$opt->{lang},
+	'obfuscate'	=> \$opt->{obfuscate},
+	'anonsocks=s'	=> \$opt->{anon_socks},
+	'help'		=> \$opt->{help},
+	'verbose'	=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'ready'		=> \$opt->{version},
+	'v'		=> \$opt->{help});
+
+&help if ($opt->{help});
+
+if ($opt->{version}) {
+	Shepherd::Common::log(sprintf "%s %s",$progname,$version);
+	exit(0);
+}
+
+die "no channel file specified, see --help for instructions\n", if (!$opt->{channels_file});
+
+#
+# go go go!
+#
+
+Shepherd::Common::log(sprintf "%s v%s going to %sgrab %d days%s of data into %s (%s%s%s)",
+	$progname, $version,
+	(defined $opt->{gaps_file} ? "micro-gap " : ""),
+	$opt->{days},
+	(defined $opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+	$opt->{outputfile},
+	(defined $opt->{fast} ? "with haste" : "slowly"),
+	(defined $opt->{anon_socks} ? ", via multiple endpoints" : ""),
+	(defined $opt->{warper} ? ", anonymously" : ""));
+
+# read channels file
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt->{channels_file} could not be read\n";
+}
+
+# set defaults
+Shepherd::Common::set_default("debug", (defined $opt->{debug} ? 2 : 0));
+Shepherd::Common::set_default("webwarper", 1) if (defined $opt->{warper});
+Shepherd::Common::set_default("squid", 1) if (defined $opt->{obfuscate});
+Shepherd::Common::set_default("referer", "http://www.selectv.com/go/tv-guide");
+Shepherd::Common::set_default("delay" => "0-4") if (!defined $opt->{fast});
+Shepherd::Common::set_default("retry_delay", 10);
+Shepherd::Common::set_defaults(stats => \%stats);
+Shepherd::Common::setup_socks($opt->{anon_socks}) if (defined $opt->{anon_socks});
+
+#local %ENV; $ENV{TZ} = 'Australia/Sydney'; POSIX::tzset();
+
+&start_writing_xmltv;
+&get_days();
+$writer->end();
+
+Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
+exit(0);
+
+##############################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+options are as follows:
+	--help			show these help options
+	--days=N		fetch 'n' days of data (default: $opt->{days})
+	--output=file		send xml output to file (default: "$opt->{outputfile}")
+	--fast			don't run slow - get data as quick as you can - not recommended
+	--anonsocks=(ip:port)	use SOCKS4A server at (ip):(port) (for Tor: recommended)
+
+	--debug			increase debug level
+	--warper		fetch data using WebWarper web anonymizer service
+	--obfuscate		pretend to be a proxy servicing multiple clients
+	--lang=[s]		set language of xmltv output data (default $opt->{lang})
+
+	--channels_file=file	where to get channel data from
+
+EOF
+;
+
+	exit(0);
+}
+
+##############################################################################
+
+sub start_writing_xmltv
+{
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($opt->{outputfile}) {
+		my $fh = new IO::File(">$opt->{outputfile}") || die "can't open $opt->{outputfile}: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	$writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-name' => "$progname $version",
+	      'generator-info-name' => "$progname $version"} );
+}
+
+##############################################################################
+
+sub fetch_channels_selectv
+{
+	my $data = &Shepherd::Common::get_url("http://www.selectv.com/go/tv-guide");
+	die "Failed to get channel list" if !$data;
+	
+	my %channel_to_webid;
+	while ($data =~ /<option value="(.+?)">(.+?)<\/option>/sg)
+	{
+		my $value = $1;
+		my $ch = $2;
+		$ch =~ s/[ \t()\[\]\+\.\-]//g;	# remove special chars
+		$ch =~ s/(&amp;|&)/and/g;	# &amp; to and
+		$ch =~ s|[/,].*||;		# and deleting after / or ,
+
+		$channel_to_webid{$ch} = $value;
+	}
+
+	return %channel_to_webid;
+}
+
+##############################################################################
+
+sub choose_channel_lineup
+{
+	# also in shepherd
+	my %SelecTV_to_Foxtel = (
+		"AnimalPlanet" => "AnimalPlanet",
+		"AntennaGreek" => "AntennaGreek",		# SelecTV only
+		"BBCWorld" => "BBCWorld",
+		"CartoonNetwork" => "CartoonNetwork",
+		"CNNI" => "CNN",				# rename
+		"DiscoveryScience" => "DiscoveryScience",
+		"DiscoveryHomeandHealth" => "DiscoveryHealth",	# rename
+		"DiscoveryTravelandLiving" => "DiscoveryTravel",# rename
+		"DiscoveryRealTime" => "DiscoveryRealTime",	# SelecTV and OzTivo
+		"E!Entertainment" => "E!Entertainment",
+		"ERTGreek" => "ERTGreek",			# SelecTV only
+		"Eurosport" => "Eurosportnews",			# rename
+		"FashionTV" => "FashionTV",
+		"MovieExtra" => "MOVIEEXTRA",			# rename
+		"MovieGreats" => "MOVIEGREATS",			# rename
+		"MovieOne" => "MOVIEONE",			# rename
+		"MovieTwo" => "MOVIETWO",			# rename
+		"MTV" => "MTV",
+		"NatGeoAdventure" => "NatGeoAdventure",
+		"NationalGeographic" => "NationalGeographic",
+		"Ovation" => "Ovation",
+		"SkyRacing" => "SkyRacing",
+		"TurnerClassicMovies" => "TCM",			# rename
+		"TVChileSpanish" => "TVChileSpanish",		# SelecTV and OzTivo
+		"TVE" => "TVE",					# SelecTV and OzTivo
+		"VH1" => "VH1"
+	);
+	my %Foxtel_to_SelecTV = reverse %SelecTV_to_Foxtel;
+
+	my %channel_to_webid = &fetch_channels_selectv;
+
+	my %channels;
+	foreach my $ch (keys %$opt_channels) {
+
+		next if (substr($ch,-2) eq 'HD' && $channels->{substr($ch,0,-2)});
+
+		if (!exists $Foxtel_to_SelecTV{$ch}) {
+			Shepherd::Common::log("Ignoring map unknown channel : $ch");
+			next;
+		}
+		my $selectv_ch = $Foxtel_to_SelecTV{$ch};
+
+		if (!grep($_ eq $selectv_ch, keys %channel_to_webid)) {
+			Shepherd::Common::log("Ignoring web unknown channel : $ch ($selectv_ch)");
+			next;
+		}
+
+		# webid = xmlid
+		$channels{$channel_to_webid{$selectv_ch}} = $opt_channels->{$ch};
+
+		$writer->write_channel( {'display-name' => [[ $ch, $opt->{lang} ]], 'id' => $opt_channels->{$ch} } );
+	}
+
+	die "no channels found to include. aborting! (channels:".
+			join(",",keys %$channels).", opt_channels:".
+			join(",",keys %$opt_channels)."\n"
+			if (!%channels);
+
+	return %channels;
+}
+
+##############################################################################
+
+sub get_days
+{
+	my %channels = &choose_channel_lineup;
+
+	Shepherd::Common::log("Fetching program data for ".scalar(keys(%channels))." channels");
+
+	$opt->{offset} = 0 if !$opt->{offset};
+
+	my @timeattr = localtime($script_start_time);
+	# 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+	$timeattr[0] = 0; # zero sec
+	$timeattr[1] = 0; # zero min
+	$timeattr[2] = 0; # zero hour
+	$timeattr[3] += $opt->{offset}; # day
+	my $first_day = mktime(@timeattr); # don't return anything before first day
+	# guide pages have part days so grab day before
+	$timeattr[3]--; # day
+
+	my $progs;
+	foreach my $day (($opt->{offset}-1) .. ($opt->{days}-1)) {
+		my $date = mktime(@timeattr);
+		$timeattr[3]++; # day
+	
+		&Shepherd::Common::log("Fetching day $day");
+
+		my $progs_in_day = &get_day($first_day, $date, %channels);
+		last if ($progs_in_day == 0 && $day >= 0);
+
+		&Shepherd::Common::log("  found $progs_in_day programmes.");
+  }
+}
+
+##############################################################################
+
+sub get_day
+{
+	my ($first_day, $date, %channels) = @_;
+
+	Shepherd::Common::log(" - ".POSIX::strftime("Grabbing data for %a %e %b", localtime($date)) . " ...")
+ 		if ((defined $opt->{debug}) && ($opt->{debug} > 0));
+
+	my @epg;
+
+	# time offset for program guide data, in hours
+	# default to 10
+	my $timeoffset = 10;
+	my $program_num = 0;
+
+	foreach my $ch (keys %channels) {
+#next unless $ch_id eq "215";
+#next unless $ch_id eq "EN4";
+#next unless $ch_id eq "EN5";
+#next unless $ch_id eq "113";
+#next unless $ch_id eq "EN6";
+#next unless $ch_id eq "216";
+#next unless $ch_id eq "218";
+#next unless $ch_id eq "217";
+#next unless $ch_id eq "219";
+#next unless $ch_id eq "312";
+#next unless $ch_id eq "EN3";
+#next unless $ch_id eq "111";
+#next unless $ch_id eq "EN7";
+#next unless $ch_id eq "307";
+#next unless $ch_id eq "308";
+#next unless $ch_id eq "306";
+#next unless $ch_id eq "309";
+#next unless $ch_id eq "303";
+#next unless $ch_id eq "311";
+#next unless $ch_id eq "301";
+#next unless $ch_id eq "313";
+#next unless $ch_id eq "112";
+#next unless $ch_id eq "305";
+#next unless $ch_id eq "201";
+#next unless $ch_id eq "115";
+#next unless $ch_id eq "304";
+
+		#   3.1.1  grab the file /files/tvguide/${CHANID}DAY${DATE(YYYYMMDD)}.html
+		my $url = "http://www.selectv.com/files/tvguide/" . $ch
+				. "DAY" . POSIX::strftime("%Y%m%d", localtime($date)) . ".html";
+        	my $data = &Shepherd::Common::get_url($url);
+		if (!$data) {
+			Shepherd::Common::log("Failed to get day channel ".$url);
+			$stats{failed_day_channel}++;
+			next;
+		}
+
+		Shepherd::Common::log("DEBUG: html: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+
+		# data looks like:
+		# <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+		# <html>
+		# <head>
+		# 	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+		# 	<title>SelecTV Guide</title>
+		# 	<link href="/selectvguide.css" rel="stylesheet" type="text/css" />
+		# </head>
+		# <body>
+		# 	<div id="SERVICE">EN6</div>
+		# 	<div id="TIMEOFFSET">10</div>
+		# 	<div id="DELETE_EVENT_SECTION">
+		# 		<div id="DELRANGE">
+		# 			<div id="START_DATE">2007/07/29</div>
+		# 			<div id="START_TIME">00:00:00</div>
+		# 			<div id="END_DATE">2007/07/30</div>
+		# 			<div id="END_TIME">00:00:00</div>
+		# 		</div>
+		# 	</div>
+		# 	<div id="EVENT_SECTION">
+		# 		<div id="START">
+		# 			<div id="DATE">Sun, Jul 29</div>
+		# 			<div id="TIME">12:00 AM</div>
+		# 		</div>
+		# 		<div id="EVENTID">EN6X070729000000</div>
+		# 		<div id="EPG_SECTION">
+		# 			<div id="DURATION">00:30:00</div>
+		# 			<div id="EPG">
+		# 				<div id="NAME">Quest </div>
+		# 				<div id="SYNOPSIS"><a href="#" class="info"><img src="/img/i.gif" width="17" height="17" /><span>Every month join Richard Quest on his quest for the secrets of genius, leadership and inspiration on QUEST. </span></a></div>
+		# 				<div id="LOG_LINE"> </div>
+		# 			</div>
+		# 			<div id="RATING">G</div>
+		# 		</div>
+		# 		<div class="clear"></div>
+		# 	</div>
+		# 	</EVENT_SECTION>
+		# </body>
+		# </html>
+
+		# epg_state - state machine for the EPG
+		# 0 = outside all known states
+		# 1 = inside an EVENT_SECTION
+		# 2 = inside a START
+		# 3 = inside an EPG_SECTION
+		# 4 = inside an EPG
+		my $epg_state = 0;
+
+		# might be easier using some kind of HTML parser?
+		# Real Men write their own parsers ;-)
+		foreach my $line (split /\r?\n/, $data)
+		{
+			#print STDERR "got line $line with state $epg_state and num $program_num\n";
+			if($epg_state == 0)
+			{
+				# make sure we have data for this channel
+				if($line =~ /<p>The data for this channel\/date combination is not currently available to SelecTV.<\/p>/)
+				{ last }
+				# make sure this file is what we expect it to be!
+				if($line =~ /<div id="SERVICE">(.+?)<\/div>/)
+				{ last if $ch ne $1; next }
+				# find the time offset
+				elsif($line =~ /<div id="TIMEOFFSET">(\d+)<\/div>/)
+				{ $timeoffset = $1; next }
+				# transition state machine to EVENT_SECTION
+				elsif($line =~ /<div id="EVENT_SECTION">/)
+				{ $epg_state = 1; next }
+				# some other random crap
+				else
+				{ next }
+			}
+			elsif($epg_state == 1)
+			{
+				if($line =~ /<div id="START">/)
+				{ $epg_state = 2; next }
+				elsif($line =~ /<div id="EPG_SECTION">/)
+				{ $epg_state = 3; next }
+				# random crap, but can throw off parsing
+				elsif($line =~ /<div id="EVENTID">.+<\/div>/)
+				{ next }
+				elsif($line =~ /<div class="clear"><\/div>/)
+				{ next }
+				elsif($line =~ /<\/div>/)
+				{
+					$epg[$program_num]->{CHANNEL} = $ch;
+					$program_num++;
+					$epg_state = 0;
+					next;
+				}
+				else
+				{ next }
+			}
+			elsif($epg_state == 2)
+			{
+				if($line =~ /<div id="DATE">(.+?)<\/div>/)
+				{
+					# date = Sun, Jul 29 (dayname, monthname dayofmonth)
+					$epg[$program_num]->{DATE} = $1;
+				}
+				elsif($line =~ /<div id="TIME">(.+?)<\/div>/)
+				{
+					# time = 11:30 PM (hh:mm AM/PM)
+					$epg[$program_num]->{TIME} = $1;
+				}
+				elsif($line =~ /<\/div>/)
+				{ $epg_state = 1; next }
+				else
+				{ next }
+			}
+			elsif($epg_state == 3)
+			{
+				if($line =~ /<div id="EPG">/)
+				{ $epg_state = 4; next }
+				elsif($line =~ /<div id="DURATION">(.+?)<\/div>/)
+				{
+					# duration = 00:30:00 (hh:mm:ss)
+					$epg[$program_num]->{DURATION} = $1;
+				}
+				elsif($line =~ /<div id="RATING">(.+?)<\/div>/)
+				{
+					# OFLC rating (G, PG, M, MA, etc)
+					$epg[$program_num]->{RATING} = $1;
+				}
+				elsif($line =~ /<\/div>/)
+				{ $epg_state = 1; next }
+				else
+				{ next }
+			}
+			elsif($epg_state == 4)
+			{
+				if($line =~ /<div id="NAME">(.+?)\s*<\/div>/)
+				{
+					$epg[$program_num]->{NAME} = $1;
+				}
+				elsif($line =~ /<div id="SYNOPSIS"><a href="#" class="info"><img src="\/img\/i.gif" width="17" height="17" \/><span>(.+?)\s*<\/span><\/a><\/div>/)
+				{
+					$epg[$program_num]->{SYNOPSIS} = $1;
+				}
+				elsif($line =~ /<div id="LOG_LINE">(.+?)\s*<\/div>/)
+				{
+					my $result = $1;
+					if(!defined($result) || ($result =~ /^$/) || ($result =~ /^\s+$/))
+					{ $epg[$program_num]->{LOG_LINE} = "-" }
+					else
+					{ $epg[$program_num]->{LOG_LINE} = $result; }
+				}
+				elsif($line =~ /<\/div>/)
+				{ $epg_state = 3; next }
+				else
+				{ next }
+			}
+			else
+			{ die "Unknown epg_state = $epg_state (should be 0..4)\n" }
+		}
+	}
+
+	Shepherd::Common::log("   write xml for up to ".(scalar(@epg))." progs ...")
+		if ((defined $opt->{debug}) && ($opt->{debug} > 0));
+
+	# gather up programmes
+	my $prog_count = 0;
+	my %monthmap = (Jan=>0,Feb=>1,Mar=>2,Apr=>3,May=>4,Jun=>5,Jul=>6,Aug=>7,Sep=>8,Oct=>9,Nov=>10,Dec=>11);
+
+	foreach my $prog_ref (@epg) {
+		my $prog;
+
+		$prog->{title} = [[ $prog_ref->{'NAME'}, $opt->{lang} ]];
+
+		# duration is hh:mm:ss
+		if ((defined $prog_ref->{'DURATION'}) && ($prog_ref->{'DURATION'} =~ /^(\d{1,2}):(\d{1,2}):(\d{1,2})$/)) {
+			$prog->{length} = int(($1 * 3600) + ($2 * 60) + $3);
+		} else {
+			Shepherd::Common::log("unparsable duration ".$prog_ref->{'DURATION'});
+			$stats{skipped_prog_no_duration}++;
+			next;
+		}
+
+		if (defined $prog_ref->{'DATE'} && defined $prog_ref->{'TIME'})
+		{
+			# date = Sun, Jul 29 (dayname, monthname dayofmonth)
+			my @timeattr = localtime($script_start_time);
+			# 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+			$timeattr[0] = 0;
+			if ($prog_ref->{'DATE'} =~ /^\w{3}, (\w{3}) +(\d{1,2})$/) {
+				$timeattr[3] = $2; # day
+				my $month = $monthmap{$1};
+				if ($month == 0 && $timeattr[4] == 12) {
+					$timeattr[5]++; # year
+				}
+				$timeattr[4] = $month; # month
+			} else {
+				$stats{skipped_prog_bad_starttime}++;
+				Shepherd::Common::log("unparsable date " . $prog_ref->{'DATE'} . " (should be e.g. Sun, Jul 29)" );
+				next;
+			}
+
+			if ($prog_ref->{'TIME'} =~ /^(\d{1,2}):(\d{2}) (AM|PM)$/)
+			{
+				# time = 11:30 PM (hh:mm AM/PM)
+				$timeattr[2] = $1; # hour
+				$timeattr[1] = $2; # min
+				if ($3 eq "PM" && $timeattr[2] != 12) {
+					$timeattr[2] += 12
+				} elsif ($3 eq "AM" && $timeattr[2] == 12) {
+					$timeattr[2] = 0;
+				}
+			} else {
+				$stats{skipped_prog_bad_starttime}++;
+				Shepherd::Common::log("unparsable time " . $prog_ref->{'TIME'} . " (should be e.g. 11:30 PM)" );
+				next;
+			}
+
+			my $prog_start = mktime(@timeattr);
+			my $prog_stop = $prog_start + $prog->{length};
+
+			my $prog_tz = "+".$timeoffset."00";
+
+			$prog->{start} = POSIX::strftime("%Y%m%d%H%M", localtime($prog_start))." ".$prog_tz;
+			$prog->{stop} =  POSIX::strftime("%Y%m%d%H%M", localtime($prog_stop))." ".$prog_tz;
+
+			# don't return anything before first day
+			next if ($prog_stop <= $first_day);
+		}
+		else
+		{
+			$stats{skipped_prog_bad_starttime}++;
+			Shepherd::Common::log("non-existant date " . $prog_ref->{'DATE'} . " or time " . $prog_ref->{'TIME'});
+			next;
+		}
+
+		if ((defined $prog_ref->{'CHANNEL'}) && (exists $channels{$prog_ref->{'CHANNEL'}})) {
+			$prog->{channel} = $channels{$prog_ref->{'CHANNEL'}};
+		} else {
+			$stats{skipped_prog_bad_channel}++;
+			next;
+		}
+
+		$prog->{rating} = [[ $prog_ref->{'RATING'}, 'ABA', undef ]]
+				if $prog_ref->{'RATING'} && $prog_ref->{'RATING'} ne "-";
+
+		if ((defined $prog_ref->{'LOG_LINE'}) && ($prog_ref->{'LOG_LINE'} ne "-")) {
+			my $subtitle = $prog_ref->{'LOG_LINE'};
+			# either a movie with date and cast
+			if ($subtitle =~ s/^((19|20)\d\d)//) {
+ 				# date is front of sub-title without brackets
+				$prog->{date} = $1;
+				# cast is in sub-title without brackets
+				foreach (split(',',$subtitle)) {
+					push(@{($prog->{credits}->{actor})},$_);
+				}
+				push(@{$prog->{category}}, ['movie', undef]);
+			} else { # or a sub-title
+				$prog->{'sub-title'} = [[ $subtitle, $opt->{lang} ]]
+			}
+		}
+
+		if ((defined $prog_ref->{'SYNOPSIS'}) && ($prog_ref->{'SYNOPSIS'} ne "")) {
+			my $desc = $prog_ref->{'SYNOPSIS'};
+			# sub-rating is front of description without brackets
+ 			$prog->{rating}->[0]->[0] .= " $1" if ($desc =~ s/^(([a-z],)*[a-z]) //);
+			$prog->{subtitles} = [ { 'type' => 'teletext' } ]
+					if ($desc =~ s/ CC$//);
+			$desc =~ s/\*\*MISSING\*\*//g;
+			$desc =~ s/(^\s+|\s+$)//g;
+			$prog->{desc} = [[ $desc, $opt->{lang} ]] if length($desc) > 0;
+		}
+
+		Shepherd::Common::cleanup($prog);
+
+		Shepherd::Common::log("DEBUG: xmltv: ".Dumper($prog))
+				if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+
+		$writer->write_programme($prog);
+
+		$prog_count++;
+		$stats{programmes}++;
+	}
+
+	return $prog_count;
+}
+
+##############################################################################

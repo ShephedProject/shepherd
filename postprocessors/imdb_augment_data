@@ -1,0 +1,1193 @@
+#!/usr/bin/perl -w
+
+# IMDb XMLTV data augmenter  <ltd@interlink.com.au>
+#
+#  * to be used as a postprocessor for XMLTV data
+#  * uses The Internet Movie Database (www.imdb.com) to augment TV guide data;
+#    contacts www.imdb.com to collect actual movie details
+#  * this should only be used for non-commercial use.
+#    please follow the IMDb terms and conditions.
+#  * can be used in conjunction with 'shepherd' XMLTV reconciler or standalone
+#    (pipe-through)
+#  * no configuration necessary
+#
+#  based roughly on a few existing IMDB XMLTV modules and IMDB CPAN modules
+#  but doesn't actually use them due to the large number of interdependencies
+#  they drag in.
+#     much credit goes to Michael Stepanov for his excellent IMDB::Film module
+#     and the regex's used to match data from IMDb pages
+#
+#  changelog:
+#    0.01 09aug06 ltd	initial version
+#    0.03 19aug06 ltd	actually do imdb lookups & augment data
+#    0.09 09feb07 paulx variety of fixes from paulx@andreassen.com.au
+#                       as per trac ticket #31
+
+use strict;
+
+my $progname = "imdb_augment_data";
+my $version = "0.35";
+
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use HTML::TokeParser;
+use Data::Dumper;
+use HTML::TreeBuilder;
+use Shepherd::Common;
+
+#
+# some initial cruft
+#
+
+my $script_start_time = time;
+my %stats;
+my $data_cache;
+my $settings_override = { };
+
+$| = 1;
+
+#
+# parse command line
+#
+
+my $opt = { };
+$opt->{output_file} =		"output.xmltv";
+$opt->{cache_file} =		"imdb_augment_data.storable.cache";
+$opt->{lang} = 			"en";
+$opt->{debug} =			0;
+$opt->{min_duration} =		65;	# 65 mins
+$opt->{max_duration} =		240;	# 4 hours
+$opt->{skip_categories} = 	"Infotainment,Shopping,Business and Finance,Game Show,News,Parliament,Current Affairs,sports,Sport,Weather,Reality,live";
+$opt->{cache_details_for} =	120;	# cache movie details for 4 months
+$opt->{cache_title_for} = 	120;	# cache title lookups for 4 months
+
+GetOptions(
+	'region=i'		=> \$opt->{region},		# ignored
+	'days=i'		=> \$opt->{days},		# ignored
+	'offset=i'		=> \$opt->{offset},		# ignored
+	'timezone=s'		=> \$opt->{timezone},		# ignored
+	'channels_file=s' 	=> \$opt->{channels_file},	# ignored
+	'config-file=s'		=> \$opt->{configfile},		# ignored
+
+	'min_duration=i' 	=> \$opt->{min_duration},
+	'max_duration=i' 	=> \$opt->{max_duration},
+	'skip_categories=s'	=> \$opt->{skip_categories},
+	'cache_details_for=i' 	=> \$opt->{cache_details_for},
+	'cache_title_for=i' 	=> \$opt->{cache_title_for},
+	'long-info'             => \$opt->{long_info},
+	'dont-augment-desc' 	=> \$opt->{dont_augment_desc},
+
+	'output=s'		=> \$opt->{output_file},
+	'cache-file=s'		=> \$opt->{cache_file},
+	'fast'			=> \$opt->{fast},
+	'no-cache'		=> \$opt->{no_cache},
+	'debug+'		=> \$opt->{debug},
+	'lang=s'		=> \$opt->{lang},
+	'no-retry'		=> \$opt->{dont_retry},
+	'help'			=> \$opt->{help},
+	'test=s'		=> \$opt->{test},
+	'simpletest=s'		=> \$opt->{simpletest},
+	'set=s'			=> \$opt->{set},
+	'verbose'		=> \$opt->{help},
+	'version'		=> \$opt->{version},
+	'ready'			=> \$opt->{ready},
+	'desc'			=> \$opt->{desc},
+	'v'			=> \$opt->{version});
+
+printf "%s v%s\n",$progname,$version;
+
+if ($opt->{version} || $opt->{desc} || $opt->{help} || $opt->{ready} ||
+    $opt->{output_file} eq "") {
+	printf "Augments XMLTV data with programme information from ".
+	  "The Internet Movie Database (www.imdb.com)\n" if $opt->{desc};
+
+	printf "$progname is ready for operation.\n" if ($opt->{ready});
+
+	printf "No --output file specified.\n" if ($opt->{output_file} eq "");
+
+	if ($opt->{help} || $opt->{output_file} eq "") {
+		print<<EOF
+
+usage: $0 [options] {FILE(s)}
+
+Supported options include:
+  --min_duration={min} ignore programs under {min} duration (default: $opt->{min_duration} min)
+  --max_duration={min} ignore programs over {min} duration (default: $opt->{max_duration} min)
+  --skip_categories={list} don't try to look up programmes in these categories (default: $opt->{skip_categories})
+
+  --dont-augment-desc  don't add any IMDb data to programme description,
+                       only update the data fields (default: do)
+  --long-info          add lots of IMDb data to description
+
+  --cache_details_for={days}  cache programme details for {days} (def: $opt->{cache_details_for} days)
+  --cache_title_for={days}    cache IMDb URLs for {days} (def: $opt->{cache_title_for} days)
+
+  --lang={lang}        set language to {lang} (default: $opt->{lang})
+  --output={file}      send final XMLTV output to {file} (default: $opt->{output_file})
+  --debug              enable debugging
+  --fast               don't pause between requests to www.imdb.com
+
+  --cache-file={file}  local file to use as our data cache (default: $opt->{cache_file})
+  --no-cache           don't use local cache to reduce network load on www.imdb.com
+  --no-retry           don't retry failed HTTP requests
+
+  --test=(string)      operate in 'test mode', look up prog named (string)
+
+  --set=(setting):(value) save setting override: (value) 1=enable, 0=disable
+        dont-augment-desc:1/0 (don't / do)
+	long-info:1/0 (yes / no)
+
+EOF
+;
+	}
+	exit(0);
+}
+
+&run_test if (defined $opt->{test});
+&simple_search_imdb(split(/,/, $opt->{simpletest})) if ($opt->{simpletest});
+&set_settings if (defined $opt->{set});
+
+# set defaults
+Shepherd::Common::set_default("debug", ((defined $opt->{debug} && $opt->{debug} > 0) ? 2 : 0));
+Shepherd::Common::set_default("stats", \%stats);
+Shepherd::Common::set_default("retry_delay", 10);
+Shepherd::Common::set_default("delay", int(rand(4) + 3)) unless (defined $opt->{fast});
+Shepherd::Common::set_default('fake' => 0);
+
+# go go go!
+
+Shepherd::Common::log(sprintf "started: cache %s, %s%soutput %s",
+	($opt->{no_cache} ? "disabled" : "enabled"),
+	($opt->{fast} ? "fast-override, " : ""),
+	($opt->{debug} ? "debug enabled, " : ""),
+	($opt->{output_file}));
+
+&read_cache unless ($opt->{no_cache});
+
+my %writer_args = ( encoding => 'ISO-8859-1' );
+my $fh = new IO::File(">".$opt->{output_file}) ||
+  die "can't open $opt->{output_file} for writing: $!";
+$writer_args{OUTPUT} = $fh;
+
+my $writer = new XMLTV::Writer(%writer_args);
+$writer->start( {
+	'source-info-url' => "http://www.imdb.com",
+	'source-info-name' => "$progname $version",
+	'generator-info-name' => "$progname $version"} );
+
+foreach my $file (@ARGV) {
+	Shepherd::Common::log((sprintf "Parsing: %s",
+		($file eq "-" ? "(from-stdin, hit control-D to finiah)" : $file)));
+	XMLTV::parsefiles_callback(\&encoding_cb, \&credits_cb,
+		\&channel_cb,\&programme_cb, $file);
+}
+
+$writer->end();
+Shepherd::Common::log("Finished parsing, output in $opt->{output_file}");
+
+&write_cache unless ($opt->{no_cache});
+
+Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
+
+exit(0);
+
+##############################################################################
+
+sub set_settings
+{
+	&read_cache;
+	my ($setting, $val) = split(/:/,$opt->{set});
+
+	die "--set format is (setting):(value) where value is 0 for disable, 1 for enable.\n"
+	  if ((!defined $val) || (($val ne "0") && ($val ne "1")));
+
+	die "unknown '--set' parameter '$setting', see --help for details.\n"
+	  if ($setting ne "dont-augment-desc" and $setting ne "long-info");
+
+	printf "%s: override parameter %s: %s\n", $progname, $setting, ($val eq "0" ? "disabled" : "enabled");
+
+	$setting =~ s/-/_/g;
+	$settings_override->{$setting} = $val;
+	&write_cache;
+	exit(0);
+}
+
+##############################################################################
+# populate cache
+
+sub read_cache
+{
+	my $store = Shepherd::Common::read_cache(\$opt->{cache_file});
+	
+	if ($store) {
+		$data_cache = $store->{data_cache};
+		$settings_override = $store->{settings_override};
+
+		foreach my $setting (keys %$settings_override) {
+			$opt->{$setting} = 1 if ($settings_override->{$setting} != 0);
+		}
+	
+		#
+		# age our caches on startup
+		#
+		my $max_age;
+		
+		# age our programme_id cache on startup
+		my $prog_id = $data_cache->{movie_id_lookup};
+		$max_age = time - ($opt->{cache_title_for} * 86400);
+		foreach my $key (keys %{$prog_id}) {
+			if ($data_cache->{movie_id_lookup}->{$key}->{last_fetched} < $max_age) {
+			delete $data_cache->{movie_id_lookup}->{$key};
+			$stats{removed_programme_id_from_cache}++
+			}
+		}
+		
+		# age our programme cache on startup
+		my $prog = $data_cache->{movie_lookup};
+		$max_age = time - ($opt->{cache_details_for} * 86400);
+		foreach my $key (keys %{$prog}) {
+			if ($data_cache->{movie_lookup}->{$key}->{last_fetched} < $max_age) {
+			delete $data_cache->{movie_lookup}->{$key};
+			$stats{removed_programme_from_cache}++
+			}
+		}
+	}
+}
+
+##############################################################################
+# write out updated cache
+
+sub write_cache
+{
+	my $store;
+	$store->{data_cache} = $data_cache;
+	$store->{settings_override} = $settings_override;
+	Shepherd::Common::write_cache($opt->{cache_file}, $store);
+}
+
+##############################################################################
+# use the online IMDb "power search" at http://www.imdb/List to try to find _1_ match
+
+sub search_imdb_online
+{
+	my ($title, $post_fields, $movie_year) = @_;
+
+	if ($stats{failed_online_imdb_lookup} and $stats{failed_online_imdb_lookup} >= 3) {
+		Shepherd::Common::log("too many failed lookups to online IMDb search for '$title' with $post_fields");
+		return;
+	}
+
+	Shepherd::Common::log("  online IMDb search for '$title' with $post_fields");
+	my $html_data =	Shepherd::Common::get_url(url => "http://www.imdb.com/List",
+			method => "POST", postvars => $post_fields);
+
+	if (!$html_data) {
+		$stats{failed_online_imdb_lookup}++;
+		Shepherd::Common::log("failed to search imdb movie data from http://www.imdb.com/List");
+		return;
+	}
+	$data_cache->{movie_id_lookup}->{$post_fields}->{last_fetched} = time;
+
+	my $tp = HTML::TokeParser->new(\$html_data);
+
+	# see if we can find any <a href="/title/tt[0-9]+/">{name}</a> tags
+	my %urls;
+	my $urls_found = 0;
+	while (my $token = $tp->get_tag("a")) {
+		my $url = $token->[1]{href}; # undefined when 200 results returned
+		if ($url && $url =~ /\/title\/tt[0-9]+\//) {
+			my ($found_year) = ($tp->get_trimmed_text() =~ /\(((19|20)\d\d)\)/);
+			if (!$movie_year || !$found_year || (abs($movie_year - $found_year) <= 1) ) {
+				$urls{$url}++; # store as a hash since imdb sometimes gives dups
+				$urls_found++ if ($urls{$url} == 1);
+			}
+		}
+	}
+
+	# only insert into cache if we match exactly _1_ movie
+	if ($urls_found == 1) {
+		my $this_url = (keys %urls)[0];
+		if ($this_url =~ /^http:/) {
+			$data_cache->{movie_id_lookup}->{$post_fields}->{url} = $this_url;
+		} else {
+			$data_cache->{movie_id_lookup}->{$post_fields}->{url} = "http://www.imdb.com".$this_url;
+		}
+		$stats{imdb_lookup_added_positive_cache_entry}++;
+	} else {
+		Shepherd::Common::log("    online search failed: wanted 1 match, got $urls_found matches.");
+		# negatively cache our failed lookup
+		$data_cache->{movie_id_lookup}->{$post_fields}->{url} = "-";
+		$data_cache->{movie_id_lookup}->{$post_fields}->{num_choices} =
+		  $urls_found;
+	}
+}
+
+##############################################################################
+# simple search
+# 
+# The 'power search' seems to have a couple of annoying flaws, like
+# an inability to find AKA titles. So if our power search fails, we
+# fall back to the simple search. This seems to work very well, finding
+# many shows that the power search misses.
+
+sub simple_search_imdb
+{
+    my ($title, $year) = @_;
+
+    if ($stats{failed_online_imdb_lookup} and $stats{failed_online_imdb_lookup} >= 3) {
+	Shepherd::Common::log("too many failed lookups to online IMDb search for '$title' with $year");
+	return;
+    }
+
+    &Shepherd::Common::log("  trying simple search for '$title' ($year)");
+    my $url = sprintf "http://us.imdb.com/find?q=%s;s=tt", &Shepherd::Common::urlify($title);
+    my @response = &Shepherd::Common::get_url($url);
+    my $html = $response[0];
+
+    unless ($html) 
+    {
+	$stats{failed_online_imdb_lookup}++;
+	&Shepherd::Common::log("simple search failed");
+	return 0;
+    }
+
+    my ($link, $link_fallback);
+
+    # Check if we were sent directly to the show's main page.
+    my $r = $response[6];
+    if ($r and $r->base and $r->base =~ m"/title/tt[0-9]+/")
+    {
+	if (!$year) {
+		$link = $r->base;
+	} else {
+		my $tree = HTML::TreeBuilder->new_from_content($html);
+		my ($found_year) = ($tree->look_down('_tag' => 'title')->as_text() =~ /\(((19|20)\d\d)\)/);
+		if (!$found_year || (abs($year - $found_year) <= 1) ) {
+			$link = $r->base;
+		}
+	}
+    }
+    else
+    {
+	my $tree = HTML::TreeBuilder->new_from_content($html);
+
+	HTMLPARSE: foreach my $block ($tree->look_down('_tag' => 'p'))
+	{
+	    my $tag = $block->look_down('_tag' => 'b');
+	    next unless ($tag);
+	    if ($tag->as_text eq 'Titles (Exact Matches)' or $tag->as_text eq 'Popular Titles')
+	    {
+		foreach my $line (split(/<br>/, $block->as_HTML))
+		{
+		    if ($line =~ /^<a href="(\/title\/tt[0-9]+\/?)">(.*?)<\/a> \(((19|20)\d\d)\)(.*)/
+			    and
+			(!$year or (abs($year - $3) <= 1))
+			    and
+			(!$4 or $4 !~ /VG/))
+		    {
+			if (!$year or $year == $3) {
+				if ($link)
+				{
+					# found multiple hits. That's bad.
+					$link = 'bad';
+					&Shepherd::Common::log("    found multiple hits, wanted 1.") if ($opt->{debug});
+					last HTMLPARSE;
+				}
+				# Bingo! Found a link
+				&Shepherd::Common::log("    found link: $1") if ($opt->{debug});
+				$link = "http://www.imdb.com" . $1;
+			} else {
+				if ($link_fallback)
+				{
+					# found multiple hits. That's bad.
+					$link_fallback = 'bad';
+					&Shepherd::Common::log("    found multiple fallback hits, wanted 1.") if ($opt->{debug});
+				}
+				# Bingo! Found a link
+				&Shepherd::Common::log("    found fallback link: $1") if ($opt->{debug});
+				$link_fallback = "http://www.imdb.com" . $1;
+			}
+		    }
+		}
+	    }
+	}
+    }
+    my $cache_name = 'simple-'.&Shepherd::Common::urlify($title).'-'.$year;
+
+    $data_cache->{movie_id_lookup}->{$cache_name}->{last_fetched} = time;
+
+    $link = $link_fallback if !$link && $link_fallback && $link_fallback ne 'bad';
+    if (!$link || $link eq 'bad')
+    {
+	&Shepherd::Common::log("    simple search failed.");
+	# negatively cache our failed lookup
+	$data_cache->{movie_id_lookup}->{$cache_name}->{url} = "-";
+	return 0;
+    }
+    $data_cache->{movie_id_lookup}->{$cache_name}->{url} = $link;
+    $stats{imdb_lookup_added_positive_cache_entry}++;
+    return 1;
+}
+
+##############################################################################
+# simple parser for imdb returned data: covers most data
+
+sub imdb_scalar_parser
+{
+	my ($html_data, $start_tag, $target, $texttype, $targetb, $targetc, $targeta, $v) = @_;
+
+	my $found = 0;
+	my $tp = HTML::TokeParser->new(\$html_data);
+
+	while (my $tag = $tp->get_tag($start_tag)) {
+		if ($tp->get_text =~ /^$target/i) {
+			$found = 1;
+			last;
+		}
+	}
+	if (!$found) {
+		Shepherd::Common::log(" - no ".$target." found") if ($opt->{debug});
+		return;
+	}
+
+	my $tag = $tp->get_tag($targeta) if (defined $targeta);
+	if ($texttype eq "trimmed") {
+		$$v = $tp->get_trimmed_text($targetb,$targetc);
+	} else {
+		$$v = $tp->get_text($targetb,$targetc);
+		$$v =~ s/^\s*(.*?)\s*$/$1/;
+	}
+
+	Shepherd::Common::log(" - parsed ".$target." ".$$v) if ($opt->{debug});
+}
+
+##############################################################################
+
+sub imdb_list_parser
+{
+	my ($html_data, $target, $target2, $v) = @_;
+
+	my $tp = HTML::TokeParser->new(\$html_data);
+	my @list;
+	my $found = 0;
+
+	while (my $tag = $tp->get_tag('h5')) {
+		if ($tp->get_text =~ /^$target/i) {
+			$found = 1;
+			last;
+		}
+	}
+	return undef if (!$found);
+
+	while (my $tag = $tp->get_tag()) {
+		push (@list, $tp->get_text())
+		  if (($tag->[0] eq 'a') && (defined $tag->[1]{href}) && ($tag->[1]{href} =~ /$target2/i));
+		last if ($tag->[0] eq 'br');
+	}
+
+	my $found_items = 0;
+	foreach my $item (@list) {
+		$$v->[$found_items] = $item;
+		Shepherd::Common::log(" - parsed ".$target." ".$item) if ($opt->{debug});
+		$found_items++;
+	}
+}
+
+##############################################################################
+# perform a detailed movie lookup given a movie url
+# store what we find in our data cache
+
+sub get_imdb_movie_online
+{
+	my ($movie_title, $movie_url) = @_;
+
+	if ($stats{failed_online_imdb_lookup} and $stats{failed_online_imdb_lookup} >= 3) {
+		Shepherd::Common::log("too many failed lookups to downloading online IMDb movie data for '$movie_title'");
+		return;
+	}
+
+	Shepherd::Common::log("  downloading online IMDb movie data for '$movie_title'");
+	my $html_data = Shepherd::Common::get_url($movie_url);
+
+	if (!$html_data) {
+		$stats{failed_online_imdb_lookup}++;
+		Shepherd::Common::log("failed to fetch imdb movie data from $movie_url");
+		return;
+	}
+
+	$stats{imdb_movie_added_cache_entry}++;
+	$data_cache->{movie_lookup}->{$movie_url}->{last_fetched} = time;
+	my $tp;
+
+	#
+	# parse title and year
+	#
+	$tp = HTML::TokeParser->new(\$html_data);
+	my $title_token = $tp->get_tag('title');
+	my $title_text = $tp->get_text();
+	if ($title_text =~ /(.*?)\s+\((\d{4})?.*?\)/) {
+		$data_cache->{movie_lookup}->{$movie_url}->{title} = $1;
+		$data_cache->{movie_lookup}->{$movie_url}->{year} = $2;
+	}
+
+	if (!defined $data_cache->{movie_lookup}->{$movie_url}->{title}) {
+		$stats{failed_online_imdb_title_parsing}++;
+		Shepherd::Common::log("failed to parse title within imdb movie data from $movie_url");
+		return;
+	}
+
+	#
+	# parse cover url
+	#
+	my $title = $data_cache->{movie_lookup}->{$movie_url}->{title};
+	$title =~ s/([\{\}\[\]\(\)\^\$\.\|\*\+\?\\])/\\$1/g;
+	$tp = HTML::TokeParser->new(\$html_data);
+	while (my $img_tag = $tp->get_tag('img')) {
+		next if (!$img_tag->[1]{alt});
+		last if ($img_tag->[1]{alt} =~ /^poster not submitted/i);
+		if ($img_tag->[1]{alt} =~ /^$title$/i) {
+			$data_cache->{movie_lookup}->{$movie_url}->{cover} = $img_tag->[1]{src};
+			Shepherd::Common::log(" - parsed cover_url ".$img_tag->[1]{src}) if ($opt->{debug});
+			last;
+		}
+	}
+
+	#
+	# parse directors
+	#
+	$tp = HTML::TokeParser->new(\$html_data);
+	while (my $tag = $tp->get_tag('h5')) {
+		last if ($tp->get_text =~ /^(directed|director)/i);
+	}
+	while (my $tag = $tp->get_tag) {
+		my $text = $tp->get_text();
+		last if (($text =~ /^(writing|writer)/i) || ($tag->[0] =~ /\/td/i));
+		if ($tag->[0] eq 'a') {
+			my $id = $tag->[1]{href};
+			next if (!$id or $id !~ /^\/name\/nm/);
+			push(@{$data_cache->{movie_lookup}->{$movie_url}->{directors}}, [$text, $id]);
+			Shepherd::Common::log(" - parsed director ".$text." (".$id.")") if ($opt->{debug});
+		}
+	}
+
+	#
+	# parse writers
+	#
+	$tp = HTML::TokeParser->new(\$html_data);
+	while (my $tag = $tp->get_tag('h5')) {
+		last if ($tp->get_text =~ /^(writing|writer)/i);
+	}
+	while (my $tag = $tp->get_tag) {
+		my $text = $tp->get_text();
+		last if ($tag->[0] =~ /div/i);
+		if (($tag->[0] eq 'a') && ($text !~ /\bmore\b/i)) {
+			my $id = $tag->[1]{href};
+			next if (!$id or $id !~ /^\/name\/nm/);
+			push(@{$data_cache->{movie_lookup}->{$movie_url}->{writers}}, [$text, $id]);
+			Shepherd::Common::log(" - parsed writer ".$text." (".$id.")") if ($opt->{debug});
+		}
+	}
+
+	#
+	# parse cast
+	#
+	$tp = HTML::TokeParser->new(\$html_data);
+	while (my $tag = $tp->get_tag('table')) {
+		next unless ((exists $tag->[1]{class}) && ($tag->[1]{class} =~ /cast/i));
+
+		my $person, my $role;
+		while ($tag = $tp->get_tag) {
+			last if ($tag->[0] =~ /^\/table/i);
+			if (($tag->[0] =~ /^td/i) && (defined $tag->[1]{class}) && ($tag->[1]{class} =~ /nm/)) {
+				$tag = $tp->get_tag;
+				$person = $tp->get_text();
+				next;
+			}
+			if (($tag->[0] =~ /^td/i) && (defined $tag->[1]{class}) && ($tag->[1]{class} =~ /char/)) {
+				$role = $tp->get_text();
+
+				if ((defined $person) && (defined $role)) {
+					push(@{$data_cache->{movie_lookup}->{$movie_url}->{cast}}, [$person, $role]);
+					Shepherd::Common::log(" - parsed cast (".$role.") ".$person) if ($opt->{debug});
+				}
+
+				$person = undef, $role = undef;
+			}
+		}
+
+		last;
+	}
+
+	#
+	# parse countries, languages, genres using generic list parser
+	#
+	&imdb_list_parser($html_data,"country","countries",
+	  \$data_cache->{movie_lookup}->{$movie_url}->{countries});
+	&imdb_list_parser($html_data,"language","language",
+	  \$data_cache->{movie_lookup}->{$movie_url}->{languages});
+	&imdb_list_parser($html_data,"genre","genre",
+	  \$data_cache->{movie_lookup}->{$movie_url}->{genres});
+
+	#
+	# parse tagline, plot, rating, runtime, aka, trivia, goofs,
+	# awards and summary using generic scalar handler
+	#
+	&imdb_scalar_parser($html_data, "h5", "tagline","trimmed","h5", "a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{tagline});
+	&imdb_scalar_parser($html_data, "h5", "plot","trimmed","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{plot});
+	&imdb_scalar_parser($html_data, "b", "user rating","trimmed","b","/b","b", \$data_cache->{movie_lookup}->{$movie_url}->{rating});
+	&imdb_scalar_parser($html_data, "h5", "runtime","trimmed","h5","br", undef, \$data_cache->{movie_lookup}->{$movie_url}->{runtime});
+	&imdb_scalar_parser($html_data, "h5", "(aka|also known as)","trimmed","b","/div", undef, \$data_cache->{movie_lookup}->{$movie_url}->{aka});
+	&imdb_scalar_parser($html_data, "h5", "trivia","trimmed","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{trivia});
+	&imdb_scalar_parser($html_data, "h5", "goofs","trimmed","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{goofs});
+	&imdb_scalar_parser($html_data, "h5", "awards","trimmed","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{awards});
+	&imdb_scalar_parser($html_data, "h5", "original air date","trimmed","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{airdate});
+	&imdb_scalar_parser($html_data, "h5", "plot summary","","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{summary});
+
+	if (defined $data_cache->{movie_lookup}->{$movie_url}->{rating}) {
+		# don't use a rating unless its numeric
+		if ($data_cache->{movie_lookup}->{$movie_url}->{rating} !~ /^\d+/) {
+			delete $data_cache->{movie_lookup}->{$movie_url}->{rating};
+		}
+	}
+
+	#
+	# certifications
+	#
+	$tp = HTML::TokeParser->new(\$html_data);
+	while (my $tag = $tp->get_tag('h5')) {
+		last if ($tp->get_text =~ /^certification/i);
+	}
+	while (my $tag = $tp->get_tag()) {
+		if (($tag->[0] eq "a") && (defined $tag->[1]{href}) && ($tag->[1]{href} =~ /certificates/i)) {
+			my($country, $range) = split(/:/, $tp->get_text);
+			$data_cache->{movie_lookup}->{$movie_url}->{certifications}->{$country} = $range;
+			Shepherd::Common::log(" - parsed certification ".$range." (".$country.")") if ($opt->{debug});
+		}
+		last if ($tag->[0] =~ /\/td/i);
+	}
+
+	# don't yet pick the following up: do we need to?
+	#  official_sites
+	#  full plot
+
+
+	# write out the cache every 15 progs or so
+	&write_cache if ((($stats{imdb_movie_added_cache_entry} % 15) == 0) && (!defined $opt->{no_cache}));
+}
+
+##############################################################################
+
+sub encoding_cb( $ )
+{
+	my $e = shift;
+	# printf "got encoding ".Dumper($e);
+}
+	
+##############################################################################
+
+sub credits_cb( $ )
+{
+	my $c = shift;
+	# printf "got credits ".Dumper($c);
+}
+
+##############################################################################
+
+sub channel_cb( $ )
+{
+	my $c = shift;
+	# printf "got channel ".Dumper($c);
+	$writer->write_channel($c);
+}
+
+##############################################################################
+
+sub programme_cb( $ )
+{
+	my $prog=shift;
+	$stats{programmes}++;
+
+	my $movie_title = $prog->{title}->[0]->[0]
+	  if (($prog->{title}) && ($prog->{title}->[0]) &&
+	      ($prog->{title}->[0]->[0]));
+	my $movie_subtitle = $prog->{'sub-title'}->[0]->[0]
+		if (($prog->{'sub-title'}) && ($prog->{'sub-title'}->[0]) &&
+			($prog->{'sub-title'}->[0]->[0]));
+	my $movie_year = $prog->{date} if ($prog->{date});
+
+	if (($movie_title =~ /^close$/i) || ($movie_title =~ /^station close$/i)) {
+		$stats{skipped_due_to_category}++;
+		goto END;
+	}
+
+	if (defined $prog->{category}) {
+		foreach my $prog_category (@{($prog->{category})}) {
+			foreach my $prog_cat2 (@$prog_category) {
+				foreach my $skip_category (split(/,/,$opt->{skip_categories})) {
+					if (lc($prog_cat2) eq lc($skip_category)) {
+						$stats{skipped_due_to_category}++;
+						goto END;
+					}
+				}
+			}
+		}
+	}
+
+	# print "got programme ".Dumper($prog);
+
+	#
+	# only lookup if  min_duration < prog_duration > min_duration
+	#
+	my $t1 = Shepherd::Common::parse_xmltv_date($prog->{start});
+	my $t2 = Shepherd::Common::parse_xmltv_date($prog->{stop});
+	if ((!$t1) || (!$t2)) {
+		$stats{excluded_couldnt_parse_time}++;
+		goto END;
+	}
+	my $prog_duration = (($t2 - $t1) / 60);
+	if ($prog_duration < $opt->{min_duration}) {
+		$stats{excluded_prog_too_short}++;
+		goto END;
+	}
+	if ($prog_duration > $opt->{max_duration}) {
+		$stats{excluded_prog_too_long}++;
+		goto END;
+	}
+
+	$stats{included_for_imdb_lookup}++;
+
+	#
+	# find movie url
+	# (either via a cached previous search or via IMDb "power search")
+	#
+	my @search_fields;
+	push(@search_fields, "words=".Shepherd::Common::urlify($movie_title));
+	push(@search_fields, "&countries=".Shepherd::Common::urlify($prog->{country}->[0][0]))
+	  if ((defined $prog->{country}) && (defined $prog->{country}->[0][0]));
+	push(@search_fields, "&year=".Shepherd::Common::urlify($prog->{date}))
+	  if ((defined $prog->{date}) && ($prog->{date} > 0));
+	push(@search_fields, "&language=".Shepherd::Common::urlify($prog->{language}->[0] =~ /(^[^,]*)/))
+	  if ((defined $prog->{language}) && (defined $prog->{language}->[0]));
+	# &exact=y
+	# cast/crew
+
+	Shepherd::Common::log("programme ".$stats{programmes}.": \"$movie_title\" ($prog_duration minutes)");
+
+	# first search using everything we can...
+	my $orig_post_fields = join("",@search_fields);
+	my $post_fields;
+	my $found = 0;
+	while ((scalar(@search_fields) > 0) && (!$found)) {
+		if ($movie_subtitle) {
+			$post_fields = "words=".Shepherd::Common::urlify($movie_title." ".$movie_subtitle);
+			$orig_post_fields = $post_fields;
+			push(@search_fields, $post_fields);
+		} else {
+			$post_fields = join("",@search_fields);
+		}
+
+		#
+		# first check if we have a previos cache entry for this
+		#
+		if (defined $data_cache->{movie_id_lookup}->{$post_fields} and
+				defined $data_cache->{movie_id_lookup}->{$post_fields}->{url}) {
+			if ($data_cache->{movie_id_lookup}->{$post_fields}->{url} eq "-") {
+				# negatively cached
+				$stats{imdb_lookup_used_negative_cache_entry}++;
+				undef $movie_subtitle;
+				pop(@search_fields);
+			} else {
+				# positive cache
+				$stats{imdb_lookup_used_cache_entry}++;
+				$found = 1;
+			}
+			Shepherd::Common::log("  used (".($found ? "positive" : "negative")." cache) search: $post_fields");
+		} else {
+			#
+			# no cache, go look it up
+			#
+			&search_imdb_online($movie_title, $post_fields, $movie_year);
+
+			# IMDb web site failed/returned unexpected result, just skip rest
+			goto END
+			  if (!defined $data_cache->{movie_id_lookup}->{$post_fields} or
+					!defined $data_cache->{movie_id_lookup}->{$post_fields}->{url});
+
+			if ($data_cache->{movie_id_lookup}->{$post_fields}->{url} eq "-") {
+				# lookup failed.
+
+				# if it returned no hits, perhaps our search was too specific.
+				# make it less specific if we can
+				if ($data_cache->{movie_id_lookup}->{$post_fields}->{num_choices} == 0) {
+					undef $movie_subtitle;
+					pop(@search_fields);
+				} else {
+					# search wasn't specific enough.  (more than 1 hit)
+
+					if ($movie_subtitle) {
+						# try again if subtitle in search
+						undef $movie_subtitle;
+						pop(@search_fields);
+					} else {
+						# skip ahead to simple search
+						# fill in less detailed searches or we fetch them next time
+						pop(@search_fields);
+						while (scalar(@search_fields) > 0) {
+							$post_fields = join("",@search_fields);
+							$data_cache->{movie_id_lookup}->{$post_fields}->{last_fetched} = time;
+							$data_cache->{movie_id_lookup}->{$post_fields}->{url} = '-';
+							$data_cache->{movie_id_lookup}->{$post_fields}->{num_choices} = 1000;
+							pop(@search_fields);
+						}
+					}
+				}
+			} else {
+				# lookup succeeded
+				$found = 1;
+			}
+		}
+	}
+
+	# Try the simple search if we have date info
+	if (!$found and $prog->{date}) {
+	    # cached?
+	    $post_fields = 'simple-'. &Shepherd::Common::urlify($movie_title) . '-'.$prog->{date};
+	    my $simple_search = $data_cache->{movie_id_lookup}->{$post_fields};
+	    if ($simple_search and $simple_search->{url}) {
+		if ($simple_search->{url} eq '-') {
+		    # negatively cached
+		    $stats{imdb_lookup_used_negative_cache_entry}++;
+		} else {
+		    # positively cached
+		    $stats{imdb_lookup_used_cache_entry}++;
+		    $found = 1;
+		}
+		&Shepherd::Common::log(sprintf("  used (%s cache) search: ", ($found ? 'positive' : 'negative')) . $post_fields);
+	    } else {
+		# not cached; look it up
+		$found = &simple_search_imdb($movie_title, $prog->{date});
+	    }
+	} else {
+	    &Shepherd::Common::log("  no date info, not trying simple search") if ($opt->{debug});
+	}
+
+	goto END if (!$found);
+
+	$data_cache->{movie_id_lookup}->{$orig_post_fields}->{url} = $data_cache->{movie_id_lookup}->{$post_fields}->{url}
+			if ($post_fields ne $orig_post_fields);
+
+	my $movie_url = $data_cache->{movie_id_lookup}->{$post_fields}->{url};
+
+	# no match or negative cache match - bail out
+	goto END if ((!defined $movie_url) || ($movie_url eq "-"));
+
+	#
+	# lookup movie details
+	# (either via previously cached entry or via an online IMDb lookup)
+	#
+
+	if (defined $data_cache->{movie_lookup}->{$movie_url}) {
+		$stats{imdb_movie_used_cache_entry}++;
+		Shepherd::Common::log("  used existing (cached) movie details: $movie_url");
+	} else {
+		&get_imdb_movie_online($movie_title,$movie_url);
+		goto END if (!defined $data_cache->{movie_lookup}->{$movie_url});
+		$stats{imdb_movie_added_cache_entry}++;
+	}
+
+
+	#
+	# augment data
+	#
+
+	$data_cache->{movie_lookup}->{$movie_url}->{last_lookup} = time;
+	$data_cache->{movie_lookup}->{$movie_url}->{num_lookups}++;
+	goto END if (!defined $data_cache->{movie_lookup}->{$movie_url}->{title});
+	my $imdb = $data_cache->{movie_lookup}->{$movie_url};
+	$stats{added_imdb_data}++;
+
+	if ($opt->{dont_augment_desc}) {
+
+		# if not a reasonable description, add anything we've got
+		if (!defined $prog->{desc} || !defined $prog->{desc}->[0] || !defined $prog->{desc}->[0]->[0] ||
+				 (length ($prog->{desc}->[0]->[0]) <= 20)) {
+			my $imdb_desc = '';
+
+			$imdb_desc .= $imdb->{tagline}."\n" if ($imdb->{tagline});
+			$imdb_desc .= $imdb->{summary}."\n" if ($imdb->{summary});
+			$imdb_desc .= $imdb->{plot} if ($imdb->{plot});
+
+			if ($imdb_desc ne '') {
+				chomp $imdb_desc;
+				$prog->{desc}->[0]->[0] = "" if (!defined $prog->{desc}->[0]->[0]);
+				$prog->{desc}->[0]->[0] .= "\n" if ($prog->{desc}->[0]->[0] ne "");
+				$prog->{desc}->[0]->[0] .= $imdb_desc;
+			}
+		}
+	} else {
+		my $imdb_desc = '';
+
+		# Unless we request --long-info, only add
+		# Tagline, Awards, and Trivia to the description.
+		# (Other data goes in appropriate fields.)
+
+		if ($opt->{long_info}) {
+		    $imdb_desc .= sprintf " Title: %s",$imdb->{title};
+		    $imdb_desc .= sprintf "  (%s)",$imdb->{year}
+			if (($imdb->{year}) && ($imdb->{year} > 0));
+		    $imdb_desc .= "\n";
+
+		    $imdb_desc .= sprintf " aka: %s\n",$imdb->{aka}
+			if (defined $imdb->{aka} && $imdb->{aka} ne "");
+		}
+
+		$imdb_desc .= sprintf " Tagline: %s\n",$imdb->{tagline}
+		    if (defined $imdb->{tagline} && $imdb->{tagline} ne "");
+		
+		if ($opt->{long_info} || !defined $prog->{desc} || !defined $prog->{desc}->[0] ||
+				!defined $prog->{desc}->[0]->[0] || (length ($prog->{desc}->[0]->[0]) <= 20)) {
+		    $imdb_desc .= sprintf " Summary: %s\n",$imdb->{summary}
+			if (defined $imdb->{summary} && $imdb->{summary} ne "");
+
+		    $imdb_desc .= sprintf " Plot: %s\n",$imdb->{plot}
+			if (defined $imdb->{plot} && $imdb->{plot} ne "");
+		}
+
+		if ($opt->{long_info}) {
+		    $imdb_desc .= sprintf " Rating: %s\n",$imdb->{rating}
+			if (defined $imdb->{rating} && $imdb->{rating} =~ /^\d+/);
+		}
+
+		$imdb_desc .= sprintf " Original Air Date: %s\n",$imdb->{airdate}
+		    if (defined $imdb->{airdate} && $imdb->{airdate} ne "");
+
+		$imdb_desc .= sprintf " Awards: %s\n",$imdb->{awards}
+		    if (defined $imdb->{awards} && $imdb->{awards} ne "");
+
+		$imdb_desc .= sprintf " Trivia: %s\n",$imdb->{trivia}
+		    if (defined $imdb->{trivia} && $imdb->{trivia} ne "");
+		
+		if ($opt->{long_info}) {
+		    $imdb_desc .= sprintf " Certifications: %s\n", join(', ', 
+			map { sprintf "%s (%s)", $imdb->{certifications}->{$_}, $_ } sort keys  %{$imdb->{certifications}})
+			    if (defined $imdb->{certifications});
+
+		    $imdb_desc .= sprintf " Cast: %s\n", join(', ',
+			(ref $imdb->{cast} eq "ARRAY" ?
+			    map { sprintf "%s%s", @$_[0], (@$_[1] ? " as @$_[1]" : '') } @{$imdb->{cast}} :
+			    map { sprintf "%s%s", $_, ($imdb->{cast}->{$_} ? " as " . $imdb->{cast}->{$_} : '') } keys %{$imdb->{cast}}))
+				if (defined $imdb->{cast});
+
+		    $imdb_desc .= sprintf " Directors: %s\n",
+			join(", ", ref($imdb->{directors}) eq "ARRAY" ?
+			    map(@$_[0], @{$imdb->{directors}}) : sort keys %{$imdb->{directors}})
+				if ($imdb->{directors});
+		    $imdb_desc .= sprintf " Writers: %s\n",
+			join(", ", ref($imdb->{writers}) eq "ARRAY" ?
+			    map(@$_[0], @{$imdb->{writers}}) : sort keys %{$imdb->{writers}})
+				if ($imdb->{writers});
+
+		    $imdb_desc .= sprintf " Runtime: %s\n",$imdb->{runtime}
+			if (defined $imdb->{runtime} && $imdb->{runtime} ne "");
+		    $imdb_desc .= sprintf " Countries: %s\n",
+			join(", ",@{$imdb->{countries}})
+			    if (defined $imdb->{countries});
+		    $imdb_desc .= sprintf " Languages: %s\n",
+			join(", ",@{$imdb->{languages}})
+			    if (defined $imdb->{languages});
+		    $imdb_desc .= sprintf " Genres: %s\n",
+			join(", ",@{$imdb->{genres}})
+			    if (defined $imdb->{genres});
+
+		    $imdb_desc .= sprintf " Goofs: %s\n",$imdb->{goofs}
+			if (defined $imdb->{goofs} && $imdb->{goofs} ne "");
+		    $imdb_desc .= sprintf " Cover: %s\n",$imdb->{cover}
+			if (defined $imdb->{cover} && $imdb->{cover} ne "");
+		}
+
+		if ($imdb_desc ne '') {
+		    chomp $imdb_desc;
+		    if ($opt->{long_info}) {
+			$imdb_desc = "IMDb augmented data:\n$imdb_desc";
+		    } else {
+			$imdb_desc = sprintf "(%s)", substr($imdb_desc, 1);
+		    }
+		    $prog->{desc}->[0]->[0] = "" if (!defined $prog->{desc}->[0]->[0]);
+		    $prog->{desc}->[0]->[0] .= "\n\n" if ($prog->{desc}->[0]->[0] ne "");
+		    $prog->{desc}->[0]->[0] .= $imdb_desc;
+		}
+	}
+
+	$prog->{date} = $imdb->{year} if ($imdb->{year} && !$prog->{date});
+	# $prog->{length} = $imdb->{runtime} if ($imdb->{runtime});
+
+	my $found_url = 0, my $found_cover = 0;
+	if (defined $prog->{url}) {
+		foreach my $url (@{($prog->{url})}) {
+			$found_url++ if (lc($url) eq lc($movie_url));
+			$found_cover++ if (($imdb->{cover}) && (lc($url) eq lc($imdb->{cover})));
+		}
+	}
+	push (@{($prog->{url})},$movie_url) if (!$found_url);
+	push (@{($prog->{url})},$imdb->{cover}) if (($imdb->{cover}) && (!$found_cover));
+
+	if ($imdb->{rating}) {
+		my ($rating,$votes) = split(/ /,$imdb->{rating});
+
+		# If there's already a star-rating, average the scores
+		if (ref $prog->{'star-rating'}) {
+		    $rating = sprintf "%.1f/10", (eval($rating) + eval($prog->{'star-rating'}[0])) * 5;
+		}
+		$prog->{'star-rating'} = [ $rating, [] ];
+	}
+
+	if ($imdb->{languages}) {
+		foreach my $lang (@{($imdb->{languages})}) {
+			if (defined $prog->{language}) {
+				$prog->{language}->[0] .= ", " . $lang
+					if ($prog->{language}->[0] !~ /$lang/i);
+			} else {
+				$prog->{language}->[0] = $lang;
+			}
+		}
+	}
+	# don't fill in XMLTV orig-language - mythtv ignores it
+
+	if (defined $imdb->{genres}) {
+		foreach my $genre (@{($imdb->{genres})}) {
+			my $found_genre = 0;
+			foreach my $category (@{($prog->{category})}) {
+				$found_genre++ if (lc($genre) eq lc($category->[0]));
+			}
+			push(@{($prog->{category})},[$genre]) if (!$found_genre);
+		}
+	}
+
+	if (defined $imdb->{countries}) {
+		foreach my $country (@{($imdb->{countries})}) {
+			my $found_country = 0;
+			foreach my $c (@{($prog->{country})}) {
+				$found_country++ if (lc($country) eq lc($c->[0]));
+			}
+			push(@{($prog->{country})},[$country]) if (!$found_country);
+		}
+	}
+
+	if (defined $imdb->{airdate})
+	{
+		my ($season) = ($imdb->{airdate} =~ /Season\s+(\d+)/i);
+		my ($episode) = ($imdb->{airdate} =~ /Episode\s+(\d+)/i);
+		if ($season || $episode) {
+			my $xmltv_ns = sprintf "%d . %d . %d",
+					($season ? ($season - 1) : 0), ($episode ? ($episode - 1) : 0), 0;
+			$prog->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
+		}
+	}
+
+	if (defined $imdb->{certifications}) {
+		# put a useful rating first
+		my $useful_rating;
+		foreach my $country ('Australia', 'New Zealand', 'USA', 'UK', 'Canada', 'Ireland',
+				'Singapore', 'Philippines', 'Taiwan') {
+			if ($imdb->{certifications}->{$country} &&
+					$imdb->{certifications}->{$country} ne 'Unrated' &&
+					$imdb->{certifications}->{$country} ne 'Not Rated' &&
+					$imdb->{certifications}->{$country} ne 'Approved') {
+				push(@{($prog->{rating})},[$imdb->{certifications}->{$country},$country,undef]);
+				$useful_rating = 1;
+				last;
+			}
+		}
+
+		# only return everything if long_info or no useful rating found
+		if ($opt->{long_info} || !$useful_rating) {
+			foreach my $cert (sort keys %{($imdb->{certifications})}) {
+				my $found_cert = 0;
+				foreach my $c (@{($prog->{rating})}) {
+					$found_cert++ if (lc($cert) eq lc($c->[1]));
+				}
+				push(@{($prog->{rating})},[$imdb->{certifications}->{$cert},$cert,undef])
+						if (!$found_cert);
+			}
+		}
+	}
+
+	if (defined $imdb->{cast}) {
+		foreach my $cast (ref($imdb->{cast}) eq "ARRAY" ?
+				map(@$_[0], @{$imdb->{cast}}) : sort keys %{$imdb->{cast}}) {
+			my $found_cast = 0;
+			if ((defined $prog->{credits}) && (defined $prog->{credits}->{actor})) {
+				foreach my $a (@{($prog->{credits}->{actor})}) {
+					$found_cast++ if (lc($cast) eq lc($a));
+				}
+			}
+			push(@{($prog->{credits}->{actor})},$cast) if (!$found_cast);
+		}
+	}
+
+	if (defined $imdb->{writers}) {
+		foreach my $cast (ref($imdb->{writers}) eq "ARRAY" ?
+				map(@$_[0], @{$imdb->{writers}}) : sort keys %{$imdb->{writers}}) {
+			my $found_cast = 0;
+			if ((defined $prog->{credits}) && (defined $prog->{credits}->{writer})) {
+				foreach my $w (@{($prog->{credits}->{writer})}) {
+					$found_cast++ if (lc($cast) eq lc($w));
+				}
+			}
+			push(@{($prog->{credits}->{writer})},$cast) if (!$found_cast);
+		}
+	}
+
+	if (defined $imdb->{directors}) {
+		foreach my $cast (ref($imdb->{directors}) eq "ARRAY" ?
+				map(@$_[0], @{$imdb->{directors}}) : sort keys %{$imdb->{directors}}) {
+			my $found_cast = 0;
+			if ((defined $prog->{credits}) && (defined $prog->{credits}->{director})) {
+				foreach my $d (@{($prog->{credits}->{director})}) {
+					$found_cast++ if (lc($cast) eq lc($d));
+				}
+			}
+			push(@{($prog->{credits}->{director})},$cast) if (!$found_cast);
+		}
+	}
+
+	if (defined $imdb->{cover}) {
+		$found_cover = 0;
+		if (defined $prog->{icon}) {
+			foreach my $cover (@{($prog->{icon})}) {
+				$found_cover++ if (lc($cover->{src}) eq lc($imdb->{cover}));
+			}
+		}
+		$prog->{icon}->[0]->{src} = $imdb->{cover} if (!$found_cover);
+	}
+
+	Shepherd::Common::cleanup($prog);
+	#print "prog now ".Dumper($prog);
+END:
+	$writer->write_programme($prog);
+}
+
+##############################################################################
+
+sub run_test
+{
+	$opt->{debug} = 1;
+	$opt->{fast} = 1;
+	Shepherd::Common::log("running test for: ".$opt->{test});
+
+	my $post_fields = "words=".Shepherd::Common::urlify($opt->{test});
+	&search_imdb_online($opt->{test},$post_fields);
+
+	die "lookup unsuccessful\n"
+	  if ((!defined $data_cache->{movie_id_lookup}->{$post_fields}) ||
+	      ($data_cache->{movie_id_lookup}->{$post_fields}->{url} eq "-"));
+
+	my $movie_url = $data_cache->{movie_id_lookup}->{$post_fields}->{url};
+	&get_imdb_movie_online($opt->{test},$movie_url);
+	print "Movie details returned: ".Dumper($data_cache->{movie_lookup}->{$movie_url});
+
+	exit(0);
+}
+
+##############################################################################

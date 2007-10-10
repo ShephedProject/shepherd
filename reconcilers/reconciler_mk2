@@ -1,0 +1,2103 @@
+#!/usr/bin/perl -w
+
+# "reconciler mk2": shepherd XMLTV data reconciler
+#  * to be used as a postprocessor for XMLTV data
+#  * takes the output from multiple XMLTV sources and combines them
+#    (hopefully taking the best data from each)
+#  * can be used in conjunction with 'shepherd' XMLTV reconciler or standalone (pipe-through)
+#  * can be used in conjunction with 'shepherd' channels.conf channels_file (but not necessary
+#    if input XMLTV grabbers populate <channel>..</channel> section properly
+#  * no configuration necessary
+#
+#  changelog:
+#    0.01  07oct06	initial version
+#    0.02  11oct06	complete rewrite, new algorithms, seperate out from shepherd
+#    0.03  15oct06	first committed
+#    0.04  17oct06	bug fix: use our own parse_xmltv_date, Date::Manip seems broken
+#                 	bug fix: correctly parse some XMLTV rare fields 
+#    0.05  17oct06	enhancement: compress logfiles automatically since they are quite large
+#    0.06  17oct06	enhancement: name mapping based on previously learnt names
+#    0.07  19oct06	turn down debugging
+#    0.08  20oct06	improved preference-title rewriter, more debugging to logfile
+#    0.09  24oct06	--preftitle support
+#    0.15  26nov06	reworked the title translations a bit
+#			 - now only stores preferred titles when it has seen more than once
+#			 - keeps last 30 days titles (indexed by time-of-day/day-of-week)
+#			   as back history for alternate titles when switching grabbers
+
+#
+# reconciles programme listings using the following logic:
+#  sort programmes into per-channel and per-timeslot
+#  for each channel:
+#  1. for programmes with a common start & stop time, evaluate them to see
+#     if they are the same programme using fuzzy title matching.
+#     use "majority voting" to decide which programme wins if titles differ.
+#  2. for programmes that start within 10 minutes of each other, try to
+#     see if they are the same programme (fuzzy title matching), merging
+#     data between them
+#  3. as a tie-breaker, prefer data based on order of grabber data we are
+#     fed.  i.e. first data file takes preference over second data file, etc.
+#
+# other features:
+#  - will automatically split titles with "title: subtitle" into "title" and
+#    "subtitle" (controlled via $reclogic{max_length_for_colon_title_split} and
+#    $reclogic{min_title_for_colon_title_split})
+#  - will try to match "same titles" (including fuzzy title matching) for
+#    duplicate programmes within 10 minutes (or whatever
+#    $reclogic{fuzzy_match_title_time_window} is set to)
+#  - will automatically move start/stop times (up to a max of 5 minutes or whatever
+#    $reclogic{max_prog_length_for_rejig} is set to) whenever programming
+#    overlaps occur.  logic for when-to-delete versus when-to-cutoff are
+#    controlled via $reclogic{min_prog_length_for_delete_cutoff} and
+#    $reclogic{delete_window_smaller_than_prog_window_threshold}
+#  - will remove all timezones from data (can be disabled by removing setting
+#    $reclogic{always_rewrite_start_stop_without_timezone}
+
+
+# processing uses the following tables:
+# 
+#   order in which we read datafiles:
+# 	number of datafiles:		$in->{num_datafiles);
+# 	order of datafiles:		$in->{datafile_order}->[n] = $proggy;
+# 	map datafile-to-grabber:	$in->{datafile}->{$datafile} = $proggy;
+# 	map grabber-to-datafile:	$in->{data}->{$proggy}->{file} = $datafile;
+# 	grabber version:		$in->{data}->{$proggy}->{version} = $version;
+# 
+#   channels list:
+# 	channel list:			$in->{channels}->{$chan}->{lang}->{$lang} = $desc
+# 	
+#   programme tables:
+# 	$in->{tree}->{$chan}->{"start:stop"}->{progs}->[n]
+# 	$in->{tree}->{$chan}->{"start:stop"}->{numprogs}
+#	$in->{total_progs}->{$chan}
+#	$in->{total_progs_in}->{$chan}, $in->{total_progs_out}->{$chan}
+# 
+#   misc tables:
+# 	encoding we are using:		$in->{encoding}
+# 	where we sourced data from:	$in->{sources}
+# 	duplicate checking:		$in->{dupcheck}->{$source}->{$prog_chan}->{$prog_key}
+# 	channel list:			$in->{channels}->{$chan}->{$lang} = $desc
+#
+#       used translations		$in->{used_translations}->{$xlate_to}->{num}=count
+#                        		$in->{used_translations}->{$xlate_to}->{from}->{$xlate_from}=count
+
+# history of title preferences uses the following (cache-based) data:
+#   $title_xlate_table->{"$primary_title"}->{seen_in_primary} = count
+#   $title_xlate_table->{"$primary_title"}->{last_seen_in_primary} = time
+#   $title_xlate_table->{"$primary_title"}->{translated} = count
+#   $title_xlate_table->{"$primary_title"}->{translation} = title
+#   $title_xlate_table->{"$primary_title"}->{alternate}->{"$alt_title"}->{secondary}->{"$source"} = count
+#   $title_xlate_table->{"$primary_title"}->{alternate}->{"$alt_title"}->{last_seen_in_secondary} = time
+#   $title_xlate_table->{"$primary_title"}->{same}->{"$source"} = count
+
+use strict;
+$| = 1;
+BEGIN { *CORE::GLOBAL::die = \&my_die; }
+
+my $progname = "reconciler_mk2";
+my $version = "0.35";
+
+use LWP::UserAgent;
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use Data::Dumper;
+use Compress::Zlib;
+use Storable;
+
+#### reconciler settings ####
+my %reclogic;
+
+### *******************************************************************************
+### *** NOTE: all of these can be overridden through a (site local) config file ***
+### *******************************************************************************
+### Doing that is HIGHLY PREFERABLE to CHANGING THIS FILE!
+### remember that Shepherd may upgrade this automatically from time-to-time,
+### causing any changes here to be LOST!
+
+#
+# reconciler logic settings
+#
+
+# delete_window_smaller_than_prog_window_threshold:
+$reclogic{delete_window_smaller_than_prog_window_threshold} = (5*60); # 5 mins each side
+
+# min_prog_length_for_delete_cutoff:
+$reclogic{min_prog_length_for_delete_cutoff} = (10*60);	# prog needs to be at least 10 mins if we're cutting back
+
+# max_prog_length_for_rejig:
+$reclogic{max_prog_length_for_rejig} = (10*60);		# allow programme times to be changed by at-most 10 mins
+
+$reclogic{fuzzy_match_title_time_window} = (20*60);	# attempt title matches within +/- 20 min window
+
+# always rewrite XMLTV 'start' & 'stop', removing timezone
+$reclogic{always_rewrite_start_stop_without_timezone} = 1;
+
+# add channels from data sources that we don't have in our channels.conf
+$reclogic{always_add_new_channels} = 0;	# don't
+
+# if its on a freetv channel without a subtitle and a possible series
+# (not a movie (less then or equal to $reclogic{max_length_for_colon_title_split} minutes)) and
+# there is a ": " in title, split title into "title: subtitle"
+# if each of title/subtitle will be at least $reclogic{min_title_for_colon_title_split} characters
+$reclogic{max_length_for_colon_title_split} = (70*60);
+$reclogic{min_title_for_colon_title_split} = 5;
+
+# sanity check: don't accept insanely long programmes
+$reclogic{max_programme_length} = (12 * 60 * 60); # 12 hours
+$reclogic{max_programme_length_opt_channels} = (18 * 60 * 60); # 18 hours
+
+# store a preferred title only if we have at least 1 alternative
+$reclogic{title_xlate_table_min_alt_progs} = 1;
+
+# keep up to 30 days of title history
+$reclogic{title_history} = 30;
+
+# matching of history titles requires programme start within 20 minutes and duration within 10%
+$reclogic{title_history_start_fuzzy_match_window} = (20*60);	# seconds
+$reclogic{title_history_duration_fuzzy_match_percent} = 10;	# percent
+
+
+
+#
+# warning messages
+#
+
+$reclogic{warn_on_encoding_differences} = 0;		# don't warn on encoding differences between XMLTV files
+$reclogic{warn_on_no_title} = 1;			# do warn on programme with no title
+$reclogic{warn_on_no_channel} = 1;			# do warn on programme with no channel
+$reclogic{warn_on_unknown_channel} = 1;			# do warn on programme with unknown channel
+$reclogic{warn_on_invalid_time_in_prog} = 1;		# do warn on programme with bad time format
+$reclogic{warn_on_overlapping_programmes_always} = 0;	# don't warn on all overlapping programmes from same source
+$reclogic{warn_on_overlapping_programmes_for_different_title} = 1; # do warn on overlapping programmes from same source with different names
+$reclogic{warn_on_invalid_time_in_prog} = 1;		# do warn on a programme with a duration that is too long
+
+#
+# debug messages
+#
+
+$reclogic{debug_parse_time} = 0;			# don't show debugging when parsing input time
+$reclogic{debug_reconcile} = 0;				# don't show reconciler logic
+$reclogic{debug_reconcile_pass1} = 0;			# don't show verbose pass 1 reconciler logic
+$reclogic{debug_reconcile_pass2} = 0;			# don't show verbose pass 2 reconciler logic
+$reclogic{debug_add_logic} = 0;				# don't show add logic debugging messages
+$reclogic{debug_add_logic_verbose} = 0;			# don't show add logic verbose debugging messages
+$reclogic{debug_add_logic_name_xlate} = 0;		# don't show add logic title translation messages
+$reclogic{debug_delete_logic} = 0;			# don't show delete logic debugging messages
+$reclogic{debug_show_nonmatching_title_alternatives} = 0; # don't show non-matching alternative debugging messages
+$reclogic{debug_find_prog_to_add} = 0;			# don't show add_multiple logic debugging messages
+$reclogic{debug_find_prog_to_add_verbose} = 0;		# don't show add_multiple logic verbose debugging messages
+$reclogic{debug_print_programme_list} = 0;		# don't show programme listings while writing
+$reclogic{debug_subtitle_derived_from_title} = 0;	# don't show subtitles mapped from titles
+
+#### end reconciler settings ####
+
+
+#
+# some initial cruft
+#
+
+my $script_start_time = time;
+my %stats;
+my $datafile;
+my $channels, my $opt_channels;
+my $in = { };
+my $out = { };
+my $w;
+my $gmt_offset;
+
+my $setting_override;
+my %cli_override;
+my $title_xlate_table;	# cached
+my $title_history;	# cached
+
+my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
+
+
+#
+# parse command line
+#
+
+my $opt = { };
+$opt->{output_file} =		"output.xmltv";
+$opt->{old_config_file} =	$progname.".config";
+$opt->{config_file} =		$progname.".storable.config";
+$opt->{log_file} =		$progname.".log";
+$opt->{alt_title_file} =	$progname.".alt_title.log";
+$opt->{lang} = 			"en";
+
+GetOptions(
+	'region=i'		=> \$opt->{region},	# silently ignored
+	'days=i'		=> \$opt->{days},	# silently ignored
+	'offset=i'		=> \$opt->{offset},	# silently ignored
+	'timezone=s'		=> \$opt->{timezone},	# silently ignored
+
+	'channels_file=s' 	=> \$opt->{channels_file},
+	'preftitle=s'		=> \$opt->{preftitle},
+	'old-config-file=s'	=> \$opt->{old_config_file},
+	'config-file=s'		=> \$opt->{config_file},
+	'log=s'			=> \$opt->{log_file},
+	'alt-title-file=s'	=> \$opt->{alt_title_file},
+	'output=s'		=> \$opt->{output_file},
+	'debug+'		=> \$opt->{debug},
+	'lang=s'		=> \$opt->{lang},
+	'option=s'		=> \%cli_override,
+
+	'no-log'		=> \$opt->{nolog},
+
+	'print_listing'		=> \$reclogic{debug_print_programme_list},
+	'dump_config'		=> \$opt->{dump_config},
+
+	'help'			=> \$opt->{help},
+	'verbose'		=> \$opt->{help},
+	'list_options'		=> \$opt->{help},
+	'version'		=> \$opt->{version},
+	'ready'			=> \$opt->{ready},
+	'desc'			=> \$opt->{desc},
+	'v'			=> \$opt->{version});
+
+printf "%s v%s\n",$progname,$version;
+
+if ($opt->{version} || $opt->{desc} || $opt->{help} || $opt->{ready} || $opt->{configure} || $opt->{output_file} eq "") {
+	printf "A reconciler for multiple XMLTV data sources.\n" if $opt->{desc};
+	printf "$progname is ready for operation.\n" if ($opt->{ready});
+
+	printf "No --output file specified.\n" if ($opt->{output_file} eq "");
+
+	if ($opt->{help} || $opt->{output_file} eq "") {
+		print<<EOF
+
+usage: $0 [options] {FILE(s)}
+
+Supported options include:
+  --ready                 verify that '$progname' is ready for operation
+
+  --lang={lang}           set language to {lang} (default: $opt->{lang})
+  --channels_file={file}  use channels file to augment list of channels (default: don't)
+  --output={file}         send final XMLTV output to {file} (default: $opt->{output_file})
+  --debug                 enable ALL debugging
+
+  --print_listing         print out programme listing of chosen programs
+
+  --config-file={file}    config file for default overrides (default: none)
+  --log={file}            write (detailed) log file in {file} (default: $opt->{log_file})
+  --alt-title-file={file} write details of possible alternate titles into {file} (default: $opt->{alt_title_file})
+
+  --list_options          list all possible options
+  --option {opt}={val}    set option {opt} to value {val}
+EOF
+;
+		foreach my $key (sort keys %reclogic) {
+			if (($key =~ /^warn_on_/) || ($key =~ /^debug_/)) {
+				my $thiskey = sprintf "%s=%d",$key,($reclogic{$key} ? 0 : 1);
+				printf "      --option %-30s %sable %s (default: %s)\n", $thiskey, ($reclogic{$key} ? "dis" : "en"),
+					$key, ($reclogic{$key} ? "do" : "don't");
+			} else {
+				my $thiskey = $key."={val}";
+				printf "      --option %-30s set %s to {val} (default: %s)\n",$thiskey,$key,$reclogic{$key};
+			}
+		}
+	}
+	printf "\n";
+	exit(0);
+}
+
+# go go go!
+unless ($opt->{nolog}) {
+	&rotate_logfiles;
+	open(LOG_FILE,">$opt->{log_file}") || die "can't open log file $opt->{log_file} for writing: $!\n";
+}
+
+&log(1,(sprintf "started: %s%s%soutput %s",
+	($opt->{channels_file} ? "channels in $opt->{channels_file}, " : ""),
+	($opt->{config_file} ? "config in $opt->{config_file}, " : ""),
+	($opt->{preftitle} ? "preferred titles from $opt->{preftitle}, " : ""),
+	($opt->{output_file})));
+&log(1,"logging to $opt->{log_file}") unless $opt->{nolog};
+&log(1,"alternate titles to $opt->{alt_title_file}") unless $opt->{nolog};
+
+# convert from old Data::Dumper to newer Storable config file
+if ((defined $opt->{old_config_file}) && (-r $opt->{old_config_file})) {
+	&read_config_file($opt->{old_config_file},0) if ($opt->{old_config_file});
+	&write_config_file;
+	unlink($opt->{old_config_file});
+}
+
+&read_storable_file($opt->{config_file}) if ($opt->{config_file});
+&show_settings;
+
+&fill_in_channels if ($opt->{channels_file});
+
+foreach my $file (@ARGV) {
+	$datafile = $file;
+	&log(1,(sprintf "parsing: %s",($datafile eq "-" ? "(from-stdin, hit control-D to finiah)" : $datafile)));
+
+	eval { XMLTV::parsefiles_callback(\&encoding_cb, \&credits_cb, \&channel_cb, \&programme_cb, $datafile); };
+}
+
+&start_writer;
+&write_channels;
+
+my $grabber_order = "", my $grabber_num = 0;
+foreach my $data (@{($in->{datafile_order})}) {
+	$grabber_order .= sprintf "%s(%d)%s",
+	  ($grabber_num > 0 ? ", " : ""), $grabber_num, $data;
+	$grabber_num++;
+}
+&log(1,"reconciling with the following data-source preference: $grabber_order");
+
+&reconcile;
+
+&write_programmes;
+$w->end();
+
+unless ($opt->{nolog}) {
+	# compress older logfile
+	compress_file($opt->{log_file}.".1");
+	compress_file($opt->{alt_title_file}.".1");
+}
+
+&write_config_file if ($opt->{config_file});
+&print_stats;
+
+unless ($opt->{nolog}) {
+	close(LOG_FILE);
+	&write_alt_title_log;
+}
+
+exit(0);
+
+######################################################################################################
+# read settings (used for old config file and shepherd .conf files)
+
+sub read_config_file
+{
+	my($file,$die_on_failure) = @_;
+	if (!(-r $file)) {
+		die "file $file could not be read.  aborting.\n" if $die_on_failure;
+		return;
+	}
+	local (@ARGV, $/) = ($file);
+	no warnings 'all'; eval <>; die "$@" if $@;
+}
+
+######################################################################################################
+# used for reconciler new style config file
+
+sub read_storable_file
+{
+	my($file,$die_on_failure) = @_;
+	if (!(-r $file)) {
+		die "file $file could not be read.  aborting.\n" if $die_on_failure;
+		return;
+	}
+
+	my $store;
+	eval { $store = Storable::retrieve($file); };
+        if ($@) {
+		&log(1,"Error reading $file: $@");
+	}
+
+	$setting_override = $store->{settings_override};
+	$title_xlate_table = $store->{title_xlate_table};
+	$title_history = $store->{title_history};
+
+	if (defined $opt->{dump_config}) {
+		print Dumper($store);
+		exit(0);
+	}
+}
+
+######################################################################################################
+
+sub write_config_file
+{
+	# age out old titles (default is to keep for 30 days as per $reclogic{title_history})
+	for my $cache_key (keys %{$title_history}) {
+		my ($starttime, $duration, $channel, $grabber) = split(/,/,$cache_key);
+		if ($starttime < (time-(86400*$reclogic{title_history}))) {
+			delete $title_history->{$cache_key};
+			$stats{expired_old_titles}++;
+		}
+	}
+
+	my $store;
+	$store->{settings_override} = $setting_override;
+	$store->{title_xlate_table} = $title_xlate_table;
+	$store->{title_history} = $title_history;
+
+	eval { Storable::store($store, $opt->{config_file}); };
+	if ($@) {
+		&log(1, "WARNING: Unable to update configuration file: $@");
+	} else {
+		&log(1,(sprintf "updated configuration file %s.\n",$opt->{config_file}));
+	}
+}
+
+######################################################################################################
+# debug is actually always enabled (with default settings).
+# --debug will turn on all debugging!
+
+sub show_settings
+{
+	foreach my $key (sort keys %reclogic) {
+		$reclogic{$key} = $setting_override->{$key} if (defined $setting_override->{$key});
+		$reclogic{$key} = $cli_override{$key} if (defined $cli_override{$key});
+	}
+
+	my $enabled_warnings = "";
+	my $enabled_debug = "";
+
+	foreach my $key (sort keys %reclogic) {
+		if ($key !~ /^debug_/) {
+			if ($key =~ /^warn_on_/) {
+				$enabled_warnings .= sprintf "%s%s",
+				  ($enabled_warnings ne "" ? ", " : ""),$key if ($reclogic{$key});
+			} elsif ($key =~ /^debug_/) {
+				$reclogic{$key} = 1 if ($opt->{debug});
+				$enabled_debug .= sprintf "%s%s",
+				  ($enabled_debug ne "" ? ", " : ""),$key if ($reclogic{$key});
+			} else {
+				# only print out setting if it was overridden
+				&log(1,(sprintf "%s was set to non-default %s via config-file option",$key,$reclogic{$key}))
+				  if (defined $setting_override->{$key});
+				&log(1,(sprintf "%s was set to non-default %s via command-line option",$key,$reclogic{$key}))
+				  if (defined $cli_override{$key});
+			}
+		}
+	}
+
+	&log(1,"warnings printed for: $enabled_warnings") if ($enabled_warnings ne "");
+	&log(1,"debug messages printed for: $enabled_debug") if ($enabled_debug ne "");
+}
+
+######################################################################################################
+# we use our own die() routing to circumvent die() within eval statements where we are
+# calling the standard XMLTV::parsefiles.
+# this prevents bad XML from causing the reconciler to completely fail.
+
+# ugly hack. please don't try this at home kids!
+
+sub my_die {
+	my ($arg,@rest) = @_;
+	my ($pack,$file,$line,$sub) = caller(0);
+
+	# check if we are in an eval()
+	if ($^S) {
+		printf "  caught a die() within eval{} from file $file line $line\n";
+	} else {
+		if (!ref($arg)) {
+			CORE::die("DIE at line $line in file $file ERROR: $arg" . join("",@rest));
+		} else {
+			CORE::die($arg,@rest);
+		}
+	}
+}
+
+######################################################################################################
+
+sub rotate_logfiles
+{
+	# keep last 4 log files
+	foreach my $file ($opt->{log_file}, $opt->{alt_title_file}) {
+		my $num;
+		for ($num = 4; $num > 0; $num--) {
+			my $f1 = sprintf "%s.%d.gz",$file,$num;
+			my $f2 = sprintf "%s.%d.gz",$file,$num+1;
+			unlink($f2);
+			rename($f1,$f2);
+		}
+
+		my $f2 = sprintf "%s.1",$file;
+		rename($file,$f2);
+	}
+}
+
+######################################################################################################
+
+sub compress_file
+{
+	my $infile = shift;
+	my $outfile = sprintf "%s.gz",$infile;
+	my $gz;
+
+	if (!(open(INFILE,"<$infile"))) {
+		warn "could not open file $infile for reading: $!\n";
+		return;
+	}
+
+	if (!($gz = gzopen($outfile,"wb"))) {
+		warn "could not open file $outfile for writing: $!\n";
+		return;
+	}
+
+	while (<INFILE>) {
+		my $byteswritten = $gz->gzwrite($_);
+		if ($byteswritten == 0) {
+			warn "error writing to compressed file: error $gz->gzerror";
+		}
+	}
+	close(INFILE);
+	$gz->gzclose();
+	unlink($infile);
+}
+
+######################################################################################################
+# if we are supplied a channels_file, then fill in channels we know about from that.
+# this is useful because some grabbers (e.g. oztivo) don't supply a <channels></channels>
+# section at the top of their xmltv - and if they happen to be the first grabber,
+# this causes issues with programmes with no (known) channel
+
+sub fill_in_channels
+{
+	&read_config_file($opt->{channels_file},1);
+
+	foreach my $ch (sort keys %{$channels}) {
+		&fill_channel($ch, $channels->{$ch});
+	}
+	foreach my $ch (sort keys %{$opt_channels}) {
+		&fill_channel($ch, $opt_channels->{$ch});
+	}
+
+}
+
+######################################################################################################
+
+sub fill_channel
+{
+	my ($ch, $id) = @_;
+
+	$in->{channels}->{$id}->{lang}->{($opt->{lang})} = $ch;
+	$in->{channels}->{$id}->{pref_desc} = $ch;
+	$in->{total_progs}->{$id} = 0;
+	$in->{total_progs_in}->{$id} = 0;
+	$in->{total_progs_out}->{$id} = 0;
+}
+
+######################################################################################################
+
+sub log
+{
+	my ($log_level,$entry) = @_;
+	printf "%s [%d] %s\n",$progname, time,$entry if ($log_level);
+	#printf LOG_FILE "%s [%d] %s\n",$progname, time,$entry if (($log_level) && (!$opt->{nolog}));
+	printf LOG_FILE "%s [%d] %s\n",$progname, time,$entry unless ($opt->{nolog});
+}
+
+######################################################################################################
+
+sub print_stats
+{
+	printf "STATS: %s v%s completed in %d seconds",$progname, $version, (time - $script_start_time);
+	foreach my $key (sort keys %stats) {
+		printf ", %d %s", $stats{$key},$key;
+	}
+	printf ".\n";
+}
+
+######################################################################################################
+# descend a structure and clean up various things, including stripping
+# leading/trailing spaces in strings, translations of html stuff etc
+#   -- taken & modified from Michael 'Immir' Smith's excellent tv_grab_au
+
+sub cleanup {
+	my $x = shift;
+	if    (ref $x eq "REF")   { cleanup($_) }
+	elsif (ref $x eq "HASH")  { cleanup(\$_) for values %$x }
+	elsif (ref $x eq "ARRAY") { cleanup(\$_) for @$x }
+	elsif (defined $$x) {
+		$$x =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
+		# $$x =~ s/[^\x20-\x7f]/ /g;
+		$$x =~ s/(^\s+|\s+$)//g;
+	}
+}
+
+######################################################################################################
+
+# strptime type date parsing - BUT - if no timezone is present, treat time as being in localtime
+# rather than the various other perl implementation which treat it as being in UTC/GMT
+sub parse_xmltv_date
+{
+	my $datestring = shift;
+	my @t; # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+	my $tz_offset = 0;
+
+	# work out GMT offset - we only do this once
+	if (!$gmt_offset) {
+		my $tzstring = strftime("%z", localtime(time));
+
+		$gmt_offset = (60*60) * int(substr($tzstring,1,2));     # hr
+		$gmt_offset += (60 * int(substr($tzstring,3,2)));       # min
+		$gmt_offset *= -1 if (substr($tzstring,0,1) eq "-");    # +/-
+	}
+
+	if ($datestring =~ /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/) {
+		($t[5],$t[4],$t[3],$t[2],$t[1],$t[0]) = (int($1)-1900,int($2)-1,int($3),int($4),int($5),0);
+		($t[6],$t[7],$t[8]) = (-1,-1,-1);
+
+		# if input data has a timezone offset, then offset by that
+		if ($datestring =~ /\+(\d{2})(\d{2})/) {
+			$tz_offset = $gmt_offset - (($1*(60*60)) + ($2*60));
+		} elsif ($datestring =~ /\-(\d{2})(\d{2})/) {
+			$tz_offset = $gmt_offset + (($1*(60*60)) + ($2*60));
+		}
+
+		my $e = mktime(@t);
+		return ($e+$tz_offset) if ($e > 1);
+	}
+	return undef;
+}
+
+######################################################################################################
+
+sub write_alt_title_log
+{
+	if (!(open(ALT_TITLE_FILE,">$opt->{alt_title_file}"))) {
+		warn "can't open alt-title-file $opt->{alt_title_file} for writing: $!\n";
+		return;
+	}
+
+	printf ALT_TITLE_FILE "$progname $version\n";
+
+	printf ALT_TITLE_FILE "\n==========================================================================================================\n\n";
+	printf ALT_TITLE_FILE "(1) The following list shows title translations that were used:\n\n";
+
+	printf ALT_TITLE_FILE "  Times Preferred Title (translated to)  Translated from                Times\n";
+	printf ALT_TITLE_FILE "  ----- -------------------------------- ------------------------------ -----\n";
+	my $u = $in->{used_translations};
+	foreach my $xlate_to (sort { $u->{$b}->{num} <=> $u->{$a}->{num} } keys %{$u}) {
+		printf ALT_TITLE_FILE "  %5d %-32s", $u->{$xlate_to}->{num},$xlate_to;
+
+		my $u2 = $u->{$xlate_to}->{from};
+		my $num = 0;
+		foreach my $xlate_from (sort { $u2->{$a} <=> $u2->{$b} } keys %{$u2}) {
+			printf ALT_TITLE_FILE "%s %-30s %5d\n",
+			  ($num > 0 ? "                                        " : ""),
+			  $xlate_from, $u2->{$xlate_from};
+			$num++;
+		}
+	}
+
+	printf ALT_TITLE_FILE "\n==========================================================================================================\n\n";
+	printf ALT_TITLE_FILE "(2) The following table lists ALL the translations we have stored:\n\n";
+	printf ALT_TITLE_FILE "+Preferred title (xlate to)          xlate_  preferred title seen in source (times)\n";
+	printf ALT_TITLE_FILE "-Alternate title (xlate from)         times  alternate title seen in source (times)\n";
+	printf ALT_TITLE_FILE " ---------------------------------- -------  --------------------------------------------------------------\n";
+
+	foreach my $xlate_to (sort { $title_xlate_table->{$b}->{translated} <=> $title_xlate_table->{$a}->{translated} } keys %{$title_xlate_table}) {
+		printf ALT_TITLE_FILE "+%-34s %7d ",
+		  substr("\"".$title_xlate_table->{$xlate_to}->{translation}."\"",0,34),
+		  $title_xlate_table->{$xlate_to}->{translated};
+
+		foreach my $source (sort { $title_xlate_table->{$xlate_to}->{same}->{$b} <=> $title_xlate_table->{$xlate_to}->{same}->{$a} }
+		  keys %{($title_xlate_table->{$xlate_to}->{same})}) {
+			printf ALT_TITLE_FILE " %s(%d)", $source, $title_xlate_table->{$xlate_to}->{same}->{$source};
+		}
+		printf ALT_TITLE_FILE "\n";
+
+		foreach my $xlate_from (sort keys %{($title_xlate_table->{$xlate_to}->{alternate})}) {
+			my $last_xlated = (time - $title_xlate_table->{$xlate_to}->{alternate}->{$xlate_from}->{last_seen_in_secondary});
+			my $last_xlated_desc;
+			if ($last_xlated < (24*60*60)) {
+				$last_xlated_desc = sprintf "-%dhrs",int($last_xlated/(24*60*60));
+			} elsif ($last_xlated < (7*24*60*60)) {
+				$last_xlated_desc = sprintf "-%ddays",int($last_xlated/(24*60*60));
+			} else {
+				$last_xlated_desc = sprintf "-%dwks",int($last_xlated/(7*24*60*60));
+			}
+			
+			printf ALT_TITLE_FILE "-%-34s %7s ",substr("\"".$xlate_from."\"",0,34),$last_xlated_desc;
+
+			foreach my $source (sort { $title_xlate_table->{$xlate_to}->{alternate}->{$xlate_from}->{secondary}->{$a} <=>
+			  $title_xlate_table->{$xlate_to}->{alternate}->{$xlate_from}->{secondary}->{$b} }
+			  keys %{($title_xlate_table->{$xlate_to}->{alternate}->{$xlate_from}->{secondary})}) {
+				printf ALT_TITLE_FILE " %s(%d)", $source, $title_xlate_table->{$xlate_to}->{alternate}->{$xlate_from}->{secondary}->{$source};
+			}
+			printf ALT_TITLE_FILE "\n";
+		}
+		printf ALT_TITLE_FILE "\n";
+	}
+
+	printf ALT_TITLE_FILE "\n==========================================================================================================\n\n";
+	printf ALT_TITLE_FILE "(3) The following list shows timeslots where NO titles matched.\n\n";
+	printf ALT_TITLE_FILE "    i.e. if we had 3 grabbers providing data for this timeslot,\n";
+	printf ALT_TITLE_FILE "    the reconciler saw 3 programmes that it considered to be\n";
+	printf ALT_TITLE_FILE "    different.  (if 2 were the same and one was different, it wouldn't\n";
+	printf ALT_TITLE_FILE "    show up in this list.)\n\n";
+	printf ALT_TITLE_FILE "    The intent of this list is to keep a log that we can (hopefully)\n";
+	printf ALT_TITLE_FILE "    interpret to improve the canonicalizeTitles_match() logic.\n\n";
+	print ALT_TITLE_FILE $in->{alt_title_mismatches} if (defined $in->{alt_title_mismatches});
+
+	close(ALT_TITLE_FILE);
+}
+
+######################################################################################################
+# The two supplied program titles match well enough that we should consider them to identify the same
+# program.  The approach we use is check that every word in the shorter title has a corresponding
+# (nearly) identical word in the longer title.  This handles grabbers that shorten program titles,
+# such as from "House, MD" to "House."  It als ignores word order altogether, since different
+# grabbers often change word order around.  Finally, we allow the shorter title to join together
+# two adjacent words from the longer title.
+
+sub canonicalizeTitles_match
+{
+	my $word1 = canonicalizeTitle(shift);
+	my $word2 = canonicalizeTitle(shift);
+	my @longer;
+	my @shorter;
+
+	if (length($word1) > length($word2)) {
+		@longer  = split(/\s+/, $word1);
+		@shorter = split(/\s+/, $word2);
+	} else {
+		@shorter = split(/\s+/, $word1);
+		@longer  = split(/\s+/, $word2);
+	}
+
+	WORD: for my $word (@shorter) {
+		for(my $i=0; $i < @longer; ++$i) {
+			if (forgivingMatch($longer[$i], $word)) {
+				splice(@longer,$i,1);
+				next WORD;
+			} elsif ($i+1 < @longer &&
+				 $word eq "$longer[$i]$longer[$i+1]") {
+				splice(@longer,$i,2);
+				next WORD;
+			}
+		}
+		return(0);
+	}
+
+	return(0) if (match_stoplist_override($word1, $word2));
+	return(1);
+}
+
+# lookup table of special case name matches
+my %alternatives = ( one => "1",
+		     two => "2",
+		     to  => "2",
+		     too => "2",
+		     three => "3",
+		     four => "4",
+		     for => "4",
+		     five => "5",
+		     six => "6",
+		     seven => "7",
+		     eight => "8",
+		     nine => "9"
+		   );
+
+##############################################################################
+# Are the two arguments "close enough" to being identical strings that they
+# should be considered the same word?  Differences we are willing to overlook
+# include a single character transposition, insertion/deletion, or replacement
+# in words of 3 or more characters.  We also have a table of special cases that
+# consider digits to be identical to their names, and also to common homonyms
+# of their names (eg, "2" for "too").
+
+sub forgivingMatch
+{
+	my $word1 = shift;
+	my $word2 = shift;
+
+	# exact match
+	return 1 if $word1 eq $word2;
+	# they match according to our alternatives lookup table
+	return 1 if $alternatives{$word1} && $alternatives{$word1} eq $word2 ||
+		    $alternatives{$word2} && $alternatives{$word2} eq $word1;
+	# irreconcilable differences
+	return 0 if abs(length($word1) - length($word2)) > 1 ||
+		    length($word1) < 3;
+
+	my @list1 = split(//,$word1);
+	my @list2 = split(//,$word2);
+	my $i = 0;
+	my $j = 0;
+
+	# find first difference
+	while ($i < @list1 && $j < @list2 && $list1[$i] eq $list2[$j]) {
+		++$i; ++$j;
+	}
+	if ($i+1 < @list1 && $j+1 < @list2) {
+		# at least 2 chars to go in both words
+		if ($list1[$i+1] eq $list2[$j] && $list1[$i] eq $list2[$j+1]) {
+			# step over transposed characters
+			$i += 2;
+			$j += 2;
+		} elsif ($list1[$i+1] eq $list2[$j]) {
+			# step over extra character inserted into @list1
+			$i += 2;
+			++$j;
+		} elsif ($list1[$i] eq $list2[$j+1]) {
+			# steop over extra character inserted into @list2
+			++$i;
+			$j += 2;
+		} else {
+			# step over single character difference
+			++$i;
+			++$j;
+		}
+		# we forgave one difference; now do rest of strings match exactly?
+		while ($i < @list1 && $j < @list2 && $list1[$i] eq $list2[$j]) {
+			++$i; ++$j;
+		}
+		return($i == @list1 && $j == @list2);
+	} elsif ($i == @list1 || $j == @list2) {
+		# only difference is one word has one extra letter, or last char
+		# of each word differ.  That's still only one one-char difference
+		return(1);
+	}
+}
+
+##############################################################################
+# Cleanup small ideosyncracies in a title that might make it harder to match.
+# For now this just fixes up html entities and ampersands, normalizes whitepace,
+# removes punctuation, and lowercases everything.
+
+sub canonicalizeTitle
+{
+	my $title=shift;
+	$title =~ s/^\s+//;
+	$title =~ s/\s+$//;
+	$title =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
+	$title =~ s/ *\& */ and /g;
+	$title =~ s/[^ a-zA-Z0-9]//g;
+	$title =~ s/\s+/ /;
+	return(lc($title));
+}
+
+######################################################################################################
+# used to override what would otherwise be canonical matches
+#  returns 1 if they should NOT match
+
+sub match_stoplist_override
+{
+	my ($word1, $word2) = @_;
+
+	# if the left-hand-side programme matches the right-hand-side, ensure the
+	# alternate programme ALSO matches the right-hand-side
+	my $canonical_stop_list_exceptions = {
+		'Law.*Order' => [ "Criminal", "SVU", "Special", "Trial" ],
+		'(CSI|Crime.*Scene.*Investigation).*:' => [ ":.*Crime", "NY", "N.Y", "New", "Miami" ]
+		};
+
+	foreach my $stop1 (keys %$canonical_stop_list_exceptions) {
+		#printf "checking word1 ($word1) against stoplist stop1 ($stop1) ..\n";
+		if ($word1 =~ /^$stop1/i) {
+			#printf "  word1 ($word1) contains stop1 ($stop1)\n";
+			foreach my $stop2 (@{($canonical_stop_list_exceptions->{$stop1})}) {
+				#printf "    checking whether word1 ($word1) contains stop2 ($stop2)\n";
+				if ($word1 =~ /$stop2/i) {
+					#printf "      word1 ($word1) contains stop2 ($stop2)\n";
+					if ($word2 !~ /$stop2/i) {
+						#printf "        word2 ($word2) doesn't contain stop2 ($stop2). rejecting match!\n";
+						return 1;
+					}
+				}
+				#printf "    checking whether word2 ($word2) contains stop2 ($stop2)\n";
+				if ($word2 =~ /$stop2/i) {
+					#printf "      word2 ($word2) contains stop2 ($stop2)\n";
+					if ($word1 !~ /$stop2/i) {
+						#printf "        word1 ($word1) doesn't contain stop2 ($stop2). rejecting match!\n";
+						return 1;
+					}
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+######################################################################################################
+
+sub encoding_cb( $ )
+{
+	my $e = shift;
+	#printf "got encoding ".Dumper($e);
+	$in->{encoding} = $e if (!$in->{encoding});
+
+	&log($reclogic{warn_on_encoding_differences},
+	  (sprintf"WARNING: encoding '%s' from %s different from %s",$e,$datafile,$in->{encoding}))
+	  if ($in->{encoding} ne $e);
+}
+	
+######################################################################################################
+
+sub credits_cb( $ )
+{
+	my $c = shift;
+	#printf "got credits ".Dumper($c);
+
+	my ($proggy, $version);
+
+	if ($c->{'generator-info-name'}) {
+		if ($c->{'generator-info-name'} =~ /\s?(\S+)\s[v]?([\d\.]+)/) {
+			($proggy, $version) = ($1,$2);
+		}
+	}
+
+	$proggy = $datafile if (!defined $proggy);
+	$version = "" if (!defined $version);
+
+	$in->{data}->{$proggy}->{file} = $datafile;
+	$in->{datafile}->{$datafile} = $proggy;
+	$in->{data}->{$proggy}->{version} = $version;
+
+	if (!defined $in->{num_datafiles}) {
+		$in->{num_datafiles} = 0;
+		$in->{sources} = "$proggy";
+	} else {
+		$in->{sources} .= ",$proggy";
+	}
+
+	$in->{data}->{titlepref} = $in->{num_datafiles}
+	  if ((defined $opt->{preftitle}) && ($datafile eq $opt->{preftitle}));
+
+	$in->{datafile_order}->[($in->{num_datafiles})] = $proggy;
+	$in->{num_datafiles}++;
+}
+
+######################################################################################################
+
+sub channel_cb( $ )
+{
+	my $c = shift;
+	#printf "got channel ".Dumper($c);
+
+	my $chan = $c->{id};
+	my %chan_lang;
+
+	# only add this channel if $reclogic{always_add_new_channels} is set
+	if ((!defined $in->{channels}->{$chan}) && (!$reclogic{always_add_new_channels})) {
+		&log($reclogic{warn_on_unknown_channel},(sprintf "WARNING: channel '%s' from file \"%s\" not in channels.conf; ignored.", $chan, $datafile));
+		$stats{ignored_unknown_channel}++;
+		return;
+	}
+
+	if (defined $c->{'display-name'} && defined $c->{'display-name'}->[0]) {
+		foreach my $ch_block ($c->{'display-name'}->[0]) {
+			my ($desc,$lang) = ($ch_block->[0],$ch_block->[1]);
+			$lang = $opt->{lang} if (!defined $lang);
+			$desc = "unknown" if (!defined $desc);
+
+			if (!defined $in->{channels}->{$chan}) {
+				$in->{channels}->{$chan}->{lang}->{$lang} = $desc;
+				$in->{total_progs}->{$chan} = 0;
+				$in->{total_progs_in}->{$chan} = 0;
+				$in->{total_progs_out}->{$chan} = 0;
+			} else {
+				$in->{channels}->{$chan}->{lang}->{$lang} = $desc
+				  if (!defined $in->{channels}->{$chan}->{lang}->{$lang});
+			}
+
+			$in->{channels}->{$chan}->{pref_desc} = $desc 
+			  if (!defined $in->{channels}->{$chan}->{pref_desc});
+		}
+	}
+}
+
+######################################################################################################
+
+sub programme_cb( $ )
+{
+	my $prog=shift;
+	# print "got programme from $datafile: ".Dumper($prog);
+
+	# make sure programme has a title
+ 	if (!defined $prog->{title} || !defined $prog->{title}->[0]) {
+		&log($reclogic{warn_on_no_title},(sprintf "WARNING: programme with no title in %s; ignored.", $datafile));
+		$stats{bad_programme_no_title}++;
+		return;
+	}
+	my $prog_title = $prog->{title}->[0]->[0];
+	my $prog_subtitle;
+	$prog_subtitle = $prog->{'sub-title'}->[0]->[0] if (defined $prog->{'sub-title'} && $prog->{'sub-title'}->[0] && $prog->{'sub-title'}->[0]->[0]);
+
+	# make sure programme has a channel
+	if (!defined $prog->{channel}) {
+		&log($reclogic{warn_on_no_channel},(sprintf "WARNING: programme '%s' had no channel information; ignored.", $prog_title));
+		$stats{bad_programme_no_channel}++;
+		return;
+	}
+	my $prog_chan = $prog->{channel};
+
+	# make sure we know about this channel
+	if (!defined $in->{channels}->{$prog_chan}) {
+		&log($reclogic{warn_on_unknown_channel},(sprintf "WARNING: programme '%s' had unknown channel \"%s\"; ignored.", $prog_title, $prog_chan));
+		$stats{bad_programme_unknown_channel}++;
+		return;
+	}
+
+	my $source = $in->{datafile}->{$datafile};
+
+	# work out epoch times
+	my $t1 = &parse_xmltv_date($prog->{start});
+	my $t2 = &parse_xmltv_date($prog->{stop});
+
+	if (!$t1 || !$t2) {
+		&log($reclogic{warn_on_invalid_time_in_prog},
+		  (sprintf "WARNING: programme '%s' on channel '%s' from %s had invalid start (%s) or stop (%s) time; ignored.",
+		  $prog_title, $prog_chan, $datafile, ($prog->{start} ? $prog->{start} : "undef"),
+		  ($prog->{stop} ? $prog->{stop} : "undef")));
+		$stats{bad_programme_invalid_times}++;
+		return;
+	}
+
+	&log($reclogic{debug_parse_time},
+	  (sprintf "  prog \"%s\" on chan \"%s\" start %s end %s, duration %d, file %s",
+	  $prog_title, $prog_chan, (strftime "%a%e%b%H:%M", localtime($t1)),
+	  (strftime "%a%e%b%H%M", localtime($t2)), ($t2 - $t1), $source)) if ($t1 && $t2);
+
+	# skip if on a freetv channel and too long OR extra long provided title isn't 'close'
+	if (((defined $channels->{$in->{channels}->{$prog_chan}->{pref_desc}} &&
+	     (($t2 - $t1) > $reclogic{max_programme_length})) ||
+	    (($t2 - $t1) > $reclogic{max_programme_length_opt_channels})) &&
+	    ($prog_title !~ /\bclose\b/i)) {
+		&log($reclogic{warn_on_invalid_time_in_prog},
+		  (sprintf "WARNING: programme '%s' on channel '%s' from %s had a programme duration (%d) that exceeded max_programme_length (%d): start '%s' stop '%s'; ignored.",
+		  $prog_title, $prog_chan, $datafile, ($t2-$t1),  $reclogic{max_programme_length},
+		  ($prog->{start} ? $prog->{start} : "undef"), ($prog->{stop} ? $prog->{stop} : "undef")));
+		$stats{bad_programme_duration_too_long}++;
+		return;
+	}
+
+	$prog->{start_epoch} = $t1;
+	$prog->{stop_epoch} = $t2;
+	$prog->{grabber} = $source;
+	$prog->{grabber_num} = ($in->{num_datafiles}-1);
+	my $prog_key = sprintf "%d:%d",$t1,$t2;
+
+	# if its on a freetv channel without a subtitle and a possible series
+	# (not a movie (less then or equal to 70 minutes)) and
+	# there is a ": " in title, split title into "title: subtitle"
+	# if each of title/subtitle will be at least $reclogic{min_title_for_colon_title_split} characters
+	if (defined $channels->{$in->{channels}->{$prog_chan}->{pref_desc}} && !defined $prog_subtitle &&
+	    (($t2 - $t1) <= $reclogic{max_length_for_colon_title_split})) {
+		my ($title1,$title2) = split(/: /,$prog_title,2);
+
+		if (($title1) && ($title2) &&
+		    (length($title1) >= $reclogic{min_title_for_colon_title_split}) &&
+		    (length($title2) >= $reclogic{min_title_for_colon_title_split})) {
+			&log($reclogic{debug_subtitle_derived_from_title},
+			  (sprintf "split title \"%s\" into title \"%s\" subtitle \"%s\" since over min_title_for_colon_title_split (%d)",
+			  $prog_title, $title1, $title2, $reclogic{min_title_for_colon_title_split}));
+			$stats{derived_subtitle_from_title}++;
+
+			$prog_title = $title1;
+			$prog->{title}->[0]->[0] = $title1;
+
+			$prog_subtitle = $title2;
+			$prog->{'sub-title'}->[0]->[0] = $title2;
+			$prog->{'sub-title'}->[0]->[1] = $prog->{'title'}->[0]->[1];
+		}
+
+	}	
+
+	# check to see if this grabber has supplied a programme with this start/stop on this
+	# channel already.  if there is, whinge about it & drop the duplicate
+	if (defined $in->{dupcheck}->{$source}->{$prog_chan}->{$prog_key}) {
+		# record statistic but don't print error message if programme names actually match
+		my $warn = (($reclogic{warn_on_overlapping_programmes_always}) ||
+		            (($reclogic{warn_on_overlapping_programmes_for_different_title}) &&
+			     ($prog_title ne $in->{dupcheck}->{$source}->{$prog_chan}->{$prog_key})));
+		&log($warn,(sprintf "WARNING: file contained more than one programme in same timeslot: channel '%s' start %s, stop %s, programs \"%s\" and \"%s\"; ignored.",
+			$prog_chan,
+			(strftime "%a%e%b%H:%M",localtime($t1)),
+			(strftime "%a%e%b%H:%M",localtime($t2)),
+			$prog_title,
+			$in->{dupcheck}->{$source}->{$prog_chan}->{$prog_key}));
+		$stats{bad_programme_duplicate_times}++;
+		return;
+	}
+	$in->{dupcheck}->{$source}->{$prog_chan}->{$prog_key} = $prog_title;
+
+
+	#
+	# store each programme in a tree.  the tree looks like:
+	#    $in->{tree}->{$chan}->{$progkey}->{progs}->[n]
+	#    $in->{tree}->{$chan}->{$progkey}->{numprogs}
+	#
+
+	my $prognum = 0;
+	$prognum = $in->{tree}->{$prog_chan}->{$prog_key}->{numprogs}
+	  if (defined $in->{tree}->{$prog_chan}->{$prog_key}->{numprogs});
+	$in->{tree}->{$prog_chan}->{$prog_key}->{progs}->[$prognum] = $prog;
+	$prognum++;
+	$in->{tree}->{$prog_chan}->{$prog_key}->{numprogs} = $prognum;
+
+	$in->{total_progs}->{$prog_chan}++;
+	$in->{total_progs_in}->{$prog_chan}++;
+}
+
+######################################################################################################
+# open output file, write encoding + credits headings
+
+sub start_writer
+{
+	my %writer_args = ( encoding => $in->{encoding} );
+	my $fh = new IO::File(">$opt->{output_file}") || die "can't open $opt->{output_file}: $!";
+	$writer_args{OUTPUT} = $fh;
+	$w = new XMLTV::Writer(%writer_args);
+	$w->start( { 'generator-info-name' => "$progname $version", 'source-info-name' => $in->{sources} } );
+}
+
+######################################################################################################
+# write out our channels
+
+sub write_channels
+{
+	foreach my $chan_id (sort keys %{($in->{channels})}) {
+		my $this_chan = $in->{channels}->{$chan_id};
+
+		my $lang_list, my $num_langs = 0;
+		foreach my $lang (keys %{($this_chan->{lang})}) {
+			$lang_list->[$num_langs]->[0] = $this_chan->{lang}->{$lang};
+			$lang_list->[$num_langs]->[1] = $lang;
+			$num_langs++;
+		}
+
+		$w->write_channel( { 'id' => $chan_id, 'display-name' => $lang_list } );
+	}
+}
+
+######################################################################################################
+# write out our programmes
+
+sub write_programmes
+{
+	foreach my $chan_id (sort keys %{($in->{channels})}) {
+		foreach my $prog_key (sort keys %{($out->{$chan_id})}) {
+			my $prog = $out->{$chan_id}->{$prog_key};
+			my $progname = sprintf "%s%s",
+				$prog->{title}->[0]->[0],
+				($prog->{subtitle} ? ": $prog->{subtitle}->[0]->[0]" : "");
+
+			printf "%-10s %s - %s: %-30s {src %s}\n",
+				$in->{channels}->{$chan_id}->{pref_desc},
+				(strftime "%a%e%b%H:%M", localtime($prog->{start_epoch})),
+				(strftime "%a%e%b%H:%M", localtime($prog->{stop_epoch})),
+				$progname,
+				$prog->{datasources}
+				if ($reclogic{debug_print_programme_list});
+
+			delete $prog->{start_epoch} if (defined $prog->{start_epoch});
+			delete $prog->{stop_epoch} if (defined $prog->{stop_epoch});
+			delete $prog->{datasources} if (defined $prog->{datasources});
+
+			&cleanup($prog);
+			$w->write_programme($prog);
+		}
+	}
+}
+
+######################################################################################################
+# all logic associated with choosing the preferred title of a programme
+# (uses past-seen choices to set preferences)
+
+sub choose_title
+{
+	my ($num_matching,$m) = @_;
+	my @titles, my @titles_from;
+	my $num_titles = 0;
+	my $channel = $m->[0]->{channel};
+	my $title_start = $m->[0]->{start_epoch};
+	my $title_duration = $m->[0]->{stop_epoch} - $m->[0]->{start_epoch};
+
+	# 0. first gather title from "preferred grabber" if we have it for
+	#    this programme
+	if (defined $in->{data}->{titlepref}) {
+		for my $i (0..($num_matching-1)) {
+			if (($m->[$i]->{grabber_num} == $in->{data}->{titlepref}) &&
+			    (defined $m->[$i]->{title})) {
+				foreach my $found_t (@{($m->[$i]->{title})}) {
+					my $t = $found_t->[0];
+					my $l = $found_t->[1];
+
+					if ((!defined $l) || (lc($l) eq lc($opt->{lang}))) {
+						$titles[$num_titles] = $t;
+						$titles_from[$num_titles] = $m->[$i]->{grabber};
+						$num_titles++;
+					}
+				}
+			}
+		}
+	}
+
+	# 1. gather a list of all titles we have for our preferred language
+	#    there are stored in the @titles array in "quality" order
+	for my $i (0..($num_matching-1)) {
+		if (defined $m->[$i]->{title}) {
+			next if ((defined $in->{data}->{titlepref}) &&
+			         ($m->[$i]->{grabber_num} == $in->{data}->{titlepref}));
+
+			foreach my $found_t (@{($m->[$i]->{title})}) {
+				my $t = $found_t->[0];
+				my $l = $found_t->[1];
+
+				if ((!defined $l) || (lc($l) eq lc($opt->{lang}))) {
+					$titles[$num_titles] = $t;
+					$titles_from[$num_titles] = $m->[$i]->{grabber};
+					$num_titles++;
+				}
+			}
+		}
+	}
+
+	# 2. no titles in our language? return with the first title we saw
+	if ($num_titles == 0) {
+		my $title = $m->[0]->{title}->[0]->[0];
+		my $lang = $m->[0]->{title}->[0]->[1];
+
+		&log($reclogic{debug_choose_title},(sprintf 
+		  "choose_title: no titles in lang %s found; using first title \"%s\" in lang %s",
+		  $opt->{lang}, $title, (defined $lang ? $lang : "(undef)")));
+		return ($title, $lang);
+	}
+
+	# 3. do we already have any titles in our list here in our 'preferred title' list?
+	my $found_index = -1;
+	foreach my $i (0..$num_titles) {
+		if (defined $title_xlate_table->{(lc($titles[$i]))}) {
+			$found_index = $i;
+			last;
+		}
+	}
+
+	# 4. found our preferred title.  use that.
+	if ($found_index != -1) {
+		my $key = lc($titles[$found_index]);
+		my $title = $title_xlate_table->{$key}->{translation};
+
+		&log($reclogic{debug_choose_title},(sprintf 
+		  "choose_title: existing preferred title \"%s\" matched with title \"%s\" from grabber %s (index %d)",
+		  $title, $titles[$found_index], $titles_from[$found_index], $found_index));
+
+		# update stats on use
+		$title_xlate_table->{$key}->{seen_in_primary}++;
+		$title_xlate_table->{$key}->{last_seen_in_primary} = time;
+
+		# update 'seen' stats for alternatives
+		foreach my $i (0..($num_titles-1)) {
+			my $key2 = $titles[$i]; # don't actually store in lower-case..
+			my $source = $titles_from[$i];
+
+			if (lc($key) eq lc($key2)) {
+				# store where we have seen the same title
+				$title_xlate_table->{$key}->{same}->{$source}++;
+			} else {
+				# store all alternatives for this title
+				$title_xlate_table->{$key}->{alternate}->{$key2}->{secondary}->{$source}++;
+				$title_xlate_table->{$key}->{alternate}->{$key2}->{last_seen_in_secondary} = time;
+			}
+		}
+
+		return ($title, $opt->{lang});
+	}
+
+	# 5. didn't find this title in our preferred title list.
+	#    see if it is an alternate name
+	foreach my $i (0..($num_titles-1)) {
+		my $title = $titles[$i]; # don't actually convert to lowercase..
+
+		# FUTURE MAYBE: this is a linear search.
+		# if it grows too much consider a schema change to make it better
+
+		foreach my $key (keys %{($title_xlate_table)}) {
+			foreach my $key2 (keys %{($title_xlate_table->{$key}->{alternate})}) {
+				if (lc($key2) eq lc($title)) {
+					my $xlated_to = $title_xlate_table->{$key}->{translation};
+					my $xlated_from = $titles[$i];
+
+					# check that its a real match
+					if (match_stoplist_override($xlated_from, $xlated_to)) {
+						&log($reclogic{debug_choose_title},
+						  "choose_title: match_stoplist_override: \"$xlated_from\" does not match \"$xlated_to\"");
+						next;
+					}
+
+					# matched alternate!
+					$title_xlate_table->{$key}->{translated}++;
+					$in->{used_translations}->{$xlated_to}->{num}++;
+					$in->{used_translations}->{$xlated_to}->{from}->{$xlated_from}++;
+
+					&log($reclogic{debug_choose_title},(sprintf 
+					  "choose_title: title \"%s\" (idx %d grabber %s) matched previously-seen alternate title for \"%s\"",
+					  $xlated_from, $i, $titles_from[$i], $xlated_to));
+
+					# update 'seen' stats for alternatives
+					foreach my $j (0..($num_titles-1)) {
+						my $key2a = $titles[$j]; # don't store in lowercase
+						my $source = $titles_from[$j];
+
+						if ($key eq lc($key2a)) {
+							# store where we have seen the same title
+							$title_xlate_table->{$key}->{same}->{$source}++;
+						} else {
+							# store all alternatives for this title
+							$title_xlate_table->{$key}->{alternate}->{$key2a}->{secondary}->{$source}++;
+							$title_xlate_table->{$key}->{alternate}->{$key2a}->{last_seen_in_secondary} = time;
+						}
+					}
+
+					# return primary translation for this found alternative
+					return ($xlated_to, $opt->{lang});
+				}
+			}
+		}
+	}
+
+	my $seen_in_primary = time;
+
+	# 6. look back through our history of programmes to see if we can fuzzy match
+	#    this title to a previously-seen title
+	for my $title_cache_key (keys %{$title_history}) {
+		my ($th_starttime, $th_duration, $th_channel, $th_grabber) = split(/,/,$title_cache_key);
+
+		# has to be on same channel
+		next if ($channel ne $th_channel);
+
+		# has to be on the same day of the week
+		next if ((int($th_starttime / 86400) % 7) != (int($title_start / 86400) % 7));
+
+		# duration has to be within 10% ($reclogic{title_history_duration_fuzzy_match_percent})
+		next if ($title_duration > ($th_duration * (1 + ($reclogic{title_history_duration_fuzzy_match_percent} / 100))));
+		next if ($title_duration < ($th_duration * (1 - ($reclogic{title_history_duration_fuzzy_match_percent} / 100))));
+
+		# start time has to be within 20 minutes ($reclogic{title_history_start_fuzzy_match_window})
+		my $th_starttime_day = $th_starttime % (7*86400);
+		my $title_start_day = $title_start % (7*86400);
+		next if ($title_start_day > ($th_starttime_day + $reclogic{title_history_start_fuzzy_match_window}));
+		next if ($title_start_day < ($th_starttime_day - $reclogic{title_history_start_fuzzy_match_window}));
+
+		# within window - check title
+		foreach my $i (0..($num_titles-1)) {
+			# grabber has to be different
+			next if ($th_grabber eq $titles_from[$i]);
+
+			# check match
+			my $match = canonicalizeTitles_match($title_history->{$title_cache_key},$titles[$i]);
+			&log($reclogic{debug_choose_title},(sprintf "choose_title: title \"%s\" (from %s) %s title_history \"%s\" (from %s)",
+				$titles[$i], $titles_from[$i], ($match == 1 ? "IS THE SAME AS" : "did not match"),
+				$title_history->{$title_cache_key}, $th_grabber));
+
+			if ($match) {
+				# match - add it to the front of our titles list!
+				$num_titles++;
+				unshift(@titles, $title_history->{$title_cache_key});
+				unshift(@titles_from, $th_grabber);
+				$seen_in_primary = $th_starttime;
+				last;
+			}
+		}
+	}
+
+	my $preferred_title = $titles[0];
+
+	# 7. don't create a preferred title for this unless we have met our threshold for title_xlate_table_min_alt_progs
+	if (($num_titles-1) < $reclogic{title_xlate_table_min_alt_progs}) {
+		&log($reclogic{debug_choose_title},(sprintf 
+		  "choose_title: title \"%s\" not added as a preferred title due to title_xlate_table_min_alt_progs (%d)",
+		  $preferred_title, $reclogic{title_xlate_table_min_alt_progs}));
+		return ($preferred_title, $opt->{lang});
+	}
+
+	# 8. wasn't an alternate name
+	#    add it as a preferred name
+
+	my $key = lc($preferred_title);
+	$title_xlate_table->{$key}->{seen_in_primary} = 1;
+	$title_xlate_table->{$key}->{last_seen_in_primary} = $seen_in_primary;
+	$title_xlate_table->{$key}->{translated} = 0;
+	$title_xlate_table->{$key}->{translation} = $preferred_title;
+	$title_xlate_table->{$key}->{same}->{$titles_from[0]} = 1;
+
+	foreach my $i (1..($num_titles-1)) {
+		my $key2 = $titles[$i];
+		my $source = $titles_from[$i];
+
+		if (lc($key2) eq $key) {
+			$title_xlate_table->{$key}->{same}->{$source}++;
+		} else {
+			$title_xlate_table->{$key}->{alternate}->{$key2}->{secondary}->{$source} = 1;
+			$title_xlate_table->{$key}->{alternate}->{$key2}->{last_seen_in_secondary} = time;
+		}
+	}
+
+	&log($reclogic{debug_choose_title},(sprintf 
+	  "choose_title: added title \"%s\" as a preferred title (grabber %s)",
+	  $preferred_title, $titles_from[0]));
+
+	return ($preferred_title, $opt->{lang});
+}
+
+######################################################################################################
+# insert a programme into our reconciled list
+#  - if fed multiple programmes for the one slot, choose attributes from all of them
+
+sub add_one_programme
+{
+	my($chan_id,$title,$title_lang,$num_matching,$m) = @_;
+	&log($reclogic{debug_add_logic},
+	  (sprintf "add_one_programme: adding programme %s-%s \"%s\" with data from %d programmes",
+	  (strftime "%a%e%b%H:%M",localtime(($m->[0]->{start_epoch}))),
+	  (strftime "%a%e%b%H:%M",localtime(($m->[0]->{stop_epoch}))),
+	  $title, $num_matching));
+
+	my $newprog;
+	my $chan = $m->[0]->{channel};
+	my $starttime = $m->[0]->{start_epoch};
+	my $have_xlated_title = 0;
+
+	# always take start/stop/channel from first choice
+
+	if ($reclogic{always_rewrite_start_stop_without_timezone}) {
+		$newprog->{start} =	strftime "%Y%m%d%H%M00", localtime($m->[0]->{start_epoch});
+		$newprog->{stop} =	strftime "%Y%m%d%H%M00", localtime($m->[0]->{stop_epoch});
+	} else {
+		$newprog->{start} =	$m->[0]->{start};
+		$newprog->{stop} =	$m->[0]->{stop};
+	}
+	$newprog->{start_epoch} =	$m->[0]->{start_epoch};
+	$newprog->{stop_epoch} =	$m->[0]->{stop_epoch};
+	$newprog->{channel} =		$chan;
+	$newprog->{title}->[0] =	[ $title, $title_lang ];
+
+	# add this programme to our title_history
+	my $title_history_key = sprintf "%d,%d,%s,%s", 
+		$newprog->{start_epoch}, 
+		($newprog->{stop_epoch}-$newprog->{start_epoch}), 
+		$newprog->{channel}, $m->[0]->{grabber};
+	$title_history->{$title_history_key} = $title;
+
+	# fill in programme fields and attributes
+	$newprog->{datasources} = "";
+	for my $i (0..($num_matching-1)) {
+		$newprog->{datasources} .= sprintf "%s%d",($newprog->{datasources} ne "" ? "," : ""),$m->[$i]->{grabber_num};
+
+		# (1) merge in attributes which are simple scalars
+		foreach my $field ('date', 'length') {
+			if ((!defined $newprog->{$field}) &&
+			    (defined $m->[$i]->{$field}) && 
+			    ($m->[$i]->{$field} ne "")) {
+				$newprog->{$field} = $m->[$i]->{$field};
+				&log($reclogic{debug_add_logic},
+				  (sprintf " - added field %s from #%d (%s) value %s",
+				  $field,$m->[$i]->{grabber_num},$m->[$i]->{grabber},$newprog->{$field}));
+			}
+		}
+
+		# (2) merge in attributes which are simple arrays
+		foreach my $field ('url', 'star-rating', 'premiere', 'last-chance', 'language', 'orig-language') {
+			if (defined $m->[$i]->{$field}) {
+				my %existing_hash;
+				my $num_existing = 0;
+
+				# pick up existing entries
+				if (defined $newprog->{$field}) {
+					my $existing_entries = $newprog->{$field};
+					foreach my $entry (@$existing_entries) {
+						$existing_hash{$entry} = 1;
+						$num_existing++;
+					}
+				}
+
+				my $new_entries = $m->[$i]->{$field};
+				foreach my $entry (@$new_entries) {
+					if ((!defined $existing_hash{$entry}) && ($entry ne "")) {
+						$existing_hash{$entry} = 1;
+						$newprog->{$field}->[$num_existing] = $entry;
+						$num_existing++;
+
+						&log($reclogic{debug_add_logic},
+						  (sprintf " - added field %s from #%d (%s) value %s",
+						  $field,$m->[$i]->{grabber_num},$m->[$i]->{grabber},$entry));
+					}
+				}
+			}
+		}
+
+		# (3) merge in attributes which are [val,lang] pairs, [val,val] or [val,val,val]
+		#     note: while 'title' is here, this is simply to pick up titles in any
+		#     additional languages; the primary (preferred) title has already been
+		#     set via the choose_title() routine
+		foreach my $field ('title', 'sub-title', 'desc', 'category', 'country', 'episode-num', 'rating') {
+			my $num_added = 0;
+			my %lang_added;
+
+			# pick up existing entries already there
+			if (defined $newprog->{$field}) {
+				my $existing_entries = $newprog->{$field};
+				foreach my $entry (@$existing_entries) {
+					my $val = $entry->[0];
+					my $lang = $entry->[1];
+					$lang = "BLANK" if (!$lang);
+					push(@{$lang_added{$lang}}, $val);
+					$num_added++;
+				}
+			}
+
+			# augment them with any new data
+			if (defined $m->[$i]->{$field}) {
+				my $new_entries = $m->[$i]->{$field};
+				foreach my $entry (@$new_entries) {
+					my $val = $entry->[0];
+					my $lang = $entry->[1];
+
+					if ($field eq "episode-num") {
+						$lang = "onscreen" if (!$lang);
+					} elsif ($field eq "rating") {
+						$lang = "BLANK" if (!$lang);
+					} else {
+						$lang = $opt->{lang} if (!$lang);
+					}
+
+					# special-case for some categories:
+					#   'premiere' - don't pass it on but instead set premiere field.
+					#   'en'       - (as in language: en) - just strip
+					#   duplicate  - just strip
+					if ($field eq 'category') {
+						if ($val eq "premiere") {
+							$newprog->{premiere}->[0] = "premiere" if (!defined $newprog->{premiere});
+							&log($reclogic{debug_add_logic}," - set 'premiere' because of category");
+							next;
+						} elsif ($val eq "en") {
+							&log($reclogic{debug_add_logic}," - stripped 'en' category");
+							next;
+						} elsif (defined $lang_added{$lang} && grep($_ eq $val, @{$lang_added{$lang}})) {
+							&log($reclogic{debug_add_logic}," - stripped duplicate category");
+							next;
+						}
+					}
+
+					if ((!defined $lang_added{$lang}) || ($field eq 'category') || ($field eq 'country')) {
+						push(@{$lang_added{$lang}}, $val);
+
+						$newprog->{$field}->[$num_added]->[0] = $val;
+
+						&log($reclogic{debug_add_logic},
+						  (sprintf " - added field %s(%s) from #%d (%s) value %s",
+						  $field,($lang ne "BLANK" ? $lang : ""),$m->[$i]->{grabber_num},$m->[$i]->{grabber},$val));
+
+						if ($lang eq "BLANK") {
+							$newprog->{$field}->[$num_added]->[1] = undef;
+						} else {
+							$newprog->{$field}->[$num_added]->[1] = $lang;
+						}
+
+						if ($field eq "rating") {
+							$newprog->{$field}->[$num_added]->[2] = $entry->[2];
+						}
+
+						$num_added++;
+					}
+				}
+			}
+		}
+
+		# (4) merge in attributes which are {hash}->{hash}->[array]
+		foreach my $field ('credits') {
+			foreach my $field2 ('director','actor','writer','adapter','producer','presenter','commentator','guest') {
+				my $num_added = 0;
+				my %entries;
+
+				# pick up existing entries we already have
+				if (defined $newprog->{$field}->{$field2}) {
+					my $existing_entries = $newprog->{$field}->{$field2};
+					foreach my $entry (@$existing_entries) {
+						$entries{$entry} = 1;
+						$num_added++;
+					}
+				}
+
+				# augment with new data
+				if (defined $m->[$i]->{$field}->{$field2}) {
+					my $new_entries =  $m->[$i]->{$field}->{$field2};
+					foreach my $entry (@$new_entries) {
+						if (($entry ne "") && (!defined $entries{$entry})) {
+							$newprog->{$field}->{$field2}->[$num_added] = $entry;
+							$entries{$entry} = 1;
+							$num_added++;
+
+							&log($reclogic{debug_add_logic},
+							  (sprintf " - added field %s/%s from #%d (%s) value %s",
+							  $field,$field2,$m->[$i]->{grabber_num},$m->[$i]->{grabber},$entry));
+						}
+					}
+				}
+			}
+		}
+
+		# (5) merge in attributes which are by name with no values, or values we don't care to interpret
+		foreach my $field ('new', 'subtitles', 'previously-shown') {
+			if ((!defined $newprog->{$field}) && (defined $m->[$i]->{$field})) {
+				$newprog->{$field} = $m->[$i]->{$field};
+
+				&log($reclogic{debug_add_logic},
+				  (sprintf " - added field %s from #%d (%s)",
+				  $field,$m->[$i]->{grabber_num},$m->[$i]->{grabber}));
+			}
+		}
+
+		# (6) merge in attributes which are {hash}->{hash}=val
+		foreach my $field ('video', 'audio') {
+			my %entries;
+
+			# pick up existing entries we already have
+			if (defined $newprog->{$field}) {
+				my $existing_entries = $newprog->{$field};
+				foreach my $entry (keys %{$existing_entries}) {
+					$entries{$entry} = $newprog->{$field}->{$entry};
+				}
+			}
+
+			# augment with new data
+			if (defined $m->[$i]->{$field}) {
+				my $new_entries =  $m->[$i]->{$field};
+				foreach my $entry (keys %{$new_entries}) {
+					if (($entry ne "") && (!defined $entries{$entry})) {
+						$newprog->{$field}->{$entry} = $m->[$i]->{$field}->{$entry};
+						$entries{$entry} = $m->[$i]->{$field}->{$entry};
+
+						&log($reclogic{debug_add_logic},
+						  (sprintf " - added field %s from #%d (%s) value %s",
+						  $field,$m->[$i]->{grabber_num},$m->[$i]->{grabber},$entries{$entry}));
+					}
+				}
+			}
+		}
+
+		# ignored attributes:
+		#   icon
+	}
+
+
+	# (7) XMLTV supports multiple 'categories' but alas mythfilldatabase doesn't
+	# really support that properly.  Ensure that categories called
+	# 'movie', 'series', 'sports' and 'tvshow' are not listed first
+	if (defined $newprog->{category}) {
+		my $num_categories = scalar @{$newprog->{category}};
+		my $first_category = $newprog->{category}->[0]->[0];
+		if (($num_categories > 1) &&
+		    (($first_category eq "movie") ||  ($first_category eq "series") ||
+		     ($first_category eq "sports") || ($first_category eq "tvshow"))) {
+			# see if we can switch two around...
+			for (my $i=1; $i < $num_categories; $i++) {
+				my $this_cat = $newprog->{category}->[$i]->[0];
+				if (($this_cat ne "movie") && ($this_cat ne "series") &&
+				    ($this_cat ne "sports") && ($this_cat ne "tvshow")) {
+					$newprog->{category}->[$i]->[0] = $first_category;
+					$newprog->{category}->[0]->[0] = $this_cat;
+					&log($reclogic{debug_add_logic},
+					     (sprintf " - set primary category from '%s' to '%s'",
+					     $first_category, $this_cat));
+					$i = $num_categories;
+				}
+			}
+		}
+	}
+
+
+	if (defined $out->{$chan}->{$starttime}) {
+		&log(1,(sprintf "ERROR: already have a programme on channel \"%s\" scheduled for %s!  bug!",
+		  $chan, (strftime "%a %e %b %H:%M",localtime($starttime))));
+	} else {
+		$out->{$chan}->{$starttime} = $newprog;
+		$in->{total_progs_out}->{($newprog->{channel})}++;
+	}
+}
+
+######################################################################################################
+# remove all programming data for this channel where programming is between start/stop times
+
+sub delete_overlapping_programmes
+{
+	my($chan_id,$del_start,$del_stop) = @_;
+
+	&log($reclogic{debug_delete_logic},
+	  (sprintf "delete_overlapping_programmes: called to delete within %s-%s on chan %s",
+	  (strftime "%a%e%b%H:%M", localtime($del_start)), (strftime "%a%e%b%H:%M", localtime($del_stop)),
+	  $in->{channels}->{$chan_id}->{pref_desc}));
+
+	# remove programming between $del_start and $del_stop
+	foreach my $prog_key ( keys %{($in->{tree}->{$chan_id})} ) {
+		for my $i (0..($in->{tree}->{$chan_id}->{$prog_key}->{numprogs}-1)) {
+			my $delete_this = 0;
+			my $prog_start = $in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{start_epoch};
+			my $prog_stop = $in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{stop_epoch};
+			my $prog_title = $in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{title}->[0]->[0];
+			my $prog_grabber = $in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{grabber_num};
+
+			if (($prog_start >= $del_start) && ($prog_stop <= $del_stop)) {
+				#
+				# prog entirely within window - delete it
+				#
+
+				$delete_this = 1;
+				&log($reclogic{debug_delete_logic},
+				  (sprintf " - deleting \"%s\" (%s-%s, grabber %d) - within window",
+				  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+				  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber));
+			} elsif (($prog_start < $del_start) && ($prog_stop > $del_stop)) {
+				#
+				# looks very bogus.  starts before our delete window and ends after our delete window.
+				# there is no "right" action here - try to apply some heuristics
+				#
+
+				if ((($prog_start + $reclogic{delete_window_smaller_than_prog_window_threshold}) >= $del_start) &&
+				    (($prog_stop - $reclogic{delete_window_smaller_than_prog_window_threshold}) <= $del_stop)) {
+					#
+					# if programme is within -/+5 minutes (default) for both start/end of delete window
+					# then delete it
+					#
+
+					$delete_this = 1;
+					&log($reclogic{debug_delete_logic},
+					  (sprintf " - deleting \"%s\" (%s-%s, grabber %d) - within window +/- delete_window_smaller_than_prog_window_threshold (%d)",
+					  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+					  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber,
+					  $reclogic{delete_window_smaller_than_prog_window_threshold}));
+					$stats{prog_del_overwindow_close_enough}++;
+				} else {
+					#
+					# rather than deleting it, try to cut back either the stop or bring forward the start
+					#
+
+					my $before_del_start = $del_start - $prog_start;
+					my $after_del_stop = $prog_stop - $del_stop;
+
+					if (($before_del_start <= $reclogic{min_prog_length_for_delete_cutoff}) &&
+					    ($after_del_stop <= $reclogic{min_prog_length_for_delete_cutoff})) {
+						#
+						# programme would be too short if we did that.  delete it
+						#
+						$delete_this = 1;
+						&log($reclogic{debug_delete_logic},
+						  (sprintf " - deleting \"%s\" (%s-%s, grabber %d) - updating start/stop would result in under min_prog_length_for_delete_cutoff (%d)",
+						  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+						  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber, 
+						  $reclogic{min_prog_length_for_delete_cutoff}));
+						$stats{prog_del_overwindow_too_short}++;
+					} else {
+						if ($before_del_start > $after_del_stop) {
+							#
+							# cut off end
+							#
+							&log($reclogic{debug_delete_logic},
+							  (sprintf " - updating \"%s\" (%s-%s, grabber %d) - pulled back stop time because less time after cut window than before (%d before, %d after).  prog now %s-%s",
+							  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+							  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber, 
+							  $before_del_start, $after_del_stop, 
+							  (strftime "%a%e%b%H:%M", localtime($prog_start)),
+							  (strftime "%a%e%b%H:%M", localtime($del_start))));
+							$in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{stop_epoch} = $del_start;
+							$in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{stop} = strftime "%Y%m%d%H%M",localtime($del_start);
+							$stats{prog_del_overwindow_cut_end}++;
+						} else {
+							#
+							# cut off beginning
+							#
+							&log($reclogic{debug_delete_logic},
+							  (sprintf " - updating \"%s\" (%s-%s, grabber %d) - pushed forward start time because less time before cut window than after (%d before, %d after).  prog now %s-%s",
+							  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+							  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber,
+							  $before_del_start, $after_del_stop,
+							  (strftime "%a%e%b%H:%M", localtime($del_stop)),
+							  (strftime "%a%e%b%H:%M", localtime($prog_stop))));
+							$in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{start_epoch} = $del_stop;
+							$in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{start} = strftime "%Y%m%d%H%M",localtime($del_stop);
+							$stats{prog_del_overwindow_culled_start}++;
+						}
+					}
+				}
+			} elsif (($prog_start < $del_stop) && ($prog_stop > $del_stop)) {
+				#
+				# programme starts within window but ends outside of it.
+				#
+				if (($del_stop - $prog_start) > $reclogic{max_prog_length_for_rejig}) {
+					# would cut off too much programme - delete it
+					$delete_this = 1;
+					&log($reclogic{debug_delete_logic},
+					  (sprintf " - deleting \"%s\" (%s-%s, grabber %d) - updating start would lose more than max_prog_length_for_rejig (%d)",
+					  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+					  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber, 
+					  $reclogic{max_prog_length_for_rejig}));
+					$stats{prog_del_too_much_culled_from_start}++;
+				} else {
+					&log($reclogic{debug_delete_logic},
+					  (sprintf " - updating \"%s\" (%s-%s, grabber %d) - pushed forward start time because under max_prog_length_for_rejig (%d).  prog now %s-%s",
+					  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+					  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber, 
+					  $reclogic{max_prog_length_for_rejig},
+					  (strftime "%a%e%b%H:%M", localtime($del_stop)),
+					  (strftime "%a%e%b%H:%M", localtime($prog_stop))));
+					$in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{start_epoch} = $del_stop;
+					$in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{start} = strftime "%Y%m%d%H%M",localtime($del_stop);
+					$stats{prog_del_start_cull_ok}++;
+				}
+			} elsif (($prog_start < $del_start) && ($prog_stop > $del_start)) {
+				#
+				# programme starts outside window but ends within it.
+				#
+				if (($prog_stop - $del_start) > $reclogic{max_prog_length_for_rejig}) {
+					# would cut off too much programme - delete it
+					$delete_this = 1;
+					&log($reclogic{debug_delete_logic},
+					  (sprintf " - deleting \"%s\" (%s-%s, grabber %d) - updating stop would lose more than max_prog_length_for_rejig (%d)",
+					  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+					  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber, 
+					  $reclogic{max_prog_length_for_rejig}));
+					$stats{prog_del_too_much_cut_from_end}++;
+				} else {
+					&log($reclogic{debug_delete_logic},
+					  (sprintf " - updating \"%s\" (%s-%s, grabber %d) - pulled back stop time due to under max_prog_length_for_rejig (%d).  prog now %s-%s",
+					  $prog_title, (strftime "%a%e%b%H:%M", localtime($prog_start)),
+					  (strftime "%a%e%b%H:%M", localtime($prog_stop)), $prog_grabber, 
+					  $reclogic{max_prog_length_for_rejig},
+					  (strftime "%a%e%b%H:%M", localtime($prog_start)),
+					  (strftime "%a%e%b%H:%M", localtime($del_start))));
+					$in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{stop_epoch} = $del_start;
+					$in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i]->{stop} = strftime "%Y%m%d%H%M",localtime($del_start);
+					$stats{prog_del_end_cut_ok}++;
+				}
+			}
+
+			if ($delete_this) {
+				delete $in->{tree}->{$chan_id}->{$prog_key}->{progs}->[$i];
+				$in->{tree}->{$chan_id}->{$prog_key}->{numprogs}--;
+				$in->{total_progs}->{$chan_id}--;
+				$i--;
+			}
+		}
+
+		# if no progs left in group, delete entire group
+		if ($in->{tree}->{$chan_id}->{$prog_key}->{numprogs} == 0) {
+			# delete entire group
+			delete $in->{tree}->{$chan_id}->{$prog_key};
+		}
+	}
+}
+
+######################################################################################################
+# when given multiple programmes matching same timeslot, compare titles of them to see if
+# they are the same programme.
+#  - if the same programme, insert them.
+#  - if different programmes, select our preferred one to insert.
+
+sub find_prog_to_add
+{
+	my ($chan_id,$numprogs,$log_check_matching,$prog_list) = @_;
+
+	#
+	# find out what titles match, store results
+	#
+
+	&log($reclogic{debug_find_prog_to_add},
+	  (sprintf "find_prog_to_add: slot on channel %s has %d programmes to choose from.",
+	  $chan_id,$numprogs));
+
+	my @match_count;
+	my $data_match;
+	my $highest_num_matches_slot = 0;
+
+	for my $i (0..($numprogs-2)) {
+		my $primary_title = $prog_list->[$i]{title}->[0]->[0];
+		$match_count[$i] = 0;
+
+		for my $j ($i+1..($numprogs-1)) {
+			# skip if we're comparing titles from the same grabber
+			next if ($prog_list->[$i]->{grabber} eq $prog_list->[$j]->{grabber});
+
+			my $compare_title = $prog_list->[$j]->{title}->[0]->[0];
+			if (canonicalizeTitles_match($primary_title, $compare_title)) {
+				$data_match->[$i]->[$j] = 1;
+				$data_match->[$j]->[$i] = 1;
+				$match_count[$i]++;
+				$match_count[$j]++;
+			}
+		}
+
+		$highest_num_matches_slot = $i if ($match_count[$i] > $match_count[$highest_num_matches_slot]);
+	}
+
+	$match_count[0] = 0 if $numprogs < 2;
+
+	&log($reclogic{debug_find_prog_to_add}, 
+	  (sprintf "find_prog_to_add: grabber %d wins for this slot with %d matches.",
+	  $highest_num_matches_slot,$match_count[$highest_num_matches_slot]));
+
+	my $matching_progs, my $num_matching_progs = 1;
+	if ($match_count[$highest_num_matches_slot] == 0) {
+		my $prog = $prog_list->[0];
+		if (($numprogs > 1) && ($log_check_matching)) {
+			#
+			# no data matched - log this for further inspection
+			#
+			my $alternate_titles = sprintf "     channel %s %s - %s, (used grabber %d %s)\n",
+			  $in->{channels}->{$chan_id}->{pref_desc},
+			  (strftime "%a %e %b %H:%M",localtime(($prog->{start_epoch}))),
+			  (strftime "%a %e %b %H:%M",localtime(($prog->{stop_epoch}))),
+			  $prog->{grabber_num},$prog->{grabber};
+
+			for my $i (0..($numprogs-1)) {
+				my $this_prog = $prog_list->[$i];
+				$alternate_titles .= sprintf "      #%d. \"%s\" {src %s}\n",
+				  $this_prog->{grabber_num}, $this_prog->{title}->[0]->[0], $this_prog->{grabber};
+			}
+
+			&log($reclogic{debug_show_nonmatching_title_alternatives}, $alternate_titles);
+
+			$alternate_titles .= "\n";
+			$in->{alt_title_mismatches} .= $alternate_titles;
+		}
+
+		# add entry from our preferred grabber
+		$matching_progs->[0] = $prog;
+	} else {
+		# add entry from our multiple grabbers
+		$stats{rec_start_stop_title_match}++;
+		$matching_progs->[0] = $prog_list->[$highest_num_matches_slot];
+		my $primary_title = $matching_progs->[0]->{title}->[0]->[0];
+		&log($reclogic{debug_find_prog_to_add},(sprintf "find_prog_to_add: \"%s\" selected data from grabber %d (%s)",
+		  $primary_title, $highest_num_matches_slot, $matching_progs->[0]->{grabber}));
+		for my $i (0..($numprogs-1)) {
+			if ($data_match->[$highest_num_matches_slot]->[$i]) {
+				$matching_progs->[$num_matching_progs] = $prog_list->[$i];
+				my $this_title = $matching_progs->[$num_matching_progs]->{title}->[0]->[0];
+
+				&log($reclogic{debug_find_prog_to_add},
+				  (sprintf "find_prog_to_add:  - augmenting with data from \"%s\" grabber %d (%s)",
+				  $this_title, $i, $matching_progs->[$num_matching_progs]->{grabber}));
+
+				$num_matching_progs++;
+			}
+		}
+	}
+
+	my ($title, $title_lang) = &choose_title($num_matching_progs,$matching_progs);
+	&add_one_programme($chan_id,$title,$title_lang,$num_matching_progs,$matching_progs);
+
+	# remove all programming data for this channel which overlaps with this (inserted) programme
+	&delete_overlapping_programmes($chan_id,$matching_progs->[0]->{start_epoch},$matching_progs->[0]->{stop_epoch});
+}
+
+######################################################################################################
+
+sub reconcile
+{
+
+	#
+	# loop through channels
+	# (chan_id)
+	#
+
+	foreach my $chan_id (sort keys %{($in->{channels})}) {
+		my $this_chan = $in->{channels}->{$chan_id};
+
+		#
+		# (1) look for programmes within the same timeslot
+		#     if at least 2 grabbers say a programme starts/ends at the
+		#     same time & have a similar title, use that
+		#
+
+		&log($reclogic{debug_reconcile},
+		  (sprintf "reconcile: channel '%s': pass 1: %d programmes remaining",
+		  $in->{channels}->{$chan_id}->{pref_desc}, $in->{total_progs}->{$chan_id}));
+
+		# 1a. gather up programming timeslots
+		foreach my $prog_key (
+		  sort { $in->{tree}->{$chan_id}->{$a}->{numprogs} <=> $in->{tree}->{$chan_id}->{$b}->{numprogs} }
+		  keys %{($in->{tree}->{$chan_id})} ) {
+			next if (!defined $in->{tree}->{$chan_id}->{$prog_key});
+			my $num_progs_in_slot = $in->{tree}->{$chan_id}->{$prog_key}->{numprogs};
+
+			# 1b. at least 2 programs in the same timeslot - try to add it if titles match
+			if ($num_progs_in_slot > 1) {
+				my $this_prog_start = $in->{tree}->{$chan_id}->{$prog_key}->{progs}->[0]->{start_epoch};
+				my $this_prog_stop =  $in->{tree}->{$chan_id}->{$prog_key}->{progs}->[0]->{stop_epoch};
+
+				&log($reclogic{debug_reconcile_pass1},
+				  (sprintf "reconcile:   %d programs between %s - %s",
+				  $num_progs_in_slot, (strftime "%a%e%b%H:%M",localtime($this_prog_start)),
+				  (strftime "%a%e%b%H:%M",localtime($this_prog_stop))));
+
+				$stats{rec_start_stop_match}++;
+				&find_prog_to_add($chan_id,$num_progs_in_slot,1,$in->{tree}->{$chan_id}->{$prog_key}->{progs});
+			}
+		}
+
+		#
+		# (2) look for programmes within similar (but not exact) timeslots
+		#     but with same name.  use timeslot from the "higher preference"
+		#     grabber
+		#
+
+		my $done = 0, my $preferred_grabber = 0;
+		while (($in->{total_progs}->{$chan_id} > 0) && (!$done)) {
+			&log($reclogic{debug_reconcile},
+			  (sprintf "reconcile: channel '%s': pass 2: %d programmes remaining, preferring grabber %d",
+			  $in->{channels}->{$chan_id}->{pref_desc}, $in->{total_progs}->{$chan_id}, $preferred_grabber));
+
+			# 2a. find first programme from preferred grabber
+			my @prog_keys = sort { $in->{tree}->{$chan_id}->{$a} <=> $in->{tree}->{$chan_id}->{$b} } keys %{($in->{tree}->{$chan_id})};
+			foreach my $prog_key (@prog_keys) {
+				next if (!defined $in->{tree}->{$chan_id}->{$prog_key});
+				next if ($in->{tree}->{$chan_id}->{$prog_key}->{numprogs} == 0);
+				next if ($in->{tree}->{$chan_id}->{$prog_key}->{progs}->[0]->{grabber_num} != $preferred_grabber);
+
+				# got a programme from our preferred grabber
+				my $found_prog = $in->{tree}->{$chan_id}->{$prog_key}->{progs}->[0];
+				my $start_window = $found_prog->{start_epoch} - $reclogic{fuzzy_match_title_time_window};
+				my $stop_window = $found_prog->{start_epoch} + $reclogic{fuzzy_match_title_time_window};
+
+				my $matched_progs;
+				$matched_progs->[0] = $found_prog;
+				my $num_matched_progs = 1;
+
+				&log($reclogic{debug_reconcile_pass2},
+				  (sprintf "reconcile: (%d to go) chose programme for %s-%s: \"%s\", looking for alternatives between %s-%s",
+				  $in->{total_progs}->{$chan_id},
+				  (strftime "%a%e%b%H:%M",localtime($found_prog->{start_epoch})),
+				  (strftime "%a%e%b%H:%M",localtime($found_prog->{stop_epoch})), $found_prog->{title}->[0]->[0],
+				  (strftime "%a%e%b%H:%M",localtime($start_window)),
+				  (strftime "%a%e%b%H:%M",localtime($stop_window))));
+
+				foreach my $prog_key2 ( sort { $in->{tree}->{$chan_id}->{$a} <=> $in->{tree}->{$chan_id}->{$b} } keys %{($in->{tree}->{$chan_id})} ) {
+					next if ($in->{tree}->{$chan_id}->{$prog_key}->{progs}->[0]->{grabber_num} != $preferred_grabber);
+					next if ($prog_key2 eq $prog_key);
+
+					my $numprogs = $in->{tree}->{$chan_id}->{$prog_key2}->{numprogs};
+					for my $i (0..($numprogs-1)) {
+						my $check_prog = $in->{tree}->{$chan_id}->{$prog_key2}->{progs}->[$i];
+
+						# match programmes which _start_ within the timewindow (but not necessarily end!)
+						if (($check_prog->{start_epoch} >= $start_window) && ($check_prog->{start_epoch} < $stop_window)) {
+							$matched_progs->[$num_matched_progs] = $check_prog;
+							$num_matched_progs++;
+
+							&log($reclogic{debug_reconcile_pass2},
+							  (sprintf "reconcile:     found alternative prog: %s-%s, \"%s\"",
+							  (strftime "%a%e%b%H:%M",localtime($check_prog->{start_epoch})),
+							  (strftime "%a%e%b%H:%M",localtime($check_prog->{stop_epoch})),
+							  $check_prog->{title}->[0]->[0]));
+						}
+					}
+				}
+
+				&find_prog_to_add($chan_id,$num_matched_progs,0,$matched_progs);
+			}
+
+			&log($reclogic{debug_reconcile},
+			  (sprintf "reconcile:   still have %d programmes left, switching preferred grabbers",
+			  $in->{total_progs}->{$chan_id}))
+			  if ($in->{total_progs}->{$chan_id} > 0);
+
+			$preferred_grabber++;
+			$done = 1 if ($preferred_grabber == $in->{num_datafiles});
+		}
+
+		&log(1,(sprintf "reconciled \"%s\" (%s) %d input -> %d output programmes",
+			$in->{channels}->{$chan_id}->{pref_desc}, $chan_id, $in->{total_progs_in}->{$chan_id}, $in->{total_progs_out}->{$chan_id}));
+	}
+}
+

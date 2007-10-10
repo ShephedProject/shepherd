@@ -1,0 +1,790 @@
+#!/usr/bin/perl -w
+
+# Southern Cross Broadcasting grabber
+# grabs data from http://www.southerncrossbroadcasting.com.au/TVGuide
+# http://www.southerncrossbroadcasting.com.au/TVGuide/eguide.asp?ch=MAC:Southern%20Cross%20TEN%20-%20Mackay&dd=20070522
+# has more than 7 days (up to 18 days) but missing all quote marks (')
+
+# alternative site http://www.mytalk.com.au/NewDesign/Pages/TVGuide.aspx
+# has more than 7 days (upto 12 days) + part day, page a bit more complex,
+# alot more regions but MISSING SUBTITLES
+
+# weekly guide on website doesn't work
+# http://www.southerncrossbroadcasting.com.au/TVGuide/Weekly.asp?ch=MAC:Southern%20Cross%20TEN%20-%20Mackay&gd=20070520
+# <script language="javascript">
+# function OpenGuide(GuideName, GuideDate) {
+#   sFeatures="location=no,menubar=no,resizable=no,status=no,toolbar=no,width=640,height=500,scrollbars=yes";
+#   window.open("Weekly.asp?ch="+GuideName+"&gd="+GuideDate,"weekly",sFeatures);
+# }
+# </script>
+# <!--
+#   <tr><td align="center" colspan=7 style="font-size:10px;font-weight:normal; color:#FF0000">View the full weeks guide [<a href="javascript:OpenGuide('MAC:Southern Cross TEN - Mackay','20070520');">This Week</a>] [<a href="javascript:OpenGuide('MAC:Southern Cross TEN - Mackay','20070527');">Next Week</a>]</td></tr>
+# -->
+
+# test with nice ./southerncross_website -channels_file=channels.conf -do-extra-days -debug 2>&1 | tee log.txt
+
+# todo
+#  micro grab
+#  add setable do-extra-days
+#      ~/.shepherd/tv_grab_au --component-set southerncross_website:do_extra_days:1
+#  add other supported regions (done except for "Southern Cross" in two regions without url and
+#      "Central GTS/BKN" in two regions with url, these also require parser changes)
+
+use strict;
+
+my $progname = "southerncross_website";
+my $version = "0.14";
+
+#use LWP::UserAgent;
+#use LWP::ConnCache;
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use HTML::TreeBuilder;
+#use Data::Dumper;
+#use Compress::Zlib;
+#use Digest::MD5;
+#use Storable;
+use Shepherd::Common;
+
+#
+# global variables and settings
+#
+
+$| = 1;
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels, my $gaps;
+# my $data_cache;
+my $ua;
+my $conn_cache;
+my $prev_url;
+my $d;
+my $opt;
+
+
+#
+# parse command line
+#
+
+$opt->{days} =          7;      # default
+$opt->{offset} =        0;      # default
+$opt->{outputfile} =    "output.xmltv";    # default
+$opt->{lang} =          "en";
+$opt->{region} =        79;
+
+GetOptions(
+#  'log-http'  => \$opt->{log_http},
+  'region=i'  => \$opt->{region},
+  'days=i'  => \$opt->{days},
+  'offset=i'  => \$opt->{offset},
+  'do-extra-days' => \$opt->{do_extra_days},
+#  'timezone=s'  => \$opt->{timezone},
+  'channels_file=s' => \$opt->{channels_file},
+  'gaps_file=s'  => \$opt->{gaps_file},
+  'output=s'  => \$opt->{outputfile},
+#  'cache-file=s'  => \$opt->{cache_file},
+  'fast'    => \$opt->{fast},
+#  'no-cache'  => \$opt->{no_cache},
+#  'no-details'  => \$opt->{no_details},
+  'debug+'  => \$opt->{debug},
+  'warper'  => \$opt->{warper},
+  'lang=s'  => \$opt->{lang},
+#  'no-hdtv-flags'  => \$opt->{no_hdtv_flags},
+  'obfuscate'  => \$opt->{obfuscate},
+
+  'help'    => \$opt->{help},
+  'verbose'  => \$opt->{help},
+  'version'  => \$opt->{version},
+  'ready'    => \$opt->{version},
+  'v'    => \$opt->{help});
+
+&help if ($opt->{help});
+
+if ($opt->{version}) {
+  printf "%s %s\n",$progname,$version;
+  exit(0);
+}
+
+die "No channel file specified, see --help for instructions\n", if (!$opt->{channels_file});
+
+# set defaults
+&Shepherd::Common::set_default("debug", (defined $opt->{debug} ? ($opt->{debug} * 2) : 0));
+&Shepherd::Common::set_default("webwarper", 1) if (defined $opt->{warper});
+&Shepherd::Common::set_default("squid", 1) if (defined $opt->{obfuscate});
+&Shepherd::Common::set_defaults(stats => \%stats, referer => "last");
+
+#
+# go go go!
+#
+
+my $start_message = sprintf "Going to %sgrab %s%d%s days%s into %s (%s%s) for region %d",
+  (defined $opt->{gaps_file} ? "micro-gap " : ""),
+  ($opt->{do_extra_days} ? "somewhere between " : ""),
+  $opt->{days},
+  ($opt->{do_extra_days} ? " to 28" : ""),
+  ($opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+  $opt->{outputfile},
+  (defined $opt->{fast} ? "with haste" : "slowly"),
+  (defined $opt->{warper} ? ", anonymously" : ""),
+  $opt->{region};
+&log($start_message);
+
+$opt->{days} = 28 if ($opt->{do_extra_days} and $opt->{days} < 28);
+
+my ($channel, $url) = &set_region($opt->{region});
+
+# read channels file
+if (-r $opt->{channels_file}) {
+  local (@ARGV, $/) = ($opt->{channels_file});
+  no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+  die "WARNING: channels file $opt->{channels_file} could not be read\n";
+}
+
+die "$channel not listed as a channel in ".$opt->{channels_file}.", nothing to do!\n"
+    if (!defined $channels->{$channel});
+
+if (defined $opt->{gaps_file}) {
+  if (-r $opt->{gaps_file}) {
+    local (@ARGV, $/) = ($opt->{gaps_file});
+    no warnings 'all'; eval <>; die "$@" if $@;
+  } else {
+    die "WARNING: gaps file $opt->{gaps_file} could not be read: $!\n";
+  }
+
+  die "no $channel channel in gaps lineup, nothing to do!\n"
+    unless ((defined $gaps) && (defined $gaps->{$channel}));
+}
+
+my $progs = &get_pages($url);
+
+&write_xmltv($channel, $progs);
+
+&Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
+exit(0);
+
+##############################################################################
+# help
+
+sub help
+{
+  print<<EOF
+$progname $version
+
+options are as follows:
+  --help      show these help options
+  --days=N    fetch 'n' days of data (default: $opt->{days})
+  --output=file    send xml output to file (default: "$opt->{outputfile}")
+  --fast      don't run slow - get data as quick as you can - not recommended
+  --anonsocks=(ip:port)  use SOCKS4A server at (ip):(port) (for Tor: recommended)
+
+  --debug      increase debug level
+  --warper    fetch data using WebWarper web anonymizer service
+  --obfuscate    pretend to be a proxy servicing multiple clients
+  --lang=[s]    set language of xmltv output data (default $opt->{lang})
+
+  --region=N    set region for where to collect data from (default: $opt->{region})
+  --channels_file=file  where to get channel data from
+  --gaps_file=file        micro-fetch gaps only
+
+EOF
+;
+
+  exit(0);
+}
+
+##############################################################################
+
+sub log
+{
+  &Shepherd::Common::log(@_);
+}
+
+##############################################################################
+
+sub write_xmltv
+{
+  my ($channel, $progs) = @_;
+
+  my %writer_args = ( encoding => 'ISO-8859-1' );
+  if ($opt->{outputfile}) {
+    my $fh = new IO::File(">$opt->{outputfile}") || die "can't open $opt->{outputfile}: $!";
+    $writer_args{OUTPUT} = $fh;
+  }
+
+  my $writer = new XMLTV::Writer(%writer_args);
+
+  $writer->start
+    ( { 'source-info-name'   => "$progname $version",
+        'generator-info-name' => "$progname $version"} );
+
+  $writer->write_channel( {
+    'display-name' => [[ "$channel", $opt->{lang} ]], 'id' => $channels->{$channel} } );
+
+  # only return programmes for requested days
+  my @timeattr = localtime($script_start_time); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+  $timeattr[0] = 0; # zero seconds
+  $timeattr[1] = 0; # zero mintues
+  $timeattr[2] = 0; # zero hours
+  $timeattr[3] += $opt->{offset}; # day
+  my $start_day = mktime(@timeattr);
+  $timeattr[3] += $opt->{days} - $opt->{offset}; # day
+  my $stop_day = mktime(@timeattr);
+
+  foreach my $key (sort keys %{$progs}) {
+    my $prog = $progs->{$key};
+
+    # if we are micro-gap fetching, only include programmes which match our micro gaps
+    if ($opt->{gaps_file} and defined $gaps and defined $gaps->{$channel}) {
+      my $found_gap_matches = 0;
+      foreach my $gap (@{($gaps->{$channel})}) {
+        my ($s, $e) = split(/-/,$gap);
+        if ((($s >= $prog->{start}) && ($s <= $prog->{stop})) ||
+            (($e >= $prog->{start}) && ($e <= $prog->{stop})) ||
+            (($s <= $prog->{start}) && ($e >= $prog->{stop}))) {
+          printf "gap-fetching: including prog '%s' at %d to %d for gap %d to %d\n",
+              $prog->{title}->[0]->[0], $prog->{start}, $prog->{stop}, $s, $e if $opt->{debug};
+          $found_gap_matches++
+        }
+      }
+      next if (not $found_gap_matches);
+      $stats{gaps_matched} += $found_gap_matches;
+    } elsif ($prog->{stop} <= $start_day or $prog->{start} >= $stop_day) {
+      printf "skipping program because before or after requested days, '%s' at %d to %d\n",
+          $prog->{title}->[0]->[0], $prog->{start}, $prog->{stop} if $opt->{debug};
+      next;
+    }
+
+    $prog->{channel} = $channels->{$channel};
+    $prog->{start} = POSIX::strftime("%Y%m%d%H%M",localtime($prog->{start}));
+    $prog->{stop} = POSIX::strftime("%Y%m%d%H%M",localtime($prog->{stop}));
+    &Shepherd::Common::cleanup($prog);
+#    printf "DEBUG: programme xmltv: ".Dumper($prog) if (defined $opt->{debug});
+    $writer->write_programme($prog);
+    $stats{programs_output}++;
+  }
+
+  $writer->end();
+
+  die "No programs output. ($start_message)" if (not $stats{programs_output} and not $opt->{gaps_file});
+}
+
+##############################################################################
+
+sub set_region
+{
+  my $region = shift;
+
+  # From http://www.southerncrossbroadcasting.com.au/TVGuide
+  my $channel;
+  my $url = "http://www.southerncrossbroadcasting.com.au/TVGuide/eguide.asp?ch=";
+
+  # non "Sthn Cross TEN" has different page layout (all Capitals, (year))
+#  if ($region == 74) # NT - Darwin
+#  {
+#    $channel = "Southern Cross";
+#    $url .= "";
+#  }
+#  elsif ($region == 88) # TAS - Tasmania
+#  {
+#    $channel = "Southern Cross";
+#    $url .= "";
+#    # maybe TDT maybe 10
+#  }
+  if ($region == 98) # VIC - Western Victoria
+  { # http://www.aba.gov.au/licplan/planning/licareas/defmaps/documents/maps/la_182.pdf
+    $channel = "TEN";
+    $url .= "BEN:Southern%20Cross%20TEN%20-%20Bendigo";
+  }
+  elsif ($region == 90) # VIC - Eastern Victoria
+  { # http://www.ourguide.com.au/vic/
+    $channel = "TEN";
+    $url .= "GIP:Southern%20Cross%20TEN%20-%20Gippsland";
+  }
+  elsif ($region == 66) # NSW - Central Coast
+  { # http://www.atn.com.au/nsw/syd/cen-map.htm
+    $channel = "Sthn Cross TEN";
+    $url .= "WOL:Southern%20Cross%20TEN%20-%20Wollongong";
+  }
+  elsif ($region == 69) # NSW - Northern NSW
+  { # http://www.atn.com.au/nsw/north/nth-map.htm
+    $channel = "Sthn Cross TEN";
+    $url .= "COF:Southern%20Cross%20TEN%20-%20Coffs%20Harbour";
+  }
+  elsif ($region == 184) # NSW - Newcastle
+  { # simple
+    $channel = "Sthn Cross TEN";
+    $url .= "NEW:Southern%20Cross%20TEN%20-%20Newcastle";
+  }
+  elsif ($region == 63) # NSW - Broken Hill
+  { # http://www.centralonline.com.au/contact.asp
+    $channel = "Sthn Cross TEN";
+    $url .= "BRO%2010:Southern%20Cross%20TEN%20-%20Broken%20Hill";
+#    $channel = "Central GTS/BKN"; # 7
+#    $url .= "BRO%207:Southern%20Cross%20Television%20-%20Broken%20Hill";
+  }
+  elsif ($region == 86) # SA - Spencer Gulf (Port Pirie or Port Lincoln)
+  { # http://www.centralonline.com.au/contact.asp
+    $channel = "Sthn Cross TEN";
+    $url .= "PIR%2010:Southern%20Cross%20TEN%20-%20Port%20Pirie";
+#    $channel = "Central GTS/BKN"; # 7
+#    $url .= "PIR%207:Southern%20Cross%20Television%20-%20Port%20Pirie";
+  }
+  elsif ($region == 78) # QLD - Gold Coast
+  { # simple
+    $channel = "Sthn Cross TEN";
+    $url .= "GOL:Southern%20Cross%20TEN%20-%20Gold%20Coast";
+  }
+  elsif ($region == 79) # QLD - Regional QLD
+  { # simple
+    $channel = "TEN";
+    $url .= "MAC:Southern%20Cross%20TEN%20-%20Mackay";
+  }
+  elsif ($region == 126) # ACT - ACT
+  { # simple
+    $channel = "TEN";
+    $url .= "CAN:Southern%20Cross%20TEN%20-%20Canberra";
+  }
+  else
+  {
+    &log("ERROR: No suitable region guide found using default");
+    $channel = "TEN";
+    $url .= "MAC:Southern%20Cross%20TEN%20-%20Mackay";
+  }
+
+  $url =~ /-%20(.*)$/;
+  &log("Setting region $region to $channel $1");
+
+  return ($channel, $url);
+
+# 			<p class="Heading1">Southern Cross Television</p>
+# 			<select size="1" name="SCTV" networkname="Southern Cross Television" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
+# 			<option>Select...</option>
+# 			<option value="BRO 7">Broken Hill</option>   NSW - Broken Hill
+# 			<option value="CEN">Central/Satellite</option>
+# 			<option value="PIR 7">Port Pirie</option>    SA - Spencer Gulf
+# 			<option value="LIN 7">Port Lincoln</option>  SA - Spencer Gulf
+# 			</select><br>
+# 			<p class="Heading1">Southern Cross TEN</p>
+# 			<select size="1" name="SCTEN" networkname="Southern Cross TEN" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
+# 			<option>Queensland...</option>
+# 			<option value="BUN">Bundaberg</option>
+# 			<option value="CAI">Cairns</option>        Regional
+# 			<option value="GOL">Gold Coast</option>    Gold Coast
+# 			<option value="MAC">Mackay</option>        Regional
+# 			<option value="ROC">Rockhampton</option>   Regional
+# 			<option value="SUN">Sunshine Coast</option>Regional
+# 			<option value="TOO">Toowoomba</option>     Regional
+# 			<option value="TOW">Townsville</option>    Regional
+# 			</select><select size="1" name="SCTEN" networkname="Southern Cross TEN" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
+# 			<option>New South Wales/ACT...</option>
+# 			<option value="CAN">Canberra</option>      ACT
+# 			<option value="COF">Coffs Harbour</option> Northern NSW
+# 			<option value="LIS">Lismore</option>       Northern NSW
+# 			<option value="NEW">Newcastle</option>     Newcastle
+# 			<option value="ORA">Orange/Dubbo</option>  Central Coast
+# 			<option value="TAR">Taree</option>         Newcastle
+# 			<option value="TAM">Tamworth</option>      Northern NSW
+# 			<option value="WAG">Wagga</option>         Central Coast
+# 			<option value="WOL">Wollongong</option>    Central Coast
+# 			</select><select size="1" name="SCTEN" networkname="Southern Cross TEN" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
+# 			<option>Victoria...</option>
+# 			<option value="ALB">Albury</option>        Eastern Victoria
+# 			<option value="BAL">Ballarat</option>      Western Victoria
+# 			<option value="BEN">Bendigo</option>       Western Victoria
+# 			<option value="GIP">Gippsland</option>     Eastern Victoria
+# 			<option value="SHE">Shepparton</option>    Western Victoria
+# 			</select><select size="1" name="SCTEN" networkname="Southern Cross TEN" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
+# 			<option>Spencer Gulf...</option>
+# 			<option value="BRO 10">Broken Hill</option>  NSW - Broken Hill
+# 			<option value="LIN 10">Port Lincoln</option> SA - Spencer Gulf
+# 			<option value="PIR 10">Port Pirie</option>   SA - Spencer Gulf
+# 			</select>
+# 
+# applications/shepherd has a list
+# "126">ACT - ACT
+# "63">NSW - Broken Hill  "66">NSW - Central Coast  "67">NSW - Griffith
+# "69">NSW - Northern NSW "71">NSW - Southern NSW   "73">NSW - Sydney
+# "106">NSW - Remote and Central  "184" >NSW - Newcastle
+# "74">NT - Darwin  "108">NT - Remote and Central
+# "75">QLD - Brisbane "78">QLD - Gold Coast "79">QLD - Regional QLD
+# "114">QLD - Remote and Central
+# "81">SA - Adelaide  "82">SA - Renmark "83">SA - Riverland
+# "85">SA - South East SA "86">SA - Spencer Gulf "107">SA - Remote and Central
+# "88">TAS - Tasmania
+# "90">VIC - Eastern Victoria "93">VIC - Geelong  "94">VIC - Melbourne
+# "95">VIC - Mildura/Sunraysia  "98">VIC - Western Victoria
+# "101">WA - Perth  "102">WA - Regional WA
+
+# channel_list
+
+#   my $url = sprintf "http://www.ten.com.au/citySelect.aspx?change=true";
+#   my $data = &get_url($url,5);
+#   if (!$data) {
+#     &log("CRITICAL ERROR: Could not set region because of error fetching '$url'");
+#     exit(1);
+#   }
+# 
+#   my $tree = HTML::TreeBuilder->new_from_content($data);
+#   if (!$tree) {
+#     &log("CRITICAL ERROR: url '$url' doesn't seem to contain any valid HTML: has the format changed?");
+#                 exit(1);
+#         }
+# 
+#   $opt->{viewstate} = $_->attr('value') if ($_ = $tree->look_down('_tag' => 'input', 'type' => 'hidden', 'name' => '__VIEWSTATE'));
+#   if (!defined $opt->{viewstate}) {
+#     &log(" has the format changed? could not find 'viewstate'...");
+#     $stats{viewstate_not_found}++;
+#     $opt->{viewstate} = "";
+#   }
+# 
+#   my $reg = 1;              # sydney
+#   $reg = 2 if ($opt->{region} =~ /^9/);        # melbourne
+#   $reg = 3 if ($opt->{region} =~ /(75|78|79|114|74|108)/);  # brisbane
+#   $reg = 4 if ($opt->{region} =~ /(101|102)/);      # perth
+#   $reg = 5 if ($opt->{region} =~ /(81|82|83|85|86|107)/);    # adelaide
+# 
+#   my $postvars = "__VIEWSTATE=".urlify($opt->{viewstate})."&new_site_id=".$reg."&_ctl1.x=0&_ctl1.y=0";
+#   $data = &get_url($url, 5, undef, "POST", $postvars);
+# 
+#   $stats{programmes} = 0 if (!defined $stats{programmes});
+}
+
+##############################################################################
+
+sub get_pages
+{
+  my $url = shift;
+
+  my @timeattr = localtime($script_start_time);
+  # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+  $timeattr[0] = 0; # zero sec
+  $timeattr[1] = 0; # zero min
+  $timeattr[2] = 6; # 6am
+  # guide pages start at 6am so grab day before
+  $timeattr[3] += $opt->{offset} - 1; # day
+
+  my $progs;
+  foreach my $day (($opt->{offset}-1) .. ($opt->{days}-1)) {
+    my $date = mktime(@timeattr);
+    $timeattr[3]++; # day
+
+    # if we are micro-gap fetching, only grab days which match our micro gaps
+    if ($opt->{gaps_file} and defined $gaps and defined $gaps->{$channel}) {
+      my $found_gap_matches = 0;
+      foreach my $gap (@{($gaps->{$channel})}) {
+        my ($s, $e) = split(/-/,$gap);
+        if ((($s >= $date) && ($s <= ($date + 24*60*60))) ||
+            (($e >= $date) && ($e <= ($date + 24*60*60))) ||
+            (($s <= $date) && ($e >= ($date + 24*60*60)))) {
+          $found_gap_matches++;
+          printf "gap-fetching: including day %d at %d for gap %d to %d\n",
+              $day, $date, $s, $e if $opt->{debug};
+        }
+      }
+      next if (not $found_gap_matches);
+    }
+
+    &log("Fetching day $day");
+    ($progs, my $progs_in_day) = &parse_page($progs, $url, $date);
+    if ($progs_in_day == 0) {
+      $timeattr[3]--; # day
+      last;
+    }
+
+    if ($opt->{fast} or $opt->{debug} or $day == ($opt->{days}-1)) {
+      &log("  found $progs_in_day programmes.");
+    } else {
+      my $sleep_for = 10 + int(rand(5));
+      &log("  found $progs_in_day programmes, " .
+          "sleeping for $sleep_for seconds.");
+      sleep $sleep_for;
+      $stats{slept_for} += $sleep_for;
+    }
+  }
+
+  # reverse-sort thru list to set prog stop times
+  $timeattr[2] = 6; # 6am
+  my $last_start = mktime(@timeattr);  # 6am on last day + 1
+  foreach my $key (sort {$b <=> $a} keys %$progs) {
+    $progs->{$key}->{stop} = $last_start;
+    $last_start = $progs->{$key}->{start};
+  }
+
+  return $progs;
+}
+
+##############################################################################
+
+sub parse_page
+{
+  my ($progs, $url, $date) = @_;
+
+  my $datestr = POSIX::strftime("%Y%m%d",localtime($date));
+  $url .= "&dd=" . $datestr;
+
+  &log("parse_page debug: url $url") if $opt->{debug};
+
+  my $data;
+  if (not $opt->{debug}) { 
+    $data = &Shepherd::Common::get_url(url => $url);
+  } else {
+    if (open(INFILE, "eguide.asp.$datestr")) {
+      my @lines = <INFILE>;
+      close INFILE;
+      $data = join ' ',@lines;
+    } else {
+      $data = &Shepherd::Common::get_url(url => $url);
+      if ($data) {
+        sleep(12);
+        $stats{slept_for} += 12;
+        open(OUTFILE, ">eguide.asp.$datestr") or 
+            die "Can't open >eguide.asp.$datestr: $!";
+        print OUTFILE $data;
+        close OUTFILE;
+      }
+    }
+  }
+
+  if (!$data) {
+    &log("Didn't return a valid response for url '$url'");
+    return ($progs, 0);
+  }
+
+  my $tree = HTML::TreeBuilder->new_from_content($data);
+  if (!$tree) {
+    &log("Can't parse url '$url'");
+    $stats{bad_html}++;
+    return ($progs, 0);
+  }
+
+  &log("parse_page debug: page title: " . 
+      $tree->find_by_tag_name('title')->as_trimmed_text())
+      if $opt->{debug};
+
+  my @table_rows = $tree->find_by_tag_name('table');
+  if (@table_rows < 2) {
+    &log("Format has changed for url '$url'");
+    $stats{bad_html}++;
+    return ($progs, 0);
+  }
+
+  my $progs_in_day = 0;
+  my @tds = $table_rows[1]->find_by_tag_name('td'); # from second table
+  my $td = shift @tds;
+  my $text = $td->as_trimmed_text() if $td;
+  while (@tds > 0) {
+    my $prog;
+
+    if ($text !~ /(\d\d):(\d\d)/) { # time
+      &log("parse_page debug: skipped   : " . $td->as_HTML()) if $opt->{debug};
+      $td = shift @tds || last;
+      $text = $td->as_trimmed_text();
+      next;
+    }
+    $prog->{start} = $date + ((($1 < 6 ? 24 : 0) - 6 + $1)*60 + $2)*60;
+    &log("parse_page debug: time      : $1:$2  " .
+        POSIX::strftime("%Y%m%d%H%M", localtime($prog->{start}))) 
+        if $opt->{debug};
+    $td = shift @tds || last;
+    $text = $td->as_trimmed_text();
+
+    next if (not $text); # title
+    my $b = $td->find_by_tag_name('b') || next;
+    my $title = $b->as_trimmed_text();
+    my $subtitle = $b->right();
+    $subtitle =~ s/ - // if $subtitle;
+    # <b>Saturday Late Night Movie</b> - Run Lola Run
+    # <b>Sunday Afternoon Premiere Movie</b> - Rat
+    # <b>Sunday Afternoon Movie</b> - Evolution
+    my ($rating, $movie, $premiere, $final, $return, $series, $live);
+    my $post_desc="";
+    if ($subtitle and $title =~ /^(Friday|Saturday|Sunday) .* Movie$/i) {
+      $movie = 1;
+      $premiere = 1 if ($title =~ /Premiere/i);
+      &log("parse_page debug: Changing title $title to $subtitle") 
+          if $opt->{debug};
+      $post_desc .= "($title)";
+      $title = $subtitle;
+      $subtitle = undef;
+    }
+    # (Network Premiere)
+    ## (Special Encore Presentation) # repeat of a (Network Premiere)
+    # (Series Premiere)
+    # (Series Finale)
+    # (Series Final)
+    # (Series Return)
+    ## (New Time)
+    ## (Qualifying)
+    # $subtitle =~ , live from Aurora
+    if ($title =~ s/(\((.*)\))//) {
+        $post_desc .= $1;
+        my $tag = $2;
+        $series = 1 if ($tag =~ /(^| )Series( |$)/i);
+        $premiere = 1 if ($tag =~ /(^| )Premiere( |$)/i);
+        $final = 1 if ($tag =~ /(^| )Finale?( |$)/i);
+        $return = 1 if ($tag =~ /(^| )Return( |$)/i);
+    }
+    $live = 1 if ($subtitle and $subtitle =~ /live from/i);
+    $prog->{title} = [[$title, $opt->{lang}]];
+    &log("parse_page debug: title     : $title $post_desc") if ($opt->{debug});
+    if ($subtitle) {
+      $prog->{'sub-title'} = [[$subtitle, $opt->{lang}]];
+      &log("parse_page debug: sub-title : $subtitle") if $opt->{debug};
+    }
+    $td = shift @tds || goto PART;
+    $text = $td->as_trimmed_text();
+
+    if ($text) { # rating
+      $rating = $text;
+      &log("parse_page debug: rating    : $text") if $opt->{debug};
+    }
+    $td = shift @tds || goto PART;
+    $text = $td->as_trimmed_text();
+
+    if ($text eq chr(160)) { # &nbsp;
+      $td = shift @tds || goto PART;
+      $text = $td->as_trimmed_text();
+
+      if ($text) {
+        # Hosted by Mike Goldman & Bree Amer, this ... # how to parse all
+        # Hosted by Mike Goldman, Ryan Fitzgerald and Bree Amer.
+        # ^Guest Stars: Mel Gibson Studio ... # how to parse all
+        # Starring: $
+        ## Insert Cast: Damon Wayans, Adam Sandler, Kristen Wilson, James Caan,
+        ## James Farentino (Cons Adv: Some Coarse Language, Some Violence, Sexual References)
+        # - Live from Aurora 
+        ## Featuring cartoons: Yu Gi Oh! Gx (Final), All Grown Up (Repeat),
+        ## Teenage Mutant Ninja Turtules (repeat)
+        my $cast = "";
+        $cast .= "$1, " if ($text =~ /Hosted by (\w+ \w+)( |\.|,|$)/i);
+        $cast .= "$1, " if ($text =~ /Guest Stars: (\w+ \w+)( |\.|,|$)/i);
+        $cast .= $1 if ($text =~ /Starring: (.+)$/i);
+        $prog->{'credits'}{'actor'} = [ split(/, /, $cast) ] if ($cast);
+        $live = 1 if ($text =~ /Live from/i);
+        $prog->{desc} = [[$text, $opt->{lang}]]; # desc
+        &log("parse_page debug: desc      : $text") if $opt->{debug};
+      }
+      $td = shift @tds || goto PART;
+      $text = $td->as_trimmed_text();
+
+      goto PART if ($text ne chr(160)); # &nbsp;
+      $td = shift @tds || goto PART;
+      $text = $td->as_trimmed_text();
+    }
+
+    if ($text eq "" and not $td->attr('colspan')) {
+      $td = shift @tds || goto PART;
+      $text = $td->as_trimmed_text();
+
+      if ($text) { # verbose rating
+        $post_desc .= $text;
+        if ($rating) {
+          $rating .= " " . subrating($text);
+        } else {
+          $rating = subrating($text);
+        }
+        &log("parse_page debug: verbose rating : $text") if $opt->{debug};
+      }
+      $td = shift @tds || goto PART;
+      $text = $td->as_trimmed_text();
+
+      goto PART if ($text ne "" or $td->attr('colspan')); # &nbsp;
+      $td = shift @tds || goto PART;
+      $text = $td->as_trimmed_text();
+    }
+  PART:
+    my @categories;
+    my $cft = category_from_title($title);
+    push(@categories, [$cft, $opt->{lang}]) if $cft;
+    push(@categories, ["Children", $opt->{lang}])
+        if $rating and $rating =~ /^(C|P)$/i;
+    push(@categories, ["movie", $opt->{lang}]) if $movie;
+    push(@categories, ["series", $opt->{lang}]) if $series;
+    @categories = prepend_category("Live", @categories) if $live;
+    @categories = prepend_category("Premiere", @categories) if $premiere;
+    @categories = prepend_category("Return", @categories) if $return;
+    @categories = prepend_category("Final", @categories) if $final;
+    $prog->{'category'} = [@categories] if @categories;
+    $prog->{'premiere'} = ['premiere', $opt->{lang}] if $premiere;
+    $prog->{'last-chance'} = ['final', $opt->{lang}] if $final;
+    #$prog->{'previously-shown'} = { } if $repeat; # can't detect
+    $prog->{rating}  = [[$rating, "ABA", undef]] if $rating;
+    if ($post_desc) {
+      if (not $prog->{desc}) {
+        $prog->{desc} = [[$post_desc, $opt->{lang}]];
+      } else {
+        $prog->{desc}->[0]->[0] .= "\n" . $post_desc;
+      }
+    }
+
+    $progs->{$prog->{start}} = $prog;
+    $progs_in_day++;
+  }
+
+  $tree->delete();
+
+  $stats{programs_found} += $progs_in_day;
+
+  &log("WARNING: Only $progs_in_day programmes seen for url $url") 
+      if ($progs_in_day < 10);
+
+  return ($progs, $progs_in_day);
+}
+
+sub category_from_title
+{
+  my $title = shift;
+  return "News" if $title=~/(^| )News( |$)/i;
+  return "sports" if $title=~/(^| )Sports Tonight( |$)/i;
+  return "sports" if $title=~/(^| )AFL( |$)/i;
+  return "Infotainment" if $title=~/(^| )Infomercials?( |$)/i;
+  return "Reality" if $title=~/(^| )Big Brother( |$)/i;
+  return "Animation" if $title=~/(^| )The( All New)? Simpsons( |$)/i;
+  return "Music" if $title=~/(^| )Video Hits( |$)/i;
+}
+
+sub prepend_category
+{
+  my ($item, @categories) = @_;
+
+  if (@categories > 0 and $categories[0][0]) {
+    if ($categories[0][0] eq "movie") { unshift(@categories, ["Movie", $opt->{lang}]) }
+    elsif ($categories[0][0] eq "sports") { unshift(@categories, ["Sports", $opt->{lang}]) }
+    elsif ($categories[0][0] eq "series") { unshift(@categories, ["Series", $opt->{lang}]) }
+    elsif ($categories[0][0] eq "tvshow") { unshift(@categories, ["TVShow", $opt->{lang}]) }
+    $categories[0][0] = $item . " " . $categories[0][0];
+  } else {
+    push(@categories, [$item, $opt->{lang}]);
+  }
+  return @categories;
+}
+
+# (Adult Themes)
+# (Some Violence, Adult Themes, Supernatural Themes)
+# (Drug References, Adult Themes)
+# (Very Coarse Language, Sexual References, Drug References, Adult Themes, Nudity)
+# (Some Violence)
+# (Drug Use, Strong Adult Themes)
+# (Some Violence, Adult Themes)
+# (Some Coarse Language)
+# (Sexual References)
+# (Mild Coarse Language, Sexual References)
+# (Sex Scenes, Adult Themes, Supernatural Themes)
+## (Qualifying - Sat)
+sub subrating
+{
+  my $string = shift;
+  my @subrating;
+
+  push(@subrating, "v") if $string =~ /Violence/i;
+  push(@subrating, "l") if $string =~ /Language/i;
+  push(@subrating, "s") if $string =~ /Sex/i;
+  push(@subrating, "d") if $string =~ /Drug/i;
+  push(@subrating, "a") if $string =~ /Adult/i;
+  push(@subrating, "n") if $string =~ /Nudity/i;
+  push(@subrating, "h") if $string =~ /Supernatural/i;
+
+  return join(",",@subrating);
+}

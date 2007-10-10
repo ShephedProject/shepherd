@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+
+# web-server script to save feedback from shepherd scripts running in the wild
+#
+# shepherd will call us with a POST request
+# save the POSTed data
+
+use strict;
+use CGI;
+
+my $store_dir = "./dev/stats/";	# where we store our feedback
+
+my $query = new CGI;
+print $query->header( { -type => 'text/plain' } );
+
+#
+# save whatever feedback shepherd created for us
+#
+my $store_file = $store_dir.time.$$;	# unique filename
+if (open(F,">$store_file")) {
+	my @fields = $query->param;
+	foreach my $field (@fields) {
+		printf F "%s\t%s\n",$field,$query->param($field);
+	}
+	close(F);
+}
+
+print "Ok";
+
+exit(0);
+

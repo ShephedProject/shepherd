@@ -1,0 +1,687 @@
+#!/usr/bin/perl -w
+
+# yahoo7portal au_tv guide grabber - runs from "Shepherd" master grabber
+#  * grabs data from the yahoo7portal (http://au.tv.yahoo.com/)
+#  * this does NOT use any config file - all settings are passed in from shepherd
+
+use strict;
+
+my $progname = "yahoo7web";
+my $version = "0.28";
+
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use HTML::TreeBuilder;
+use Data::Dumper;
+use Shepherd::Common;
+
+#
+# global variables and settings
+#
+
+$| = 1;
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels, my $gaps;
+my $data_cache;
+my $writer;
+my $prev_url;
+my $d;
+my $opt;
+
+#
+# parse command line
+#
+
+$opt->{days} =          7;			# default
+$opt->{outputfile} =    "output.xmltv";		# default
+$opt->{cache_file} =	$progname.".storable.cache";	# default
+$opt->{lang} =		"en";
+$opt->{region} =	94;
+
+GetOptions(
+	'log-http'	=> \$opt->{log_http},
+	'region=i'	=> \$opt->{region},
+	'days=i'	=> \$opt->{days},
+	'offset=i'	=> \$opt->{offset},
+	'timezone=s'	=> \$opt->{timezone},
+	'channels_file=s' => \$opt->{channels_file},
+	'gaps_file=s'	=> \$opt->{gaps_file},
+	'output=s'	=> \$opt->{outputfile},
+	'cache-file=s'	=> \$opt->{cache_file},
+	'fast'		=> \$opt->{fast},
+	'no-cache'	=> \$opt->{no_cache},
+	'no-details'	=> \$opt->{no_details},
+	'debug+'	=> \$opt->{debug},
+	'warper'	=> \$opt->{warper},
+	'lang=s'	=> \$opt->{lang},
+	'obfuscate'	=> \$opt->{obfuscate},
+	'anonsocks=s'	=> \$opt->{anon_socks},
+	'help'		=> \$opt->{help},
+	'verbose'	=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'ready'		=> \$opt->{version},
+	'v'		=> \$opt->{help});
+
+&help if ($opt->{help});
+
+if ($opt->{version}) {
+	printf "%s %s\n",$progname,$version;
+	exit(0);
+}
+
+die "no channel file specified, see --help for instructions\n", if (!$opt->{channels_file});
+$opt->{days} = 8 if ($opt->{days} > 8); # limit to a max of 8 days
+
+#
+# go go go!
+#
+
+&log(sprintf "going to %sgrab %d days%s of data into %s (%s%s%s%s%s)",
+	(defined $opt->{gaps_file} ? "micro-gap " : ""),
+	$opt->{days},
+	(defined $opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+	$opt->{outputfile},
+	(defined $opt->{fast} ? "with haste" : "slowly"),
+	(defined $opt->{anon_socks} ? ", via multiple endpoints" : ""),
+	(defined $opt->{warper} ? ", anonymously" : ""),
+	(defined $opt->{no_details} ? ", without details" : ", with details"),
+	(defined $opt->{no_cache} ? ", without caching" : ", with caching"));
+
+# set defaults
+Shepherd::Common::set_default("debug", ($opt->{debug} ? 2 : 0));
+Shepherd::Common::set_default("webwarper", 1) if (defined $opt->{warper});
+Shepherd::Common::set_default("squid", 1) if (defined $opt->{obfuscate});
+Shepherd::Common::set_default("referer", "last");
+Shepherd::Common::set_default("retry_delay", 30);
+Shepherd::Common::setup_ua(cookie_jar => 1);
+
+# read channels file
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt->{channels_file} could not be read\n";
+}
+
+# if just filling in microgaps, parse gaps
+if (defined $opt->{gaps_file}) {
+	if (-r $opt->{gaps_file}) {
+		local (@ARGV, $/) = ($opt->{gaps_file});
+		no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		die "WARNING: gaps_file $opt->{gaps_file} could not be read: $!\n";
+	}
+}
+
+&read_cache unless (defined $opt->{no_cache});
+
+if (defined $opt->{anon_socks}) {
+	&log("configured to use Tor, testing that it works by connecting to www.google.com ...");
+	if (Shepherd::Common::setup_socks($opt->{anon_socks})) {
+		&log("success.  Tor appears to be working!");
+	} else {
+	        &log("ERROR: Could not connect to www.google.com via Tor, disabling Tor.");
+		&log("       DATA FETCHING WILL BE VERY SLOW.");
+		&log("       DISABLING DETAILS-FETCHING BECAUSE OF THIS - SIGNIFICANTLY LOWER DATA QUALITY!!");
+
+		$opt->{no_details} = 1;
+		delete $opt->{anon_socks};
+		$stats{fallback_to_non_tor}++;
+	}
+}
+
+&start_writing_xmltv;
+
+&get_summary_pages;
+&get_detailed_pages;
+
+&write_cache unless (defined $opt->{no_cache});
+$writer->end();
+
+&print_stats;
+exit(0);
+
+##############################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+options are as follows:
+	--help			show these help options
+	--days=N		fetch 'n' days of data (default: $opt->{days})
+	--output=file		send xml output to file (default: "$opt->{outputfile}")
+	--no-cache		don't use a cache to optimize (reduce) number of web queries
+	--no-details		don't fetch detailed descriptions (default: do)
+	--cache-file=file	where to store cache (default "$opt->{cache_file}")
+	--fast			don't run slow - get data as quick as you can - not recommended
+	--anonsocks=(ip:port)	use SOCKS4A server at (ip):(port) (for Tor: recommended)
+
+	--debug			increase debug level
+	--warper		fetch data using WebWarper web anonymizer service
+	--obfuscate		pretend to be a proxy servicing multiple clients
+	--lang=[s]		set language of xmltv output data (default $opt->{lang})
+
+	--region=N		set region for where to collect data from (default: $opt->{region})
+	--channels_file=file	where to get channel data from
+	--gaps_file=file	micro-fetch gaps only
+
+EOF
+;
+
+	exit(0);
+}
+
+##############################################################################
+# populate cache
+
+sub read_cache
+{
+	my $store = Shepherd::Common::read_cache(\$opt->{cache_file});
+	
+	if ($store) {
+		$data_cache->{progs} = $store->{data_cache} if (defined $store->{data_cache});
+
+		if (defined $store->{day_cache}) {
+			$data_cache->{day} = $store->{day_cache};
+
+			# age day cache on reading..
+			for my $url (keys %{($data_cache->{day})}) {
+				if ($data_cache->{day}->{$url}->{fetched} < (time-(4*3600))) {
+					delete $data_cache->{day}->{$url};
+					$stats{expired_url_from_cache}++;
+				}
+			}
+		}
+	}
+}
+
+##############################################################################
+# write out updated cache
+
+sub write_cache
+{
+        # cleanup old prog entries from cache
+	if (defined $data_cache->{progs}) {
+		for my $cache_key (keys %{($data_cache->{progs})}) {
+			my ($starttime, @rest) = split(/:/,$cache_key);
+			if ($starttime < (time-86400)) {
+				delete $data_cache->{progs}->{$cache_key};
+				$stats{expired_from_cache}++;
+			}
+		}
+	}
+
+	my $store = { };
+	$store->{data_cache} = $data_cache->{progs} if (defined $data_cache->{progs});
+	$store->{day_cache} = $data_cache->{day} if (defined $data_cache->{day});
+	Shepherd::Common::write_cache($opt->{cache_file}, $store);
+}
+
+##############################################################################
+
+sub log
+{
+	my ($entry) = @_;
+	printf "%s\n",$entry;
+}
+
+##############################################################################
+
+sub print_stats
+{
+	printf "STATS: %s v%s completed in %d seconds",$progname, $version, time-$script_start_time;
+	foreach my $key (sort keys %stats) {
+		printf ", %d %s",$stats{$key},$key;
+	}
+	printf "\n";
+}
+
+##############################################################################
+
+sub start_writing_xmltv
+{
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($opt->{outputfile}) {
+		my $fh = new IO::File(">$opt->{outputfile}") || die "can't open $opt->{outputfile}: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	$writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-name'   => "$progname $version",
+	      'generator-info-name' => "$progname $version"} );
+
+	for my $channel (sort keys %{$channels}) {
+		$writer->write_channel( {
+			'display-name' => [[ $channel, $opt->{lang} ]],
+			'id' => $channels->{$channel}
+			} );
+	}
+}
+
+##############################################################################
+
+sub translate_category
+{
+	my $genre = shift;
+	my %translation = (
+		'Sport' => 'sports',
+		'Soap Opera' => 'Soap',
+		'Science and Technology' => 'Science/Nature',
+		'Real Life' => 'Reality',
+		'Cartoon' => 'Animation',
+		'Family' => 'Children',
+		'Murder' => 'Crime' );
+
+	return $translation{$genre} if defined $translation{$genre};
+	return $genre;
+}
+
+##############################################################################
+
+sub build_channel_quirks_map
+{
+	# set up channel name exceptions list
+	my %chan_map;
+	if ($opt->{region} == 71) {
+		# NSW: Southern NSW
+		push (@{($chan_map{"TEN"})},
+			"TEN (NSW: Southern NSW)",
+			"TEN (Mildura Digital)");
+	} elsif ($opt->{region} == 79) {
+		# QLD: Regional
+		push (@{($chan_map{"Seven"})},
+			"Seven (Cairns)",	# not sure of which way the split
+			"Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)",
+			"Seven (Rockhampton/Toowoomba)");
+		push (@{($chan_map{"WIN"})},
+			"WIN (QLD: Regional)",
+			"WIN (Mackay/Wide Bay)");
+	} elsif ($opt->{region} == 90) {
+		# VIC: Eastern Victoria
+		push (@{($chan_map{"Prime"})},
+			"Prime (Regional)",
+			"Prime (Albury)");
+	}
+
+	return %chan_map;
+}
+
+##############################################################################
+
+sub get_summary_pages
+{
+	my $starttime = time;
+	my $day_num = 0;
+	my $skip_days = 0;
+	my $prev_http_successful_requests = 0;
+	$stats{programmes} = 0;
+
+	my @timeattr = localtime($starttime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+	$timeattr[0] = 0;	# zero sec
+	$timeattr[1] = 0;	# zero min
+	$timeattr[2] = 0;	# zero hour (midnight)
+	my $starttime_midnight = mktime(@timeattr);
+
+	$skip_days = $opt->{offset} if (defined $opt->{offset});
+	while ($day_num < $opt->{days}) {
+		my $day_start = $starttime_midnight + (60*60*24 * $day_num);
+		$day_num++;
+
+		# skip if --offset applies against this day
+		if ($skip_days > 0) {
+			$skip_days--;
+			next;
+		}
+		
+		# within each day, fetch in groups of 3 hours
+		for (my $hr = 0; $hr < 23; $hr += 3) {
+			my $currtime = $day_start + ($hr * 60 * 60);
+			next if (($currtime + (3 * 60 * 60)) < $starttime); # no point fetching the past
+
+			# if we are fetching microgaps, skip this summary page if we aren't
+			# interested in anything from it anyway
+			next if ((defined $opt->{gaps_file}) && (!window_is_within_microgap($currtime,$currtime+(60*60*3))));
+
+			my $url = sprintf "http://au.tv.yahoo.com/tv-guide/?hour=%s&min=%s&date=%s&mon=%s&year=%s&tvrg=%s&next=%s",
+				POSIX::strftime("%H",localtime($starttime_midnight)),
+				POSIX::strftime("%M",localtime($starttime_midnight)),
+				POSIX::strftime("%d",localtime($starttime_midnight)),
+				POSIX::strftime("%m",localtime($starttime_midnight)),
+				POSIX::strftime("%Y",localtime($starttime_midnight)),
+				$opt->{region}, $currtime;
+
+			&log("fetching day $day_num summary page hour $hr ($url)");
+			&parse_summary_page($url, $day_num, $day_start);
+		}
+
+		if ((defined $stats{http_successful_requests}) && ($stats{http_successful_requests} > $prev_http_successful_requests)) {
+			$prev_http_successful_requests = $stats{http_successful_requests};
+			my $wait_for = 5 + int(rand(5));
+			$stats{slept_for} += $wait_for;
+			sleep($wait_for);
+		}
+	}
+}
+
+##############################################################################
+
+sub parse_summary_page
+{
+	my ($url, $day_num, $day_start) = @_;
+	my %chan_map = &build_channel_quirks_map;
+	my $data;
+
+	if ((defined $data_cache->{day}->{$url}) &&
+	    (defined $data_cache->{day}->{$url}->{data})) {
+		$data = $data_cache->{day}->{$url}->{data};
+		$stats{used_cached_day_page}++;
+	} else {
+		$data = Shepherd::Common::get_url(url => $url, retries => 4);
+		if (!$data) {
+		    if (!$stats{summary_pages_with_progs}) {
+			&log("Aborting: couldn't fetch first summary page.");
+			exit 10;
+		    }
+		    return;
+		}
+		$data_cache->{day}->{$url}->{fetched} = time;
+		$data_cache->{day}->{$url}->{data} = $data;
+
+		my $wait_for = 2;
+		$stats{slept_for} += $wait_for;
+		sleep($wait_for);
+	}
+
+	my $tree = HTML::TreeBuilder->new_from_content($data);
+	if (!$tree) {
+		&log("Format change? No valid HTML in $url");
+		exit 20 unless ($stats{summary_pages_with_progs})
+	}
+
+	my $tree_table = $tree->look_down('_tag' => 'table', 'id' => 'listing-table');
+	if (!$tree_table) {
+		&log("Format change? No TV table in $url?");
+		exit 20 unless ($stats{summary_pages_with_progs});
+	}
+
+	my $progs_in_table = 0;
+
+	for my $tree_tr ($tree_table->look_down('_tag' => 'tr', 'class' => 'lt-listing-row')) {
+		# get channel
+		my $this_chan = "";
+		if (my $channel_td = $tree_tr->look_down('_tag' => 'td', 'class' => 'lt-channel')) {
+			$this_chan = $channel_td->as_text();
+		}
+
+		if ($this_chan eq "") {
+			&log("ignoring blank channel in $url") if (defined $opt->{debug});
+			$stats{blank_channels_ignored}++;
+			next;
+		}
+
+		if (defined $chan_map{$this_chan}) {
+			my $new_channame = splice(@{($chan_map{$this_chan})},0,1);
+			if (not $new_channame) {
+				&log("new unmapped channel for '$this_chan'");
+			} else {
+				&log("substituted channel name '$new_channame' for '$this_chan'") if (defined $opt->{debug});
+				$stats{substituted_channels}++;
+				$this_chan = $new_channame;
+			}
+		}
+
+		if (!defined $channels->{$this_chan}) {
+			&log("skipping unlisted channel '$this_chan'") if (!defined $d->{skipped_channels}->{$this_chan});
+			$d->{skipped_channels}->{$this_chan} = 1 if (!defined $opt->{debug});
+			$stats{skipped_channels}++;
+			next;
+		}
+
+		for my $tree_td ($tree_tr->look_down('_tag' => 'td', 'class' => 'lt-listing')) {
+			if (my $listing_div = $tree_td->look_down('_tag' => 'div')) {
+				next if ($listing_div->attr('class') !~ /^lt-listing-wrapper/i);
+
+				my @listing_links = $listing_div->look_down('_tag' => 'a', 'class' => 'listing-link');
+				my @listing_data = $listing_div->look_down('_tag' => 'strong');
+
+				for (my $i=0; $i <= $#listing_links; $i++) {
+					my $prog;
+					$prog->{channel} = $channels->{$this_chan};
+
+					if ($listing_links[$i]->attr('rel') =~ /^(\d+)-(\d+)-(\d+)$/) {
+						$prog->{event_id} = $3;
+					}
+					$prog->{title} = [[ $listing_links[$i]->as_text(), $opt->{lang} ]];
+
+					my $listing_text = $listing_data[$i]->as_text();
+					if ($listing_text =~ /^(.*)\((\d+)\)(\d+):(\d+)(.)m - (\d+):(\d+)(.)m$/i) {
+						my ($rating_text, $prog_length, $start_sec, $stop_sec) = ($1, $2, parse_time($3, $4, $5), parse_time($6, $7, $8));
+						$stop_sec += (60*60*24) if ($stop_sec < $start_sec); # program wrap around midnight
+						$prog->{rating} = [[ $rating_text, 'ABA', undef ]] if ((defined $rating_text) && ($rating_text ne ""));
+						$prog->{length} = ($prog_length * 60) if ((defined $prog_length) && ($prog_length > 0));
+						$prog->{starttime} = $day_start + $start_sec;
+						$prog->{stoptime} = $day_start + $stop_sec;
+					} else {
+						&log("malformed listing_text '$listing_text' for prog '".$listing_links[$i]->as_text()."'; ignored.");
+						$stats{malformed_listing}++;
+						next;
+					}
+
+					$progs_in_table++;
+
+					# if we are fetching microgaps, skip if this isn't in a micro-gap.
+					if (defined $opt->{gaps_file}) {
+						next if (!window_is_within_microgap($prog->{starttime},$prog->{stoptime},$this_chan));
+						$stats{gaps_included}++;
+					}
+
+					# include programme
+					&log("found prog: '".$prog->{title}->[0]->[0]."', channel ".$prog->{channel}.
+					  " start ".$prog->{starttime}." stop ".$prog->{stoptime}) if (defined $opt->{debug});
+
+					my $cache_key = sprintf "%d:%d:%s:%s", $prog->{starttime}, $prog->{stoptime}, $prog->{channel}, $prog->{title}->[0]->[0];
+					if (!defined $d->{progs}->{$cache_key}) {
+						$d->{progs}->{$cache_key} = $prog;
+						$stats{programmes}++;
+					}
+				}
+			}
+		}
+	}
+
+	$tree->delete;
+
+	$stats{summary_pages_with_progs}++ if ($progs_in_table > 0);
+
+	&log("WARNING: Data may be bad. Only $progs_in_table programmes seen in $url") if ($progs_in_table * scalar(keys %$channels) < 4);
+}
+
+##############################################################################
+# loop through our progs, fetching details where we don't have a pre-cached
+# entry for them.
+# write out XMLTV
+
+sub get_detailed_pages
+{
+	&log("fetching details for up to ".$stats{programmes}." programmes ...") if (!defined $opt->{no_details});
+
+	my $prog_count = 0;
+	my $added_to_cache = 0;
+	$stats{used_existing_cache_entry} = 0;
+	$stats{added_to_cache} = 0;
+
+	foreach my $cache_key (sort keys %{($d->{progs})}) {
+		my $prog = $d->{progs}->{$cache_key};
+		$prog_count++;
+
+		if ((!defined $data_cache->{progs}->{$cache_key}) &&
+		    (!defined $opt->{no_details}) &&
+		    (defined $prog->{event_id}) &&
+		    ($prog->{title}->[0]->[0] ne "Station Close")) {
+			&fetch_one_prog($cache_key, $prog->{event_id});
+			&write_cache if ((($stats{added_to_cache} % 15) == 0) && (!defined $opt->{no_cache}));
+		} elsif (!defined $opt->{no_details}) {
+			$stats{used_existing_cache_entry}++;
+		}
+
+		if ((($prog_count % 25) == 0) && (!defined $opt->{no_details})) {
+			&log(" ... at ".$prog_count." of ".$stats{programmes}." programmes (used ".$stats{used_existing_cache_entry}." from cache)");
+		}
+
+		# if we got additional details from the cache, add them now
+		if (defined $data_cache->{progs}->{$cache_key}) {
+			foreach my $key (keys %{($data_cache->{progs}->{$cache_key})}) {
+				$prog->{$key} = $data_cache->{progs}->{$cache_key}->{$key};
+			}
+		}
+
+		# convert epoch starttime into XMLTV starttime
+		$prog->{start} = POSIX::strftime("%Y%m%d%H%M", localtime($prog->{starttime}));
+		delete $prog->{starttime};
+
+		# convert epoch stoptime into XMLTV stoptime
+		$prog->{stop} = POSIX::strftime("%Y%m%d%H%M", localtime($prog->{stoptime}));
+		delete $prog->{stoptime};
+
+		delete $prog->{event_id};
+		Shepherd::Common::cleanup($prog);
+
+		printf "DEBUG: programme xmltv: ".Dumper($prog) if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+		$writer->write_programme($prog);
+	}
+}
+
+##############################################################################
+
+sub fetch_one_prog
+{
+	my ($cache_key, $event_id) = @_;
+	&log("fetching detail page for $cache_key with event_id $event_id") if (defined $opt->{debug});
+
+	my $url = "http://au.tv.yahoo.com/tv-guide/broker.html?event_id=".$event_id;
+	my $data = Shepherd::Common::get_url(url => $url, retries => 4);
+
+	if ((!$data) || ($data !~ /^\{.*\}$/)) {
+		$stats{bad_details_page}++;
+		return;
+	}
+
+	$stats{added_to_cache}++;
+
+	if (($stats{added_to_cache} % 35) == 0) {
+		my $wait_for = 12 + int(rand(5));
+		$stats{slept_for} += $wait_for;
+		sleep $wait_for;
+	}
+
+	my @genre;
+
+	$data =~ s/(^\{|\}$)//g; # strip leading/trailing { and }
+	foreach my $field_item (split(/,"/,$data)) {
+		if ($field_item =~ /^([A-Za-z0-9\_\"]+):(.*)/) {
+			my ($f, $v) = ($1, $2);
+			$f =~ s/(^\"|\"$)//g;	# strip leading/trailing quotes from field if present
+			$v =~ s/(^\"|\"$)//g;	# strip leading/trailing quotes from value if present
+			next if ($v eq "");
+
+			if ($f eq "title") {
+				; # nothing
+			} elsif ($f eq "subtitle") {
+				$data_cache->{progs}->{$cache_key}->{'sub-title'} = [[ $v, $opt->{lang} ]];
+			} elsif ($f eq "description") {
+				$data_cache->{progs}->{$cache_key}->{desc} = [[ $v, $opt->{lang} ]];
+			} elsif ($f eq "genre") {
+				push(@genre, translate_category($v));
+			} elsif ($f eq "captions") {
+				$data_cache->{progs}->{$cache_key}->{subtitles} = [ { 'type' => 'teletext' } ] if ($v eq "true");
+			} elsif ($f eq "repeat") {
+				$data_cache->{progs}->{$cache_key}->{'previously-shown'} = { };
+			} elsif ($f eq "start_date") {
+				; # nothing
+			} elsif ($f eq "end_date") {
+				; # nothing
+			} elsif ($f eq "rating") {
+				; # nothing
+			} elsif ($f eq "channel") {
+				; # nothing
+			} elsif ($f eq "hotpick") {
+				; # nothing
+			} elsif ($f eq "venue_url") {
+				; # nothing
+			} elsif ($f eq "url") {
+				; # nothing
+			} elsif ($f eq "alt_url") {
+				; # nothing
+			} elsif ($f eq "alt_text") {
+				; # nothing
+			} elsif ($f eq "img") {
+				; # nothing
+			} else {
+				&log("unknown field '$f' in $url") if (!defined $d->{unknown_fields}->{$f});
+				$d->{unknown_fields}->{$f} = 1;
+			}
+
+			$data_cache->{progs}->{$cache_key}->{category} = [[ @genre ]] if ($#genre != -1);
+
+		} else {
+			&log("unknown field format '$field_item' in details. Has the format changed?");
+			$stats{unknown_details_field_format}++;
+		}
+	}
+
+	printf "DEBUG: cached entries for '$cache_key': ".Dumper($data_cache->{progs}->{$cache_key})
+	  if (defined $opt->{debug});
+}
+
+##############################################################################
+
+sub parse_time
+{
+	my ($hr, $min, $ampm) = @_;
+
+	$hr = 0 if ($hr == 12);
+	$hr += 12 if ($ampm =~ /p/i);
+
+	return(($hr*60*60)+($min*60));
+}
+
+##############################################################################
+
+sub window_is_within_microgap
+{
+	my ($start, $stop, $channel) = @_;
+
+	return window_channel_is_within_microgap($start, $stop, $channel) if (defined $channel);
+
+	foreach my $ch (keys %{$channels}) {
+		return 1 if window_channel_is_within_microgap($start, $stop, $ch);
+	}
+	return 0;
+}
+
+sub window_channel_is_within_microgap
+{
+	my ($start, $stop, $channel) = @_;
+
+	if (defined $gaps->{$channel}) {
+		foreach my $g (@{($gaps->{$channel})}) {
+			my ($s, $e) = split(/-/,$g);
+			return 1 if
+			  ((($s >= $start) && ($s <= $stop)) ||
+			   (($e >= $start) && ($e <= $stop)) ||
+			   (($s <= $start) && ($e >= $stop)));
+		}
+	}
+	$stats{gaps_skipped}++;
+	return 0;
+}
+
+##############################################################################
+

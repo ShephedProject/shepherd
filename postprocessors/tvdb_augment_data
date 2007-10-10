@@ -1,0 +1,1016 @@
+#!/usr/bin/perl -w
+
+# tvdb (thetvdb.com / tv.com) XMLTV data augmenter  <ltd@interlink.com.au>
+#
+#  * to be used as a postprocessor for XMLTV data
+#  * uses data from thetvdb.com to augment TV guide data
+#  * this should only be used for non-commercial use.
+#  * can be used in conjunction with 'shepherd' XMLTV reconciler or standalone
+#    (pipe-through)
+#  * no configuration necessary
+#
+#  thanks to Scott Zsori, Paul Taylor, Josh Walters and the other thetvdb.com
+#  folks for providing the data and an easy interface/schema to search for data!
+#
+#  changelog:
+#    0.01 31may07 ltd	initial version
+#    0.02 fill in actors/writers/directors, augment description if there is none
+
+use strict;
+
+my $progname = "tvdb_augment_data";
+my $version = "0.11";
+my $mirrorlist_url = 'http://thetvdb.com/interfaces/GetMirrors.php';
+
+use XMLTV;
+use XML::DOM;
+use Getopt::Long;
+use HTML::TreeBuilder;
+use Shepherd::Common;
+use Data::Dumper;
+
+#
+# some initial cruft
+#
+
+my $script_start_time = time;
+my %stats;
+my $data_cache;
+my $settings_override = { };
+my $d;
+my $max_failures = 5;
+my $max_server_retries = 3;
+my $first_parse_error = 1;
+my $parser = new XML::DOM::Parser;
+
+$| = 1;
+
+#
+# parse command line
+#
+
+my $opt = { };
+$opt->{output_file} =		"output.xmltv";
+$opt->{cache_file} =		$progname.".storable.cache";
+$opt->{lang} = 			"en";
+$opt->{debug} =			0;
+$opt->{min_duration} =		25;	# 25 mins
+$opt->{max_duration} =		140;	# 2 hrs 20 mins
+$opt->{skip_categories} = 	"Infotainment,Shopping,Business and Finance,Game Show,News,Parliament,Current Affairs,sports,Sport,Weather,Reality,live,Movies,Movie";
+$opt->{cache_details_for} =	60;	# cache series details for up to 2 months
+$opt->{cache_title_for} = 	90;	# cache title lookups for 3 months
+
+GetOptions(
+	'region=i'		=> \$opt->{region},		# ignored
+	'days=i'		=> \$opt->{days},		# ignored
+	'offset=i'		=> \$opt->{offset},		# ignored
+	'timezone=s'		=> \$opt->{timezone},		# ignored
+	'channels_file=s' 	=> \$opt->{channels_file},	# ignored
+	'config-file=s'		=> \$opt->{configfile},		# ignored
+
+	'min_duration=i' 	=> \$opt->{min_duration},
+	'max_duration=i' 	=> \$opt->{max_duration},
+	'skip_categories=s'	=> \$opt->{skip_categories},
+	'cache_details_for=i' 	=> \$opt->{cache_details_for},
+	'cache_title_for=i' 	=> \$opt->{cache_title_for},
+	'long-info'		=> \$opt->{long_info},
+
+	'dump-cache'		=> \$opt->{dump_cache},
+
+	'output=s'		=> \$opt->{output_file},
+	'cache-file=s'		=> \$opt->{cache_file},
+	'fast'			=> \$opt->{fast},
+	'debug+'		=> \$opt->{debug},
+	'lang=s'		=> \$opt->{lang},
+	'help'			=> \$opt->{help},
+	'set=s'			=> \$opt->{set},
+	'verbose'		=> \$opt->{help},
+	'version'		=> \$opt->{version},
+	'ready'			=> \$opt->{ready},
+	'desc'			=> \$opt->{desc},
+	'v'			=> \$opt->{version});
+
+&dump_cache if (defined $opt->{dump_cache});
+&set_settings if (defined $opt->{set});
+
+if ($opt->{version} || $opt->{desc} || $opt->{help} || $opt->{ready} ||
+    $opt->{output_file} eq "" || (scalar @ARGV == 0)) {
+	printf "%s v%s\n",$progname,$version;
+	printf "Augments XMLTV data with programme information from thetvdb.com\n" if $opt->{desc};
+	printf "$progname is ready for operation.\n" if ($opt->{ready});
+	printf "No --output file specified.\n" if ($opt->{output_file} eq "");
+	printf "No input XMLTV files specified.\n" if (scalar @ARGV == 0);
+
+	&help if ($opt->{help} || $opt->{output_file} eq "" || (scalar @ARGV == 0));
+	exit(0);
+}
+
+&set_settings if (defined $opt->{set});
+
+# set defaults
+Shepherd::Common::set_default("debug", (($opt->{debug} > 0) ? 2 : 0));
+Shepherd::Common::set_default("stats" => \%stats);
+Shepherd::Common::set_default("retry_delay" => "15-45");
+Shepherd::Common::set_default("delay" => "0-4") unless (defined $opt->{fast});
+Shepherd::Common::set_default('fake' => 0);
+
+# go go go!
+
+Shepherd::Common::log(sprintf "%s v%s started: %s%soutput %s\n",
+	$progname, $version,
+	($opt->{fast} ? "fast-override, " : ""),
+	($opt->{debug} ? "debug enabled, " : ""),
+	($opt->{output_file}));
+
+&read_cache;
+
+Shepherd::Common::log("Stage 1/5: reading input xmltv files...");
+foreach my $file (@ARGV) {
+	&read_xmltv($file);
+}
+
+eval{ &perform_lookups };
+if ($@) {
+	Shepherd::Common::log("WARNING: failed to perform lookups : $@");
+	#my $error = $@;
+	#$error =~ s/ /_/g;
+	#$stats{"failed_to_perform_lookups_$error"} = 1;
+	$stats{failed_to_perform_lookups}++;
+} else {
+	$stats{failed_to_perform_lookups} = 0;
+}
+&write_xmltv;
+&write_cache;
+Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
+exit(0);
+
+##############################################################################
+
+sub help
+{
+	print<<EOF
+usage: $0 [options] {FILE(s)}
+
+Supported options include:
+  --min_duration={min} ignore programs under {min} duration (default: $opt->{min_duration} min)
+  --max_duration={min} ignore programs over {min} duration (default: $opt->{max_duration} min)
+  --skip_categories={list} don't try to look up programmes in these categories (default: $opt->{skip_categories})
+
+  --long-info          provide LOTS of program info (default: don't)
+
+  --cache_details_for={days}  cache programme details for {days} (def: $opt->{cache_details_for} days)
+  --cache_title_for={days}    cache URLs for {days} (def: $opt->{cache_title_for} days)
+
+  --lang={lang}        set language to {lang} (default: $opt->{lang})
+  --output={file}      send final XMLTV output to {file} (default: $opt->{output_file})
+  --debug              enable debugging
+  --fast               don't pause between requests to server
+
+  --cache-file={file}  local file to use as our data cache (default: $opt->{cache_file})
+  --no-cache           don't use local cache to reduce network load on server
+
+  --set=(setting):(value) save setting override: (value) 1=enable, 0=disable
+        dont_augment_desc:1/0 (don't / do)
+
+  --dump-cache         (debugging) show cache contents
+
+EOF
+;
+}
+
+##############################################################################
+
+sub dump_cache
+{
+	&read_cache;
+	$Data::Dumper::Indent = 1;
+	print Dumper($data_cache);
+	exit(0);
+}
+
+##############################################################################
+
+sub set_settings
+{
+	&read_cache;
+	my ($setting, $val) = split(/:/,$opt->{set});
+
+	die "--set format is (setting):(value) where value is 0 for disable, 1 for enable.\n"
+	  if ((!defined $val) || (($val ne "0") && ($val ne "1")));
+
+	die "unknown '--set' parameter '$setting', see --help for details.\n"
+	  if ($setting ne "dont_augment_desc");
+
+	$settings_override->{$setting} = $val;
+	printf "%s: override parameter %s: %s\n", $progname, $setting, ($val eq "0" ? "disabled" : "enabled");
+
+	&write_cache;
+	exit(0);
+}
+
+##############################################################################
+# populate cache
+
+sub read_cache
+{
+	my $store = Shepherd::Common::read_cache(\$opt->{cache_file});
+
+	if ($store) {
+		$data_cache = $store->{data_cache};
+		$settings_override = $store->{settings_override};
+		$stats{failed_to_perform_lookups} = $store->{failed_to_perform_lookups};
+	
+		foreach my $setting (keys %$settings_override) {
+			$opt->{$setting} = 1 if ($settings_override->{$setting} != 0);
+		}
+
+		#
+		# age our caches on startup
+		#
+	
+		# age our programme cache on startup
+		foreach my $key (keys %{($data_cache->{prog})}) {
+			my $num_items = 0;
+			foreach my $key2 (keys %{($data_cache->{prog}->{$key})}) {
+				if ($data_cache->{prog}->{$key}->{$key2}->{expires} < time) {
+					delete $data_cache->{prog}->{$key}->{$key2};
+					$stats{removed_prog_from_cache}++
+				} else {
+					$num_items++;
+				}
+			}
+			delete $data_cache->{prog}->{$key} if ($num_items == 0);
+		}
+	
+		# age our title cache on startup
+		foreach my $key (keys %{($data_cache->{title})}) {
+			if ($data_cache->{title}->{$key}->{expires} < time) {
+				delete $data_cache->{title}->{$key};
+				$stats{removed_title_from_cache}++
+			}
+		}
+	}
+}
+
+##############################################################################
+# write out updated cache
+
+sub write_cache
+{
+	my $store;
+	$store->{data_cache} = $data_cache;
+	$store->{settings_override} = $settings_override;
+	$store->{failed_to_perform_lookups} = $stats{failed_to_perform_lookups};
+	Shepherd::Common::write_cache($opt->{cache_file}, $store);
+}
+
+##############################################################################
+
+sub read_xmltv
+{
+	my $filename = shift;
+	$d->{files} = 0 if (!defined $d->{files});
+
+	Shepherd::Common::log((sprintf "    parsing: (%d) %s",$d->{files}+1,$filename));
+	$d->{data}->[$d->{files}] = XMLTV::parsefile($filename);
+
+	$d->{progcount}->[$d->{files}] = scalar(@{$d->{data}->[$d->{files}][3]});
+
+	$stats{programmes} += $d->{progcount}->[$d->{files}];
+	$d->{files}++;
+}
+
+##############################################################################
+
+sub write_xmltv
+{
+	Shepherd::Common::log("\nStage 5/5: writing output XMLTV into ".$opt->{output_file});
+
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	my $fh = new IO::File(">".$opt->{output_file}) ||
+	  die "can't open $opt->{output_file} for writing: $!";
+	$writer_args{OUTPUT} = $fh;
+
+	my $writer = new XMLTV::Writer(%writer_args);
+	$writer->start( {
+		'source-info-url' => "http://thetvdb.com",
+		'source-info-name' => "$progname $version",
+		'generator-info-name' => "$progname $version"} );
+
+	# write channels out
+	for (my $i=0; $i < $d->{files}; $i++) {
+		my $chs = $d->{data}->[$i][2];
+		foreach my $ch (keys %$chs) {
+			if (!defined $d->{seen_channels}->{$ch}) {
+				$d->{seen_channels}->{$ch} = 1;
+				$writer->write_channel($d->{data}->[$i][2]->{$ch});
+			}
+		}
+	}
+
+	# write programmes out
+	for (my $i=0; $i < $d->{files}; $i++) {
+		for (my $j = 0; $j < $d->{progcount}->[$i]; $j++) {
+			my $prog = $d->{data}->[$i][3][$j];
+
+			my $title, my $subtitle;
+			$title = $prog->{title}->[0]->[0] if ((defined $prog->{title}) && (defined $prog->{title}->[0]) && (defined $prog->{title}->[0]->[0]));
+			my $progname = (defined $title ? $title : "");
+			my $added = "";
+			$title = lc($title) if ($title);
+			$subtitle = lc($prog->{'sub-title'}->[0]->[0]) if ((defined $prog->{'sub-title'}) && (defined $prog->{'sub-title'}->[0]) && (defined $prog->{'sub-title'}->[0]->[0]));
+
+			# If existing prog desc is short, see if we can add a better one
+			my $desc = (ref $prog->{desc} ? (ref $prog->{desc}->[0] ? $prog->{desc}->[0]->[0] : $prog->{desc}->[0]) : $prog->{desc});
+			if (!$desc or length ($desc) <= 80)
+			{
+				my $new_desc;
+				if ($title and $data_cache->{prog}->{$title})
+				{
+					if ($subtitle 
+						and $data_cache->{prog}->{$title}->{$subtitle} 
+						and $data_cache->{prog}->{$title}->{$subtitle}->{Overview} 
+						and $data_cache->{prog}->{$title}->{$subtitle}->{Overview} ne "")
+					{
+						# Use 'Episode Info' as desc if there's currently no desc, or if
+					        # the current desc is very short and Episode Info is longer.
+						if (!$desc or length($desc) < length($data_cache->{prog}->{$title}->{$subtitle}->{Overview}))
+						{
+							$new_desc = $data_cache->{prog}->{$title}->{$subtitle}->{Overview};
+							$added .= "     replaced existing desc with Episode Info: '$new_desc'\n";
+						}
+					}
+					elsif ($data_cache->{prog}->{$title}->{SERIES}
+						and $data_cache->{prog}->{$title}->{SERIES}->{Overview}
+						and $data_cache->{prog}->{$title}->{SERIES}->{Overview} ne "")
+					{
+						# Use 'Series Info' as desc if there's nothing else
+					        $new_desc = "Series Info: " . $data_cache->{prog}->{$title}->{SERIES}->{Overview};
+						$added .= "     existing desc was blank, set to: '$new_desc'\n";
+					}
+					else
+					{
+						$added .= "     existing desc blank but nothing to fill it with :(\n";
+					}
+
+					if ($new_desc) 
+					{
+						$stats{inserted_new_title}++;
+						$prog->{desc}->[0]->[0] = $new_desc;
+					}
+				}
+                        }
+
+
+			$desc = "";
+
+			# augment series data if we can
+			if ((defined $title) && (defined $data_cache->{prog}->{$title}) && (defined $data_cache->{prog}->{$title}->{SERIES})) {
+				$stats{augmented_prog_series_data}++;
+				my $series_data = $data_cache->{prog}->{$title}->{SERIES};
+
+				# description part
+				if ($opt->{long_info}) {
+					my $series_desc = "";
+					foreach my $field ("Status", "Overview", "FirstAired", "Network", "Genre", "Actors") {
+						$series_desc .= "\n ".$field.": ".$series_data->{$field} if ((defined $series_data->{$field}) && ($series_data->{$field} ne ""));
+					}
+					$desc .= "\nSeries Info:".$series_desc if ($series_desc ne "");
+				}
+
+				# Genre
+				if ((defined $series_data->{Genre}) && ($series_data->{Genre} ne "")) {
+					my @genres = split(/[\|,]/, $series_data->{Genre});
+					foreach my $g (@genres) {
+						next unless ($g);
+						$g = Shepherd::Common::translate_category($g);
+						my $found_genre = 0;
+						foreach my $category (@{($prog->{category})}) {
+							$found_genre++ if (lc($g) eq lc($category->[0]));
+						}
+						if (!$found_genre) {
+							push(@{($prog->{category})},[$g]);
+							$added .= "     added genre '$g'\n";
+						}
+					}
+				}
+
+				# Actors
+				# Not supplied by default because Series Actor info lists people
+				# who have EVER appeared in the show, which I think is
+				# misleading to present in MythTV's episode info.
+				if ($opt->{long_info} and $series_data->{Actors})
+			        {
+					foreach my $cast (split(/[\|,]/,$series_data->{Actors})) {
+						$cast =~ s/(^\s+|\s+$)//g;
+						next if ($cast eq "");
+						my $found_cast = 0;
+						foreach my $a (@{($prog->{credits}->{actor})}) {
+							$found_cast++ if (lc($cast) eq lc($a));
+						}
+						if (!$found_cast) {
+							push(@{($prog->{credits}->{actor})},$cast);
+							Shepherd::Common::log("     added series actor '$cast'") if ($opt->{debug});
+						}
+					}
+				}
+			}
+
+
+			# augment episode data if we can
+			if ((defined $subtitle) && (defined $data_cache->{prog}->{$title}) && (defined $data_cache->{prog}->{$title}->{$subtitle})) {
+				$stats{augmented_prog_episode_data}++;
+				my $episode_data = $data_cache->{prog}->{$title}->{$subtitle};
+
+				# description part
+				if ($opt->{long_info}) {
+					my $episode_desc = "";
+					foreach my $field ("EpisodeNumber", "EpisodeName", "Overview", "ShowURL", "FirstAired", "GuestStars", "Director", "Writer", "DVD_discid", "DVD_season", "DVD_episodenumber", "DVD_chapter") {
+						$episode_desc .= "\n ".$field.": ".$episode_data->{$field} if ($episode_data->{$field});
+					}
+					$desc .= "\nEpisode Info:".$episode_desc if ($episode_desc ne "");
+				}
+    
+				# ShowURL
+				if ((defined $episode_data->{ShowURL}) && ($episode_data->{ShowURL} ne "")) {
+					my $found_url = 0;
+					if (defined $prog->{url}) {
+						foreach my $url (@{($prog->{url})}) {
+							$found_url++ if (lc($url) eq lc($episode_data->{ShowURL}));
+						}
+					}
+					if (!$found_url) {
+						push (@{($prog->{url})},$episode_data->{ShowURL});
+						$added .= "     added url '".$episode_data->{ShowURL}."'\n";
+					}
+				}
+
+				# GuestStars
+				#
+				# This is a little dodgy... it can include the full cast of the
+				# episode, even down to "Angry Nurse #3". Limited to 1 unless 'long-info'
+				if ((defined $episode_data->{GuestStars}) && ($episode_data->{GuestStars} ne "") &&
+				    (defined $prog->{credits}) && (defined $prog->{credits}->{actor})) {
+					my $max_guests = ($opt->{long_info} ? 20 : 1);
+					foreach my $cast (split(/[\|,]/,$episode_data->{GuestStars})) {
+						$cast =~ s/(^\s+|\s+$)//g;
+						next if ($cast eq "");
+						my $found_cast = 0;
+						foreach my $a (@{($prog->{credits}->{actor})}) {
+							$found_cast++ if (lc($cast) eq lc($a));
+						}
+						if (!$found_cast) {
+							push(@{($prog->{credits}->{actor})},$cast);
+							$added .= "     added guest star '$cast'\n";
+							$max_guests--;
+							last unless ($max_guests > 0);
+						}
+					}
+				}
+
+				# Director
+				if ((defined $episode_data->{Director}) && ($episode_data->{Director} ne "") &&
+				    (defined $prog->{credits}) && (defined $prog->{credits}->{director})) {
+					foreach my $cast (split(/[\|,]/,$episode_data->{Director})) {
+						$cast =~ s/(^\s+|\s+$)//g;
+						next if ($cast eq "");
+						my $found_cast = 0;
+						foreach my $d (@{($prog->{credits}->{director})}) {
+							$found_cast++ if (lc($cast) eq lc($d));
+						}
+						if (!$found_cast) {
+							push(@{($prog->{credits}->{director})},$cast);
+							$added .= "     added director '$cast'\n";
+						}
+					}
+				}
+
+				# Writer
+				if ((defined $episode_data->{Writer}) && ($episode_data->{Writer} ne "") &&
+				    (defined $prog->{credits}) && (defined $prog->{credits}->{writer})) {
+					foreach my $cast (split(/[\|,]/,$episode_data->{Writer})) {
+						$cast =~ s/(^\s+|\s+$)//g;
+						next if ($cast eq "");
+						my $found_cast = 0;
+						foreach my $w (@{($prog->{credits}->{writer})}) {
+							$found_cast++ if (lc($cast) eq lc($w));
+						}
+						if (!$found_cast) {
+							push(@{($prog->{credits}->{writer})},$cast);
+							$added .= "     added writer '$cast'\n";
+						}
+					}
+				}
+
+				# Episode Number
+				if ($episode_data->{EpisodeNumber})
+				{
+				    my $xmltv_ns = sprintf "%d . %d . %d",
+							   ($episode_data->{SeasonNumber} ? ($episode_data->{SeasonNumber} - 1) : 0),
+							   $episode_data->{EpisodeNumber} - 1,
+							   0;
+				    $prog->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
+				    $added .= "     added episode-num '$xmltv_ns'\n";
+				}
+			}
+
+			# should we add any text?
+			if ((!defined $opt->{dont_augment_desc}) && ($desc ne "")) {
+				$prog->{desc}->[0]->[0] = "" if (!defined $prog->{desc}->[0]->[0]);
+				$prog->{desc}->[0]->[0] .= "\n\n" if ($prog->{desc}->[0]->[0] ne "");
+				$prog->{desc}->[0]->[0] .= "TheTVDB.com augmented data:".$desc;
+				$added .= "     augmented description\n";
+			}
+
+			if ($added ne '' and $opt->{debug})
+			{
+				chomp($added);
+				&Shepherd::Common::log(" - $progname\n$added")
+			}
+
+			Shepherd::Common::cleanup($prog);
+			$writer->write_programme($prog);
+		}
+	}
+
+	$writer->end();
+}
+
+##############################################################################
+# get_url
+
+sub get_url
+{
+	my $url = shift;
+
+	my $data;
+	my $retries = $max_server_retries;
+	while (($data = &Shepherd::Common::get_url($url)) &&
+			($data =~ /This Account Has Exceeded Its PHP Quota/ ||
+			$data =~ /PHP Wrapper - 500 Server Error/) &&
+			$retries-- > 0) {
+		my $sleep = 93 + int(rand(120));
+		Shepherd::Common::log("  sleeping for $sleep seconds, This Account Has Exceeded Its PHP Quota...")
+				if ($data =~ /This Account Has Exceeded Its PHP Quota/);
+		Shepherd::Common::log("  sleeping for $sleep seconds, PHP Wrapper - 500 Server Error...")
+				if ($data =~ /PHP Wrapper - 500 Server Error/);
+		$stats{server_errors}++;
+		sleep($sleep);
+		$stats{slept_for} += $sleep;
+	}
+
+	return $data;
+}
+
+##############################################################################
+# parser xml
+
+sub parse
+{
+	my $data = shift;
+
+	my $xml_tree;
+	eval { $xml_tree = $parser->parse($data); };
+	if (!$xml_tree) {
+		Shepherd::Common::log("  xml parse failed, attempting to fixup any missing ;");
+		if ($first_parse_error == 1) {
+			$first_parse_error = 0;
+			Shepherd::Common::log("$data");
+		}
+		# fix bad entities without ending ; by adding ; like "anc&#233, Trent"
+		$data =~ s/&(amp|quot|gt|lt|#\d+|#x[0-9a-f]+)(?!;)/&$1;/gsi;
+
+		eval { $xml_tree = $parser->parse($data); };
+		if (!$xml_tree) {
+			Shepherd::Common::log("  xml parse of fixup failed, attempting to elimination any &");
+			# ignore bad entities without ending ; like "anc&#233, Trent"
+			$data =~ s/&/and/g;	
+
+			eval { $xml_tree = $parser->parse($data); };
+		}
+	}
+
+	return $xml_tree;
+}
+
+##############################################################################
+# process all xmltv files
+
+sub perform_lookups
+{
+	$d->{series_lookup_requests} = 0;
+	$d->{episode_lookup_requests} = 0;
+
+	Shepherd::Common::log("\nStage 2/5: processing ".$stats{programmes}." programmes ...");
+	my $prog_count = 0;
+	my $last_updated;
+	for (my $i=0; $i < $d->{files}; $i++) {
+		for (my $j = 0; $j < $d->{progcount}->[$i]; $j++) {
+			$prog_count++;
+			if ((!$last_updated) || ((time - $last_updated) > 20) || ($prog_count == $stats{programmes})) {
+				$last_updated = time;
+				my $percent_complete = (($prog_count+1) / ($stats{programmes}+1));
+				my $estimaged_time = ((time - $script_start_time) / $percent_complete);
+				Shepherd::Common::log((sprintf "  .. at programme %d of %d (%0.1f%%) [%s elapsed] ..",
+					$prog_count, $stats{programmes}, ($percent_complete * 100),
+					Shepherd::Common::pretty_duration((time - $script_start_time))));
+			}
+
+			my $prog = $d->{data}->[$i][3][$j];
+			my $title, my $subtitle;
+			$title = $prog->{title}->[0]->[0] if ((defined $prog->{title}) && (defined $prog->{title}->[0]) && (defined $prog->{title}->[0]->[0]));
+			$subtitle = $prog->{'sub-title'}->[0]->[0] if ((defined $prog->{'sub-title'}) && (defined $prog->{'sub-title'}->[0]) && (defined $prog->{'sub-title'}->[0]->[0]));
+
+			if ((defined $title) && (include_prog($prog))) {
+				my $lc_title = lc($title);
+				&lookup_title_web($title,$prog_count) if (!defined $data_cache->{prog}->{$lc_title});
+
+				# proceed to episode lookup if we have something in our title cache
+				if ((defined $data_cache->{title}->{$lc_title}) && ($data_cache->{title}->{$lc_title}->{notfound} == 0)) {
+					$subtitle = "" if (!defined $subtitle);
+					&lookup_episode($lc_title, $subtitle);
+				}
+			}
+		}
+	}
+
+	Shepherd::Common::log("\nStage 3/5: processing ".$d->{series_lookup_requests}." series detail lookup requests ...");
+	&lookup_series_updates if ($d->{series_lookup_requests} > 0);
+
+	Shepherd::Common::log("\nStage 4/5: processing ".$d->{episode_lookup_requests}." episode detail lookup requests ...");
+	&lookup_episode_updates if ($d->{episode_lookup_requests} > 0);
+}
+
+##############################################################################
+# helper routine: returns 1 if we should look up programme, 0 if not
+
+sub include_prog
+{
+	my $prog = shift;
+
+	if ((!defined $prog->{title}) || (!defined $prog->{title}->[0]) || (!defined $prog->{title}->[0]->[0])) {
+		$stats{skipped_due_to_title}++;
+		next;
+	}
+	my $title = $prog->{title}->[0]->[0];
+
+	# skip station close
+	if (($title =~ /^close$/i) || ($title =~ /^station close$/i)) {
+		$stats{skipped_due_to_title}++;
+		return 0;
+	}
+
+	# skip categories
+	if (defined $prog->{category}) {
+		foreach my $prog_category (@{($prog->{category})}) {
+			foreach my $prog_cat2 (@$prog_category) {
+				foreach my $skip_category (split(/,/,$opt->{skip_categories})) {
+					if (lc($prog_cat2) eq lc($skip_category)) {
+						$stats{skipped_due_to_category}++;
+						return 0;
+					}
+				}
+			}
+		}
+	}
+
+	# only lookup if  min_duration < prog_duration > min_duration
+	my $t1 = Shepherd::Common::parse_xmltv_date($prog->{start});
+	my $t2 = Shepherd::Common::parse_xmltv_date($prog->{stop});
+	if ((!$t1) || (!$t2)) {
+		$stats{excluded_couldnt_parse_time}++;
+		return 0;
+	}
+
+	# ensure prog is within duration limits
+	my $prog_duration = (($t2 - $t1) / 60);
+	if (($prog_duration < $opt->{min_duration}) || ($prog_duration > $opt->{max_duration})) {
+		$stats{excluded_prog_duration}++;
+		return 0;
+	}
+
+	return 1;
+}
+
+##############################################################################
+# fill in $d->{tvdb}->{mirrors} with a list of tvdb mirror sites
+
+sub lookup_mirrors
+{
+	my $data = &get_url($mirrorlist_url);
+	die "could not gather list of mirrors" if (!$data);
+	my $xml_tree = &parse($data);
+	die "could not parse list of mirrors" if (!$xml_tree);
+
+	$d->{tvdb}->{num_mirrors} = $xml_tree->getElementsByTagName("Item")->getLength;
+	for (my $i = 0; $i < $d->{tvdb}->{num_mirrors}; $i++) {
+		push(@{($d->{tvdb}->{mirrors})},
+			$xml_tree->getElementsByTagName("Item")->item($i)->getElementsByTagName("interface")->item(0)->getFirstChild->getNodeValue);
+	}
+	$xml_tree->dispose;
+
+	die "no mirrors found" if ($d->{tvdb}->{num_mirrors} == 0);
+
+	$d->{tvdb}->{mirror} = $d->{tvdb}->{mirrors}[int(rand($d->{tvdb}->{num_mirrors}))];
+	Shepherd::Common::log("    chose mirror ".$d->{tvdb}->{mirror}." for data");
+
+}
+
+##############################################################################
+# find a 'seriesid' associated with this title
+#  (actually just populates $data_cache->{title}->{$lc_title})
+
+sub lookup_title_web
+{
+	my ($title, $prog_count) = @_;
+	my $lc_title = lc($title);
+
+	my $letter = substr($lc_title,0,1);
+	$letter = "OTHER" if ($letter !~ /[a-z]/);
+
+	my $found_title = 0;
+
+	# only lookup if we have passed our caching threshold for this letter...
+	if ((!defined $data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires}) ||
+			($data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires} < time)) {
+		Shepherd::Common::log("    fetching series tables for '".$letter."' ...");
+
+		my $url = "http://thetvdb.com/?tab=listseries&letter=".$letter;
+		my $data = &get_url($url);
+		if (!$data) {
+			Shepherd::Common::log("      ".$url." didn't return any valid data!  skipping...");
+
+			# try again in 7 days
+			$data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires} = time + (7 * 86400);
+			$stats{failed_title_web_fetch}++;
+			die "failed title web fetch" if $stats{failed_title_web_fetch} >= $max_failures;
+			return;
+		}
+
+		my $expires_in = time + ($opt->{cache_title_for} * 86400);
+		$data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires} = $expires_in;
+
+		my $tree = HTML::TreeBuilder->new_from_content($data);
+		my $tree_table = $tree->look_down('_tag' => 'table', 'id' => 'listtable');
+
+		foreach my $tree_tr ($tree_table->look_down('_tag' => 'tr')) {
+			my @tree_td = $tree_tr->look_down('_tag' => 'td');
+
+			if (((scalar @tree_td) == 3) && ($tree_td[2]->as_text() =~ /^(\d+)$/)) {
+				my $series_name = lc($tree_td[0]->as_text());
+				$data_cache->{title}->{$series_name}->{SeriesName} = $tree_td[0]->as_text();
+				$data_cache->{title}->{$series_name}->{SeriesID} = $tree_td[2]->as_text();
+				$data_cache->{title}->{$series_name}->{expires} = $expires_in;
+				$data_cache->{title}->{$series_name}->{notfound} = 0;
+				$stats{inserted_title_into_cache}++;
+			}
+		}
+
+		&write_cache;
+		$tree->delete;
+	}
+}
+
+
+##############################################################################
+# find an 'episode' associated with a series
+
+sub lookup_episode
+{
+	my ($lc_title, $subtitle) = @_;
+	my $seriesid = $data_cache->{title}->{$lc_title}->{SeriesID};
+	my $lc_subtitle = lc($subtitle);
+	return if (!defined $seriesid);
+
+	$stats{used_title_cache_item}++;
+
+	my $url = "/GetEpisodes.php?seriesid=".$seriesid."&IncludeSeriesInfo=1";
+	if ($lc_subtitle eq "") {
+		$url .= "&season=1&episode=1";
+		$lc_subtitle = "NONE";
+	} else {
+		$url .= "&episodename=".Shepherd::Common::urlify($lc_subtitle);
+	}
+
+	# return without doing anything if the entry already exists in the cache
+	if (defined $data_cache->{prog}->{$lc_title}->{$lc_subtitle}) {
+		$stats{used_prog_cache_item}++;
+		goto CHECK_EPISODE if ($lc_subtitle ne "NONE");
+		return;
+	}
+
+	Shepherd::Common::log("    fetching series '".$data_cache->{title}->{$lc_title}->{SeriesName}."' ".($lc_subtitle ne "NONE" ? "(episode '$subtitle')" : ""). " ...");
+
+	&lookup_mirrors if (!defined $d->{tvdb}->{mirror});
+	my $data = &get_url($d->{tvdb}->{mirror}.$url);
+	if (!$data) {
+		Shepherd::Common::log("   series lookup of ".$d->{tvdb}->{mirror}.$url." failed");
+		$stats{prog_lookup_failed}++;
+		die "prog lookup failed" if $stats{prog_lookup_failed} >= $max_failures;
+		return;
+	}
+	my $xml_tree = &parse($data);
+	if (!$xml_tree) {
+		Shepherd::Common::log("   series parse of ".$d->{tvdb}->{mirror}.$url." failed");
+		$stats{prog_lookup_failed}++;
+		die "prog lookup failed" if $stats{prog_lookup_failed} >= $max_failures;
+		return;
+	}
+
+	my $num_items = $xml_tree->getElementsByTagName("Item")->getLength;
+
+	if ($num_items == 1) {
+		$stats{negatively_cached_prog}++;
+		
+		$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{notfound} = 1;
+		$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{expires} = time + (($opt->{cache_details_for} / 2) * 86400);
+
+		# on an episode-lookup failure, thetvdb.com doesn't return any SeriesData,
+		# so schedule that for a bulk get.
+		if ((!defined $data_cache->{prog}->{$lc_title}->{SERIES}) &&
+		    (!defined $d->{series_lookup}->{$lc_title})) {
+			$d->{series_lookup}->{$lc_title} = $seriesid;
+			$d->{series_lookup_requests}++;
+		}
+		return;
+	}
+
+	my $item = $xml_tree->getElementsByTagName("Item")->item(1);
+
+	# remove existing entries
+	delete $data_cache->{prog}->{$lc_title}->{SERIES} if (defined $data_cache->{prog}->{$lc_title}->{SERIES});
+	delete $data_cache->{prog}->{$lc_title}->{$lc_subtitle} if (defined $data_cache->{prog}->{$lc_title}->{$lc_subtitle});
+
+	# set expiry on these
+	$data_cache->{prog}->{$lc_title}->{SERIES}->{expires} = time + ($opt->{cache_details_for} * 86400);
+	$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{expires} = time + ($opt->{cache_details_for} * 86400);
+
+	foreach my $field ("SeriesData-Status", "SeriesData-FirstAired", "SeriesData-Network", "SeriesData-Genre", "SeriesData-Actors", "SeriesData-Overview", "id", "SeasonNumber", "EpisodeNumber", "EpisodeName") {
+		my $fieldtag = $item->getElementsByTagName($field)->item(0)->getFirstChild;
+		if (defined $fieldtag) {
+			if ($field =~ /^SeriesData-(.*)$/) {
+				$data_cache->{prog}->{$lc_title}->{SERIES}->{$1} = $fieldtag->getNodeValue;
+			} else {
+				$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{$field} = $fieldtag->getNodeValue;
+			}
+		}
+	}
+	$xml_tree->dispose;
+	$stats{inserted_prog_into_cache}++;
+	&write_cache if (($stats{inserted_prog_into_cache} % 15) == 0);
+
+CHECK_EPISODE:
+	if ((defined $data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{id}) &&
+	    (!defined $data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{have_episode_details})) {
+		my $ep;
+		$ep->{id} = $data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{id};
+		$ep->{title} = $lc_title;
+		$ep->{subtitle} = $lc_subtitle;
+
+		push(@{($d->{episode_lookup})}, $ep);
+		$d->{episode_lookup_requests}++;
+	}
+}
+
+##############################################################################
+# used to lookup SeriesData for known (good) seriesid's
+
+sub lookup_series_updates
+{
+	my @id_list = values %{($d->{series_lookup})};
+
+	while ((scalar @id_list) > 0) {
+		Shepherd::Common::log("   ".(scalar @id_list)." remaining...");
+
+		&lookup_mirrors if (!defined $d->{tvdb}->{mirror});
+		my $url = $d->{tvdb}->{mirror}."/SeriesUpdates.php?lasttime=0&idlist=";
+
+		# grab up to 20 at a time
+		foreach my $count (1..20) {
+			my $id = pop(@id_list);
+
+			if (defined $id) {
+				$url .= ',' if ($count > 1);
+				$url .= $id;
+			}
+		}
+
+		my $data = &get_url($url);
+		if (!$data) {
+			Shepherd::Common::log("   series detail lookup request of ".$url." failed");
+			$stats{series_update_lookup_failed}++;
+			die "series update lookup failed" if $stats{series_update_lookup_failed} >= $max_failures;
+			next;
+		}
+		my $xml_tree = &parse($data);
+		if (!$xml_tree) {
+			Shepherd::Common::log("   series detail lookup parse of ".$url." failed");
+			$stats{series_update_lookup_failed}++;
+			die "series update lookup failed" if $stats{series_update_lookup_failed} >= $max_failures;
+			next;
+		}
+
+		my $num_items = $xml_tree->getElementsByTagName("Item")->getLength;
+
+		for (my $i=1; $i < $num_items; $i++) {
+			my $item = $xml_tree->getElementsByTagName("Item")->item($i);
+			my $namefield = $item->getElementsByTagName("SeriesName")->item(0)->getFirstChild;
+
+			if (defined $namefield) {
+				my $name = lc($namefield->getNodeValue);
+
+				foreach my $field ("Status", "FirstAired", "Network", "Genre", "Actors", "Overview") {
+					my $fieldtag = $item->getElementsByTagName($field)->item(0)->getFirstChild;
+					if (defined $fieldtag) {
+						$data_cache->{prog}->{$name}->{SERIES}->{$field} = $fieldtag->getNodeValue;
+					}
+				}
+
+				$data_cache->{prog}->{$name}->{SERIES}->{expires} = time + ($opt->{cache_details_for} * 86400);
+				$stats{inserted_prog_into_cache}++;
+				&write_cache if (($stats{inserted_prog_into_cache} % 15) == 0);
+			}
+		}
+
+		$xml_tree->dispose;
+	}
+
+	&write_cache;
+}
+
+##############################################################################
+# used to lookup episode details
+
+sub lookup_episode_updates
+{
+	my $episodes;
+
+	while ((scalar @{($d->{episode_lookup})}) > 0) {
+		Shepherd::Common::log("   ".(scalar @{($d->{episode_lookup})})." remaining...");
+
+		&lookup_mirrors if (!defined $d->{tvdb}->{mirror});
+		my $url = $d->{tvdb}->{mirror}."/EpisodeUpdates.php?lasttime=0&idlist=";
+
+		# grab up to 20 at a time
+		foreach my $count (1..20) {
+			my $ep = pop(@{($d->{episode_lookup})});
+
+			if (defined $ep) {
+				my $id = $ep->{id};
+				$episodes->{$id}->{title} = $ep->{title};
+				$episodes->{$id}->{subtitle} = $ep->{subtitle};
+
+				$url .= ',' if ($count > 1);
+				$url .= $id;
+			}
+		}
+
+		my $data = &get_url($url);
+		if (!$data) {
+			Shepherd::Common::log("   episode detail lookup request of ".$url." failed");
+			$stats{episode_update_lookup_failed}++;
+			die "episode update lookup failed" if $stats{episode_update_lookup_failed} >= $max_failures;
+			next;
+		}
+		my $xml_tree = &parse($data);
+		if (!$xml_tree) {
+			Shepherd::Common::log("   episode detail lookup parse of ".$url." failed");
+			$stats{episode_update_lookup_failed}++;
+			die "episode update lookup failed" if $stats{episode_update_lookup_failed} >= $max_failures;
+			next;
+		}
+
+		my $num_items = $xml_tree->getElementsByTagName("Item")->getLength;
+
+		for (my $i=1; $i < $num_items; $i++) {
+			my $item = $xml_tree->getElementsByTagName("Item")->item($i);
+			my $id_field = $item->getElementsByTagName("id")->item(0);
+
+			if ((defined $id_field) && (defined $id_field->getFirstChild)) {
+				my $id = $id_field->getFirstChild->getNodeValue;
+				my $title = $episodes->{$id}->{title};
+				my $subtitle = $episodes->{$id}->{subtitle};
+
+				foreach my $field ("id", "EpisodeNumber", "EpisodeName", "FirstAired", "GuestStars", "Director", "Writer", "Overview", "ShowURL", "DVD_discid", "DVD_season", "DVD_episodenumber", "DVD_chapter", "IncorrectID") {
+# print "looking for $field in item $i $url\n";
+					my $fieldtag = $item->getElementsByTagName($field)->item(0);
+					if ((defined $fieldtag) && (defined $fieldtag->getFirstChild)) {
+						$data_cache->{prog}->{$title}->{$subtitle}->{$field} = $fieldtag->getFirstChild->getNodeValue;
+					}
+				}
+				$data_cache->{prog}->{$title}->{$subtitle}->{have_episode_details} = 1;
+				$data_cache->{prog}->{$title}->{$subtitle}->{expires} = time + (($opt->{cache_details_for} / 2) * 86400);
+
+				$stats{inserted_episode_into_cache}++;
+				&write_cache if (($stats{inserted_episode_into_cache} % 15) == 0);
+			}
+		}
+
+		$xml_tree->dispose;
+	}
+
+	&write_cache;
+}
+
+##############################################################################
+

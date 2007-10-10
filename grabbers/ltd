@@ -1,0 +1,1031 @@
+#!/usr/bin/perl
+
+#
+# au tv guide grabber -
+#  written by ltd
+#  * uses yahoo7 widget for ABC/7/9/10/SBS
+#  * uses ABC TV Guide (http://www.abc.net.au/tv/guide/abc2/) for ABC2 data
+#  * can use yahoo7 portal for SBSNEWS/Foxtel/Optus data 
+#  uses caching to reduce query load on server
+#   loosely based on Michael 'Immir' Smith's excellent 9MSN tv_grab_au
+#
+#   IMPORTANT NOTE:
+#    this does NOT use any config file
+#    all region/channel settings are hardcoded below - please set them!
+#
+
+#  changelog:
+#    1.30  03aug06	initial public release
+#    1.40  13sep06	figured out how to grab >1 hour of widget data at a time --
+#			reduced 168 GETs to 1 GET request,
+#			added abc2 fetchers to remove requirement for using
+#			yahoo7 portal altogether
+#    1.41  13sep06	add support for ABC data from ABC website also (can get 30 days)
+#    1.50  22sep06	added support for "shepherd" master grabber script
+#    1.51  02oct06      --ready option
+
+$progname = "tv_grab_au_ltd";
+$version = "1.51_02oct06";
+
+use LWP::UserAgent;
+use Time::HiRes qw(gettimeofday tv_interval);
+use XMLTV;
+use XML::DOM;
+use XML::DOM::NodeList;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use HTML::TreeBuilder;
+use Data::Dumper;
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# NOTE NOTE NOTE NOTE NOTE
+# NOTE NOTE NOTE NOTE NOTE   If you are using 'shepherd' to call this script, you don't need to
+# NOTE NOTE NOTE NOTE NOTE   configure _ANY_ of the options below - you can leave these as-is &
+# NOTE NOTE NOTE NOTE NOTE   shepherd will pass in all the correct stuff
+# NOTE NOTE NOTE NOTE NOTE
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# start of manual settings - ONLY SET THESE IF YOU AREN'T USING SHEPHERD OR A channels.conf file!
+
+sub do_manual_settings {
+
+# set region appropriate for where we want to get data:
+#    VIC: Melbourne(94), Geelong(93), Mildura/Sunraysia(95), 
+#         Eastern Victoria(90), Western Victoria(98)
+#    NSW: Sydney(73), Broken Hill(63), Central Coast(66), Griffith(67),
+#         Northern NSW(69), Southern NSW(71), Remote and Central(106)
+#    QLD: Brisbane(75), Gold Coast(78), Regional QLD(79), Remote and Central(114)
+#    WA:  Perth(101), Regional WA(102)
+#    SA:  Adelaide(81), Renmark(82), Riverland(83), South East South Australia(85),
+#         Spencer Gulf(86), Remote and Central(107)
+#    NT:  Darwin(74), Remote and Central(108)
+#    ACT: ACT(73)
+#    TAS: Tasmania(88)
+# $region = 94;
+
+# 1. widget mappings:
+
+#    the channel names ABC, Seven, Nine, TEN, SBS are hardcoded in xml received from yahoo7 widget data
+#    the mappings here are to map to whatever xmltv tags you are using or leave blank if you don't want
+#    data for that channel
+# $y7w_channel_id{"ABC"} =			"abcvic.free.au";
+# $y7w_channel_id{"Seven"} = 			"channelsevenmelbourne.free.au";
+# $y7w_channel_id{"Nine"} =	 		"channelninemelbourne.free.au";
+# $y7w_channel_id{"TEN"} = 			"networktenmelbourne.free.au";
+# $y7w_channel_id{"SBS"} = 			"sbsmelbourne.free.au";
+
+# 2. ABC2 TV Guide (http://www.abc.net.au/tv/guide/)
+#    set xml id appropriately
+# (can grab ABC data from either widget or ABC site; ABC site means you can get up to 30 days of data but
+# ironically the data isn't quite as good)
+# $abc_xmlid = 					"abcvic.free.au";
+# $abc2_xmlid = 				"abc2.abc.gov.au";
+
+# 3. yahoo portal mappings
+#    leave blank if you don't want data for any of these channels
+# $y7p_channel_id{"272787,SBS NEWS"} = 		"news.sbs.com.au";
+# $y7p_channel_id{"251261,FOX W"} = 		"";			# Foxtel
+# $y7p_channel_id{"267072,Fox Footy Channel"} =	"";			# Foxtel
+# $y7p_channel_id{"251349,Hallmark"} = 		"";			# Foxtel
+# $y7p_channel_id{"251262,FOX8"} = 		"";			# Foxtel
+# $y7p_channel_id{"251351,Fox Classics"} = 	"";			# Foxtel
+# $y7p_channel_id{"251264,The Lifestyle Channel"} = "";			# Foxtel
+# $y7p_channel_id{"251352,National Geographic"} =   "";			# Foxtel
+# add any more you wish, visit http://au.tv.yahoo.com/results.html and use
+# 'vn' (venue) number from channel column...
+
+}
+
+# end of settings
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+#
+# some initial cruft
+#
+
+$script_start_time = [gettimeofday];
+
+# lets make sure we look exactly like the yahoo widget engine...
+my $ua;
+BEGIN {
+	$ua = LWP::UserAgent->new(
+		'timeout' => 30,
+		'keep_alive' => 1,
+		'agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)'
+		);
+	$ua->env_proxy;
+	# $ua->cookie_jar({});
+	$| = 1;
+}
+
+#
+# parse command line
+#
+
+my $opt_days = 		7;					# default
+my $opt_offset = 	0;					# default
+my $opt_timezone = 	"1000";					# default
+my $opt_outputfile = 	""; # /var/local/tv_grab_au/guide.xml";	# default
+my $opt_cache_file = 	"/var/local/tv_grab_au/cache.dat"; 	# default
+my $opt_configfile = 	""; 					# ignored
+my $opt_channels_file= 	"";
+my $opt_fast =		0;
+my $opt_warper =	0;
+my $opt_obfuscate = 	0;
+my $opt_no_cache = 	0;
+my $opt_no_detail = 	0;
+my $opt_help =		0;
+my $opt_version =	0;
+my $opt_desc =		0;
+my $opt_dont_fetch_widget = 0;
+my $opt_dont_fetch_portal = 0;
+my $opt_dont_fetch_abc_data = 0;
+my $opt_dont_fetch_abc_extra_days = 0;
+my $opt_dont_retry = 	0;
+my $debug = 		1;
+my $lang = 		"en";
+my $opt_shepherd = 	0;
+$region = 94;
+
+GetOptions(
+	'shepherd'	=> \$opt_shepherd,
+	'region=i'	=> \$region,
+	'days=i'	=> \$opt_days,
+	'offset=i'	=> \$opt_offset,
+	'timezone=s'	=> \$opt_timezone,
+	'channels_file=s' => \$opt_channels_file,
+	'output=s'	=> \$opt_outputfile,
+	'config-file=s'	=> \$opt_configfile,
+	'cache-file=s'	=> \$opt_cache_file,
+	'no-cache'	=> \$opt_no_cache,
+	'fast'		=> \$opt_fast,
+	'debug+'	=> \$debug,
+	'warper'	=> \$opt_warper,
+	'no-widget-data' => \$opt_dont_fetch_widget,
+	'no-portal-data' => \$opt_dont_fetch_portal,
+	'no-abc-data'	=> \$opt_dont_fetch_abc_data,
+	'no-abc-extra-days' => \$opt_dont_fetch_abc_extra_days,
+	'lang=s'	=> \$lang,
+	'obfuscate'	=> \$opt_obfuscate,
+	'no-detail'	=> \$opt_no_detail,
+	'no-retry'	=> \$opt_dont_retry,
+	'help'		=> \$opt_help,
+	'verbose'	=> \$opt_help,
+	'version'	=> \$opt_version,
+	'ready'		=> \$opt_version,
+	'desc'		=> \$opt_desc,
+	'v'		=> \$opt_help);
+
+$random_sleep = ($opt_fast ? 0 : 1);
+&help if ($opt_help);
+
+if ($opt_version || $opt_desc) {
+	printf "%s %s\n",$progname,$version;
+	printf "tv_grab_au_ltd is a details-aware grabber that collects data using the Yahoo7 widget, Yahoo7 web portal and ABC websites. The data collected via the widget (ABC/7/9/10/SBS) is of very high quality with full title/subtitle/description/genre and year/cast/credits data.  PayTV and ABC2/SBSNEWS data is of lower quality due to the web portals used." if $opt_desc;
+	exit(0);
+}
+
+#
+# go go go!
+#
+
+($starttime,$endtime) = &calc_dates(time,$opt_offset,$opt_days);
+
+my $startstring = sprintf "going to grab %d days%s of data into %s (%s%s%s%s) timezone %s region %s",
+	$opt_days,
+	($opt_offset ? " (skipping first %d days)" : ""),
+	$opt_outputfile,
+	($opt_fast ? "with haste" : "slowly"),
+	($opt_no_detail == 0 ? ", with details" : ""),
+	($opt_no_cache ? ", without caching" : ", with caching"),
+	($opt_warper ? ", anonymously" : ""),
+	$opt_timezone,
+	$region;
+&log($startstring);
+
+if ($opt_timezone ne "1000") {
+	# set y7w_time_offset appropriately..
+	$y7w_time_offset = (($opt_timezone / 100)-10) + (0.1 * (($opt_timezone % 100) / 60));
+}
+
+if ($opt_channels_file) {
+	&log("using channels as defined in $opt_channels_file");
+	&read_channels_file($opt_channels_file);
+} else {
+	&log("using manual settings");
+	&do_manual_settings;
+}
+
+&read_cache if ($opt_no_cache == 0);
+&get_y7w_data($starttime,$endtime,$region) if ($opt_dont_fetch_widget == 0);
+
+if ($opt_dont_fetch_abc_data == 0) {
+	my ($abc_starttime,$abc_endtime) = &calc_dates(time,$opt_offset,($opt_dont_fetch_abc_extra_days ? $opt_days : 30));
+	&get_abc_data($abc_starttime,$abc_endtime,$abc_xmlid,"http://www.abc.net.au/tv/guide/netw") if ($abc_xmlid ne "");
+	&get_abc_data($abc_starttime,$abc_endtime,$abc2_xmlid,"http://www.abc.net.au/tv/guide/abc2") if ($abc2_xmlid ne "");
+}
+
+&get_y7p_data($starttime,$endtime,$region) if ($opt_dont_fetch_portal == 0);
+&write_cache if ($opt_no_cache == 0);
+
+&write_data;
+&print_stats;
+exit(0);
+
+######################################################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+options are as follows:
+	--help			show these help options
+	--days=N		fetch 'n' days of data (default: $opt_days)
+	--output=file		send xml output to file (default: "$opt_outputfile")
+	--config-file=file	(ignored - historically used by grabbers not not this one)
+	--no-cache		don't use a cache to optimize (reduce) number of web queries
+	--cache-file=file	where to store cache (default "$opt_cache_file")
+	--fast			don't run slow - get data as quick as you can - not recommended
+	--debug			increase debug level
+	--warper		fetch data using WebWarper web anonymizer service
+	--obfuscate		pretend to be a proxy servicing multiple clients
+	--no-widget-data	don't fetch data using yahoo7 widget
+	--no-portal-data	don't fetch data using yahoo7 portal
+	--no-abc-data		don't fetch data using ABC website
+	--no-abc-extra-days	don't fetch extra (30 days) from ABC website
+	--no-retry		if webserver is rejecting our request, don't retry (default: do retry)
+	--lang=[s]		set language of xmltv output data (default $lang)
+
+	--shepherd		set if being called from the shepherd script
+	--region=N		set region for where to collect data from (default: $region)
+	--channels_file=file	where to get channel data from (if not set manually)
+	--timezone=HHMM		timezone for channel data (default: $opt_timezone)
+EOF
+;
+
+	exit(0);
+}
+
+######################################################################################################
+# given a start date, end date & region, fetch via yahoo widget data
+
+sub get_y7w_data
+{
+	local($starttime,$endtime,$region) = @_;
+	local($currtime, $data);
+
+	for ($currtime = $starttime; $currtime < $endtime; $currtime += 86400) {
+		my $url = sprintf "http://au.tv.yahoo.com/widget.html?rg=$region&st=%d&et=%d",$currtime,($currtime+86400);
+		my $status = sprintf "yahoo7 widget data: %d of %d",((($currtime-$starttime)/86400)+1),(($endtime-$starttime)/86400);
+
+		$data = &get_url($url,$status);
+		&parse_xml_data($data);
+	}
+}
+
+######################################################################################################
+# transcode ywe-octet-stream back into text
+
+sub transform_output
+{
+	local($datasize, $data) = @_;
+
+	local(@xform_map) = (
+	  0x39, 0x9E, 0x05, 0x72, 0x6C, 0x06, 0x38, 0x15, 0x42, 0x1E, 0xB9, 0xFD, 0x4D, 0x08, 0x0C, 0x2E,
+	  0x57, 0xC7, 0x62, 0x6E, 0xC5, 0x3A, 0x3C, 0xA4, 0x1D, 0xC6, 0x3D, 0x18, 0x2D, 0x1B, 0x83, 0x20,
+	  0x78, 0xFC, 0xA5, 0xDE, 0x28, 0xE8, 0x3E, 0x9B, 0x7C, 0x22, 0x1C, 0x89, 0xFF, 0x52, 0x54, 0x43,
+	  0x51, 0x7F, 0x71, 0x40, 0x7A, 0xCF, 0x65, 0xE4, 0x36, 0xEB, 0xC9, 0x1F, 0x80, 0x9A, 0x31, 0x4A,
+	  0x45, 0xD4, 0x2B, 0x02, 0x4C, 0xF4, 0x53, 0xBD, 0xA8, 0xF9, 0x50, 0x61, 0x8A, 0xD5, 0xBF, 0x81,
+	  0xC0, 0xDB, 0xFE, 0xF7, 0xBA, 0xEC, 0xFA, 0x73, 0xA9, 0x8F, 0xB1, 0x70, 0x33, 0xCE, 0x60, 0xAC,
+	  0xB2, 0x58, 0x26, 0x85, 0x6B, 0x7D, 0x93, 0x03, 0x64, 0x47, 0x04, 0x88, 0x01, 0xA6, 0x3B, 0x90,
+	  0x98, 0xF5, 0x97, 0x3F, 0xF6, 0xD3, 0x94, 0xB7, 0x29, 0x07, 0x96, 0x6F, 0x14, 0x35, 0x8D, 0x2A,
+	  0x16, 0x17, 0x8B, 0xD1, 0x48, 0xD6, 0xF1, 0xE2, 0x79, 0x2C, 0x41, 0x5B, 0xBC, 0xB5, 0x68, 0xDC,
+	  0x49, 0xD2, 0x6A, 0xCC, 0x25, 0xB4, 0xAA, 0x63, 0x9C, 0x56, 0x4B, 0xB8, 0x87, 0x5E, 0x86, 0x09,
+	  0xC4, 0x95, 0xB6, 0x12, 0xF8, 0x84, 0x4E, 0x21, 0x32, 0xCA, 0x66, 0xC3, 0xBB, 0x27, 0xEE, 0xE0,
+	  0x1A, 0xD8, 0x6D, 0x4F, 0xAF, 0x82, 0xEF, 0xCD, 0x5F, 0x8C, 0x67, 0xA2, 0xCB, 0xED, 0xAB, 0xB0,
+	  0xA7, 0x92, 0x75, 0x5A, 0xF2, 0x0A, 0x0E, 0xE6, 0x7E, 0xC8, 0xE9, 0x19, 0x24, 0x37, 0x11, 0xA0,
+	  0xE3, 0xDD, 0xD7, 0x23, 0x9F, 0x00, 0xA1, 0xC1, 0x74, 0xF0, 0x99, 0x77, 0xAE, 0x91, 0x7B, 0xFB,
+	  0xD9, 0xDA, 0xC2, 0x44, 0x0D, 0x76, 0x10, 0x9D, 0xEA, 0xE7, 0xE5, 0x59, 0xF3, 0xD0, 0x5D, 0x2F,
+	  0x69, 0xAD, 0x34, 0x0F, 0x5C, 0x8E, 0xBE, 0x13, 0x30, 0x55, 0xE1, 0xDF, 0x0B, 0xB3, 0x46, 0xA3
+	  );
+	local($xlate_pos1,$xlate_pos2,$xlate_pos3,$xlate_pos4);
+	local($pos);
+	local($outputdata);
+
+	if (($datasize < 1) || (ord(substr($data,0,1)) != 1)) {
+		# not valid
+		return(undef);
+	}
+
+	for ($pos = 1; $pos < $datasize; $pos++) {
+		$xlate_pos1 = ($xlate_pos1 + 1) % 256;
+		$xlate_pos3 = $xform_map[$xlate_pos1];
+		$xlate_pos4 = ($xlate_pos2 + $xlate_pos3) % 256;
+		$xlate_pos2 = $xform_map[$xlate_pos4];
+		$xform_map[$xlate_pos1] = $xlate_pos2;
+		$xlate_pos2 += $xlate_pos3;
+		$xform_map[$xlate_pos4] = $xlate_pos3;
+		$xlate_pos2 = $xlate_pos2 % 256;
+		$xlate_pos3 = $xform_map[$xlate_pos2];
+		$xlate_pos2 = $xlate_pos4;
+		$outputdata .= chr((((ord(substr($data,$pos,1))) % 256) ^ ($xlate_pos3 % 256)) % 256);
+	}
+	return($outputdata);
+}
+
+######################################################################################################
+# normalize starttime to an hour..
+
+sub calc_dates
+{
+	local($starttime,$skip_days,$days) = @_;
+
+	# normalize starttime to an hour..
+	my ($sec,$min,@rest) = localtime($starttime);
+	$starttime -= ((60 * $min) + $sec);
+	my $endtime = $starttime + ($days * 24 * 3600);
+	$starttime += (86400 * $skip_days);
+	return($starttime,$endtime);
+}
+
+######################################################################################################
+# logic to fetch a page via http
+#  retries up to 3 times to get a page with 5 second pauses inbetween
+
+sub get_url
+{
+	local($url,$status,$dontretry) = (@_);
+	my $response;
+	my $attempts = 0;
+	my ($raw, $page, $base);
+
+	$url =~ s#^http://#http://webwarper.net/ww/# if $opt_warper;
+	my $request = HTTP::Request->new(GET => $url);
+	$request->header('Accept-Encoding' => 'gzip');
+
+	if ($opt_obfuscate) {
+		my $randomaddr = sprintf "203.%d.%d.%d",rand(255),rand(255),(rand(254)+1);
+		$request->header('Via' => '1.0 proxy:81 (Squid/2.3.STABLE3)');
+		$request->header('X-Forwarded-For' => $randomaddr);
+	}
+
+	printf STDERR "[%d] fetching %s%s: %s\n",time,$status,($opt_obfuscate ? "[obfuscate]" : ""),$url;
+
+	$max_retries = 1 if ($dontretry);
+
+	for (1..3) {
+		$response = $ua->request($request);
+		last if ($response->is_success || $dontretry);
+
+		$stats{http_failed_requests}++;
+		$attempts++;
+		&sleepy("attempt $attempts failed (url $url), sleeping for 10 seconds",10);
+	}
+	if (!($response->is_success)) {
+		if ($dontretry == 0) {
+			&log("aborting after $attempts attempts to fetch url $url") if $debug;
+			printf STDERR "ERROR: could not open url %s in %d attempts\n",$url,$attempts;
+		}
+		return undef;
+	}
+
+	$stats{bytes_fetched} += do {use bytes; length($response->content)};
+	$stats{http_successful_requests}++;
+
+	if ($random_sleep) {
+		$sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
+		&sleepy("feeling sleepy for $sleeptimer seconds..",$sleeptimer);
+	}
+
+	if ($response->header('Content-Encoding') &&
+	    $response->header('Content-Encoding') eq 'gzip') {
+		$stats{compressed_pages} += do {use bytes; length($response->content)};
+		$response->content(Compress::Zlib::memGunzip($response->content));
+	}
+
+	if ($response->header('Content-type') eq 'xapplication/ywe-octet-stream') {
+		$stats{transformed_pages}++;
+		$base = &transform_output(length($response->content), $response->content);
+	} else {
+		$base = $response->content;
+	}
+	return $base; 
+}
+
+######################################################################################################
+
+sub log
+{
+	local($entry) = @_;
+	printf STDERR "[%d] %s\n",time,$entry;
+}
+
+######################################################################################################
+# Convert date time to 'yyyymmddhhmm +hhmm' format as expected by xmltv
+
+sub timestring {
+	local($t) = @_;
+	return strftime "%Y%m%d%H%M %z", localtime($t);
+}
+
+######################################################################################################
+
+sub print_stats
+{
+	local($key);
+	printf STDERR "completed in %0.2f seconds",tv_interval($script_start_time);
+	foreach $key (sort keys %stats) {
+		printf STDERR ", %d %s",$stats{$key},$key;
+	}
+	printf STDERR "\n";
+}
+
+######################################################################################################
+# given yahoo7 xml data, parse it into 'shows' ..
+# parse it into $tv_guide->{$channel}->{data}->{$event_id}-> structures..
+
+sub parse_xml_data
+{
+	local($data) = @_;
+
+	my $parser = new XML::DOM::Parser;
+	$tree = $parser->parse($data);
+	my $channels = $tree->getElementsByTagName("venue");
+	for (my $i = 0; $i < $channels->getLength; $i++) {
+		my $channel = $channels->item($i)->getAttributeNode("co_short")->getValue;
+
+		# are we interested in this channel?
+		if ($y7w_channel_id{$channel} eq "") {
+			$stats{skipped_programmes}++;
+			next;
+		}
+
+		# for this channel get every programme ('event')
+		my $events = $channels->item($i)->getElementsByTagName("event");
+		for (my $j = 0; $j < $events->getLength; $j++) {
+			my $event = $events->item($j);
+			my $event_id = $event->getElementsByTagName("event_id")->item(0)->getFirstChild->getNodeValue;
+
+			# mandatory fields
+			my $event_start = 	$event->getElementsByTagName("event_date")->item(0)->getFirstChild->getNodeValue;
+			my $event_end =   	$event->getElementsByTagName("end_date")->item(0)->getFirstChild->getNodeValue;
+
+			my $event_title = $event_subtitle = $event_desc1 = $event_desc2 = $event_maincast = $event_year = undef;
+			my $event_rating = $event_genre = $event_runtime = $event_repeatflag = $event_country = undef;
+
+			# event_id actually isn't unique - so make it so
+			$event_id .= $event_start . $event_end;
+
+			# wrap these non-mandatory fields in an eval so if they don't exist the script doesn't barf out
+			eval { $event_title = 		$event->getElementsByTagName("title")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_subtitle = 	$event->getElementsByTagName("subtitle")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_desc1 = 		$event->getElementsByTagName("description_1")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_desc2 = 		$event->getElementsByTagName("description_2")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_maincast = 	$event->getElementsByTagName("main_cast")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_year = 		$event->getElementsByTagName("year_released")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_rating = 		$event->getElementsByTagName("rating")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_genre = 		$event->getElementsByTagName("genre")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_runtime = 	$event->getElementsByTagName("running_time")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_repeatflag = 	$event->getElementsByTagName("repeat")->item(0)->getFirstChild->getNodeValue; };
+			eval { $event_country = 	$event->getElementsByTagName("country")->item(0)->getFirstChild->getNodeValue; };
+			# other fields we dont pick up but exist in source xml data include:
+			#  other_title, movie, live, premiere, final, captions, warnings, colour
+			#  language, genre_id, sub_category, director, highlight
+			#  ext_url, y7_url
+
+			# add some additional info into description
+			$event_desc1 .= "\n$event_desc2\n" if ($event_desc2 ne "");
+			$event_desc1 .= "\n\n";
+			$event_desc1 .= "(Repeat)\n" if ($event_repeatflag > 0);
+			$event_desc1 .= "Rating: $event_rating\n" if ($event_rating ne "");
+			$event_desc1 .= "Year: $event_year\n" if ($event_year > 0);
+			$event_desc1 .= "Credits/Cast: $event_maincast\n" if ($event_maincast ne "");
+			$event_desc1 .= "Genre/Category: $event_genre\n" if ($event_genre ne "");
+			$event_desc1 .= "Running Time: $event_runtime\n" if ($event_runtime > 0);
+			
+			$stats{programmes}++;
+			$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
+
+			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} =	$y7w_channel_id{$channel};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = 	timestring($event_start-($y7w_time_offset*3600));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 		timestring($event_end-($y7w_time_offset*3600));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $event_title, $lang ]] if $event_title;
+			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $event_subtitle, $lang ]] if $event_subtitle;
+			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $event_desc1, $lang ]] if $event_desc1;
+			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[[ $event_genre, $lang ]] if $event_genre;
+			$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[[ $event_country, $lang ]] if $event_country;
+		}
+	}
+	$tree->dispose;
+}
+
+######################################################################################################
+
+# descend a structure and clean up various things, including stripping
+# leading/trailing spaces in strings, translations of html stuff etc
+#   -- taken & modified from Michael 'Immir' Smith's excellent tv_grab_au
+
+my %amp;
+BEGIN { %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } ) }
+
+sub cleanup {
+	my $x = shift;
+	if    (ref $x eq "REF")   { cleanup($_) }
+	elsif (ref $x eq "HASH")  { cleanup(\$_) for values %$x }
+	elsif (ref $x eq "ARRAY") { cleanup(\$_) for @$x }
+	elsif (defined $$x) {
+		$$x =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
+		# $$x =~ s/[^\x20-\x7f]/ /g;
+		$$x =~ s/(^\s+|\s+$)//g;
+	}
+}
+
+######################################################################################################
+
+sub write_data
+{
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($opt_outputfile) {
+		my $fh = new IO::File(">$opt_outputfile")  or die "can't open $opt_outputfile: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	my $writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-url'    => "about:blank",
+	      'source-info-name'   => "$progname $version",
+	      'generator-info-name' => "$progname $version"} );
+
+	$writer->write_channel( { 'display-name' => [[ "ABC", $lang ]], 'id' => $abc_xmlid } ) if (($opt_dont_fetch_abc_data == 0) && ($abc_xmlid ne ""));
+	$writer->write_channel( { 'display-name' => [[ "ABC2", $lang ]], 'id' => $abc2_xmlid } ) if (($opt_dont_fetch_abc_data == 0) && ($abc2_xmlid ne ""));
+
+	# write channels collected via y7 widget
+	if ($opt_dont_fetch_widget == 0) {
+		for my $channel (sort keys %y7w_channel_id) {
+			$writer->write_channel( {
+				'display-name' => [[ $channel, $lang ]],
+				'id' => $y7w_channel_id{$channel}
+				} );
+		}
+	}
+
+	# write channels collected via y7 portal
+	if ($opt_dont_fetch_portal == 0) {
+		for my $channel (sort keys %y7p_channel_id) {
+			my ($venue_id,$channame) = split(/,/,$channel);
+			$writer->write_channel( {
+				'display-name' => [[ $channame, $lang ]],
+				'id' => $y7p_channel_id{$channel}
+				} );
+		}
+	}
+
+	# ABC
+	if ($opt_dont_fetch_abc_data == 0) {
+		if ($abc_xmlid ne "") {
+			for my $event_id (sort {$a <=> $b} keys %{($tv_guide->{$abc_xmlid}->{data})}) {
+				$show = $tv_guide->{$abc_xmlid}->{data}->{$event_id};
+				&cleanup($show);
+				$writer->write_programme($show);
+			}
+		}
+		if ($abc2_xmlid ne "") {
+			for my $event_id (sort {$a <=> $b} keys %{($tv_guide->{$abc2_xmlid}->{data})}) {
+				$show = $tv_guide->{$abc2_xmlid}->{data}->{$event_id};
+				&cleanup($show);
+				$writer->write_programme($show);
+			}
+		}
+	}
+
+	# write programmes collected via y7 widget
+	if ($opt_dont_fetch_widget == 0) {
+		for my $channel (sort keys %y7w_channel_id) {
+			for my $event_id (sort {$a <=> $b} keys %{($tv_guide->{$channel}->{data})}) {
+				$show = $tv_guide->{$channel}->{data}->{$event_id};
+				&cleanup($show);
+				$writer->write_programme($show);
+			}
+		}
+	}
+
+	# write programmes collected via y7 portal
+	if ($opt_dont_fetch_portal == 0) {
+		for my $channel (sort keys %y7p_channel_id) {
+			for my $event_id (sort keys %{($tv_guide->{$channel}->{data})}) {
+				$show = $tv_guide->{$channel}->{data}->{$event_id};
+				&cleanup($show);
+				$writer->write_programme($show);
+			}
+		}
+	}
+
+	$writer->end();
+}
+
+######################################################################################################
+# given yahoo7 portal data, parse it into 'shows' ..
+
+sub get_y7p_data
+{
+	local($starttime,$endtime,$region) = @_;
+	local($currtime, $try_to_add_y7p_detail, $want_to_add_detail);
+
+	foreach my $channel (sort { $y7p_channel_id{$b} <=> $y7p_channel_id{$a} } keys %y7p_channel_id) {
+		my ($venue,$channenname) = split(/,/,$channel);
+		my $unprocessed_programmes = 0;
+		my @unprocessed_progname = undef;
+		my @unprocessed_starttime = undef
+		my @unprocessed_url = undef;
+
+		for ($currtime = $starttime; $currtime < $endtime; $currtime += 86400) {
+			my $attempts = 1;
+			my @timeattr = localtime($currtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+
+			my $url = sprintf "http://au.tv.yahoo.com/venueresults.html?dt=%s&vn=%d",
+				(strftime "%Y-%m-%d",localtime($currtime)), $venue;
+			my $seen_programmes = 0;
+
+			do {
+				my $status = sprintf "yahoo7 portal data: %s: %d of %d%s", $channenname,
+					((($currtime-$starttime)/86400)+1),(($endtime-$starttime)/86400),
+					($attempts > 1 ? " (attempt $attempts)" : "");
+
+				my $data = &get_url($url,$status);
+
+				my $tree = HTML::TreeBuilder->new_from_content($data);
+				my $seen_am = 0;
+
+				for ($tree->look_down('_tag' => 'table', 'width' => '100%', 'border' => '1', 'bordercolor' => '#efefef')) {
+					for ($_->look_down('_tag' => 'tr')) {
+						my $found_time = 0;
+						my $ignore_line = 0;
+						foreach my $tree_td ($_->look_down('_tag' => 'td')) {
+							if ($ignore_line == 0) {
+								if ($found_time == 0) {
+									# looking for time
+									if ($tree_td->as_text() =~ /^(\d+):(\d+)(.)M$/) {
+										$timeattr[2] = $1; # hour
+										$timeattr[2] += 12 if ($3 eq "P"); # pm
+										$timeattr[1] = $2; # min
+										$found_time = mktime(@timeattr);
+	
+										# if entry is PM and we haven't seen any AM entries, ignore - its from the previous day
+										$ignore_line = 1 if (($3 eq "P") && ($seen_am == 0));
+										$seen_am++ if ($3 eq "A");
+									}
+								} else {
+									# looking for name
+									if ($_ = $tree_td->look_down('_tag' => 'a')) {
+										my $programme = $_->as_text();
+										my $progurl = $_->attr('href');
+										$progurl = sprintf "http://au.tv.yahoo.com/%s",$1 if ($progurl =~ /^javascript:popup\(\"(.*)\"/);
+	
+										$unprocessed_progname[$unprocessed_programmes] = $programme;
+										$unprocessed_starttime[$unprocessed_programmes] = $found_time;
+										$unprocessed_url[$unprocessed_programmes] = $progurl;
+										$unprocessed_programmes++;
+										$seen_programmes++;
+									}
+								}
+							}
+						}
+					}
+				}
+				if ($seen_programmes == 0) {
+					printf STDERR "WARNING: failed to parse any programme data from %s - blocked/rate-limited/format-changed?\n",$url;
+					$stats{failed_to_parse_portal_daily_page}++;
+					$attempts++;
+				} else {
+					$stats{portal_daily_pages}++;
+				}
+				&sleepy("sleeping for 10 seconds",10);
+			} until (($seen_programmes > 0) || ($attempts > 5))
+		}
+
+		# have 'n' days of this channel unprocessed - process it!
+		for (my $i = 0; $i < ($unprocessed_programmes-1); $i++) {
+			$stats{programmes}++;
+			my $starttime = $unprocessed_starttime[$i];
+			my $endtime = $unprocessed_starttime[$i+1];
+			$tv_guide->{$channel}->{data}->{$starttime}->{'channel'} =	$y7p_channel_id{$channel};
+			$tv_guide->{$channel}->{data}->{$starttime}->{'start'} = 	timestring($starttime);
+			$tv_guide->{$channel}->{data}->{$starttime}->{'stop'} = 	timestring($endtime);
+			$tv_guide->{$channel}->{data}->{$starttime}->{'title'} = 	[[ $unprocessed_progname[$i], $lang ]];
+
+			# schedule a detailed data lookup for each programme if we need to
+			# ideally we can use our cached data if it hasn't changed..
+
+			# search cache
+			my $cache_key = sprintf "%d,%d,%s,%s", $starttime, $endtime, $channel, $unprocessed_progname[$i];
+			if ($data_cache->{$cache_key}) {
+				$stats{used_cached_data}++;
+				&add_cached_data($channel,$starttime,$cache_key);
+				&log("used cache data for programme $unprocessed_progname[$i] on channel $channel") if $debug;
+			} else {
+				if ($opt_no_detail == 0) {
+					$try_to_add_y7p_detail{$unprocessed_url[$i]} = $cache_key;
+					$want_to_add_detail++;
+				}
+			}
+		}
+
+		$unprocessed_programmes = 0;
+	}
+
+	foreach my $url (sort keys %try_to_add_y7p_detail) {
+		&get_one_y7p_event($try_to_add_y7p_detail{$url},$url,"Yahoo7Portal detail pages ($want_to_add_detail remaining)");
+		$want_to_add_detail--;
+
+		&sleepy("sleeping for 16+ seconds",(16+rand(5))) if ($opt_fast == 0);
+	}
+}
+
+######################################################################################################
+# given one yahoo7 portal page, parse it into $tv_guide->{$channel}->{data}->{$event_id}-> structures..
+
+sub get_one_y7p_event
+{
+	local($cache_key, $url, $status) = @_;
+	my $seen_programme = 0;
+	my ($starttime, $endtime, $channel, $progname) = split(/,/,$cache_key);
+
+	do {
+		my $data = &get_url($url,$status);
+
+		my $tree = HTML::TreeBuilder->new_from_content($data);
+		if (my $inner_tree = $tree->look_down('_tag' => 'div', 'class' => 'inner')) {
+			my $event_title = undef, $event_subtitle = undef, $event_description = undef;
+			my $event_genre = undef, $event_duration = undef;
+
+			$event_title = $_->as_text() if ($_ = $inner_tree->look_down('_tag' => 'h1'));
+			$event_subtitle = $_->as_text() if ($_ = $inner_tree->look_down('_tag' => 'h2'));
+
+			foreach my $para ($inner_tree->look_down('_tag' => 'p')) {
+				if ($para->as_HTML() =~ /<p>Genre:&nbsp; (.*)$/) {
+					$event_genre = $1;
+				} else {
+					$event_description .= $para->as_text();
+					$event_duration = ($1 * 60) if ($para->as_HTML() =~ /(\d+)&nbsp;mins/);
+				}
+			}
+
+			if (($event_title) && ($event_duration)) {
+				$stats{portal_detail_pages}++;
+				$seen_programme++;
+
+				$data_cache->{$cache_key}->{subtitle} = $event_subtitle if $event_subtitle;
+				$data_cache->{$cache_key}->{desc} = $event_description if $event_description;
+				$data_cache->{$cache_key}->{genre} = $event_genre if $event_genre;
+				&add_cached_data($channel,$starttime,$cache_key);
+			}
+		}
+		if ($seen_programme == 0) {
+			printf STDERR "WARNING: failed to parse any programme data from '%s' - blocked/rate-limited/format-changed?\n",$url;
+			$stats{failed_to_parse_portal_detail_page}++;
+			&sleepy("waiting for 3 minutes, will retry then",(180+rand(10))) if ($opt_dont_retry == 0);
+		}
+	} until (($seen_programme> 0) || ($opt_dont_retry>0));
+}
+
+######################################################################################################
+# populate cache
+
+sub read_cache
+{
+	if (-r $opt_cache_file) {
+		local (@ARGV, $/) = ($opt_cache_file);
+		no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		printf STDERR "WARNING: no programme cache $opt_cache_file - have to fetch all details\n";
+
+		# try to write to it - if directory doesn't exist this will then cause an error
+		&write_cache;
+	}
+}
+
+######################################################################################################
+# write out updated cache
+
+sub write_cache
+{
+	if (!(open(F,">$opt_cache_file"))) {
+		printf STDERR "WARNING: could not write cache file $opt_cache_file: $!\n";
+		printf STDERR "Please fix this in order to reduce the number of queries for data!\n";
+		sleep 10;
+	} else {
+		# cleanup old entries from cache
+		for my $cache_key (keys %{$data_cache}) {
+			my ($starttime, $endtime, $channel, $progname) = split(/,/,$cache_key);
+			delete $data_cache->{$cache_key} if ($starttime < (time-86400));
+			$stats{removed_items_from_cache}++;
+		}
+
+		print F Data::Dumper->Dump([$data_cache], ["data_cache"]);
+		close F;
+	}
+}
+
+######################################################################################################
+
+sub add_cached_data
+{
+	local($channel,$starttime,$cache_key) = @_;
+	$tv_guide->{$channel}->{data}->{$starttime}->{'sub-title'} = 	[[ $data_cache->{$cache_key}->{subtitle}, $lang ]] if $data_cache->{$cache_key}->{subtitle};
+	$tv_guide->{$channel}->{data}->{$starttime}->{'desc'} = 	[[ $data_cache->{$cache_key}->{desc}, $lang ]] if $data_cache->{$cache_key}->{desc};
+	$tv_guide->{$channel}->{data}->{$starttime}->{'category'} = 	[[ $data_cache->{$cache_key}->{genre}, $lang ]] if $data_cache->{$cache_key}->{genre};
+}
+
+######################################################################################################
+
+sub sleepy
+{
+	local($logmsg,$sleeptimer) = @_;
+
+	$stats{slept_for} += $sleeptimer;
+	&log($logmsg);
+	sleep($sleeptimer);
+}
+
+######################################################################################################
+
+sub get_abc_data
+{
+	local($starttime,$endtime,$xmlid,$urlbase) = @_;
+	local($try_to_add_abc_detail);
+	local($unprocessed_programmes) = 0;
+	local($stop_fetching) = 0;
+
+	for (my $currtime = $starttime; $currtime < $endtime; $currtime += 86400) {
+		# for abc portal data, treat a faulure as a hint that there is no further data.
+		# sometimes they have as much as 30 days of data ahead.  sometimes much less...
+		if ($stop_fetching == 0) {
+			my @timeattr = localtime($currtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+
+			my $url = sprintf "%s/%s.htm",$urlbase,(strftime "%Y%m/%Y%m%d",localtime($currtime));
+			my $status = sprintf "%s data: %d of %d", $xmlid, ((($currtime-$starttime)/86400)+1),(($endtime-$starttime)/86400);
+			my $data = &get_url($url,$status,1);
+			my $seen_programmes = 0;
+	
+			my $tree = HTML::TreeBuilder->new_from_content($data);
+			for ($tree->look_down('_tag' => 'div', 'class' => 'scheduleDiv')) {
+				foreach my $tree_tr ($_->look_down('_tag' => 'tr')) {
+					if (my $tree_row = $tree_tr->look_down('_tag' => 'th', 'scope' => 'row')) {
+						if ($tree_row->as_text() =~ /^(\d+):(\d+)(.)m/) {
+							$timeattr[2] = $1; # hour
+							$timeattr[2] += 12 if ($3 eq "p"); # pm
+							$timeattr[1] = $2; # min
+							$found_time = mktime(@timeattr);
+	
+							if ($tree_tr->look_down('_tag' => 'td')) {
+								if ($_ = $tree_tr->look_down('_tag' => 'a')) {
+									my $programme = $_->as_text();
+									my $progurl = $_->attr('href');
+	
+									if ($progurl =~ /^\/tv\/guide\//) {
+										$unprocessed_progname[$unprocessed_programmes] = $programme;
+										$unprocessed_starttime[$unprocessed_programmes] = $found_time;
+										$unprocessed_url[$unprocessed_programmes] = "http://www.abc.net.au".$progurl;
+										$unprocessed_programmes++;
+										$seen_programmes++;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+	
+			if ($seen_programmes == 0) {
+				$stop_fetching = 1;
+			} else {
+				$stats{abc_daily_pages}++;
+			}
+		}
+	}
+
+	# have 'n' days of this channel unprocessed - process it!
+	for (my $i = 0; $i < ($unprocessed_programmes-1); $i++) {
+		$stats{programmes}++;
+		my $starttime = $unprocessed_starttime[$i];
+		my $endtime = $unprocessed_starttime[$i+1];
+		my $cache_key = sprintf "%d,%d,%s,%s", $starttime, $endtime, $xmlid, $unprocessed_progname[$i];
+
+		$tv_guide->{$xmlid}->{data}->{$starttime}->{'channel'} =	$xmlid;
+		$tv_guide->{$xmlid}->{data}->{$starttime}->{'start'} = 	timestring($starttime);
+		$tv_guide->{$xmlid}->{data}->{$starttime}->{'stop'} = 	timestring($endtime);
+		$tv_guide->{$xmlid}->{data}->{$starttime}->{'title'} = 	[[ $unprocessed_progname[$i], $lang ]];
+
+		if ($data_cache->{$cache_key}) {
+			$stats{used_cached_data}++;
+			&add_cached_data($xmlid,$starttime,$cache_key);
+		} else {
+			if ($opt_no_detail == 0) {
+				$try_to_add_abc_detail{$unprocessed_url[$i]} = $cache_key;
+				$want_to_add_detail++;
+			}
+		}
+	}
+
+	foreach my $url (keys %try_to_add_abc_detail) {
+		&get_one_abc_event($try_to_add_abc_detail{$url},$url,"$xmlid detail pages ($want_to_add_detail remaining)");
+		delete $try_to_add_abc_detail{$url};
+		$want_to_add_detail--;
+	}
+}
+
+######################################################################################################
+
+sub get_one_abc_event
+{
+	local($cache_key, $url, $status) = @_;
+	my $seen_programme = 0;
+	my ($starttime, $endtime, $channel, $progname) = split(/,/,$cache_key);
+
+	do {
+		my $data = &get_url($url,$status);
+
+		my $tree = HTML::TreeBuilder->new_from_content($data);
+		if (my $inner_tree = $tree->look_down('_tag' => 'div', 'class' => 'column2')) {
+			my $event_title = undef, $event_subtitle = undef, $event_description = undef, $event_genre = undef;
+
+			if (my $prog_h2 = $inner_tree->look_down('_tag' => 'h2')) {
+				my $full_title = $prog_h2->as_HTML();
+				($event_title,$event_subtitle) = split(/<br>/,$full_title);
+
+				$event_title =~ s/(<[a-zA-Z0-9]+\>)//g;	# remove html tags
+				$event_title =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
+
+				$event_subtitle =~ s/(<[\/a-zA-Z0-9]+\>)//g;	# remove html tags
+				$event_subtitle =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
+			}
+			
+			my $paranum = 0;
+			foreach my $para ($inner_tree->look_down('_tag' => 'p')) {
+				$paranum++;
+
+				if (($paranum > 1) && (!($para->as_text() =~ /^Go to website/)) && (!($para->as_text() =~ /^Send to a Friend/))) {
+					$event_description .= $para->as_text() . "\n";
+
+					if (my $try_genre = $para->look_down('_tag' => 'a')) {
+						$event_genre = $try_genre->as_text();
+					}
+				}
+			}
+			$stats{portal_detail_pages}++;
+			$seen_programme++;
+
+			$data_cache->{$cache_key}->{subtitle} = $event_subtitle if $event_subtitle;
+			$data_cache->{$cache_key}->{desc} = $event_description if $event_description;
+			$data_cache->{$cache_key}->{genre} = $event_genre if $event_genre;
+			&add_cached_data($channel,$starttime,$cache_key);
+		}
+		if ($seen_programme == 0) {
+			printf STDERR "WARNING: failed to parse any programme data from '%s' - blocked/rate-limited/format-changed?\n",$url;
+			$stats{failed_to_parse_portal_detail_page}++;
+		}
+	} until (($seen_programme> 0) || ($opt_dont_retry>0));
+}
+
+######################################################################################################
+
+sub read_channels_file {
+	local($chfile) = @_;
+
+	if (-r $chfile) {
+                local (@ARGV, $/) = ($chfile);
+                no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		printf STDERR "WARNING: channels file $chfile could not be read\n";
+		exit(1);
+	}
+
+	# this should have populated %channels
+	# now 'intelligently' decide which portal to use for each channel
+	# default is to use:
+	#   Yahoo7 Widget: ABC/Seven/Nine/TEN/SBS
+	#   ABC Website:   ABC2
+	#   Yahoo7 Portal: none
+
+	foreach $ch (sort keys %{$channels}) {
+		my $xmlid = $channels->{$ch};
+		if ($ch =~ /^(ABC|Seven|Nine|TEN|SBS)$/) {
+			$y7w_channel_id{$ch} = $xmlid;
+			&log("  $ch ($xmlid) via yahoo7 widget");
+		} elsif ($ch =~ /^(ABC2)$/) {
+			$abc2_xmlid = $xmlid;
+			&log("  $ch ($xmlid) via ABC website");
+		} else {
+			&log("  ch ($xmlid) SKIPPED");
+			# XXX could try using y7p_channel_id perhaps?
+		}
+	}
+}
+
+######################################################################################################
+

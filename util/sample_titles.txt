@@ -1,0 +1,7282 @@
+# datafile_num	half-hour-slot	programme_name
+0	0	The Sopranos
+0	18	Thomas the Tank Engine & Friends
+0	46	Late Night Legends
+0	41	CSI: Crime Scene Investigation
+0	41	Indonesian News
+0	46	Monkey Dust
+0	41	Indonesian News
+0	14	Italian News
+0	21	Escape with ET
+0	23	Arabic News
+0	15	Italian News Weekly
+0	6	Australians At War
+0	14	Lateline Business
+0	10	rage
+0	17	In the Box
+0	18	9am With David and Kim
+0	28	Ready Steady Cook
+0	45	Comedy Inc. The Late Shift
+0	15	Australia Wide
+0	2	Station Close
+0	22	Pinky Dinky Doo
+0	26	Hamilton Island Race Week
+0	23	Adventures of Spot
+0	22	Grizzly Tales for Gruesome Kids
+0	45	German News
+0	40	Catalyst
+0	28	Mandarin News
+0	21	India
+0	22	Connie The Cow
+0	36	Arabic News
+0	22	Talking Real Estate
+0	22	Pinky Dinky Doo
+0	23	British Isles: A Natural History
+0	10	Japanese News
+0	46	The Assassin
+0	20	Inside Business
+0	34	Ten News
+0	30	Weatherwatch
+0	42	Mandarin News
+0	32	NT AFL 2007
+0	12	Toasted TV
+0	26	Days of Our Lives
+0	42	Foreign Correspondent
+0	43	The Whole Nine Yards
+0	15	Gerald McBoing Boing
+0	34	Ten News
+0	37	Relive the Rivalry
+0	30	Judge Judy
+0	9	Good Morning America
+0	37	World News Australia
+0	37	Meerkat Manor
+0	41	CSI: Miami
+0	41	Law & Order: S.V.U.
+0	46	Spanish News
+0	18	French News
+0	10	Japanese News
+0	33	Chilean News
+0	34	M*A*S*H
+0	41	Big Questions
+0	8	NBC Today
+0	20	Our Animals
+0	25	Play School
+0	26	Foreign Correspondent
+0	4	Home Shopping
+0	31	Living Black
+0	4	Passions
+0	13	Weatherwatch
+0	18	jtv XL: The Bravery: Live in France
+0	18	Thomas the Tank Engine & Friends
+0	22	British Isles: A Natural History
+0	36	Rick Stein's French Odyssey
+0	8	Enjoying Everyday Life
+0	47	Stargate SG-1
+0	41	CSI: Crime Scene Investigation
+0	24	Indonesian News
+0	41	Iron Chef
+0	39	Lost Worlds
+0	30	Gardening Australia
+0	42	Maltese News
+0	16	Fifi and the Flowertots
+0	0	Less Than Perfect
+0	33	The Journal
+0	43	Morning Sun
+0	24	Indonesian News
+0	22	Pablo the Little Red Fox
+0	32	Basketball: Women's National League 2006/07
+0	16	Meet the Press
+0	1	Midnight Zoo
+0	46	Asia Pacific Focus
+0	28	In Satmar Custody
+0	15	Gerald McBoing Boing
+0	37	Winged Sandals
+0	35	Croc Bites
+0	27	Cantonese News
+0	32	Jakers! The Adventures of Piggley Winks
+0	36	Seven News
+0	34	M*A*S*H
+0	10	This is Your Day
+0	45	Crossing Jordan
+0	30	Pilot Guides
+0	34	Stateline TAS
+0	36	Arabic News
+0	27	Spot's Musical Adventures
+0	19	Polish News
+0	21	Behind the News
+0	18	French News
+0	34	She'll Be Right Boss
+0	37	The Tribe
+0	22	Kim Possible
+0	45	Ten Late Night News/Sports Tonight
+0	40	Italian News
+0	32	Streetsmartz
+0	13	Hillsong
+0	30	Rafferty's Rules
+0	27	Message Stick
+0	23	Paris-Tours 2006
+0	27	Spot's Musical Adventures
+0	3	The Crime of Crimes
+0	24	Dr. Phil
+0	19	The Pet Show
+0	33	National Nine Afternoon News
+0	3	Video Hits Up-Late
+0	26	The Trojans
+0	24	Queer Eye for the Straight Guy
+0	33	Talk to the Animals
+0	28	Stateline NSW
+0	35	Australian Story Classics
+0	33	The Journal
+0	40	Italian News
+0	25	Business Report
+0	18	Sunday
+0	20	Our History
+0	9	The Perfect Woman
+0	17	Gardening Australia
+0	19	King Arthur's Disasters
+0	12	Dimensions In Time
+0	16	Das Journal
+0	31	Hi-5
+0	33	Seven News
+0	37	Today Tonight
+0	18	Lloyd in Space
+0	28	Ready Steady Cook
+0	12	People Dimensions
+0	35	Behind the News
+0	14	Italian News
+0	12	Make Way for Noddy
+0	33	The Secret Show
+0	2	Late Show with David Letterman
+0	26	The Fimbles
+0	35	Grizzly Tales for Gruesome Kids
+0	39	The 7.30 Report
+0	34	Black Hole High
+0	36	National Nine News Saturday
+0	16	Dragon Booster
+0	38	Greek News
+0	30	Bananas in Pyjamas
+0	19	Russian News
+0	21	Greek News
+0	30	A Fork in the Road
+0	4	Passions
+0	17	The Wiggles
+0	30	Bananas in Pyjamas
+0	34	Antiques Roadshow
+0	1	Indonesian News
+0	30	Boohbah
+0	0	Quizmania
+0	22	Pablo the Little Red Fox
+0	19	Hot Auctions
+0	36	The Simpsons
+0	12	Sunrise
+0	22	National Nine Morning News
+0	29	Lights, Camera, Action, Wiggles!
+0	18	9am With David and Kim
+0	7	Guthy-Renker Australia
+0	24	Dr. Phil
+0	40	Hotline
+0	20	Behind the News Special
+0	43	Criminal Minds
+0	16	Winx Club
+0	38	Futurama
+0	6	National Press Club Address
+0	37	The Pet Show
+0	26	Days of Our Lives
+0	39	Australian Idol
+0	33	French News
+0	14	Edgar & Ellen
+0	38	Toyota World Sport
+0	14	Saturday Disney
+0	15	Australia Wide
+0	31	Huey's Cooking Adventures
+0	36	National Nine News
+0	12	Today
+0	15	King Arthur's Disasters
+0	43	CSI: NY
+0	33	The Secret Show
+0	35	Stateline WA
+0	41	Four Corners
+0	31	German News
+0	21	Seven Morning News
+0	43	World News Australia
+0	1	Station Close
+0	22	Bowls: Tri Series: Men
+0	16	The Cook and the Chef
+0	16	Das Journal
+0	41	The Hot Chick
+0	31	Dimensions In Time
+0	30	Rafferty's Rules
+0	31	Play School
+0	43	Pop(b)session
+0	38	Home and Away
+0	16	Fifi and the Flowertots
+0	28	Japanese News
+0	17	Video Hits First
+0	22	National Nine Morning News
+0	39	The 7.30 Report
+0	31	German News
+0	41	Good Game
+0	32	Scope
+0	32	Spanish News
+0	39	The Force - Behind The Line
+0	39	The 7.30 Report
+0	16	Miss BG
+0	30	Boohbah
+0	32	It's Academic
+0	36	Arabic News
+0	13	Tractor Tom
+0	14	Edgar & Ellen
+0	1	Midnight Zoo
+0	41	Bronski & Bernstein
+0	37	Overhaul
+0	10	Japanese News
+0	17	Play with Me Sesame
+0	16	German News
+0	33	The Journal
+0	46	Lateline Business
+0	40	Australia Wide
+0	14	Teenage Mutant Ninja Turtles
+0	10	Life Today with James Robison
+0	26	Dr Otter
+0	1	Indonesian News
+0	33	The Secret Show
+0	22	Lexmark Indy 300
+0	12	Mass for You at Home
+0	19	Play School
+0	20	Sons and Daughters
+0	28	Ukrainian News
+0	24	Play School
+0	26	Metamorphosis
+0	14	Italian News
+0	23	Arabic News
+0	23	Fourways Farm
+0	40	Landline
+0	38	ABC News
+0	45	Boston Legal
+0	16	Rage: Guest Programmer
+0	29	Lights, Camera, Action, Wiggles!
+0	13	Blue Water High
+0	25	National Press Club Address
+0	12	Today
+0	32	Stateline NSW
+0	32	Totally Wild
+0	31	Huey's Cooking Adventures
+0	39	Our Changing Climate - Victorian Special
+0	18	Raggs
+0	32	A Big Country Revisited
+0	31	Home Alone 4
+0	22	Connie The Cow
+0	8	Creflo A. Dollar, Jr
+0	1	Indonesian News
+0	22	Spy Master
+0	43	Weatherwatch
+0	44	Inside Business
+0	33	National Nine Afternoon News
+0	31	German News
+0	1	Indonesian News
+0	2	Train of Life
+0	3	Short and Curly
+0	43	jtv XL: The Bravery: Live in France
+0	10	Japanese News
+0	12	Mandarin News
+0	43	David Tench Tonight
+0	23	Fresh Cooking with the Australian Women's Weekly
+0	33	National Nine Afternoon News
+0	28	The World Game
+0	26	The Einstein Factor
+0	22	Animals: The Inside Story
+0	46	Spanish News
+0	40	Italian News
+0	46	Spanish News
+0	35	Postcards
+0	14	Edgar & Ellen
+0	35	Australian Story
+0	28	The Wubbulous World of Dr. Suess
+0	34	Australia Wide
+0	15	Toasted TV
+0	24	Pingu
+0	13	Lateline
+0	32	Landline
+0	41	Cutting Edge
+0	34	The Newshour with Jim Lehrer
+0	47	Arabic News
+0	8	Guthy-Renker Australia
+0	32	Totally Wild
+0	42	ABC News
+0	35	Deal Or No Deal
+0	36	Seven News
+0	43	Weatherwatch
+0	41	Indonesian News
+0	30	Pocoyo
+0	1	Hack
+0	31	Hi-5
+0	27	Australian Story Classics
+0	21	Food for Thought
+0	12	Mandarin News
+0	8	Creflo A. Dollar, Jr
+0	16	Fishing North Australia
+0	34	Bernard
+0	46	Lateline Business
+0	46	The Hundred Steps
+0	36	The Simpsons
+0	21	Greek News
+0	39	Italian News
+0	25	Japanese News
+0	21	2006 FIVB World Grand Prix
+0	35	Japanese News
+0	46	jtv
+0	29	Filipino News
+0	20	The Fimbles
+0	29	Oswald
+0	0	Murder Investigation Team
+0	28	The Wubbulous World of Dr. Suess
+0	34	Maggie: The First Lady
+0	47	The Apprentice
+0	44	Behind the Sun
+0	29	Sali Mali
+0	15	Kids' WB on Nine
+0	30	Entertainment Tonight
+0	26	Molly's Gang
+0	12	Mandarin News
+0	0	The Up-Late Gameshow
+0	16	Can We Help?
+0	40	Australia Wide
+0	12	Ten Early News
+0	13	Filipino News
+0	21	Greek News
+0	18	9am With David and Kim
+0	14	Teenage Mutant Ninja Turtles
+0	44	Japanese News
+0	25	WNBL
+0	14	Toasted TV
+0	17	Gardening Australia
+0	19	Polish News
+0	37	World News Australia
+0	46	The Marriage Certificate
+0	13	WeatherWatch & Music
+0	18	Landline
+0	5	Straight Plan for the Gay Man
+0	38	Temptation
+0	39	Australian Idol - The Live Verdict
+0	8	NBC Today
+0	43	Weatherwatch
+0	33	The Secret Show
+0	12	Sunrise
+0	17	Spanish News
+0	18	Thomas the Tank Engine & Friends
+0	23	Arabic News
+0	37	World News Australia
+0	23	Fresh Cooking with the Australian Women's Weekly
+0	47	Nightline
+0	26	Dr Otter
+0	38	Medical Emergency
+0	30	Rafferty's Rules
+0	36	National Nine News
+0	25	Japanese News
+0	46	Hungarian News
+0	33	The Bold and the Beautiful
+0	19	Play School
+0	41	The Haunted Mansion
+0	45	Monkey Dust
+0	12	Health Dimensions
+0	14	Lateline Business
+0	0	rage
+0	38	Futurama
+0	27	Grumpy Old Men
+0	22	National Nine Morning News
+0	22	Pop(b)session
+0	35	Polish News
+0	6	Guthy-Renker Australia
+0	35	Bert's Family Feud
+0	7	Guthy-Renker Australia
+0	45	Spy Hard
+0	31	Hi-5
+0	35	Behind the News
+0	29	Lights, Camera, Action, Wiggles!
+0	35	Catalyst
+0	41	The Cook and the Chef
+0	23	TTN
+0	12	Today
+0	23	The Scream Team
+0	37	A Current Affair
+0	40	The New Inventors
+0	8	Enjoying Everyday Life
+0	35	Bert's Family Feud
+0	26	This is Daniel Cook
+0	28	Mandarin News
+0	11	This is Your Day
+0	3	Weatherwatch Overnight
+0	31	Simply Ming
+0	47	rage
+0	35	Sports Tonight
+0	37	World News Australia
+0	35	Japanese News
+0	26	Dr Otter
+0	38	It's Me Or the Dog
+0	47	U2 - Zoo TV Live From Sydney
+0	43	The Unit
+0	14	Time Warp Trio
+0	47	Criss Angel Mindfreak
+0	15	Yu-Gi-Oh! GX
+0	1	Chasing Amy
+0	19	The Sleepover Club
+0	28	Angelmouse
+0	24	Indonesian News
+0	21	Greek News
+0	14	Toasted TV
+0	18	Raggs
+0	45	Body of Evidence
+0	12	Being Ian
+0	31	German News
+0	44	Oz
+0	20	Rubbadubbers
+0	17	Spanish News
+0	46	Stealing Rembrandt
+0	13	Pablo the Little Red Fox
+0	34	Russian News
+0	41	Forensic Investigators - Australia's True Crimes
+0	47	Netball: International Series 2006
+0	38	Toyota World Sport
+0	32	Lang Lang: Pianist from the Middle Kingdom
+0	40	The Two of Us
+0	14	Italian News
+0	9	Filipino News
+0	32	Dr. Dog
+0	45	Good Game
+0	37	World News Australia
+0	40	Feast Bazaar
+0	44	Sensitive Skin
+0	26	The World of Peter Rabbit and Friends
+0	24	Indonesian News
+0	37	Out of Practice
+0	32	It's Academic
+0	43	Enough Rope with Andrew Denton
+0	8	Creflo A. Dollar, Jr
+0	10	Japanese News
+0	46	Video Hits Presents
+0	44	Japanese News
+0	30	Stateline TAS
+0	31	Italian News
+0	0	Quizmania
+0	42	Mandarin News
+0	12	Mandarin News
+0	26	Dr Otter
+0	38	ABC News
+0	30	Weatherwatch
+0	42	Mandarin News
+0	18	French News
+0	43	Foreign Correspondent
+0	24	Man of Miracles
+0	9	Life Today
+0	6	Guthy-Renker Australia
+0	33	The Bold and the Beautiful
+0	16	German News
+0	18	Mornings with Kerri-Anne
+0	18	Bananas in Pyjamas
+0	14	Italian News
+0	26	Oprah
+0	34	M*A*S*H
+0	21	Teletubbies Everywhere
+0	37	Today Tonight
+0	23	Free Ride
+0	1	The Up-Late Gameshow
+0	39	Jamie's Kitchen - Australia
+0	41	Talking Heads
+0	16	The Batman
+0	36	Class of the Titans
+0	26	Japanese News
+0	28	Parliament Question Time
+0	36	Freaky Stories
+0	29	Lights, Camera, Action, Wiggles!
+0	13	Zombie Hotel
+0	13	Filipino News
+0	40	Australia Wide
+0	28	The Young and the Restless
+0	13	Weatherwatch
+0	16	Fifi and the Flowertots
+0	43	Nero
+0	36	The Tribe
+0	29	Chinese News
+0	8	NBC Today
+0	43	The Jackal
+0	19	Play School
+0	11	This is Your Day
+0	21	Greek News
+0	36	The Simpsons
+0	28	Blue Heelers
+0	30	Radio Free Roscoe
+0	10	Japanese News
+0	30	Entertainment Tonight
+0	20	The Fimbles
+0	30	Weatherwatch
+0	17	Play with Me Sesame
+0	7	Songs of Praise
+0	35	Bowls: Victorian Grand Prix 2006
+0	12	Chinese News
+0	44	How Vietnam Was Lost
+0	12	The Amazing Adrenalini Brothers
+0	13	Angela Anaconda
+0	34	Antiques Roadshow
+0	24	Pingu
+0	42	Mandarin News
+0	1	Domenica
+0	34	M*A*S*H
+0	28	The Wubbulous World of Dr. Suess
+0	16	Miss BG
+0	40	WNBL: Live
+0	45	Changi
+0	33	The Journal
+0	20	Ukrainian News
+0	28	Angelmouse
+0	2	Station Close
+0	34	Uncle Dad
+0	35	Behind the News
+0	32	Dr. Dog
+0	7	Guthy-Renker Australia
+0	45	Jeepers Creepers 2
+0	12	Girl Stuff, Boy Stuff
+0	34	Roar of the Wild
+0	27	Catalyst
+0	18	Compass
+0	13	WeatherWatch & Music
+0	32	Foreign Correspondent
+0	4	Passions
+0	32	Jakers! The Adventures of Piggley Winks
+0	23	Backstage Pass
+0	12	A Town Called Panic
+0	29	Oswald
+0	23	NBL on Nine
+0	34	Russian News
+0	42	Mandarin News
+0	36	The Tribe
+0	37	Neighbours
+0	15	Martin Morning
+0	38	Home and Away
+0	40	ABC News
+0	21	The Proud Family
+0	34	The Garden Gurus
+0	23	Free Ride
+0	26	Molly's Gang
+0	40	Weatherwatch
+0	17	Spanish News
+0	25	Business Report
+0	15	Yu-Gi-Oh! GX
+0	18	Behind the News
+0	37	Australia's Funniest Home Video Show
+0	18	The Koala Brothers
+0	22	Pocoyo
+0	33	The Bold and the Beautiful
+0	23	Arabic News
+0	35	Deal Or No Deal
+0	35	Japanese News
+0	39	McLeod's Daughters
+0	29	Delilah & Julius
+0	24	Queer Eye for the Straight Guy
+0	46	Lateline Business
+0	34	Princess Natasha
+0	38	Greek News
+0	38	Hungarian News
+0	45	Sex and Lucia
+0	14	Olliver's Adventures
+0	32	Dr. Dog
+0	36	National Nine News
+0	27	Cantonese News
+0	45	UEFA Champions League Highlights
+0	20	Anthony Ant
+0	37	Neighbours
+0	34	Australia Wide
+0	24	Animal Jam
+0	30	Bananas in Pyjamas
+0	44	Japanese News
+0	36	The Simpsons
+0	30	Knowledge is the Beginning: Daniel Barenboim and the West-Eastern Divan Orchestra
+0	43	All Saints
+0	8	The Handler
+0	12	Chinese News
+0	23	Fresh Cooking with the Australian Women's Weekly
+0	31	German News
+0	47	The First 48
+0	29	Berlioz's Trip
+0	38	Futurama
+0	40	Collectors
+0	21	Dive Olly Dive!
+0	14	Toasted TV
+0	31	The Future Is Wild
+0	0	The Up-Late Gameshow
+0	35	Sports Tonight
+0	15	Italian News
+0	9	Kenneth Copeland
+0	25	Japanese News
+0	1	Station Close
+0	36	National Nine News Sunday
+0	47	Jake in Progress
+0	1	Station Close
+0	34	Russian News
+0	33	National Nine Afternoon News
+0	14	Lateline Business
+0	27	Family Story
+0	43	Bones
+0	42	The Glass House
+0	29	The Monkey Puzzle
+0	45	dig tv presents
+0	13	Mandarin News
+0	3	Quizmania
+0	39	Stateline WA
+0	20	Engie Benjy
+0	36	2030 CE
+0	23	Arabic News
+0	4	Home Shopping
+0	27	Cantonese News
+0	41	Grey's Anatomy
+0	1	Station Close
+0	34	Russian News
+0	8	Creflo A. Dollar, Jr
+0	30	Rafferty's Rules
+0	17	Latin American News
+0	17	Spanish News
+0	33	Seven News
+0	3	Britney & Kevin: Chaotic
+0	10	rage
+0	28	The Price of Victory
+0	39	Media Watch
+0	9	Kenneth Copeland
+0	32	The Shak
+0	19	Russian News
+0	15	Australia Wide
+0	37	World News Australia
+0	25	Auntie Mame
+0	31	Play School
+0	17	Spanish News
+0	45	German News
+0	4	Account Rendered
+0	4	Ordinary People
+0	32	jtv XL: The Bravery: Live in France
+0	18	French News
+0	23	Adventures of Spot
+0	25	Business Report
+0	3	Video Hits Up-Late
+0	47	Nightline
+0	15	Totally Wild
+0	36	Living Black
+0	43	Rove Live
+0	44	Amazing Medical Stories
+0	4	Passions
+0	14	Dora the Explorer
+0	0	When Sex Goes Wrong
+0	3	Top of the Form
+0	14	Toasted TV
+0	22	Stacked
+0	0	Quizmania
+0	36	The Tribe
+0	22	Hungarian News
+0	47	Arabic News
+0	17	The Batman
+0	23	Fourways Farm
+0	3	Weatherwatch Overnight
+0	9	UEFA Champions League
+0	24	In the Line of Duty: Blaze of Glory
+0	26	Molly's Gang
+0	44	Ukrainian News
+0	26	Oprah
+0	38	Foreign Correspondent
+0	36	Global Village
+0	20	Count Us In
+0	32	Toyota World Sport
+0	30	Boohbah
+0	9	Kenneth Copeland
+0	29	Oswald
+0	39	New Tricks
+0	36	Off The Map
+0	23	Angela Anaconda
+0	20	Engie Benjy
+0	36	Radio Free Roscoe
+0	36	Global Village
+0	19	Russian News
+0	12	Tractor Tom
+0	8	Creflo A. Dollar, Jr
+0	12	Cantonese News
+0	2	Parliament Question Time
+0	42	Secrets of the Valley of the Kings
+0	44	Scary Movie 2
+0	16	Talking Heads
+0	45	German News
+0	29	Nick Gets the Knack
+0	21	Seven Morning News
+0	38	Toyota World Sport
+0	22	Asia Pacific Focus
+0	37	Great Comedy Classics
+0	40	Italian News
+0	22	Pocoyo
+0	38	Everybody Loves Raymond
+0	33	Words
+0	42	The IT Crowd
+0	32	Spanish News
+0	43	World News Australia
+0	25	Chilean News
+0	10	Hour of Power
+0	46	NYPD Blue
+0	36	The Tribe
+0	1	Station Close
+0	33	The Fairly OddParents
+0	44	At the Movies
+0	14	Edgar & Ellen
+0	15	Martin Morning
+0	36	Seven News
+0	45	Robert Harris
+0	36	Message Stick
+0	21	Greek News
+0	11	This is Your Day
+0	25	Japanese News
+0	27	Spot's Musical Adventures
+0	28	Ready Steady Cook
+0	32	Jakers! The Adventures of Piggley Winks
+0	40	My Name Is Earl
+0	23	Inuk
+0	29	Tales from a Suitcase
+0	27	Cantonese News
+0	28	The Young and the Restless
+0	31	Huey's Cooking Adventures
+0	35	Behind the News
+0	16	Winx Club
+0	13	Class of the Titans
+0	24	Stateline VIC
+0	34	A Town Called Panic
+0	35	Japanese News
+0	34	Antiques Roadshow
+0	2	2LDK
+0	14	Stanley
+0	41	What a Year
+0	28	Parliament Question Time
+0	19	Russian News
+0	38	Temptation
+0	14	Italian News
+0	37	Today Tonight
+0	20	The Fimbles
+0	46	Missing Persons Unit
+0	37	A Current Affair
+0	18	Le Journal
+0	38	Greek News
+0	16	The Einstein Factor
+0	17	Spanish News
+0	8	NBC Today
+0	45	Studio 22
+0	27	Spot's Musical Adventures
+0	23	Inuk
+0	42	South Park
+0	29	Reba
+0	47	The Glass House
+0	9	Good Morning America
+0	12	Sunrise
+0	28	Welcher and Welcher
+0	23	That's So Raven
+0	22	Ten Morning News
+0	18	Australian Story Classics
+0	33	Atomic Betty
+0	29	Stateline ACT
+0	33	The Journal
+0	38	Greek News
+0	25	Play School
+0	24	Midday Report
+0	47	Four Corners
+0	20	Maths 4 Real 2
+0	30	Entertainment Tonight
+0	20	Sons and Daughters
+0	45	Lateline
+0	34	Antiques Roadshow
+0	38	Greek News
+0	19	Archibald the Koala
+0	12	Little Red Tractor
+0	30	Gardening Australia
+0	32	H2O: Just Add Water
+0	8	Enjoying Everyday Life
+0	17	Spanish News
+0	24	Speed Machine
+0	37	Neighbours
+0	26	The World of Peter Rabbit and Friends
+0	37	Stateline SA
+0	32	UEFA Champions League Magazine
+0	36	Message Stick
+0	2	Good Game
+0	13	Lateline
+0	41	Chilean News
+0	20	jtv XL: The Bravery: Live in France
+0	43	Malena
+0	4	Weatherwatch Overnight
+0	26	Oprah
+0	32	The Shak
+0	31	Hi-5
+0	23	Scrubs
+0	26	Days of Our Lives
+0	20	Sons and Daughters
+0	39	Media Watch
+0	16	Rage: New Releases
+0	43	World News Australia
+0	32	Sunday Arts
+0	47	Wild Turkey Joker Poker
+0	28	Parliament Question Time
+0	43	NCIS
+0	33	French News
+0	38	Home and Away
+0	35	Behind the News
+0	18	Le Journal
+0	15	The Shapies
+0	14	Italian News
+0	16	Toasted TV
+0	36	National Nine News
+0	36	A Town Called Panic
+0	38	Home and Away
+0	34	Radio Free Roscoe
+0	17	In the Box
+0	41	Storyline Australia
+0	30	Gardening Australia
+0	32	Totally Wild
+0	47	Live at the Basement
+0	13	Lateline
+0	38	ABC News
+0	37	Today Tonight
+0	18	A Big Country Revisited
+0	39	What's Good for You
+0	27	Elmo's World
+0	30	Bananas in Pyjamas
+0	35	Deal Or No Deal
+0	34	Ten News
+0	36	Thalassa
+0	24	Indonesian News
+0	32	Spanish News
+0	30	Rafferty's Rules
+0	34	Australia Wide
+0	39	Australian Idol Unplugged
+0	33	Yakkity Yak
+0	39	Insight
+0	25	Business Report
+0	14	Lateline Business
+0	23	Arabic News
+0	18	The Koala Brothers
+0	16	German News
+0	43	Filipino News
+0	20	Ukrainian News
+0	47	Arabic News
+0	18	Insiders
+0	38	ABC News
+0	13	A.T.O.M.: Alpha Teens on Machines
+0	39	Better Homes and Gardens
+0	26	Days of Our Lives
+0	45	Comedy Inc. The Late Shift
+0	22	Pinky Dinky Doo
+0	19	Russian News
+0	36	Ukrainian News
+0	31	School Torque
+0	15	Old Tom
+0	38	Futurama
+0	37	A Current Affair
+0	26	Gardening Australia
+0	34	The Newshour with Jim Lehrer
+0	12	Ten Early News
+0	6	Guthy-Renker Australia
+0	3	Video Hits Up-Late
+0	33	Seven News
+0	36	Ace Day Jobs
+0	33	The Bold and the Beautiful
+0	17	In the Box
+0	35	Bert's Family Feud
+0	19	Hot Auctions
+0	39	Smallville
+0	17	Spanish News
+0	28	Mandarin News
+0	44	VH1's ILL-ustrated
+0	39	20 to 1
+0	22	Monarchy
+0	20	Rubbadubbers
+0	34	Stateline NT
+0	39	Getaway
+0	28	Ready Steady Cook
+0	43	The Biggest Loser
+0	1	Midnight Zoo
+0	22	Pocoyo
+0	14	Mosaic: Eyes On The World
+0	15	Totally Wild
+0	35	Behind the News
+0	25	Planet X Winter Games 06
+0	14	Hungarian News
+0	47	Arabic News
+0	34	Ten News
+0	42	Media Watch
+0	11	This is Your Day
+0	46	Spanish News
+0	11	Rise and Shine
+0	30	Pocoyo
+0	16	Toasted TV
+0	14	Teenage Mutant Ninja Turtles
+0	47	Late Night Legends
+0	30	Entertainment Tonight
+0	14	Toasted TV
+0	14	Hungarian News
+0	38	Toyota World Sport
+0	22	Lexmark Indy 300
+0	31	Play School
+0	24	Indonesian News
+0	27	Strictly Dancing
+0	36	Arabic News
+0	18	Mornings with Kerri-Anne
+0	13	Filipino News
+0	34	Maltese News
+0	2	Station Close
+0	26	Insight
+0	24	Pingu
+0	4	Home Shopping
+0	12	Radio Free Roscoe
+0	13	The Fimbles
+0	44	Artists At Work
+0	6	Guthy-Renker Australia
+0	19	Russian News
+0	21	Designers
+0	42	RocKwiz By Request
+0	40	Australia Wide
+0	11	Christian City TV
+0	42	Lara Croft Tomb Raider: The Cradle of Life
+0	3	Video Hits Up-Late
+0	24	Pingu
+0	46	Late Night Legends
+0	5	Weatherwatch Overnight
+0	20	Being Me
+0	47	Nightline
+0	9	Good Morning America
+0	39	Stateline VIC
+0	8	Bayless Conley
+0	29	Oswald
+0	16	Five Minutes More
+0	27	Polish News
+0	14	Italian News
+0	39	60 Minutes
+0	37	The Real Seachange
+0	3	Video Hits Up-Late
+0	35	Japanese News
+0	35	Melbourne Weekender
+0	26	This is Daniel Cook
+0	17	Spanish News
+0	44	Japanese News
+0	12	Sunrise
+0	37	Dust Echoes
+0	16	Korean News
+0	16	Five Minutes More
+0	41	The Bill
+0	18	The Batman
+0	31	Health Dimensions
+0	35	Deal Or No Deal
+0	24	Indonesian News
+0	17	Lunar Jim
+0	42	Mandarin News
+0	26	Gardening Australia
+0	17	In the Box
+0	29	Sali Mali
+0	34	Avatar: The Last Airbender
+0	24	Midday Report
+0	39	Thank God You're Here
+0	32	It's Academic
+0	15	Yu-Gi-Oh! GX
+0	17	Business Success
+0	29	Sali Mali
+0	18	French News
+0	42	The Last Detective
+0	28	Mandarin News
+0	42	Insiders
+0	13	WeatherWatch & Music
+0	2	Station Close
+0	4	Home Shopping
+0	41	Indonesian News
+0	6	Bowls: Victorian Grand Prix 2006
+0	23	Arabic News
+0	40	Italian News
+0	24	Animal Jam
+0	20	Take On Technology
+0	43	World News Australia
+0	27	Cantonese News
+0	41	The Bourne Supremacy
+0	45	German News
+0	6	Guthy-Renker Australia
+0	38	Pop(b)session
+0	36	Global Village
+0	30	Boohbah
+0	11	Gardening Australia
+0	17	The Wiggles
+0	45	Lateline
+0	39	Tales from the Palaces
+0	19	Disney's Teamo Supremo
+0	35	Japanese News
+0	24	2006 Spring Racing Carnival
+0	31	Getaway
+0	44	Compass
+0	14	Olliver's Adventures
+0	16	Weekend Sunrise
+0	47	A Kind of America
+0	17	Lunar Jim
+0	35	Living Black
+0	41	Law & Order: Criminal Intent
+0	33	French News
+0	28	The Young and the Restless
+0	1	Rough Justice
+0	18	Raggs
+0	12	Thunderbirds
+0	14	Time Warp Trio
+0	25	Classic Parkinson
+0	32	Toyota World Sport
+0	46	Spanish News
+0	28	Insight
+0	22	Ten Morning News
+0	45	German News
+0	25	The New Inventors
+0	35	World Ahoy
+0	19	Russian News
+0	26	Dateline
+0	17	Gardening Australia
+0	13	Lateline
+0	33	French News
+0	19	Play School
+0	39	Scooby-Doo
+0	47	2006 Rugby League Tri-Nations Series
+0	22	Pablo the Little Red Fox
+0	21	Teletubbies Everywhere
+0	24	Message Stick
+0	24	Dr. Phil
+0	39	Good as Gold!
+0	19	Russian News
+0	30	Gardening Australia
+0	12	Ten Early News
+0	33	Tutenstein
+0	15	Australia Wide
+0	12	Mandarin News
+0	39	As It Happened
+0	14	Lateline Business
+0	6	Guthy-Renker Australia
+0	17	Round the Twist
+0	31	Huey's Cooking Adventures
+0	38	ABC News
+0	47	Italian News
+0	33	The Bold and the Beautiful
+0	38	Temptation
+0	37	A Current Affair
+0	18	Maltese News
+0	0	The Up-Late Gameshow
+0	37	Today Tonight
+0	41	Indonesian News
+0	13	Lateline
+0	18	experiMENTALS
+0	24	The New Inventors
+0	2	Station Close
+0	14	Dora the Explorer
+0	16	Five Minutes More
+0	34	Ten News
+0	18	jtv saturday
+0	18	9am With David and Kim
+0	21	Seven Morning News
+0	24	Dr. Phil
+0	40	Italian News
+0	30	Bananas in Pyjamas
+0	32	Pop(b)session
+0	15	Gerald McBoing Boing
+0	38	Four Corners
+0	42	jtv XL
+0	32	It's Academic
+0	21	Teletubbies Everywhere
+0	44	Short and Curly
+0	31	Elizabeth Chong's Tiny Delights
+0	9	Good Morning America
+0	31	Play School
+0	37	The Cook and the Chef
+0	18	Maltese News
+0	16	Das Journal
+0	39	How I Met Your Mother
+0	36	At the Movies
+0	20	Sons and Daughters
+0	43	The Closer
+0	45	Shock Docs
+0	35	Coxy's Big Break
+0	20	Engie Benjy
+0	28	Blue Heelers
+0	12	Ten Early News
+0	24	Queer Eye for the Straight Guy
+0	40	Australian Story
+0	41	Smallville
+0	46	Cybershack
+0	36	Arabic News
+0	26	This is Daniel Cook
+0	30	Pocoyo
+0	33	Seven News
+0	31	Huey's Cooking Adventures
+0	30	Pocoyo
+0	4	Home Shopping
+0	41	Dateline
+0	16	The Shak
+0	20	Video Hits
+0	22	Ten Morning News
+0	12	Mandarin News
+0	16	Miss BG
+0	10	Dateline NBC
+0	30	Judge Judy
+0	36	Classical Destinations
+0	45	Talking Heads
+0	9	Kenneth Copeland
+0	12	Cantonese News
+0	15	Martin Morning
+0	3	Station Close
+0	27	Words
+0	11	Words with James Griffin
+0	43	Four Corners
+0	9	Good Morning America
+0	43	Survivor: Cook Islands
+0	9	Poet's Pub
+0	23	Songs of Praise
+0	22	Rodney
+0	21	Girlband
+0	14	I Spy
+0	41	The Bill
+0	33	A Gondola on the Murray
+0	17	Video Hits
+0	30	Boohbah
+0	35	Stateline VIC
+0	22	Pablo the Little Red Fox
+0	19	Hot Auctions
+0	39	Inspector Rex
+0	32	Dr. Dog
+0	23	Inuk
+0	16	Das Journal
+0	30	Weatherwatch
+0	14	Italian News
+0	44	The Ronnie Johns Half Hour
+0	34	Ten News
+0	20	Engie Benjy
+0	23	Arabic News
+0	14	Olliver's Adventures
+0	21	Teletubbies Everywhere
+0	42	Australian Story
+0	32	Spanish News
+0	18	The Koala Brothers
+0	40	Two Men In A Tinnie
+0	1	The Nanny (Dadi)
+0	32	Spanish News
+0	12	Mandarin News
+0	32	The Shak
+0	45	Lateline
+0	21	Greek News
+0	41	Trafalgar Battle Surgeon
+0	25	A Gondola on the Murray
+0	44	Japanese News
+0	35	Naughty Naughty Pets
+0	29	Sali Mali
+0	41	Life At 1
+0	45	Filipino News
+0	36	Being Ian
+0	17	Timeblazers
+0	16	Scope
+0	30	Hungarian News
+0	25	Business Report
+0	34	Australia Wide
+0	33	Stateline ACT
+0	27	Talking Heads
+0	16	German News
+0	17	Chilean News
+0	12	People Dimensions
+0	19	Russian News
+0	22	Connie The Cow
+0	9	Key of David
+0	28	Angelmouse
+0	20	For the Juniors
+0	43	The Glass House
+0	14	Biker Mice from Mars
+0	37	Neighbours
+0	39	The Great Outdoors
+0	33	Seven News
+0	18	Le Journal
+0	43	Weatherwatch
+0	31	German News
+0	38	Temptation
+0	20	Rubbadubbers
+0	33	National Nine Afternoon News
+0	31	Hi-5
+0	16	Weatherwatch
+0	30	The Food Lover's Guide to Australia
+0	46	Spanish News
+0	11	Words with James Griffin
+0	44	Media Watch
+0	12	Cantonese News
+0	36	Global Village
+0	31	Girl Stuff, Boy Stuff
+0	24	Animal Jam
+0	21	Australians
+0	34	Head 2 Head
+0	20	Ebb and Flo
+0	5	Sending a Message
+0	0	Media Watch
+0	33	French News
+0	20	Jasper the Penguin
+0	29	Sali Mali
+0	5	Weatherwatch Overnight
+0	24	Indonesian News
+0	47	Arabic News
+0	44	Media Watch
+0	1	Midnight Zoo
+0	15	Gerald McBoing Boing
+0	39	Can We Help?
+0	18	The Koala Brothers
+0	18	Le Journal
+0	22	Cyberchase
+0	32	The Shak
+0	28	The Garden Gurus
+0	24	Landline
+0	31	Play School
+0	1	Midnight Zoo
+0	23	Fourways Farm
+0	2	Parliament Question Time
+0	14	Planet Cook
+0	12	Skyland
+0	33	Stateline SA
+0	31	People Dimensions
+0	30	Children Galore
+0	30	Judge Judy
+0	47	The Farm
+0	4	The Days
+0	20	Dave the Barbarian
+0	45	The 4400
+0	29	Oswald
+0	21	Seven Morning News
+0	32	Spanish News
+0	14	Olliver's Adventures
+0	14	Toasted TV
+0	41	Indonesian News
+0	36	Seven News
+0	16	The Adventures of Jimmy Neutron: Boy Genius
+0	45	Plumpton High Babies
+0	47	Frozen Land
+0	15	Australia Wide
+0	33	French News
+0	18	Thomas the Tank Engine & Friends
+0	23	Italian News
+0	6	Guthy-Renker Australia
+0	35	Bert's Family Feud
+0	24	Indonesian News
+0	34	Naturally Sadie
+0	15	Martin Morning
+0	17	Australian Story
+0	39	Operatunity Oz
+0	15	Toasted TV
+0	0	Family Plots
+0	23	Fresh Cooking with the Australian Women's Weekly
+0	46	Late Night Legends
+0	25	Australian Story
+0	40	Police Files - Unlocked
+0	43	Weatherwatch
+0	25	Play School
+0	18	Le Journal
+0	35	At the Movies
+0	41	Celebrity Joker Poker
+0	20	Ebb and Flo
+0	27	The Country Bears
+0	5	Rock Me Baby
+0	13	Weatherwatch
+0	34	The Food Trail
+0	34	Ten News
+0	23	Arabic News
+0	33	The Journal
+0	6	Guthy-Renker Australia
+0	12	Cantonese News
+0	24	Weatherwatch
+0	37	Filipino News
+0	18	Mornings with Kerri-Anne
+0	30	Wine Lovers' Guide to Australia
+0	14	Toasted TV
+0	38	Stateline NT
+0	15	Yu-Gi-Oh! GX
+0	11	Animal Rites
+0	30	Judge Judy
+0	18	Mornings with Kerri-Anne
+0	21	Offsiders
+0	29	Dance with Me
+0	25	Lovejoy
+0	39	The Food Lover's Guide to Australia
+0	41	Spicks & Specks
+0	46	Psychic Detectives
+0	41	Pilot Guides
+0	35	The Amazing Adrenalini Brothers
+0	45	Ten Late Night News/Sports Tonight
+0	36	Time Team
+0	17	Lunar Jim
+0	28	Parliament Question Time
+0	34	Australia Wide
+0	23	Arabic News
+0	32	Toyota World Sport
+0	33	UEFA Champions League
+0	22	Stacked
+0	35	Airline
+0	12	Today
+0	38	Toyota World Sport
+0	36	National Nine News
+0	24	Indonesian News
+0	39	Monk
+0	34	The Newshour with Jim Lehrer
+0	28	The Young and the Restless
+0	16	Fifi and the Flowertots
+0	26	Molly's Gang
+0	18	Bananas in Pyjamas
+0	30	Filipino News
+0	41	Midsomer Murders
+0	18	Bananas in Pyjamas
+0	45	German News
+0	45	Ten Late Night News/Sports Tonight
+0	12	One
+0	23	Inuk
+0	24	Haunting Sarah
+0	14	Toasted TV
+0	30	The Food Lover's Guide to Australia
+0	30	The New Captain Scarlet
+0	14	Italian News
+0	47	Ten Late News
+0	23	Adventures of Spot
+0	12	Chinese News
+0	41	S.W.A.T.
+0	20	Behind the News
+0	24	Queer Eye for the Straight Guy
+0	26	Argentinian Rugby Club
+0	37	The Einstein Factor
+0	15	[HOT] Source
+0	20	The Fimbles
+0	46	Battlestar Galactica
+0	41	House
+0	1	Crank Yankers
+0	10	Life Today with James Robison
+0	37	A Current Affair
+0	41	Jericho
+0	4	Weatherwatch Overnight
+0	16	Toasted TV
+0	1	Parliament Question Time
+0	31	People Dimensions
+0	34	Blue Water High
+0	12	Health Dimensions
+0	38	Greek News
+0	45	Offsiders
+0	31	Stateline VIC
+0	24	Pitch Black
+0	28	Angelmouse
+0	13	Mandarin News
+0	10	Tomorrow's World
+0	2	Chappelle's Show
+0	30	Entertainment Tonight
+0	17	Gardening Australia
+0	44	Japanese News
+0	14	Wicked Science
+0	21	Greek News
+0	19	Tiny Planets
+0	28	Blue Heelers
+0	47	Nightline
+0	36	Delilah & Julius
+0	2	Quizmania
+0	38	Home and Away
+0	37	Gardening Australia
+0	20	Jasper the Penguin
+0	22	Stacked
+0	12	Mandarin News
+0	24	Midday Report
+0	35	Bert's Family Feud
+0	26	Oprah
+0	26	The World of Peter Rabbit and Friends
+0	4	Home Shopping
+0	22	Pinky Dinky Doo
+0	4	Baroud
+0	44	The New Inventors
+0	32	Weatherwatch
+0	13	Bernard
+0	32	Toyota World Sport
+0	8	NBC Today
+0	45	Ten Late Night News/Sports Tonight
+0	36	Freaky Stories
+0	26	The World of Peter Rabbit and Friends
+0	34	Antiques Roadshow
+0	13	Barney & Friends
+0	9	A Cup of Kindness
+0	28	Angelmouse
+0	42	dig tv presents
+0	22	Connie The Cow
+0	37	World News Australia
+0	21	Filipino News
+0	32	Jakers! The Adventures of Piggley Winks
+0	24	Speedweek
+0	43	World News Australia
+0	20	So Fresh
+0	15	Toasted TV
+0	20	Rubbadubbers
+0	39	Mythbusters
+0	14	Rage: Guest Programmer
+0	15	Girl TV
+0	32	Dr. Dog
+0	41	Celebrity Survivor
+0	40	ABC News Update
+0	36	A Gondola on the Murray
+0	34	Russian News
+0	16	Das Journal
+0	28	The Wubbulous World of Dr. Suess
+0	26	Days of Our Lives
+0	10	Japanese News
+0	28	Mandarin News
+0	41	Space Race
+0	43	Polish News
+0	36	The Simpsons
+0	36	Seven News
+0	34	M*A*S*H
+0	12	Girls in Love
+0	46	Lateline Business
+0	10	Life Today with James Robison
+0	18	Bananas in Pyjamas
+0	23	Free Ride
+0	16	Winx Club
+0	12	Us Mob
+0	23	Fourways Farm
+0	26	Oprah
+0	43	Cold Case
+0	47	Hajj: The Greatest Trip On Earth
+0	22	Ten Morning News
+0	28	The Young and the Restless
+0	37	Talking Heads
+0	36	The Simpsons
+0	38	ABC News
+0	26	Maltese News
+0	45	Lateline
+0	33	The Secret Show
+0	38	Compass
+0	13	Weatherwatch
+0	37	Neighbours
+0	16	Miss BG
+0	41	Out of Time
+0	45	Late Night Legends
+0	45	JAG
+0	9	UEFA Champions League
+0	32	Jakers! The Adventures of Piggley Winks
+0	21	Zombie Hotel
+0	34	Russian News
+0	29	Spicks & Specks
+0	17	Lunar Jim
+0	45	Lateline
+0	38	Toyota World Sport
+0	23	Adventures of Spot
+0	38	Temptation
+0	31	The Clap
+0	25	Japanese News
+0	39	Australia Wide
+0	22	According to Jim
+0	36	Aussie Animal Rescue
+0	15	Toasted TV
+0	8	Enjoying Everyday Life
+0	45	Family Guy
+0	41	bro'Town
+0	44	Eros under the Swastika
+0	43	RPA
+0	16	German News
+0	28	Karen Blixen: Out of this World
+0	36	Arabic News
+0	38	The Pet Show
+0	19	Hot Auctions
+0	0	Sports Tonight
+0	26	This is Daniel Cook
+0	22	Pocoyo
+0	36	Stateline QLD
+0	19	Russian News
+0	30	Weatherwatch
+0	47	Arabic News
+0	14	Time Warp Trio
+0	12	Cantonese News
+0	27	Cantonese News
+0	1	Indonesian News
+0	10	Life Today with James Robison
+0	24	Midday Report
+0	46	Shorts on Screen
+0	2	Station Close
+0	39	The 7.30 Report
+0	47	Sex and the City
+0	28	Orphans of the Forest
+0	36	The Simpsons
+0	13	Yoko! Jakamoko! Toto!
+0	21	Batfink
+0	36	Seven News
+0	42	Catalyst
+0	46	Late Night Legends
+0	30	Judge Judy
+0	29	Lights, Camera, Action, Wiggles!
+0	30	Pocoyo
+0	28	Blue Heelers
+0	24	Running Home
+0	34	The Newshour with Jim Lehrer
+0	38	ABC News
+0	17	Spanish News
+0	3	Video Hits Up-Late
+0	22	National Nine Morning News
+0	32	Toyota World Sport
+0	16	Toasted TV
+0	28	The Wubbulous World of Dr. Suess
+0	14	Time Warp Trio
+0	35	Deal Or No Deal
+0	20	Staines Down Drains
+0	38	Toyota World Sport
+0	24	Animal Jam
+0	4	The Bernie Mac Show
+0	8	Jesse Duplantis Ministries
+0	21	Greek News
+0	34	The Newshour with Jim Lehrer
+0	7	Guthy-Renker Australia
+0	38	Futurama
+0	28	Ready Steady Cook
+0	21	Greek News
+0	37	Can We Help?
+0	46	Late Night Legends
+0	28	Mandarin News
+0	36	Seven News
+0	14	Wicked Science
+0	39	Dancing with the Stars
+0	9	The Arthur Askey Show
+0	21	Extra French
+0	16	Five Minutes More
+0	43	Plumpton High Babies
+0	6	Guthy-Renker Australia
+0	47	The Up-Late Gameshow
+0	2	Parliament Question Time
+0	18	Raggs
+0	10	Japanese News
+0	31	Health Dimensions
+0	32	It's Academic
+0	13	Barney & Friends
+0	27	Chinese News
+1	28	The Agatha Christie Code
+1	29	River Woman
+1	30	From Shtetl To Swing: A Musical Odyssey
+1	32	Sunday Arts
+1	34	Maggie: The First Lady
+1	36	At the Movies
+1	37	The Einstein Factor
+1	39	Operatunity Oz
+1	41	Space Race
+1	44	Compass
+1	45	The Private Life of a Masterpiece
+1	47	The Farm
+1	1	Order in the House
+1	42	Pyramids of Death
+1	3	49th Parallel
+1	7	Second Opinion
+1	38	ABC News
+1	9	Just My Luck
+1	12	Grizzly Tales for Gruesome Kids
+1	12	Black Hole High
+1	13	Tutenstein
+1	14	Time Warp Trio
+1	14	Olliver's Adventures
+1	15	Martin Morning
+1	15	Gerald McBoing Boing
+1	16	Miss BG
+1	16	Fifi and the Flowertots
+1	16	Five Minutes More
+1	17	Play with Me Sesame
+1	17	Lunar Jim
+1	18	The Koala Brothers
+1	19	Play School
+1	20	For the Juniors
+1	20	Pyramid
+1	21	Book Box: Double Act
+1	22	Landline
+1	24	Midday Report
+1	25	Pilot Guides
+1	27	Family Story
+1	28	Parliament Question Time
+1	30	Boohbah
+1	31	Play School
+1	32	Jakers! The Adventures of Piggley Winks
+1	32	Dr. Dog
+1	33	The Secret Show
+1	33	Tutenstein
+1	34	Black Hole High
+1	35	Grizzly Tales for Gruesome Kids
+1	36	Off The Map
+1	37	Talking Heads
+1	39	The 7.30 Report
+1	40	Australian Story
+1	41	Four Corners
+1	42	Media Watch
+1	43	Enough Rope with Andrew Denton
+1	45	Lateline
+1	46	Lateline Business
+1	47	Netball: International Series 2006
+1	2	Parliament Question Time
+1	4	Ordinary People
+1	6	Bowls: Victorian Grand Prix 2006
+1	38	ABC News
+1	9	Poet's Pub
+1	11	Words with James Griffin
+1	12	Girl Stuff, Boy Stuff
+1	12	Girls in Love
+1	13	Class of the Titans
+1	14	Time Warp Trio
+1	14	Olliver's Adventures
+1	15	Martin Morning
+1	15	Gerald McBoing Boing
+1	16	Miss BG
+1	16	Fifi and the Flowertots
+1	16	Five Minutes More
+1	17	Play with Me Sesame
+1	17	Lunar Jim
+1	18	The Koala Brothers
+1	19	Play School
+1	20	Behind the News
+1	20	Our History
+1	21	Extra French
+1	22	Animals: The Inside Story
+1	24	Midday Report
+1	25	The New Inventors
+1	26	The Einstein Factor
+1	27	Catalyst
+1	28	Parliament Question Time
+1	30	Boohbah
+1	31	Play School
+1	32	Jakers! The Adventures of Piggley Winks
+1	32	Dr. Dog
+1	33	The Secret Show
+1	34	Uncle Dad
+1	34	Naturally Sadie
+1	36	Message Stick
+1	36	Time Team
+1	39	The 7.30 Report
+1	40	Two Men In A Tinnie
+1	41	The Bill
+1	42	Foreign Correspondent
+1	44	Artists At Work
+1	45	Lateline
+1	46	Lateline Business
+1	47	Hajj: The Greatest Trip On Earth
+1	0	Murder Investigation Team
+1	2	Parliament Question Time
+1	4	Account Rendered
+1	6	Australians At War
+1	38	ABC News
+1	9	The Arthur Askey Show
+1	11	Animal Rites
+1	12	Being Ian
+1	13	Blue Water High
+1	14	Time Warp Trio
+1	14	Olliver's Adventures
+1	15	Martin Morning
+1	15	Gerald McBoing Boing
+1	16	Miss BG
+1	16	Fifi and the Flowertots
+1	16	Five Minutes More
+1	17	Lunar Jim
+1	18	The Koala Brothers
+1	19	Play School
+1	20	Count Us In
+1	20	Maths 4 Real 2
+1	21	Behind the News
+1	22	Spy Master
+1	24	Midday Report
+1	25	National Press Club Address
+1	27	Talking Heads
+1	28	Parliament Question Time
+1	30	Boohbah
+1	31	Play School
+1	32	Jakers! The Adventures of Piggley Winks
+1	32	Dr. Dog
+1	33	The Secret Show
+1	33	Yakkity Yak
+1	34	Blue Water High
+1	36	Rick Stein's French Odyssey
+1	37	The Cook and the Chef
+1	39	The 7.30 Report
+1	40	The New Inventors
+1	41	Spicks & Specks
+1	42	The IT Crowd
+1	43	The Glass House
+1	44	At the Movies
+1	45	Lateline
+1	46	Lateline Business
+1	47	Four Corners
+1	0	Media Watch
+1	1	Rough Justice
+1	2	Parliament Question Time
+1	4	Baroud
+1	6	National Press Club Address
+1	38	ABC News
+1	9	The Perfect Woman
+1	12	Skyland
+1	13	Zombie Hotel
+1	14	Time Warp Trio
+1	14	Olliver's Adventures
+1	15	Martin Morning
+1	15	Gerald McBoing Boing
+1	16	Miss BG
+1	16	Fifi and the Flowertots
+1	16	Five Minutes More
+1	17	Lunar Jim
+1	18	The Koala Brothers
+1	19	Play School
+1	20	For the Juniors
+1	20	Being Me
+1	21	India
+1	22	Monarchy
+1	24	Midday Report
+1	25	Lovejoy
+1	27	Strictly Dancing
+1	28	Parliament Question Time
+1	30	Boohbah
+1	31	Play School
+1	32	Jakers! The Adventures of Piggley Winks
+1	32	Dr. Dog
+1	33	The Secret Show
+1	33	Atomic Betty
+1	34	Avatar: The Last Airbender
+1	35	The Amazing Adrenalini Brothers
+1	36	Aussie Animal Rescue
+1	37	The Pet Show
+1	39	The 7.30 Report
+1	40	Catalyst
+1	41	Life At 1
+1	43	Morning Sun
+1	45	Lateline
+1	46	Lateline Business
+1	47	Live at the Basement
+1	1	Parliament Question Time
+1	3	Top of the Form
+1	5	Sending a Message
+1	7	Songs of Praise
+1	38	ABC News
+1	9	A Cup of Kindness
+1	11	Words with James Griffin
+1	12	Us Mob
+1	12	Radio Free Roscoe
+1	13	Angela Anaconda
+1	14	Time Warp Trio
+1	14	Olliver's Adventures
+1	15	Martin Morning
+1	15	Gerald McBoing Boing
+1	16	Miss BG
+1	16	Fifi and the Flowertots
+1	16	Five Minutes More
+1	17	Play with Me Sesame
+1	17	Lunar Jim
+1	18	The Koala Brothers
+1	19	Play School
+1	20	Take On Technology
+1	20	Behind the News Special
+1	21	Food for Thought
+1	21	Designers
+1	22	British Isles: A Natural History
+1	23	British Isles: A Natural History
+1	24	Midday Report
+1	25	Classic Parkinson
+1	27	Grumpy Old Men
+1	28	Welcher and Welcher
+1	29	Spicks & Specks
+1	30	Boohbah
+1	31	Play School
+1	32	Jakers! The Adventures of Piggley Winks
+1	32	Dr. Dog
+1	33	The Secret Show
+1	33	The Fairly OddParents
+1	34	Radio Free Roscoe
+1	35	Croc Bites
+1	36	Message Stick
+1	37	Can We Help?
+1	40	Collectors
+1	41	Midsomer Murders
+1	44	Sensitive Skin
+1	45	Lateline
+1	46	jtv
+1	47	rage
+1	38	ABC News
+1	39	Stateline VIC
+1	10	rage
+1	16	Rage: Guest Programmer
+1	18	jtv saturday
+1	22	Bowls: Tri Series: Men
+1	25	Australian Story
+1	26	Foreign Correspondent
+1	27	Words
+1	28	Orphans of the Forest
+1	29	The Monkey Puzzle
+1	30	Children Galore
+1	32	Basketball: Women's National League 2006/07
+1	34	Head 2 Head
+1	35	Bowls: Victorian Grand Prix 2006
+1	37	Gardening Australia
+1	39	New Tricks
+1	41	The Bill
+1	42	The Last Detective
+1	45	Changi
+1	47	The Glass House
+1	24	Stateline VIC
+1	38	ABC News
+1	0	rage
+1	10	rage
+1	13	The Fimbles
+1	14	I Spy
+1	14	Planet Cook
+1	15	Old Tom
+1	15	King Arthur's Disasters
+1	16	Dragon Booster
+1	17	Round the Twist
+1	18	Insiders
+1	20	Inside Business
+1	21	Offsiders
+1	22	Asia Pacific Focus
+1	23	Songs of Praise
+1	24	Landline
+1	26	Gardening Australia
+1	27	Message Stick
+1	17	The Wiggles
+1	17	The Wiggles
+1	0	The Sopranos
+1	28	Rock Eisteddfod Challenge 2006
+1	32	The Wildlife Man Featuring David Ireland
+1	34	Roar of the Wild
+1	35	Airline
+1	36	National Nine News Sunday
+1	37	Backyard Blitz
+1	39	60 Minutes
+1	41	CSI: NY
+1	43	CSI: NY
+1	45	Comedy Inc. The Late Shift
+1	47	The Apprentice
+1	0	Star Trek: Enterprise
+1	2	Late Show with David Letterman
+1	4	Farscape
+1	7	Guthy-Renker Australia
+1	8	Guthy-Renker Australia
+1	9	Guthy-Renker Australia
+1	10	20/20
+1	12	Today
+1	18	Mornings with Kerri-Anne
+1	22	National Nine Morning News
+1	23	Fresh Cooking with the Australian Women's Weekly
+1	24	Dr. Phil
+1	26	Days of Our Lives
+1	28	The Young and the Restless
+1	30	Entertainment Tonight
+1	31	Hi-5
+1	32	The Shak
+1	33	National Nine Afternoon News
+1	34	Antiques Roadshow
+1	35	Bert's Family Feud
+1	36	National Nine News
+1	37	A Current Affair
+1	38	Temptation
+1	39	What's Good for You
+1	41	What a Year
+1	43	Cold Case
+1	45	Body of Evidence
+1	46	Psychic Detectives
+1	47	Nightline
+1	2	Late Show with David Letterman
+1	4	The Bernie Mac Show
+1	5	Rock Me Baby
+1	6	Guthy-Renker Australia
+1	7	Guthy-Renker Australia
+1	8	Creflo A. Dollar, Jr
+1	9	Good Morning America
+1	12	Today
+1	18	Mornings with Kerri-Anne
+1	22	National Nine Morning News
+1	23	Fresh Cooking with the Australian Women's Weekly
+1	24	Dr. Phil
+1	26	Days of Our Lives
+1	28	The Young and the Restless
+1	30	Entertainment Tonight
+1	31	Hi-5
+1	32	The Shak
+1	33	National Nine Afternoon News
+1	34	Antiques Roadshow
+1	35	Bert's Family Feud
+1	36	National Nine News
+1	37	A Current Affair
+1	38	Temptation
+1	39	20 to 1
+1	41	CSI: Crime Scene Investigation
+1	43	The Closer
+1	45	Shock Docs
+1	47	Nightline
+1	0	Quizmania
+1	6	Guthy-Renker Australia
+1	7	Guthy-Renker Australia
+1	8	Creflo A. Dollar, Jr
+1	9	Good Morning America
+1	12	Today
+1	18	Mornings with Kerri-Anne
+1	22	National Nine Morning News
+1	23	Fresh Cooking with the Australian Women's Weekly
+1	24	Dr. Phil
+1	26	Days of Our Lives
+1	28	The Young and the Restless
+1	30	Entertainment Tonight
+1	31	Hi-5
+1	32	Streetsmartz
+1	33	National Nine Afternoon News
+1	34	Antiques Roadshow
+1	35	Bert's Family Feud
+1	36	National Nine News
+1	37	A Current Affair
+1	38	Temptation
+1	39	McLeod's Daughters
+1	41	CSI: Miami
+1	43	Survivor: Cook Islands
+1	47	Nightline
+1	0	Quizmania
+1	6	Guthy-Renker Australia
+1	7	Guthy-Renker Australia
+1	8	Creflo A. Dollar, Jr
+1	9	Good Morning America
+1	12	Today
+1	18	Mornings with Kerri-Anne
+1	22	National Nine Morning News
+1	23	Fresh Cooking with the Australian Women's Weekly
+1	24	Dr. Phil
+1	26	Days of Our Lives
+1	28	The Young and the Restless
+1	30	Entertainment Tonight
+1	31	Hi-5
+1	32	The Shak
+1	33	National Nine Afternoon News
+1	34	Antiques Roadshow
+1	35	Bert's Family Feud
+1	36	National Nine News
+1	37	A Current Affair
+1	38	Temptation
+1	39	Getaway
+1	41	Big Questions
+1	43	RPA
+1	44	Amazing Medical Stories
+1	46	Missing Persons Unit
+1	47	Nightline
+1	0	Quizmania
+1	6	Guthy-Renker Australia
+1	7	Guthy-Renker Australia
+1	8	Creflo A. Dollar, Jr
+1	9	Good Morning America
+1	12	Today
+1	18	Mornings with Kerri-Anne
+1	22	National Nine Morning News
+1	23	Fresh Cooking with the Australian Women's Weekly
+1	24	Dr. Phil
+1	26	Days of Our Lives
+1	28	The Young and the Restless
+1	30	Entertainment Tonight
+1	31	Hi-5
+1	32	The Shak
+1	33	National Nine Afternoon News
+1	34	Antiques Roadshow
+1	35	Bert's Family Feud
+1	36	National Nine News
+1	37	A Current Affair
+1	38	Temptation
+1	39	Our Changing Climate - Victorian Special
+1	41	S.W.A.T.
+1	2	Quizmania
+1	8	Creflo A. Dollar, Jr
+1	9	Good Morning America
+1	12	Thunderbirds
+1	13	Barney & Friends
+1	14	Dora the Explorer
+1	15	The Shapies
+1	16	The Shak
+1	17	The Batman
+1	17	Timeblazers
+1	18	The Batman
+1	19	The Sleepover Club
+1	20	So Fresh
+1	23	Backstage Pass
+1	24	Speed Machine
+1	25	Auntie Mame
+1	31	Getaway
+1	33	Talk to the Animals
+1	34	The Garden Gurus
+1	35	Postcards
+1	36	National Nine News Saturday
+1	37	Australia's Funniest Home Video Show
+1	39	Scooby-Doo
+1	43	The Whole Nine Yards
+1	47	2006 Rugby League Tri-Nations Series
+1	3	Quizmania
+1	8	Jesse Duplantis Ministries
+1	9	Life Today
+1	10	Tomorrow's World
+1	11	Rise and Shine
+1	6	George Lopez
+1	46	The Assassin
+1	12	Make Way for Noddy
+1	12	Little Red Tractor
+1	13	Barney & Friends
+1	14	Dora the Explorer
+1	15	[HOT] Source
+1	16	Fishing North Australia
+1	17	Business Success
+1	18	Sunday
+1	22	Talking Real Estate
+1	23	NBL on Nine
+1	25	Planet X Winter Games 06
+1	26	Hamilton Island Race Week
+1	45	Comedy Inc. The Late Shift
+1	28	The World Game
+1	32	UEFA Champions League Magazine
+1	33	Euro 2008 Qualifier
+1	36	Thalassa
+1	37	World News Australia
+1	38	Toyota World Sport
+1	39	Lost Worlds
+1	41	Can Dogs Smell Cancer?
+1	43	Augustus
+1	46	The Film Biker
+1	1	The Storm Rages Twice
+1	3	Weatherwatch Overnight
+1	10	Japanese News
+1	12	WeatherWatch & Music
+1	12	Mandarin News
+1	13	WeatherWatch & Music
+1	14	Italian News
+1	16	Das Journal
+1	17	Spanish News
+1	18	Le Journal
+1	19	Russian News
+1	21	Greek News
+1	23	Arabic News
+1	24	Indonesian News
+1	25	Polish News
+1	26	Argentinian Rugby Club
+1	28	Insight
+1	30	Wine Lovers' Guide to Australia
+1	31	The Future Is Wild
+1	32	Toyota World Sport
+1	33	The Journal
+1	34	She'll Be Right Boss
+1	35	Living Black
+1	36	Global Village
+1	37	World News Australia
+1	38	Toyota World Sport
+1	39	Mythbusters
+1	41	bro'Town
+1	42	South Park
+1	43	World News Australia
+1	44	Oz
+1	46	Stealing Rembrandt
+1	1	The Nanny (Dadi)
+1	2	Train of Life
+1	5	Weatherwatch Overnight
+1	10	Japanese News
+1	12	Chinese News
+1	12	Mandarin News
+1	13	WeatherWatch & Music
+1	14	Italian News
+1	16	Das Journal
+1	17	Spanish News
+1	18	Le Journal
+1	19	Russian News
+1	21	Greek News
+1	23	Arabic News
+1	24	Indonesian News
+1	25	Business Report
+1	26	Metamorphosis
+1	29	Tales from a Suitcase
+1	30	Food Lovers' Guide to Australia
+1	31	Living Black
+1	32	Toyota World Sport
+1	33	The Journal
+1	34	The Newshour with Jim Lehrer
+1	36	Global Village
+1	37	World News Australia
+1	38	Toyota World Sport
+1	39	Insight
+1	41	Cutting Edge
+1	43	World News Australia
+1	44	How Vietnam Was Lost
+1	46	The Marriage Certificate
+1	2	2LDK
+1	4	Weatherwatch Overnight
+1	9	UEFA Champions League
+1	13	Mandarin News
+1	14	Italian News
+1	16	Das Journal
+1	17	Spanish News
+1	18	Le Journal
+1	19	Russian News
+1	21	Greek News
+1	23	Arabic News
+1	24	Indonesian News
+1	25	Business Report
+1	26	Japanese News
+1	27	Chinese News
+1	28	The Price of Victory
+1	30	Food Lovers' Guide to Australia
+1	31	Simply Ming
+1	32	Toyota World Sport
+1	33	The Journal
+1	34	The Newshour with Jim Lehrer
+1	36	Living Black
+1	37	World News Australia
+1	38	Toyota World Sport
+1	39	Food Lovers' Guide to Australia
+1	40	The Two of Us
+1	41	Dateline
+1	43	World News Australia
+1	44	Behind the Sun
+1	47	A Kind of America
+1	3	The Crime of Crimes
+1	4	Weatherwatch Overnight
+1	9	UEFA Champions League
+1	13	Mandarin News
+1	14	Italian News
+1	16	Das Journal
+1	17	Spanish News
+1	18	Le Journal
+1	19	Russian News
+1	21	Greek News
+1	23	Arabic News
+1	24	Indonesian News
+1	25	Business Report
+1	26	Dateline
+1	28	Japanese News
+1	29	Chinese News
+1	30	A Fork in the Road
+1	31	School Torque
+1	32	Toyota World Sport
+1	33	The Journal
+1	34	The Newshour with Jim Lehrer
+1	36	Global Village
+1	37	World News Australia
+1	38	Toyota World Sport
+1	39	Inspector Rex
+1	40	Hotline
+1	41	Storyline Australia
+1	43	World News Australia
+1	44	VH1's ILL-ustrated
+1	45	UEFA Champions League Highlights
+1	47	Frozen Land
+1	3	Weatherwatch Overnight
+1	10	Japanese News
+1	12	Chinese News
+1	12	Mandarin News
+1	13	WeatherWatch & Music
+1	14	Italian News
+1	16	Das Journal
+1	17	Spanish News
+1	18	Le Journal
+1	19	Russian News
+1	21	Greek News
+1	23	Arabic News
+1	24	Indonesian News
+1	25	Business Report
+1	26	Insight
+1	28	In Satmar Custody
+1	31	Elizabeth Chong's Tiny Delights
+1	32	Toyota World Sport
+1	33	The Journal
+1	34	The Newshour with Jim Lehrer
+1	36	Global Village
+1	37	World News Australia
+1	38	Toyota World Sport
+1	40	Feast Bazaar
+1	39	Tales from the Palaces
+1	41	Bronski & Bernstein
+1	43	World News Australia
+1	44	Eros under the Swastika
+1	45	Sex and Lucia
+1	21	Greek News
+1	1	Domenica
+1	5	Weatherwatch Overnight
+1	10	Japanese News
+1	12	Chinese News
+1	12	Mandarin News
+1	13	WeatherWatch & Music
+1	14	Italian News
+1	16	Das Journal
+1	17	Spanish News
+1	18	Le Journal
+1	19	Russian News
+1	23	Arabic News
+1	24	Indonesian News
+1	25	Business Report
+1	26	The Trojans
+1	29	Berlioz's Trip
+1	31	The Clap
+1	32	Lang Lang: Pianist from the Middle Kingdom
+1	33	The Journal
+1	34	The Newshour with Jim Lehrer
+1	36	Classical Destinations
+1	37	World News Australia
+1	38	Toyota World Sport
+1	39	As It Happened
+1	41	Iron Chef
+1	42	RocKwiz By Request
+1	43	Malena
+1	46	Shorts on Screen
+1	0	When Sex Goes Wrong
+1	1	Crank Yankers
+1	2	Chappelle's Show
+1	3	Weatherwatch Overnight
+1	13	Filipino News
+1	14	Hungarian News
+1	15	Italian News Weekly
+1	16	Korean News
+1	17	Latin American News
+1	18	Maltese News
+1	19	Polish News
+1	20	Ukrainian News
+1	21	2006 FIVB World Grand Prix
+1	23	Paris-Tours 2006
+1	24	Speedweek
+1	27	Get a Clue
+1	35	Coxy's Big Break
+1	36	Seven News
+1	37	The Real Seachange
+1	38	Medical Emergency
+1	39	Good as Gold!
+1	6	Guthy-Renker Australia
+1	8	NBC Today
+1	10	NBC Meet the Press
+1	12	Sunrise
+1	18	Raggs
+1	19	Hot Auctions
+1	20	Sons and Daughters
+1	21	Seven Morning News
+1	22	Rodney
+1	23	Free Ride
+1	24	Haunting Sarah
+1	28	Blue Heelers
+1	30	Rafferty's Rules
+1	32	It's Academic
+1	33	Seven News
+1	34	M*A*S*H
+1	35	Deal Or No Deal
+1	36	Seven News
+1	37	Today Tonight
+1	38	Home and Away
+1	39	The Great Outdoors
+1	41	Grey's Anatomy
+1	43	Criminal Minds
+1	45	Boston Legal
+1	47	Jake in Progress
+1	0	Less Than Perfect
+1	1	Midnight Zoo
+1	4	Passions
+1	6	Guthy-Renker Australia
+1	8	NBC Today
+1	12	Sunrise
+1	18	Raggs
+1	19	Hot Auctions
+1	20	Sons and Daughters
+1	21	Seven Morning News
+1	22	Rodney
+1	23	Free Ride
+1	24	Man of Miracles
+1	28	Blue Heelers
+1	30	Rafferty's Rules
+1	32	It's Academic
+1	33	Seven News
+1	34	M*A*S*H
+1	35	Deal Or No Deal
+1	36	Seven News
+1	37	Today Tonight
+1	38	Home and Away
+1	39	Dancing with the Stars
+1	43	All Saints
+1	45	Crossing Jordan
+1	47	Criss Angel Mindfreak
+1	0	Family Plots
+1	1	Midnight Zoo
+1	4	Passions
+1	6	Guthy-Renker Australia
+1	8	NBC Today
+1	12	Sunrise
+1	18	Raggs
+1	19	Hot Auctions
+1	20	Sons and Daughters
+1	21	Seven Morning News
+1	22	Stacked
+1	23	Free Ride
+1	24	Running Home
+1	28	Blue Heelers
+1	30	Rafferty's Rules
+1	32	It's Academic
+1	33	Seven News
+1	34	M*A*S*H
+1	35	Deal Or No Deal
+1	36	Seven News
+1	37	Today Tonight
+1	38	Home and Away
+1	39	The Force - Behind The Line
+1	40	Police Files - Unlocked
+1	41	Forensic Investigators - Australia's True Crimes
+1	43	The Unit
+1	45	JAG
+1	47	The First 48
+1	1	Midnight Zoo
+1	4	Passions
+1	6	Guthy-Renker Australia
+1	8	NBC Today
+1	12	Sunrise
+1	18	Raggs
+1	19	Hot Auctions
+1	20	Sons and Daughters
+1	21	Seven Morning News
+1	22	Stacked
+1	23	Free Ride
+1	24	In the Line of Duty: Blaze of Glory
+1	28	Blue Heelers
+1	30	Rafferty's Rules
+1	32	It's Academic
+1	33	Seven News
+1	34	M*A*S*H
+1	35	Deal Or No Deal
+1	36	Seven News
+1	37	Today Tonight
+1	38	Home and Away
+1	39	How I Met Your Mother
+1	40	My Name Is Earl
+1	41	Celebrity Survivor
+1	43	Bones
+1	45	Family Guy
+1	47	Stargate SG-1
+1	1	Midnight Zoo
+1	4	Passions
+1	6	Guthy-Renker Australia
+1	8	NBC Today
+1	12	Sunrise
+1	18	Raggs
+1	19	Hot Auctions
+1	20	Sons and Daughters
+1	21	Seven Morning News
+1	22	Stacked
+1	23	Scrubs
+1	24	Pitch Black
+1	29	Reba
+1	30	Rafferty's Rules
+1	32	It's Academic
+1	33	Seven News
+1	34	M*A*S*H
+1	35	Deal Or No Deal
+1	36	Seven News
+1	37	Today Tonight
+1	38	Home and Away
+1	39	Better Homes and Gardens
+1	41	Out of Time
+1	45	Jeepers Creepers 2
+1	1	Midnight Zoo
+1	4	The Days
+1	6	Guthy-Renker Australia
+1	8	NBC Today
+1	12	Tractor Tom
+1	13	A.T.O.M.: Alpha Teens on Machines
+1	14	Saturday Disney
+1	18	Lloyd in Space
+1	19	Disney's Teamo Supremo
+1	20	Dave the Barbarian
+1	21	The Proud Family
+1	22	Kim Possible
+1	23	That's So Raven
+1	24	2006 Spring Racing Carnival
+1	34	The Food Trail
+1	35	Melbourne Weekender
+1	36	Seven News
+1	37	Great Comedy Classics
+1	41	The Hot Chick
+1	1	Chasing Amy
+1	8	Guthy-Renker Australia
+1	10	Dateline NBC
+1	41	Countdown to the Most Inspiring Movie of All Time
+1	46	Movie - One of the Top 5 Inspiring Movies of All Time
+1	3	Studio Portraits
+1	5	Malibu, CA
+1	30	The Jewel of the Nile
+1	45	Spy Hard
+1	5	Straight Plan for the Gay Man
+1	12	One
+1	13	Tractor Tom
+1	14	Stanley
+1	15	Girl TV
+1	16	Weekend Sunrise
+1	20	Staines Down Drains
+1	21	Dive Olly Dive!
+1	22	According to Jim
+1	23	The Scream Team
+1	27	The Country Bears
+1	27	Pippi Longstocking
+1	30	Carerra Cup Australia
+1	31	RPM
+1	34	Ten News
+1	35	Sports Tonight
+1	36	The Simpsons
+1	37	Meerkat Manor
+1	38	It's Me Or the Dog
+1	39	Australian Idol
+1	42	The Bourne Identity
+1	46	MotoGP
+1	4	Video Hits Up-Late
+1	8	Enjoying Everyday Life
+1	9	Kenneth Copeland
+1	10	Life Today with James Robison
+1	11	This is Your Day
+1	12	Ten Early News
+1	14	Teenage Mutant Ninja Turtles
+1	15	Yu-Gi-Oh! GX
+1	16	Winx Club
+1	17	In the Box
+1	18	9am With David and Kim
+1	22	Ten Morning News
+1	24	Queer Eye for the Straight Guy
+1	26	Oprah
+1	28	Ready Steady Cook
+1	30	Judge Judy
+1	31	Huey's Cooking Adventures
+1	32	Scope
+1	33	The Bold and the Beautiful
+1	34	Ten News
+1	36	The Simpsons
+1	37	Neighbours
+1	38	Futurama
+1	39	Australian Idol - The Live Verdict
+1	41	Law & Order: SVU
+1	43	The Biggest Loser
+1	45	Ten Late Night News/Sports Tonight
+1	46	NYPD Blue
+1	0	The Up-Late Gameshow
+1	8	Enjoying Everyday Life
+1	9	Kenneth Copeland
+1	10	Life Today with James Robison
+1	11	This is Your Day
+1	12	Ten Early News
+1	14	Teenage Mutant Ninja Turtles
+1	15	Yu-Gi-Oh! GX
+1	16	Winx Club
+1	17	In the Box
+1	18	9am With David and Kim
+1	22	Ten Morning News
+1	23	TTN
+1	24	Queer Eye for the Straight Guy
+1	26	Oprah
+1	28	Ready Steady Cook
+1	30	Judge Judy
+1	31	Huey's Cooking Adventures
+1	32	Totally Wild
+1	33	The Bold and the Beautiful
+1	34	Ten News
+1	36	The Simpsons
+1	37	Neighbours
+1	38	Futurama
+1	39	Australian Idol Unplugged
+1	41	Celebrity Joker Poker
+1	43	Rove Live
+1	45	Ten Late Night News/Sports Tonight
+1	46	Cybershack
+1	47	The Up-Late Gameshow
+1	8	Enjoying Everyday Life
+1	9	Kenneth Copeland
+1	10	Life Today with James Robison
+1	11	This is Your Day
+1	12	Ten Early News
+1	14	Teenage Mutant Ninja Turtles
+1	15	Yu-Gi-Oh! GX
+1	16	Winx Club
+1	17	In the Box
+1	18	9am With David and Kim
+1	22	Ten Morning News
+1	24	Queer Eye for the Straight Guy
+1	26	Oprah
+1	28	Ready Steady Cook
+1	30	Judge Judy
+1	31	Huey's Cooking Adventures
+1	32	Totally Wild
+1	33	The Bold and the Beautiful
+1	34	Ten News
+1	36	The Simpsons
+1	37	Neighbours
+1	38	Futurama
+1	39	Thank God You're Here
+1	41	House
+1	43	NCIS
+1	45	Ten Late Night News/Sports Tonight
+1	46	Battlestar Galactica
+1	0	The Up-Late Gameshow
+1	8	Enjoying Everyday Life
+1	9	Kenneth Copeland
+1	10	Life Today with James Robison
+1	11	This is Your Day
+1	12	Ten Early News
+1	14	Teenage Mutant Ninja Turtles
+1	15	Yu-Gi-Oh! GX
+1	16	Winx Club
+1	17	In the Box
+1	18	9am With David and Kim
+1	22	Ten Morning News
+1	24	Queer Eye for the Straight Guy
+1	26	Oprah
+1	28	Ready Steady Cook
+1	30	Judge Judy
+1	31	Huey's Cooking Adventures
+1	32	Totally Wild
+1	33	The Bold and the Beautiful
+1	34	Ten News
+1	36	The Simpsons
+1	37	Neighbours
+1	38	Futurama
+1	39	Jamie's Kitchen - Australia
+1	41	Jericho
+1	43	David Tench Tonight
+1	44	The Ronnie Johns Half Hour
+1	45	Ten Late Night News/Sports Tonight
+1	47	Sex and the City
+1	0	The Up-Late Gameshow
+1	8	Enjoying Everyday Life
+1	9	Kenneth Copeland
+1	10	Life Today with James Robison
+1	11	This is Your Day
+1	12	Ten Early News
+1	14	Biker Mice from Mars
+1	15	Yu-Gi-Oh! GX
+1	16	The Adventures of Jimmy Neutron: Boy Genius
+1	17	In the Box
+1	18	9am With David and Kim
+1	22	Ten Morning News
+1	24	Queer Eye for the Straight Guy
+1	26	Oprah
+1	28	Ready Steady Cook
+1	30	Judge Judy
+1	31	Huey's Cooking Adventures
+1	32	H2O: Just Add Water
+1	33	The Bold and the Beautiful
+1	34	Ten News
+1	36	The Simpsons
+1	37	Neighbours
+1	38	Futurama
+1	47	Ten Late News
+1	0	Sports Tonight
+1	1	The Up-Late Gameshow
+1	8	The Handler
+1	10	This is Your Day
+1	11	Christian City TV
+1	5	Home Shopping
+1	4	Home Shopping
+1	4	Home Shopping
+1	4	Home Shopping
+1	4	Home Shopping
+1	4	Home Shopping
+1	39	Smallville
+1	41	Smallville
+1	42	Lara Croft Tomb Raider: The Cradle of Life
+1	12	Mass for You at Home
+1	13	Hillsong
+1	14	Wicked Science
+1	15	Totally Wild
+1	16	Meet the Press
+1	17	Video Hits
+1	21	Girlband
+1	22	Lexmark Indy 300
+1	12	Toasted TV
+1	14	Wicked Science
+1	15	Totally Wild
+1	16	Scope
+1	17	Video Hits First
+1	20	Video Hits
+1	21	Escape with ET
+1	22	Lexmark Indy 300
+1	34	Ten News
+1	35	Sports Tonight
+1	36	The Simpsons
+1	37	Out of Practice
+1	38	Everybody Loves Raymond
+1	39	Monk
+1	41	Law & Order: Criminal Intent
+1	43	The Jackal
+1	47	Wild Turkey Joker Poker
+1	1	Hack
+1	3	Britney & Kevin: Chaotic
+1	4	Home Shopping
+1	8	Bayless Conley
+1	9	Key of David
+1	10	Hour of Power
+1	46	Video Hits Presents
+2	0	Arabic News
+2	0	Herald Sun Tour
+2	0	Words Of Peace
+2	0	Netball: International Series 2006: New Zealand Vs Australia: Test (Cont.)
+2	0	Best Of Series 1: Late Night Legends (Cont.)
+2	0	Quizmania
+2	0	Stargate Sg1 (Cont.)
+2	0	Julietta
+2	1	Midnight Zoo
+2	1	Indonesian News
+2	1	The UpLate Game Show
+2	1	Pathways Magazine
+2	2	Rodder's Life
+2	2	Good Game
+2	2	Parliament Question Time: The House Of Representatives
+2	3	Short And Curly
+2	3	Vsf Soccer Show
+2	3	Weatherwatch Overnight
+2	3	Video Hits UpLate
+2	3	Close
+2	4	Passions
+2	4	Home Shopping
+2	4	Friday The Thirteenth
+2	5	Weather Watch
+2	5	In The Red Corner
+2	6	GuthyRenker Australia
+2	6	GuthyRenker Australia
+2	6	Ko Boxing
+2	7	Fishcam
+2	7	GuthyRenker Australia
+2	7	Songs Of Praise: Bangor, North Wales
+2	8	Enjoying Everyday Life With Joyce Meyer
+2	8	Nbc Today
+2	8	Creflo A Dollar
+2	9	Good Morning America
+2	9	Kenneth Copeland
+2	9	Around The World
+2	10	Life Today With James Robison
+2	10	Japanese News
+2	10	Japanese News
+2	11	This Is Your Day With Benny Hinn
+2	11	1700
+2	12	Us Mob
+2	12	People Dimensions
+2	12	Cantonese News
+2	12	Ten Early News
+2	12	Chinese News
+2	12	Today
+2	12	Sunrise
+2	12	Radio Free Roscoe
+2	12	Mandarin News
+2	12	Mandarin News
+2	13	Pinoy Music
+2	13	Lateline
+2	13	Angela Anaconda
+2	13	Filipino News
+2	13	Weatherwatch  Music
+2	14	The Breakfast Show Live
+2	14	Time Warp Trio
+2	14	Toasted Tv
+2	14	Lateline Business
+2	14	Edgar And Ellen
+2	14	Italian News
+2	14	Olliver's Adventures
+2	14	Italian News
+2	15	Australia Wide
+2	15	Martin Morning
+2	15	Gerald Mcboing Boing
+2	15	Business Bulletin
+2	16	Miss Bg
+2	16	Head 2 Head
+2	16	German News
+2	16	Das Journal
+2	16	Fifi And The Flowertots
+2	16	Five Minutes More
+2	17	Gardening Australia
+2	17	Play With Me Sesame
+2	17	Spanish News
+2	17	Spanish News
+2	17	In The Box
+2	17	Weather Bulletin
+2	17	Lunar Jim
+2	18	Mornings With KerriAnne
+2	18	Raggs
+2	18	Move It Or Lose It
+2	18	9am With David  Kim
+2	18	A Big Country Revisited
+2	18	Thomas And Friends
+2	18	The Koala Brothers
+2	18	French News
+2	18	Le Journal
+2	18	Bananas In Pyjamas
+2	18	Compass
+2	19	Play School
+2	19	Ken Harris Masterclass In Oils
+2	19	Hot Auctions
+2	19	Russian News
+2	19	Russian News
+2	20	Lassie  The Disappearance
+2	20	Engie Benjy
+2	20	Lights, Camera, Action, Wiggles!
+2	20	Sons And Daughters
+2	20	Bambaloo
+2	20	Ebb And Flo
+2	20	Rubbadubbers
+2	20	Bob The Builder
+2	21	Greek News
+2	21	Seven Morning News
+2	21	The Fimbles
+2	21	Greek News
+2	21	Backyard Science
+2	21	Backyard Science
+2	21	Brum
+2	22	Ten Morning News
+2	22	Rodney
+2	22	British Isles: A Natural History
+2	22	National Nine Morning News
+2	22	Pablo The Little Red Fox
+2	22	Connie The Cow
+2	22	Pocoyo
+2	22	Pinky Dinky Doo
+2	23	Fresh Cooking With The Australian Women's Weekly
+2	23	Arabic News
+2	23	Arabic News
+2	23	Geelong Newsbeat
+2	23	Free Ride
+2	23	Fourways Farm
+2	23	Inuk
+2	23	Adventures Of Spot
+2	24	Midday Report
+2	24	Sweet  Sour
+2	24	Animal Jam
+2	24	Twelve Angry Men
+2	24	Dr Phil
+2	24	Queer Eye For The Straight Guy
+2	24	Indonesian News
+2	24	Indonesian News
+2	24	Pingu
+2	25	Classic Parkinson
+2	25	One World  Sri Lanka
+2	25	Japanese News
+2	25	Play School
+2	25	Business Report
+2	26	This Is Daniel Cook
+2	26	One World  Usa
+2	26	Insight
+2	26	Days Of Our Lives
+2	26	The Oprah Winfrey Show
+2	26	Dr Otter
+2	26	Soupe Opera
+2	26	Molly's Gang
+2	26	The World Of Peter Rabbit And Friends
+2	27	Grumpy Old Men
+2	27	Cantonese News
+2	27	Nabonga
+2	27	Spot's Musical Adventures
+2	27	Bob The Builder
+2	28	Mandarin News
+2	28	Ready Steady Cook
+2	28	The Young And The Restless
+2	28	The Lenny Henry Show
+2	28	The Wubbulous World Of Dr Seuss
+2	28	Kursk  A Submarine In Troubled Waters
+2	28	Angelmouse
+2	29	Spicks  Specks
+2	29	Oswald
+2	29	Reba
+2	29	Sali Mali
+2	29	Lights, Camera, Action, Wiggles!
+2	30	Rafferty's Rules
+2	30	Pilot Guides
+2	30	Bananas In Pyjamas
+2	30	4wd Tv
+2	30	Judge Judy
+2	30	Entertainment Tonight
+2	30	A Fork In The Road
+2	30	Filipino News
+2	30	Boohbah
+2	30	Pocoyo
+2	31	New Macdonald's Farm
+2	31	Elizabeth Chong's Tiny Delights
+2	31	Rodder's Life
+2	31	Huey's Cooking Adventures
+2	31	Play School
+2	31	Health Dimensions
+2	31	German News
+2	31	Moments In Time
+2	32	A Big Country Revisited
+2	32	The Shak
+2	32	It's Academic
+2	32	H2o  Just Add Water
+2	32	Toyota World Sport
+2	32	Two Wheel Torque
+2	32	Jakers!: The Adventures Of Piggley Winks
+2	32	Spanish News
+2	32	Dr Dog
+2	33	Fishin' Trip
+2	33	A Gondola On The Murray
+2	33	The Bold  The Beautiful
+2	33	The Journal
+2	33	Seven News At 4.30
+2	33	National Nine Afternoon News
+2	33	The Secret Show
+2	33	French News
+2	33	Roller Coaster Including
+2	33	Sports Bulletin
+2	34	Australia Wide
+2	34	Antiques Roadshow
+2	34	Newshour With Jim Lehrer
+2	34	Fairly Odd Parents
+2	34	Mash
+2	34	Ten News At Five
+2	34	1700
+2	34	Radio Free Roscoe
+2	34	Russian News
+2	35	Deal Or No Deal
+2	35	Australian Story
+2	35	Bert's Family Feud
+2	35	Planet Sketch
+2	35	Japanese News
+2	35	Behind The News
+2	36	Message Stick: Wave Hill Concert: Part 2
+2	36	Melbourne Musos
+2	36	Global Village
+2	36	The Simpsons
+2	36	National Nine News
+2	36	Delilah And Julius
+2	36	Seven News With Peter Mitchell
+2	36	Arabic News
+2	36	Freaky Stories
+2	37	Neighbours
+2	37	A Current Affair
+2	37	Can We Help?
+2	37	World News Australia
+2	37	The Tribe
+2	37	Today Tonight With Naomi Robson
+2	37	Visions
+2	37	Weather Bulletin
+2	38	Words Of Peace
+2	38	Futurama
+2	38	Toyota World Sport
+2	38	Greek News
+2	38	Temptation
+2	38	Home And Away
+2	38	Compass
+2	38	Abc News
+2	39	Motorway Patrol
+2	39	Better Homes And Gardens
+2	39	Tales From The Palaces
+2	39	The Simpsons
+2	39	Stateline
+2	39	Australia Wide
+2	39	Vasili's Garden
+2	40	Wnbl: Live
+2	40	Motorway Patrol
+2	40	Tv Hellas
+2	40	Collectors
+2	40	Everybody Hates Chris
+2	40	Feast Bazaar
+2	40	Italian News
+2	41	High Crimes
+2	41	The Recruit
+2	41	Midsomer Murders: Country Matters
+2	41	Crackerjack
+2	41	Bronski  Bernstein
+2	41	Indonesian News
+2	42	Mandarin News
+2	43	World News Australia
+2	43	Bite Size
+2	43	Filipino News
+2	44	Short And Curly
+2	44	Flatly Stacked
+2	44	Pool Tv
+2	44	Sensitive Skin
+2	44	Japanese News
+2	44	4 Minute Wonders Vic
+2	44	Veronica Mars
+2	45	Plumpton High Babies
+2	45	Lateline
+2	45	German News
+2	46	Bad Girls
+2	46	The Sanfl
+2	46	Assassins
+2	46	Eager Bodies  (Les Corps Impatients)
+2	46	The Comic Box
+2	46	Spanish News
+2	46	Ten Late News
+2	46	Jtv
+2	47	Noise Tv
+2	47	Sports Tonight
+2	47	Rage
+2	47	Arabic News
+2	0	Assassins (Cont.)
+2	0	Herald Sun Tour
+2	1	Indonesian News
+2	1	The Carpenter's Pencil  (El Lpiz Del Carpintero)
+2	1	The UpLate Game Show
+2	2	Midnight Zoo
+2	2	Studio Q
+2	3	Sydney Shorts
+2	3	Quizmania
+2	3	Video Hits UpLate
+2	4	The Days
+2	4	Home Shopping
+2	4	Dave Harding P.I.
+2	4	Close
+2	4	Weatherwatch Overnight
+2	5	Weather Watch
+2	5	Sweet And Sour
+2	6	Flicktease
+2	6	GuthyRenker Australia
+2	7	Fishcam
+2	8	Creflo A Dollar
+2	8	The Handler
+2	8	Nbc Today
+2	9	Good Morning America
+2	10	This Is Your Day With Benny Hinn
+2	10	Rage
+2	10	Japanese News
+2	10	Japanese News
+2	11	Christian City Tv
+2	12	Tractor Tom
+2	12	Toasted Tv
+2	12	Thunderbirds
+2	12	Chinese News
+2	12	Cantonese News
+2	12	Health Dimensions
+2	12	Truth In Focus
+2	12	Mandarin News
+2	12	Moments In Time
+2	12	Mandarin News
+2	13	Lateline
+2	13	Barney  Friends
+2	13	Action Man A.T.O.M.
+2	13	Weatherwatch  Music
+2	13	Filipino News
+2	14	Class Tv
+2	14	Dora The Explorer
+2	14	Faireez
+2	14	Saturday Disney
+2	14	Lateline Business
+2	14	Mosaic: Eyes On The World
+2	14	Italian News
+2	14	Italian News
+2	15	Chakras
+2	15	Kids' Wb On Nine
+2	15	Totally Wild
+2	15	Australia Wide
+2	15	The Shapies
+2	15	Business Bulletin
+2	16	German News
+2	16	Das Journal
+2	16	Up Yours: Songs With Attitude
+2	16	Yoga In Daily Life
+2	16	Scope
+2	16	The Einstein Factor
+2	16	Looney Tunes Classics
+2	16	The Shak
+2	17	Spanish News
+2	17	Australian Story
+2	17	Spanish News
+2	17	Video Hits First
+2	17	Looney Tunes Classics
+2	17	Timeblazers
+2	17	Weather Bulletin
+2	18	Masterclass In Oils
+2	18	Jtv Saturday
+2	18	Disney Adventures: Lloyd In Space
+2	18	Behind The News Specials
+2	18	Behind The News Specials
+2	18	Le Journal
+2	18	Looney Tunes Classics
+2	18	French News
+2	19	Antics
+2	19	The Sleepover Club
+2	19	Archibald The Koala
+2	19	Disney Adventures: Disney's Teamo Supremo
+2	19	Russian News
+2	19	Russian News
+2	19	King Arthur's Disasters
+2	20	So Fresh
+2	20	Video Hits
+2	20	Class Tv
+2	20	Disney Adventures: American Dragon  Jake Long
+2	20	Anthony Ant
+2	21	Hit Tv
+2	21	Greek News
+2	21	Disney Adventures: The Proud Family
+2	21	Greek News
+2	21	Batfink
+2	21	Zombie Hotel
+2	22	Eastern Newsbeat
+2	22	Disney Adventures: Kim Possible
+2	22	Bowls: Tri Series: Men's Classic: Australia Vs England: Singles
+2	22	Grizzly Tales For Gruesome Kids
+2	22	Cyberchase
+2	23	Backstage Pass
+2	23	Arabic News
+2	23	Arabic News
+2	23	Two Wheel Torque
+2	23	That's So Raven
+2	23	Angela Anaconda
+2	23	Weather Bulletin
+2	24	Message Stick
+2	24	Eclipse
+2	24	Speed Machine
+2	24	Stateline
+2	24	Australian Documentary: Totally Australia: Jackaroo School
+2	24	Ko Boxing
+2	24	Indonesian News
+2	24	Indonesian News
+2	25	Australian Story
+2	25	A Gondola On The Murray
+2	25	The Car Show
+2	25	Business Report
+2	25	Japanese News
+2	25	Soulwater Surf
+2	26	Gardening Australia
+2	26	Masterpiece On Saturday: The Overcoat
+2	26	On Display
+2	26	Mildred Pierce
+2	26	Australian Documentary: Totally Australia: Weather Beaten
+2	26	Wake Life
+2	26	Foreign Correspondent
+2	26	Australian Story Classics
+2	27	Cantonese News
+2	27	4wdtv
+2	27	George And Mildred
+2	27	Words: Julian Burnside
+2	27	Sports Bulletin
+2	28	Herald Sun Tour
+2	28	Parrot Passions
+2	28	Romanian Mosaic
+2	28	Stateline (Nsw)
+2	28	Mandarin News
+2	28	Masterpiece On Saturday: A Workshop For Peace
+2	29	Stateline (Act)
+2	29	Basketball: Women's National League: Dandenong Vs Adelaide
+2	30	Stateline (Tas)
+2	30	Pacific Asia Television
+2	30	Filipino News
+2	30	Masterpiece On Saturday: J.S. Bach  The 48 Preludes And Fugues
+2	31	Masterpiece On Saturday: The Horses Of The Louvre
+2	31	Stateline (Vic)
+2	31	Getaway
+2	31	Bowls: Victorian Grand Prix 2006: Women's Singles: Semifinal 1
+2	31	German News
+2	31	Hot Shots!
+2	32	I Fish
+2	32	Stateline (Qld)
+2	32	One World
+2	32	Spanish News
+2	33	The Journal
+2	33	Atvaa
+2	33	Talk To The Animals
+2	33	Stateline (Sa)
+2	33	Escape With Et
+2	33	Netball: International Series 2006: New Zealand Vs Australia: Test
+2	33	French News
+2	34	Ten News At Five
+2	34	The Garden Gurus
+2	34	Newshour With Jim Lehrer
+2	34	Stateline (Nt)
+2	34	Russian News
+2	35	Sports Tonight
+2	35	Melbourne Weekender
+2	35	Stateline (Wa)
+2	35	Postcards
+2	35	Fusion Latina
+2	35	Weather Bulletin
+2	35	Japanese News
+2	36	Charlie's Kitchen
+2	36	Multimillionaire Sailors
+2	36	The Simpsons
+2	36	A Gondola On The Murray
+2	36	National Nine News Saturday
+2	36	Seven News With Jennifer Keyte
+2	36	Arabic News
+2	37	Great Comedy Classics
+2	37	Australia's Funniest Home Video Show
+2	37	Gardening Australia
+2	37	Out Of Practice
+2	37	Message Stick
+2	37	World News Australia
+2	37	Rodder's Life
+2	38	The Einstein Factor
+2	38	Everybody Loves Raymond
+2	38	Regional Italian Cuisine
+2	38	Abc News
+2	38	Toyota World Sport
+2	38	Greek News
+2	39	As It Happened: Battlefield Britain
+2	39	Kangaroo Jack
+2	39	Pilot Guides
+2	39	Monk
+2	39	New Tricks: Lady's Pleasure
+2	39	Golfzone
+2	39	Weather Bulletin
+2	40	River To Reef
+2	40	Australian Story
+2	40	Italian News
+2	40	Abc News
+2	41	Law  Order: Criminal Intent
+2	41	At The Movies
+2	41	The Bill
+2	41	Iron Chef
+2	41	Chartbusting 80's
+2	41	Indonesian News
+2	41	Deuce Bigalow  Male Gigolo
+2	42	The Glass House
+2	42	Mandarin News
+2	42	Abc News
+2	42	The Art Of War
+2	42	Rockwiz By Request
+2	42	The Last Detective: Three Steps To Hendon
+2	43	Gladiator
+2	43	Alone With Everybody
+2	43	Plumpton High Babies
+2	43	Filipino News
+2	43	Ticket, Passport, Tarot Cards
+2	43	The Short Film Show
+2	43	Monsoon Wedding
+2	44	Kind Of Like A Show
+2	44	The New Inventors
+2	44	Japanese News
+2	45	Romancing The Stone
+2	45	Studio 22
+2	45	Champagne Comedy
+2	45	Changi: Gordon's Will
+2	45	German News
+2	46	Monkey Dust
+2	46	Revolver Video
+2	46	Spanish News
+2	47	Sk8 To Death
+2	47	Best Of Series 1: Late Night Legends
+2	47	The Glass House
+2	47	S O S: Shorts On Screen
+2	47	2006 Rugby League TriNations Series: New Zealand V Australia
+2	47	Arabic News
+2	0	Asylum
+2	0	Rage
+2	1	Wmtv
+2	1	Indonesian News
+2	1	Sunset Strip
+2	1	Wild Turkey Joker Poker
+2	1	When Sex Goes Wrong
+2	2	Pool Tv
+2	2	Crank Yankers
+2	3	The Daily Show With Jon Stewart Global Edition
+2	3	Hack
+2	3	Quizmania
+2	4	Noise Tv
+2	4	Weatherwatch Overnight
+2	4	Close
+2	5	Weather Watch
+2	5	8 Simple Rules For Dating My Teenage Daughter
+2	5	Video Hits UpLate
+2	6	Home Shopping
+2	6	Malibu
+2	7	Malibu
+2	7	Fishcam
+2	8	Bayless Conley
+2	8	GuthyRenker Australia
+2	8	Jesse Duplantis Ministries
+2	9	Key Of David
+2	9	Life Today
+2	10	Hour Of Power
+2	10	Dateline Nbc
+2	10	Rage
+2	10	Tomorrow's World
+2	10	Japanese News
+2	11	Rise And Shine
+3	28	Rage
+3	38	Rage
+3	40	Rage
+3	41	The Fimbles
+3	41	Pablo the Little Red Fox
+3	41	Yoko! Jakamoko! Toto!
+3	42	I Spy
+3	42	Planet Cook
+3	43	Old Tom
+3	43	Help I'm a Teenage Outlaw!
+3	44	Dragon Booster
+3	45	Round the Twist
+3	46	Insiders
+3	0	Inside Business
+3	1	Offsiders
+3	2	Asia Pacific Focus
+3	3	Songs of Praise
+3	4	Landline
+3	6	Gardening Australia
+3	7	Message Stick
+3	8	The Agatha Christie Code
+3	9	River Woman
+3	10	From Shtetl To Swing: A Musical Odyssey
+3	12	Sunday Arts
+3	14	Maggie: The First Lady
+3	16	At the Movies
+3	17	The Einstein Factor
+3	18	ABC News
+3	19	Operatunity Oz
+3	20	ABC Newsbreak
+3	21	Space Race
+3	22	Pyramids Of Death
+3	24	Compass
+3	25	The Private Life of a Masterpiece
+3	27	The Farm
+3	29	Order in the House
+3	31	49th Parallel
+3	35	Second Opinion
+3	37	Just My Luck
+3	40	Grizzly Tales For Gruesome Kids
+3	40	Black Hole High
+3	41	Tutenstein
+3	42	Time Warp Trio
+3	42	Edgar and Ellen
+3	42	Olliver's Adventures
+3	43	Martin Morning
+3	43	Gerald McBoing Boing
+3	44	Miss BG
+3	44	Fifi and the Flowertots
+3	44	Five Minutes More
+3	45	Play With Me Sesame
+3	45	Lunar Jim
+3	46	Thomas The Tank Engine & Friends
+3	46	The Koala Brothers
+3	46	Bananas in Pyjamas
+3	47	Play School
+3	47	Tiny Planets
+3	0	For the Juniors
+3	0	Pyramid
+3	1	Book Box
+3	1	Tate Modern
+3	2	Landline
+3	4	Midday Report
+3	5	Pilot Guides
+3	7	Family Story
+3	8	Parliament Question Time
+3	10	Bananas in Pyjamas
+3	10	Boohbah
+3	10	Pocoyo
+3	11	Play School
+3	12	Jakers!: The Adventures of Piggley Winks
+3	12	Dr Dog
+3	13	The Secret Show
+3	13	Roller Coaster
+3	13	Tutenstein
+3	14	Black Hole High
+3	15	Grizzly Tales For Gruesome Kids
+3	15	Behind the News
+3	16	Off The Map
+3	17	Talking Heads
+3	18	ABC News
+3	19	The 7.30 Report
+3	20	Australian Story
+3	21	Four Corners
+3	22	Media Watch
+3	23	Enough Rope with Andrew Denton
+3	25	Lateline
+3	26	Lateline Business
+3	27	Netball
+3	30	Parliament Question Time
+3	32	Ordinary People
+3	34	Bowls
+3	37	Poet's Pub
+3	40	Girl Stuff, Boy Stuff
+3	40	Girls in Love
+3	41	Class of the Titans
+3	42	Time Warp Trio
+3	42	Edgar and Ellen
+3	42	Olliver's Adventures
+3	43	Martin Morning
+3	43	Gerald McBoing Boing
+3	44	Miss BG
+3	44	Fifi and the Flowertots
+3	44	Five Minutes More
+3	45	Play With Me Sesame
+3	45	Lunar Jim
+3	46	Thomas The Tank Engine & Friends
+3	46	The Koala Brothers
+3	46	Bananas in Pyjamas
+3	47	Play School
+3	0	Behind the News
+3	0	Our History
+3	1	Extra French
+3	2	Animals: The Inside Story
+3	4	Midday Report
+3	5	The New Inventors
+3	6	The Einstein Factor
+3	7	Catalyst
+3	8	Parliament Question Time
+3	10	Bananas in Pyjamas
+3	10	Boohbah
+3	10	Pocoyo
+3	11	Play School
+3	12	Jakers!: The Adventures of Piggley Winks
+3	12	Dr Dog
+3	13	The Secret Show
+3	13	Roller Coaster
+3	14	Uncle Dad
+3	14	Princess Natasha
+3	14	Naturally Sadie
+3	15	Naughty Naughty Pets
+3	15	Behind the News
+3	16	Message Stick
+3	16	Time Team
+3	18	ABC News
+3	19	The 7.30 Report
+3	20	Two Men in a Tinnie
+3	21	The Bill
+3	22	Foreign Correspondent
+3	24	Artists At Work
+3	25	Lateline
+3	26	Lateline Business
+3	27	Hajj: The Greatest Trip On Earth
+3	28	Murder Investigation Team
+3	30	Parliament Question Time
+3	32	Account Rendered
+3	34	Australians At War
+3	37	I Thank You
+3	40	Being Ian
+3	40	A Town Called Panic
+3	41	Blue Water High
+3	42	Time Warp Trio
+3	42	Edgar and Ellen
+3	42	Olliver's Adventures
+3	43	Martin Morning
+3	43	Gerald McBoing Boing
+3	44	Miss BG
+3	44	Fifi and the Flowertots
+3	44	Five Minutes More
+3	45	Play With Me Sesame
+3	45	Lunar Jim
+3	46	Thomas The Tank Engine & Friends
+3	46	The Koala Brothers
+3	46	Bananas in Pyjamas
+3	47	Play School
+3	47	Tiny Planets
+3	0	Count Us In
+3	0	Maths 4 Real 2
+3	1	Behind the News
+3	1	Australians
+3	2	Spy Master
+3	4	Midday Report
+3	5	National Press Club Address
+3	7	Talking Heads
+3	8	Parliament Question Time
+3	10	Bananas in Pyjamas
+3	10	Boohbah
+3	10	Pocoyo
+3	11	Play School
+3	12	Jakers!: The Adventures of Piggley Winks
+3	12	Dr Dog
+3	13	The Secret Show
+3	13	Roller Coaster
+3	13	Yakkity Yak
+3	14	A Town Called Panic
+3	14	Blue Water High
+3	15	Behind the News
+3	16	Rick Stein's French Odyssey
+3	17	The Cook and the Chef
+3	18	ABC News
+3	19	The 7.30 Report
+3	20	The New Inventors
+3	21	Spicks and Specks
+3	22	The IT Crowd
+3	23	The Glass House
+3	24	At the Movies
+3	25	Lateline
+3	26	Lateline Business
+3	27	Four Corners
+3	28	Media Watch
+3	29	Rough Justice: The Boiler Room
+3	30	Parliament Question Time
+3	32	Baroud
+3	34	National Press Club Address
+3	37	The Perfect Woman
+3	40	The Amazing Adrenalini Brothers
+3	40	Skyland
+3	41	Bernard
+3	41	Zombie Hotel
+3	42	Time Warp Trio
+3	42	Edgar and Ellen
+3	42	Olliver's Adventures
+3	43	Martin Morning
+3	43	Gerald McBoing Boing
+3	44	Miss BG
+3	44	Fifi and the Flowertots
+3	44	Five Minutes More
+3	45	Play With Me Sesame
+3	45	Lunar Jim
+3	46	Thomas The Tank Engine & Friends
+3	46	The Koala Brothers
+3	46	Bananas in Pyjamas
+3	47	Play School
+3	0	For the Juniors
+3	0	Our Animals
+3	0	Being Me
+3	1	India
+3	2	Monarchy
+3	4	Midday Report
+3	5	Lovejoy
+3	7	Strictly Dancing
+3	8	Parliament Question Time
+3	10	Bananas in Pyjamas
+3	10	Boohbah
+3	10	Pocoyo
+3	11	Play School
+3	12	Jakers!: The Adventures of Piggley Winks
+3	12	Dr Dog
+3	13	The Secret Show
+3	13	Roller Coaster
+3	13	Atomic Betty
+3	14	Bernard
+3	14	Avatar: The Last Airbender
+3	15	The Amazing Adrenalini Brothers
+3	15	Behind the News
+3	16	Aussie Animal Rescue
+3	17	The Pet Show
+3	18	ABC News
+3	19	The 7.30 Report
+3	20	Catalyst
+3	21	Life At 1
+3	23	Morning Sun
+3	25	Lateline
+3	26	Lateline Business
+3	27	Live at the Basement
+3	29	Parliament Question Time
+3	31	Top of the Form
+3	33	Sending a Message
+3	35	Songs of Praise
+3	37	A Cup of Kindness
+3	40	Us Mob
+3	40	Radio Free Roscoe
+3	41	Angela Anaconda
+3	42	Time Warp Trio
+3	42	Edgar and Ellen
+3	42	Olliver's Adventures
+3	43	Martin Morning
+3	43	Gerald McBoing Boing
+3	44	Miss BG
+3	44	Fifi and the Flowertots
+3	44	Five Minutes More
+3	45	Play With Me Sesame
+3	45	Lunar Jim
+3	46	Thomas The Tank Engine & Friends
+3	46	The Koala Brothers
+3	46	Bananas in Pyjamas
+3	47	Play School
+3	0	Take on Technology
+3	0	Behind The News Specials
+3	1	Food for Thought
+3	1	Designers
+3	2	British Isles: A Natural History
+3	4	Midday Report
+3	5	Classic Parkinson
+3	7	Grumpy Old Men
+3	8	Welcher and Welcher
+3	9	Spicks and Specks
+3	10	Bananas in Pyjamas
+3	10	Boohbah
+3	10	Pocoyo
+3	11	Play School
+3	12	Jakers!: The Adventures of Piggley Winks
+3	12	Dr Dog
+3	13	The Secret Show
+3	13	Roller Coaster
+3	13	The Fairly OddParents
+3	14	Radio Free Roscoe
+3	15	Croc Bites
+3	15	Behind the News
+3	16	Message Stick
+3	17	Can We Help?
+3	18	ABC News
+3	19	Stateline (VIC)
+3	20	Collectors
+3	21	Midsomer Murders
+3	24	Sensitive Skin
+3	25	Lateline
+3	26	jtv
+3	27	Rage
+3	32	Close
+3	40	Closed
+3	42	Rage
+3	44	Rage
+3	0	Beck: Permanent Mutations
+3	2	Pop(b)session
+3	3	4 Minute Wonders Vic
+3	4	The New Inventors
+3	5	Women's National League
+3	9	Delilah And Julius
+3	9	Nick Gets the Knack
+3	10	The New Captain Scarlet
+3	10	Radio Free Roscoe
+3	11	Girl Stuff, Boy Stuff
+3	12	Stateline (NSW)
+3	13	Stateline (ACT)
+3	14	Stateline (TAS)
+3	15	Stateline (VIC)
+3	15	Weather Bulletin
+3	16	Stateline (QLD)
+3	17	Stateline (SA)
+3	18	Stateline (NT)
+3	19	Stateline (WA)
+3	19	Weather Bulletin
+3	20	Landline
+3	22	Insiders
+3	24	Inside Business
+3	25	Offsiders
+3	26	Asia Pacific Focus
+3	26	Late Night Legends
+3	28	Close
+3	40	Closed
+3	41	Landline
+3	42	Business Bulletin
+3	43	Insiders
+3	45	Inside Business
+3	46	Offsiders
+3	47	Asia Pacific Focus
+3	47	Weather Bulletin
+3	0	Engie Benjy
+3	0	Ebb and Flo
+3	0	Rubbadubbers
+3	0	Bob the Builder
+3	1	The Fimbles
+3	1	Brum
+3	2	Pablo the Little Red Fox
+3	2	Connie The Cow
+3	2	Pocoyo
+3	2	Pinky Dinky Doo
+3	3	Fourways Farm
+3	3	Inuk
+3	3	Adventures Of Spot
+3	4	Animal Jam
+3	4	Pingu
+3	5	Play School
+3	6	This Is Daniel Cook
+3	6	Dr Otter
+3	6	Soupe Opera
+3	6	Molly's Gang
+3	6	The World Of Peter Rabbit And Friends
+3	7	Spot's Musical Adventures
+3	7	Bob the Builder
+3	8	The Wubbulous World Of Dr Seuss
+3	8	Angelmouse
+3	9	Oswald
+3	9	Sali Mali
+3	9	Lights, Camera, Action, Wiggles!
+3	10	Gardening Australia
+3	11	People Dimensions
+3	12	Landline
+3	13	Sports Bulletin
+3	14	Australia Wide
+3	15	At the Movies
+3	16	2030ce
+3	16	A Town Called Panic
+3	17	The Tribe
+3	17	Animal Wrestling
+3	17	Weather Bulletin
+3	18	Pop(b)session
+3	19	4 Minute Wonders Vic
+3	20	Australia Wide
+3	20	Weather Bulletin
+3	21	Talking Heads
+3	22	Dig Tv Presents
+3	23	Pop(b)session
+3	24	4 Minute Wonders SA
+3	25	Talking Heads
+3	26	Late Night Legends
+3	29	Close
+3	40	People Dimensions
+3	41	Lateline
+3	42	Lateline Business
+3	43	Australia Wide
+3	43	Business Bulletin
+3	44	Talking Heads
+3	45	Gardening Australia
+3	45	Weather Bulletin
+3	46	Landline
+3	0	Engie Benjy
+3	0	Ebb and Flo
+3	0	Rubbadubbers
+3	0	Bob the Builder
+3	1	The Fimbles
+3	1	Teletubbies Everywhere
+3	2	Pablo the Little Red Fox
+3	2	Connie The Cow
+3	2	Pocoyo
+3	2	Pinky Dinky Doo
+3	3	Fourways Farm
+3	3	Inuk
+3	3	Adventures Of Spot
+3	4	Animal Jam
+3	4	Pingu
+3	5	Play School
+3	6	This Is Daniel Cook
+3	6	Dr Otter
+3	6	Soupe Opera
+3	6	Molly's Gang
+3	6	The World Of Peter Rabbit And Friends
+3	7	Spot's Musical Adventures
+3	7	Bob the Builder
+3	8	The Wubbulous World Of Dr Seuss
+3	8	Angelmouse
+3	9	Oswald
+3	9	Sali Mali
+3	9	Lights, Camera, Action, Wiggles!
+3	10	Gardening Australia
+3	11	Dimensions In Time
+3	12	Pop(b)session
+3	13	Dig Australian Blues Project
+3	13	Sports Bulletin
+3	14	Australia Wide
+3	15	Australian Story Classics
+3	16	Radio Free Roscoe
+3	16	Ace Day Jobs
+3	16	The Tribe
+3	17	Blue Water High: Shorts
+3	17	Weather Bulletin
+3	18	The Pet Show
+3	19	Can We Help?
+3	20	Australia Wide
+3	20	Weather Bulletin
+3	21	Good Game
+3	22	jtv
+3	23	jtv
+3	24	jtv
+3	25	Monkey Dust
+3	26	Late Night Legends
+3	28	Late Night Legends
+3	29	Close
+3	40	Dimensions In Time
+3	41	Lateline
+3	42	Lateline Business
+3	43	Australia Wide
+3	43	Business Bulletin
+3	44	Can We Help?
+3	45	Gardening Australia
+3	45	Weather Bulletin
+3	46	The Bravery: Live In France
+3	0	Engie Benjy
+3	0	Ebb and Flo
+3	0	Rubbadubbers
+3	0	Bob the Builder
+3	1	The Fimbles
+3	1	Teletubbies Everywhere
+3	2	Pablo the Little Red Fox
+3	2	Connie The Cow
+3	2	Pocoyo
+3	2	Pinky Dinky Doo
+3	3	Fourways Farm
+3	3	Inuk
+3	3	Adventures Of Spot
+3	4	Animal Jam
+3	4	Pingu
+3	5	Play School
+3	6	This Is Daniel Cook
+3	6	Dr Otter
+3	6	Soupe Opera
+3	6	Molly's Gang
+3	6	The World Of Peter Rabbit And Friends
+3	7	Spot's Musical Adventures
+3	7	Bob the Builder
+3	8	The Wubbulous World Of Dr Seuss
+3	8	Angelmouse
+3	9	Oswald
+3	9	Sali Mali
+3	9	Lights, Camera, Action, Wiggles!
+3	10	Gardening Australia
+3	11	Health Dimensions
+3	11	Moments In Time
+3	12	The Bravery: Live In France
+3	13	Sports Bulletin
+3	14	Australia Wide
+3	15	Catalyst
+3	16	Class of the Titans
+3	16	Freaky Stories
+3	16	The Tribe
+3	17	Winged Sandals
+3	17	Weather Bulletin
+3	18	Four Corners
+3	19	Media Watch
+3	20	Australia Wide
+3	20	Weather Bulletin
+3	21	The Cook and the Chef
+3	22	Catalyst
+3	23	Four Corners
+3	24	Media Watch
+3	25	Good Game
+3	26	Late Night Legends
+3	29	Close
+3	40	Health Dimensions
+3	40	Moments In Time
+3	41	Lateline
+3	42	Lateline Business
+3	43	Australia Wide
+3	43	Business Bulletin
+3	44	The Cook and the Chef
+3	45	Gardening Australia
+3	45	Weather Bulletin
+3	46	Australian Story Classics
+3	47	The Pet Show
+3	0	Engie Benjy
+3	0	Jasper The Penguin
+3	0	Rubbadubbers
+3	0	Bob the Builder
+3	1	The Fimbles
+3	1	Teletubbies Everywhere
+3	2	Pablo the Little Red Fox
+3	2	Connie The Cow
+3	2	Pocoyo
+3	2	Pinky Dinky Doo
+3	3	Fourways Farm
+3	3	Inuk
+3	3	Adventures Of Spot
+3	4	Animal Jam
+3	4	Pingu
+3	5	Play School
+3	6	This Is Daniel Cook
+3	6	Dr Otter
+3	6	Soupe Opera
+3	6	Molly's Gang
+3	6	The World Of Peter Rabbit And Friends
+3	7	Spot's Musical Adventures
+3	7	Bob the Builder
+3	8	The Wubbulous World Of Dr Seuss
+3	8	Angelmouse
+3	9	Oswald
+3	9	Sali Mali
+3	9	Lights, Camera, Action, Wiggles!
+3	10	Gardening Australia
+3	11	People Dimensions
+3	12	Foreign Correspondent
+3	13	Words
+3	13	Sports Bulletin
+3	14	Australia Wide
+3	15	Behind the News
+3	15	World Ahoy
+3	16	Being Ian
+3	16	Blue Water High: Shorts
+3	16	The Tribe
+3	17	Dust Echoes
+3	17	Weather Bulletin
+3	18	Foreign Correspondent
+3	19	Media Watch
+3	20	Australia Wide
+3	20	Weather Bulletin
+3	21	Secret Recipes
+3	22	Australian Story
+3	23	Foreign Correspondent
+3	24	Media Watch
+3	25	Dig Tv Presents
+3	25	Late Night Legends
+3	30	Good Game
+3	31	Short and Curly
+3	31	Close
+3	40	People Dimensions
+3	41	Lateline
+3	42	Lateline Business
+3	43	Australia Wide
+3	43	Business Bulletin
+3	44	Secret Recipes
+3	45	Gardening Australia
+3	45	Weather Bulletin
+3	46	A Big Country Revisited
+3	46	Compass
+3	0	Engie Benjy
+3	0	Jasper The Penguin
+3	0	Rubbadubbers
+3	0	Bob the Builder
+3	1	The Fimbles
+3	1	Teletubbies Everywhere
+3	2	Pablo the Little Red Fox
+3	2	Connie The Cow
+3	2	Pocoyo
+3	2	Pinky Dinky Doo
+3	3	Fourways Farm
+3	3	Inuk
+3	3	Adventures Of Spot
+3	4	Animal Jam
+3	4	Pingu
+3	5	Play School
+3	6	This Is Daniel Cook
+3	6	Dr Otter
+3	6	Soupe Opera
+3	6	Molly's Gang
+3	6	The Fimbles
+3	7	Elmo's World
+3	8	The Wubbulous World Of Dr Seuss
+3	8	Angelmouse
+3	9	Oswald
+3	9	Sali Mali
+3	9	Lights, Camera, Action, Wiggles!
+3	10	Pilot Guides
+3	11	Health Dimensions
+3	11	Moments In Time
+3	12	A Big Country Revisited
+3	13	A Gondola on the Murray
+3	13	Sports Bulletin
+3	14	Australia Wide
+3	15	Australian Story
+3	16	Delilah And Julius
+3	16	Freaky Stories
+3	17	The Tribe
+3	17	Word on the Street
+3	17	Weather Bulletin
+3	18	Compass
+3	19	Australia Wide
+3	20	Women's National League
+3	24	Short and Curly
+3	25	Plumpton High Babies
+3	26	Late Night Legends
+3	31	Quizmania
+3	36	Jesse Duplantis Ministries
+3	37	Life Today with James Robison
+3	38	Tomorrow's World
+3	39	Rise and Shine
+3	40	Make Way for Noddy
+3	40	Little Red Tractor
+3	41	Barney & Friends
+3	42	Dora the Explorer
+3	43	[HOT] Source
+3	44	Fishing North Australia
+3	45	Your Business Success
+3	46	Sunday
+3	2	Talking Real Estate
+3	3	NBL
+3	5	Surfsport
+3	7	Planet X Winter Games 06
+3	8	2006 Rock Eisteddfod Challenge
+3	12	The Wildlife Man Featuring David Ireland
+3	14	Roar of the Wild
+3	15	Airline
+3	16	National Nine News
+3	17	Backyard Blitz
+3	19	60 Minutes
+3	21	CSI: New York
+3	23	CSI: New York
+3	25	Comedy Inc. The Late Shift
+3	27	The Apprentice
+3	28	Star Trek: Enterprise
+3	30	Late Show with David Letterman
+3	32	Farscape
+3	34	George Lopez
+3	35	Guthy-Renker Australia
+3	36	Guthy-Renker Australia
+3	37	Guthy-Renker Australia
+3	38	20/20
+3	40	Today
+3	46	Mornings with Kerri-Anne
+3	2	National Nine Morning News
+3	3	Fresh: Cooking with the Australian Women's Weekly
+3	4	Dr. Phil
+3	6	Days of Our Lives
+3	8	The Young and the Restless
+3	10	Entertainment Tonight
+3	11	Hi-5
+3	12	The Shak
+3	13	National Nine Afternoon News
+3	14	Antiques Roadshow
+3	15	Bert's Family Feud
+3	16	National Nine News
+3	17	A Current Affair
+3	18	Temptation
+3	19	What's Good For You
+3	21	What a Year
+3	23	Cold Case
+3	25	Body of Evidence
+3	26	The Psychic Detectives
+3	27	Nightline
+3	28	The Sopranos
+3	30	Late Show with David Letterman
+3	32	The Bernie Mac Show
+3	33	Rock Me Baby
+3	34	Guthy-Renker Australia
+3	35	Guthy-Renker Australia
+3	36	Creflo A. Dollar, Jr
+3	37	Good Morning America
+3	40	Today
+3	46	Mornings with Kerri-Anne
+3	2	National Nine Morning News
+3	3	Fresh: Cooking with the Australian Women's Weekly
+3	4	Dr. Phil
+3	6	Days of Our Lives
+3	8	The Young and the Restless
+3	10	Entertainment Tonight
+3	11	Hi-5
+3	12	The Shak
+3	13	National Nine Afternoon News
+3	14	Antiques Roadshow
+3	15	Bert's Family Feud
+3	16	National Nine News
+3	17	A Current Affair
+3	18	Temptation
+3	19	20 to 1
+3	21	CSI: Crime Scene Investigation
+3	23	The Closer
+3	25	Shock Docs
+3	27	Nightline
+3	28	Quizmania
+3	34	Guthy-Renker Australia
+3	35	Guthy-Renker Australia
+3	36	Creflo A. Dollar, Jr
+3	37	Good Morning America
+3	40	Today
+3	46	Mornings with Kerri-Anne
+3	2	National Nine Morning News
+3	3	Fresh: Cooking with the Australian Women's Weekly
+3	4	Dr. Phil
+3	6	Days of Our Lives
+3	8	The Young and the Restless
+3	10	Entertainment Tonight
+3	11	Hi-5
+3	12	Streetsmartz
+3	13	National Nine Afternoon News
+3	14	Antiques Roadshow
+3	15	Bert's Family Feud
+3	16	National Nine News
+3	17	A Current Affair
+3	18	Temptation
+3	19	McLeod's Daughters
+3	21	CSI: Miami
+3	23	Survivor: Cook Islands
+3	25	Comedy Inc. The Late Shift
+3	27	Nightline
+3	28	Quizmania
+3	34	Guthy-Renker Australia
+3	35	Guthy-Renker Australia
+3	36	Creflo A. Dollar, Jr
+3	37	Good Morning America
+3	40	Today
+3	46	Mornings with Kerri-Anne
+3	2	National Nine Morning News
+3	3	Fresh: Cooking with the Australian Women's Weekly
+3	4	Dr. Phil
+3	6	Days of Our Lives
+3	8	The Young and the Restless
+3	10	Entertainment Tonight
+3	11	Hi-5
+3	12	The Shak
+3	13	National Nine Afternoon News
+3	14	Antiques Roadshow
+3	15	Bert's Family Feud
+3	16	National Nine News
+3	17	A Current Affair
+3	18	Temptation
+3	19	Getaway
+3	21	Big Questions
+3	23	RPA
+3	24	Amazing Medical Stories
+3	26	Missing Persons Unit
+3	27	Nightline
+3	28	Quizmania
+3	34	Guthy-Renker Australia
+3	35	Guthy-Renker Australia
+3	36	Creflo A. Dollar, Jr
+3	37	Good Morning America
+3	40	Today
+3	46	Mornings with Kerri-Anne
+3	2	National Nine Morning News
+3	3	Fresh: Cooking with the Australian Women's Weekly
+3	4	Dr. Phil
+3	6	Days of Our Lives
+3	8	The Young and the Restless
+3	10	Entertainment Tonight
+3	11	Hi-5
+3	12	The Shak
+3	13	National Nine Afternoon News
+3	14	Antiques Roadshow
+3	15	Bert's Family Feud
+3	16	National Nine News
+3	17	A Current Affair
+3	18	Temptation
+3	19	Our Changing Climate - Victorian Special
+3	21	S.W.A.T.
+3	26	The Assassin
+3	21	CSI: New York
+3	23	CSI: New York
+3	23	Cold Case
+3	29	Indonesian News
+3	30	Weatherwatch
+3	41	Filipino News
+3	42	Hungarian News
+3	43	Italian News
+3	44	Weatherwatch
+3	45	Chilean News
+3	46	Maltese News
+3	47	Polish News
+3	0	Ukrainian News
+3	1	Filipino News
+3	2	Hungarian News
+3	3	Italian News
+3	4	Weatherwatch
+3	5	Chilean News
+3	6	Maltese News
+3	7	Polish News
+3	8	Ukrainian News
+3	9	Filipino News
+3	10	Hungarian News
+3	11	Italian News
+3	12	Weatherwatch
+3	13	Chilean News
+3	14	Maltese News
+3	15	Polish News
+3	16	Ukrainian News
+3	17	Filipino News
+3	18	Hungarian News
+3	19	Italian News
+3	20	Weatherwatch
+3	21	Chilean News
+3	22	Maltese News
+3	23	Polish News
+3	24	Ukrainian News
+3	25	Filipino News
+3	26	Hungarian News
+3	27	Italian News
+3	29	Indonesian News
+3	30	Station Close
+3	33	Weatherwatch
+3	38	Japanese News
+3	40	Cantonese News
+3	40	Mandarin News
+3	41	Weatherwatch
+3	42	Italian News
+3	44	German News
+3	45	Spanish News
+3	46	French News
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Japanese News
+3	7	Cantonese News
+3	8	Mandarin News
+3	10	Weatherwatch
+3	11	German News
+3	12	Spanish News
+3	13	French News
+3	14	Russian News
+3	15	Japanese News
+3	16	Arabic News
+3	18	Greek News
+3	20	Italian News
+3	21	Indonesian News
+3	22	Mandarin News
+3	23	Weatherwatch
+3	24	Japanese News
+3	25	German News
+3	26	Spanish News
+3	27	Arabic News
+3	29	Indonesian News
+3	30	Station Close
+3	33	Weatherwatch
+3	38	Japanese News
+3	40	Cantonese News
+3	40	Mandarin News
+3	41	Weatherwatch
+3	42	Italian News
+3	44	German News
+3	45	Spanish News
+3	46	French News
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Japanese News
+3	7	Cantonese News
+3	8	Mandarin News
+3	10	Weatherwatch
+3	11	German News
+3	12	Spanish News
+3	13	French News
+3	14	Russian News
+3	15	Japanese News
+3	16	Arabic News
+3	18	Greek News
+3	20	Italian News
+3	21	Indonesian News
+3	22	Mandarin News
+3	23	Weatherwatch
+3	24	Japanese News
+3	25	German News
+3	26	Spanish News
+3	27	Arabic News
+3	29	Indonesian News
+3	30	Station Close
+3	33	Weatherwatch
+3	38	Japanese News
+3	40	Cantonese News
+3	40	Mandarin News
+3	41	Weatherwatch
+3	42	Italian News
+3	44	German News
+3	45	Spanish News
+3	46	French News
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Japanese News
+3	7	Cantonese News
+3	8	Mandarin News
+3	10	Weatherwatch
+3	11	German News
+3	12	Spanish News
+3	13	French News
+3	14	Russian News
+3	15	Japanese News
+3	16	Arabic News
+3	18	Greek News
+3	20	Italian News
+3	21	Indonesian News
+3	22	Mandarin News
+3	23	Weatherwatch
+3	24	Japanese News
+3	25	German News
+3	26	Spanish News
+3	27	Arabic News
+3	29	Indonesian News
+3	30	Station Close
+3	33	Weatherwatch
+3	37	Filipino News
+3	38	Japanese News
+3	40	Cantonese News
+3	40	Mandarin News
+3	41	Weatherwatch
+3	42	Italian News
+3	44	German News
+3	45	Spanish News
+3	46	French News
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Japanese News
+3	7	Cantonese News
+3	8	Mandarin News
+3	10	Weatherwatch
+3	11	German News
+3	12	Spanish News
+3	13	French News
+3	14	Russian News
+3	15	Japanese News
+3	16	Arabic News
+3	18	Greek News
+3	20	Italian News
+3	21	Indonesian News
+3	22	Mandarin News
+3	23	Weatherwatch
+3	24	Japanese News
+3	25	German News
+3	26	Spanish News
+3	27	Arabic News
+3	29	Indonesian News
+3	30	Station Close
+3	33	Weatherwatch
+3	38	Japanese News
+3	40	Cantonese News
+3	40	Mandarin News
+3	41	Filipino News
+3	42	Italian News
+3	44	German News
+3	45	Spanish News
+3	46	French News
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Japanese News
+3	7	Cantonese News
+3	8	Mandarin News
+3	10	Filipino News
+3	11	German News
+3	12	Spanish News
+3	13	French News
+3	14	Russian News
+3	15	Japanese News
+3	16	Arabic News
+3	18	Greek News
+3	20	Italian News
+3	21	Indonesian News
+3	22	Mandarin News
+3	23	Filipino News
+3	24	Japanese News
+3	25	German News
+3	26	Spanish News
+3	27	Arabic News
+3	29	Indonesian News
+3	30	Station Close
+3	33	Weatherwatch
+3	38	Japanese News
+3	40	Cantonese News
+3	40	Mandarin News
+3	41	Weatherwatch
+3	42	Italian News
+3	44	German News
+3	45	Spanish News
+3	46	French News
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Japanese News
+3	7	Cantonese News
+3	8	Mandarin News
+3	10	Weatherwatch
+3	11	German News
+3	12	Spanish News
+3	13	French News
+3	14	Russian News
+3	15	Japanese News
+3	16	Arabic News
+3	18	Greek News
+3	20	Italian News
+3	21	Indonesian News
+3	22	Mandarin News
+3	23	Weatherwatch
+3	24	Japanese News
+3	25	German News
+3	26	Spanish News
+3	27	Arabic News
+3	29	Indonesian News
+3	30	Weatherwatch
+3	41	Filipino News
+3	42	Hungarian News
+3	43	Italian News
+3	44	Weatherwatch
+3	45	Chilean News
+3	46	Maltese News
+3	47	Polish News
+3	0	Ukrainian News
+3	1	Filipino News
+3	2	Hungarian News
+3	3	Italian News
+3	4	Weatherwatch
+3	5	Chilean News
+3	6	Maltese News
+3	7	Polish News
+3	8	Ukrainian News
+3	9	Filipino News
+3	10	Hungarian News
+3	11	Italian News
+3	12	Weatherwatch
+3	13	Chilean News
+3	14	Maltese News
+3	15	Polish News
+3	16	Ukrainian News
+3	17	Filipino News
+3	18	Hungarian News
+3	19	Italian News
+3	20	Weatherwatch
+3	21	Chilean News
+3	22	Maltese News
+3	23	Polish News
+3	24	Ukrainian News
+3	25	Filipino News
+3	26	Hungarian News
+3	27	Italian News
+3	29	When Sex Goes Wrong
+3	30	Crank Yankers
+3	31	The Daily Show With Jon Stewart
+3	32	Weatherwatch Overnight
+3	41	Filipino News
+3	42	Hungarian News
+3	43	Italian News Weekly
+3	44	Korean News
+3	45	Latin American News
+3	46	Maltese News
+3	47	Polish News
+3	0	Ukrainian News
+3	1	At the Piano with Mozart
+3	2	National Junior And Teams Road Cycling Championships
+3	4	Speedweek
+3	8	The World Game
+3	12	The World Game
+3	13	The World Game
+3	16	Thalassa
+3	17	World News Australia
+3	18	Toyota World Sport
+3	19	Lost Worlds
+3	21	Can Dogs Smell Cancer?
+3	23	Augustus
+3	26	The Film Biker (Lagarista)
+3	29	The Storm Rages Twice
+3	31	Weatherwatch Overnight
+3	38	Japanese News
+3	40	Weatherwatch and Music
+3	40	Mandarin News
+3	41	Weatherwatch and Music
+3	42	Italian News
+3	44	Das Journal
+3	45	Spanish News
+3	46	Le Journal
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Polish News
+3	6	Argentinian Rugby Club
+3	8	Insight
+3	10	Wine Lovers' Guide To Australia
+3	11	The Future is Wild
+3	12	Toyota World Sport
+3	13	The Journal
+3	14	She'll Be Right, Boss
+3	15	Living Black
+3	16	Global Village
+3	17	World News Australia
+3	18	Toyota World Sport
+3	19	Mythbusters
+3	21	bro'Town
+3	22	South Park
+3	23	World News Australia Late
+3	24	Oz
+3	26	Stealing Rembrandt
+3	29	The Nanny
+3	30	Train of Life (Train De Vie)
+3	33	Weatherwatch Overnight
+3	38	Japanese News
+3	40	Chinese News
+3	40	Mandarin News
+3	41	Weatherwatch and Music
+3	42	Italian News
+3	44	Das Journal
+3	45	Spanish News
+3	46	Le Journal
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Business Report
+3	6	Metamorphosis
+3	9	Tales From a Suitcase
+3	10	The Food Lovers' Guide to Australia
+3	11	Living Black
+3	12	Toyota World Sport
+3	13	The Journal
+3	14	Newshour with Jim Lehrer
+3	16	Global Village
+3	17	World News Australia
+3	18	Toyota World Sport
+3	19	Insight
+3	21	The Cutting Edge
+3	23	World News Australia Late
+3	24	Hot Docs
+3	26	The Marriage Certificate - (shei Shuo Wo Bu Zaihu)
+3	30	2LDK
+3	32	Weatherwatch Overnight
+3	37	UEFA Champions League
+3	41	Mandarin News
+3	42	Italian News
+3	44	Das Journal
+3	45	Spanish News
+3	46	Le Journal
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Business Report
+3	6	Japanese News
+3	7	Chinese News
+3	8	The Price Of Victory
+3	10	The Food Lovers' Guide to Australia
+3	11	Simply Ming
+3	12	Toyota World Sport
+3	13	The Journal
+3	14	Newshour with Jim Lehrer
+3	16	Living Black
+3	17	World News Australia
+3	18	Toyota World Sport
+3	19	The Food Lovers' Guide to Australia
+3	20	Two of Us
+3	21	Dateline
+3	23	World News Australia Late
+3	24	Behind the Sun
+3	27	A Kind of America (Valami Amerika)
+3	31	The Crime of Crimes
+3	32	Weatherwatch Overnight
+3	37	UEFA Champions League
+3	41	Mandarin News
+3	42	Italian News
+3	44	Das Journal
+3	45	Spanish News
+3	46	Le Journal
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Business Report
+3	6	Dateline
+3	8	Japanese News
+3	9	Chinese News
+3	10	A Fork in the Road
+3	11	School Torque
+3	12	Toyota World Sport
+3	13	The Journal
+3	14	Newshour with Jim Lehrer
+3	16	Global Village
+3	17	World News Australia
+3	18	Toyota World Sport
+3	19	Inspector Rex
+3	20	Hotline
+3	21	Storyline Australia
+3	23	World News Australia Late
+3	24	VH1 Illustrated
+3	25	UEFA Champions League
+3	27	Frozen Land - (paha Maa)
+3	31	Weatherwatch Overnight
+3	38	Japanese News
+3	40	Chinese News
+3	40	Mandarin News
+3	41	Weatherwatch and Music
+3	42	Italian News
+3	44	Das Journal
+3	45	Spanish News
+3	46	Le Journal
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Business Report
+3	6	Insight
+3	8	In Satmar Custody
+3	11	Elizabeth Chong's Tiny Delights
+3	12	Toyota World Sport
+3	13	The Journal
+3	14	Newshour with Jim Lehrer
+3	16	Global Village
+3	17	World News Australia
+3	18	Toyota World Sport
+3	19	Tales From The Palaces
+3	20	Feast Bazaar
+3	21	Bronski & Bernstein
+3	23	World News Australia Late
+3	24	Eros Under The Swastika
+3	25	Sex and Lucia
+3	38	Japanese News
+3	40	Chinese News
+3	40	Mandarin News
+3	41	Weatherwatch and Music
+3	42	Italian News
+3	44	Das Journal
+3	45	Spanish News
+3	46	Le Journal
+3	47	Russian News
+3	1	Greek News
+3	3	Arabic News
+3	4	Indonesian News
+3	5	Business Report
+3	6	Masterpiece on Saturday
+3	9	Masterpiece on Saturday
+3	11	Masterpiece on Saturday
+3	12	Masterpiece on Saturday
+3	13	The Journal
+3	14	Newshour with Jim Lehrer
+3	16	Classical Destinations
+3	17	World News Australia
+3	18	Toyota World Sport
+3	19	As It Happened
+3	21	The Iron Chef
+3	22	Rockwiz By Request
+3	23	Malena
+3	26	Shorts On Screen - S O S - My Sister
+3	41	Filipino News
+3	42	Hungarian News
+3	43	Italian News Weekly
+3	44	Korean News
+3	45	Latin American News
+3	46	Maltese News
+3	47	Polish News
+3	0	Ukrainian News
+3	1	Volleyball - 2006 Fivb World Grand Prix
+3	3	Cycling - Paris-tours 2006
+3	4	Speedweek
+3	8	The World Game
+3	12	The World Game
+3	13	Football Feature : Uefa Champions League 2006/2007 Sunday Matches
+3	16	Thalassa
+3	17	World News Australia
+3	18	Toyota World Sport
+3	19	Lost Worlds
+3	21	Trafalgar Battle Surgeon
+3	23	Nero
+3	26	The Hundred Steps
+3	29	Sunset Strip
+3	33	8 Simple Rules
+3	34	Malibu
+3	35	Malibu
+3	36	Guthy-Renker Australia
+3	38	Dateline NBC
+3	40	Hidden Hills
+3	41	Tractor Tom
+3	42	Stanley
+3	43	Fairy Tale Police
+3	44	Weekend Sunrise
+3	0	That Was Me
+3	2	My Business
+3	3	Staines Down Drains
+3	4	Staines Down Drains
+3	5	Reba
+3	6	According to Jim
+3	7	Get a Clue
+3	10	The Jewel of the Nile
+3	15	Coxy's Big Break
+3	16	Seven News
+3	17	The Real Seachange
+3	18	Medical Emergency
+3	19	Good As Gold
+3	21	Countdown To The Most Inspiring Movie Of All Time
+3	26	One Of The Top 5 Inspiring Movies Of All Time
+3	31	Studio Portraits
+3	33	Malibu
+3	34	Guthy-Renker Australia
+3	36	NBC Today
+3	38	NBC Meet the Press
+3	40	Sunrise
+3	46	Raggs
+3	47	Hot Auctions
+3	0	Sons and Daughters
+3	1	Seven Morning News
+3	2	Rodney
+3	3	Free Ride
+3	4	Haunting Sarah
+3	8	Blue Heelers
+3	10	Rafferty's Rules
+3	12	It's Academic
+3	13	Seven News at 4.30
+3	14	M*A*S*H
+3	15	Deal or No Deal
+3	16	Seven News
+3	17	Today Tonight
+3	18	Home and Away
+3	19	The Great Outdoors
+3	21	Grey's Anatomy
+3	23	Criminal Minds
+3	25	Boston Legal
+3	27	Jake in Progress
+3	28	Less Than Perfect
+3	29	Midnight Zoo
+3	32	Passions
+3	34	Guthy-Renker Australia
+3	36	NBC Today
+3	40	Sunrise
+3	46	Raggs
+3	47	Hot Auctions
+3	0	Sons and Daughters
+3	1	Seven Morning News
+3	2	Rodney
+3	3	Free Ride
+3	4	Man Of Miracles
+3	8	Blue Heelers
+3	10	Rafferty's Rules
+3	12	It's Academic
+3	13	Seven News at 4.30
+3	14	M*A*S*H
+3	15	Deal or No Deal
+3	16	Seven News
+3	17	Today Tonight
+3	18	Home and Away
+3	19	Dancing With The Stars
+3	23	All Saints
+3	25	Crossing Jordan
+3	27	Criss Angel Mind Freak
+3	28	Family Plots
+3	29	Midnight Zoo
+3	32	Passions
+3	34	Guthy-Renker Australia
+3	36	NBC Today
+3	40	Sunrise
+3	46	Raggs
+3	47	Hot Auctions
+3	0	Sons and Daughters
+3	1	Seven Morning News
+3	2	Stacked
+3	3	Free Ride
+3	4	Running Home
+3	8	Blue Heelers
+3	10	Rafferty's Rules
+3	12	It's Academic
+3	13	Seven News at 4.30
+3	14	M*A*S*H
+3	15	Deal or No Deal
+3	16	Seven News
+3	17	Today Tonight
+3	18	Home and Away
+3	19	The Force - Behind The Line
+3	20	Police Files - Unlocked
+3	21	Forensic Investigators
+3	23	The Unit
+3	25	JAG
+3	27	The First 48
+3	29	Midnight Zoo
+3	32	Passions
+3	34	Guthy-Renker Australia
+3	36	NBC Today
+3	40	Sunrise
+3	46	Raggs
+3	47	Hot Auctions
+3	0	Sons and Daughters
+3	1	Seven Morning News
+3	2	Stacked
+3	3	Free Ride
+3	4	In the Line of Duty
+3	8	Blue Heelers
+3	10	Rafferty's Rules
+3	12	It's Academic
+3	13	Seven News at 4.30
+3	14	M*A*S*H
+3	15	Deal or No Deal
+3	16	Seven News
+3	17	Today Tonight
+3	18	Home and Away
+3	19	How I Met Your Mother
+3	20	My Name is Earl
+3	21	Celebrity Survivor
+3	23	Bones
+3	25	Family Guy
+3	27	Stargate SG-1
+3	29	Midnight Zoo
+3	32	Passions
+3	34	Guthy-Renker Australia
+3	36	NBC Today
+3	40	Sunrise
+3	46	Raggs
+3	47	Hot Auctions
+3	0	Sons and Daughters
+3	1	Seven Morning News
+3	2	Stacked
+3	3	Scrubs
+3	4	Pitch Black
+3	9	Reba
+3	10	Rafferty's Rules
+3	12	It's Academic
+3	13	Seven News at 4.30
+3	14	M*A*S*H
+3	15	Deal or No Deal
+3	16	Seven News
+3	17	Today Tonight
+3	18	Home and Away
+3	19	Better Homes and Gardens
+3	21	Out of Time
+3	25	Jeepers Creepers 2
+3	29	Joker Poker
+3	31	Hack
+3	33	Video Hits
+3	34	Home Shopping
+3	36	Bayless Conley
+3	37	Key of David
+3	38	Hour of Power
+3	40	Mass for You at Home
+3	41	Hillsong
+3	42	Wicked Science
+3	43	Totally Wild
+3	44	Meet the Press
+3	45	Video Hits
+3	3	Girl Band
+3	4	The Rugrats Movie
+3	7	Pippi Longstocking
+3	10	Carerra Cup: Round 6
+3	11	RPM
+3	14	Ten News at Five
+3	15	Sports Tonight
+3	16	The Simpsons
+3	17	Meerkat Manor
+3	18	It's Me Or the Dog
+3	19	Australian Idol
+3	22	The Bourne Identity
+3	26	MotoGP
+3	32	Video Hits
+3	33	Home Shopping
+3	36	Enjoying Everyday Life with Joyce Meyer
+3	37	Kenneth Copeland
+3	38	Life Today with James Robison
+3	39	This is Your Day with Benny Hinn
+3	40	Ten Early News
+3	42	Toasted TV
+3	45	In the Box
+3	46	9am with David and Kim
+3	2	Ten Morning News
+3	4	Queer Eye For The Straight Guy
+3	6	The Oprah Winfrey Show
+3	8	Ready Steady Cook
+3	10	Judge Judy
+3	11	Huey's Cooking Adventures
+3	12	Scope
+3	13	The Bold and the Beautiful
+3	14	Ten News at Five
+3	16	The Simpsons
+3	17	Neighbours
+3	18	Futurama
+3	19	Australian Idol
+3	21	Law & Order: SVU
+3	23	The Biggest Loser
+3	25	Ten Late News With Sports Tonight
+3	26	NYPD Blue
+3	28	The Up-Late Game Show
+3	31	Video Hits
+3	32	Home Shopping
+3	36	Enjoying Everyday Life with Joyce Meyer
+3	37	Kenneth Copeland
+3	38	Life Today with James Robison
+3	39	This is Your Day with Benny Hinn
+3	40	Ten Early News
+3	42	Toasted TV
+3	45	In the Box
+3	46	9am with David and Kim
+3	2	Ten Morning News
+3	3	TTN
+3	4	Queer Eye For The Straight Guy
+3	6	The Oprah Winfrey Show
+3	8	Ready Steady Cook
+3	10	Judge Judy
+3	11	Huey's Cooking Adventures
+3	12	Totally Wild
+3	13	The Bold and the Beautiful
+3	14	Ten News at Five
+3	16	The Simpsons
+3	17	Neighbours
+3	18	Futurama
+3	19	Australian Idol
+3	21	Joker Poker
+3	23	Rove Live
+3	25	Ten Late News With Sports Tonight
+3	26	Cybershack
+3	27	The Up-Late Game Show
+3	31	Video Hits
+3	32	Home Shopping
+3	36	Enjoying Everyday Life with Joyce Meyer
+3	37	Kenneth Copeland
+3	38	Life Today with James Robison
+3	39	This is Your Day with Benny Hinn
+3	40	Ten Early News
+3	42	Toasted TV
+3	45	In the Box
+3	46	9am with David and Kim
+3	2	Ten Morning News
+3	4	Queer Eye For The Straight Guy
+3	6	The Oprah Winfrey Show
+3	8	Ready Steady Cook
+3	10	Judge Judy
+3	11	Huey's Cooking Adventures
+3	12	Totally Wild
+3	13	The Bold and the Beautiful
+3	14	Ten News at Five
+3	16	The Simpsons
+3	17	Neighbours
+3	18	Futurama
+3	19	Thank God You're Here
+3	21	House, M.D.
+3	23	NCIS
+3	25	Ten Late News With Sports Tonight
+3	26	Battlestar Galactica
+3	28	The Up-Late Game Show
+3	31	Video Hits
+3	32	Home Shopping
+3	36	Enjoying Everyday Life with Joyce Meyer
+3	37	Kenneth Copeland
+3	38	Life Today with James Robison
+3	39	This is Your Day with Benny Hinn
+3	40	Ten Early News
+3	42	Toasted TV
+3	45	In the Box
+3	46	9am with David and Kim
+3	2	Ten Morning News
+3	4	Queer Eye For The Straight Guy
+3	6	The Oprah Winfrey Show
+3	8	Ready Steady Cook
+3	10	Judge Judy
+3	11	Huey's Cooking Adventures
+3	12	Totally Wild
+3	13	The Bold and the Beautiful
+3	14	Ten News at Five
+3	16	The Simpsons
+3	17	Neighbours
+3	18	Futurama
+3	19	Jamie's Kitchen - Australia
+3	21	Jericho
+3	23	David Tench Tonight
+3	24	The Ronnie Johns' Half Hour
+3	25	Ten Late News With Sports Tonight
+3	26	Sex and the City
+3	27	Video Hits
+3	28	The Up-Late Game Show
+3	31	Video Hits
+3	32	Home Shopping
+3	36	Enjoying Everyday Life with Joyce Meyer
+3	37	Kenneth Copeland
+3	38	Life Today with James Robison
+3	39	This is Your Day with Benny Hinn
+3	40	Ten Early News
+3	42	Toasted TV
+3	45	In the Box
+3	46	9am with David and Kim
+3	2	Ten Morning News
+3	4	Queer Eye For The Straight Guy
+3	6	The Oprah Winfrey Show
+3	8	Ready Steady Cook
+3	10	Judge Judy
+3	11	Huey's Cooking Adventures
+3	12	H2O - Just Add Water
+3	13	The Bold and the Beautiful
+3	14	Ten News at Five
+3	16	The Simpsons
+3	17	Neighbours
+3	18	Futurama
+3	19	Smallville
+3	22	Lara Croft Tomb Raider - The Cradle Of Life
+3	27	Ten Late News
+4	3	49th Parallel
+4	7	Second Opinion
+4	10	Rage
+4	13	The Fimbles
+4	13	Pablo The Little Red Fox
+4	13	Yoko! Jakamoko! Toto!
+4	14	I Spy
+4	14	Planet Cook
+4	15	Old Tom
+4	15	Help I'm A Teenage Outlaw!
+4	16	Dragon Booster
+4	17	Round The Twist
+4	18	Insiders (Including News)
+4	20	Inside Business
+4	21	Offsiders
+4	22	Asia Pacific Focus
+4	23	Songs Of Praise: Beaulieu
+4	25	Order In The House
+4	26	Gardening Australia
+4	27	Message Stick
+4	30	From Shtetl To Swing: A Musical Odyssey
+4	34	Maggie: The First Lady
+4	36	At The Movies
+4	37	The Einstein Factor
+4	38	ABC News
+4	40	ABC News
+4	44	Compass
+4	45	The Private Life Of A Masterpiece
+4	47	The Farm
+4	0	Landline
+4	2	Parliament Question Time
+4	4	Ordinary People
+4	6	Bowls: Victorian Grand Prix 2006
+4	9	Norman Wisdom
+4	11	Gardening Australia (Fillers)
+4	12	Grizzly Tales For Gruesome Kids
+4	12	Black Hole High
+4	13	Tutenstein
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Miss BG
+4	16	Fifi And The Flowertots
+4	16	Five Minutes More
+4	17	Play With Me Sesame
+4	17	Lunar Jim
+4	18	Thomas And Friends
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	19	Tiny Planets
+4	20	For The Juniors
+4	20	Pyramid
+4	21	Book Box: Double Act
+4	21	Tate Modern
+4	22	Landline
+4	27	Family Story: The Longest Season
+4	28	Parliament Question Time
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	Jakers!: The Adventures Of Piggley Winks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Roller Coaster (Hostings)
+4	33	Tutenstein
+4	34	Black Hole High
+4	35	Grizzly Tales For Gruesome Kids
+4	35	Behind The News (5 Min)
+4	36	Off The Map
+4	37	Talking Heads
+4	38	ABC News
+4	39	The 7.30 Report
+4	40	Australian Story
+4	41	Four Corners
+4	42	Media Watch
+4	43	Enough Rope With Andrew Denton
+4	45	Lateline
+4	46	Lateline Business
+4	0	Midday Report
+4	1	Pilot Guides
+4	2	Parliament Question Time
+4	4	Account Rendered
+4	6	Australians At War
+4	9	Poet's Pub
+4	11	Words With James Griffin
+4	12	Girl Stuff, Boy Stuff
+4	12	Girls In Love
+4	13	Class Of The Titans
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Miss BG
+4	16	Fifi And The Flowertots
+4	16	Five Minutes More
+4	17	Play With Me Sesame
+4	17	Lunar Jim
+4	18	Thomas And Friends
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	20	Behind The News
+4	20	Our History
+4	21	Extra French
+4	22	Animals: The Inside Story
+4	24	Murder Investigation Team
+4	26	The Einstein Factor
+4	27	Catalyst
+4	28	Parliament Question Time
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	Jakers!: The Adventures Of Piggley Winks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Roller Coaster (Hostings)
+4	34	Princess Natasha
+4	34	Naturally Sadie
+4	35	Naughty Naughty Pets
+4	35	Behind The News (5 Min)
+4	36	Message Stick (Shorts)
+4	36	Time Team
+4	38	ABC News
+4	39	The 7.30 Report
+4	41	The Bill
+4	42	Foreign Correspondent
+4	45	Lateline
+4	46	Lateline Business
+4	47	Hajj: The Greatest Trip On Earth
+4	0	Midday Report
+4	1	The New Inventors
+4	2	Parliament Question Time
+4	4	Baroud
+4	6	National Press Club Address
+4	9	Arthur Askey
+4	11	Animal Rites
+4	12	Being Ian
+4	12	A Town Called Panic
+4	13	Blue Water High
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Miss BG
+4	16	Fifi And The Flowertots
+4	16	Five Minutes More
+4	17	The Wiggles: Racing To The Rainbow
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	19	Tiny Planets
+4	20	Count Us In
+4	20	Maths 4 Real 2
+4	21	Behind The News
+4	21	Australians
+4	22	Spy Master
+4	24	Media Watch
+4	25	Rough Justice
+4	27	Talking Heads
+4	28	Parliament Question Time
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	Jakers!: The Adventures Of Piggley Winks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Roller Coaster (Hostings)
+4	33	Yakkity Yak
+4	34	A Town Called Panic
+4	35	Behind The News (5 Min)
+4	36	Rick Stein's French Odyssey
+4	37	The Cook And The Chef
+4	38	ABC News
+4	39	The 7.30 Report
+4	40	The New Inventors
+4	41	Spicks & Specks
+4	43	The Glass House
+4	44	At The Movies
+4	45	Lateline
+4	46	Lateline Business
+4	47	Four Corners
+4	0	Midday Report
+4	1	National Press Club Address
+4	3	Top Of The Form
+4	5	Sending A Message (2003)
+4	7	Songs Of Praise: Dublin
+4	9	The Perfect Woman
+4	11	Gardening Australia (Fillers)
+4	12	The Amazing Adrenalini Brothers
+4	12	Skyland
+4	13	Bernard
+4	13	Zombie Hotel
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Miss BG
+4	16	Fifi And The Flowertots
+4	16	Five Minutes More
+4	17	The Wiggles: Racing To The Rainbow
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	20	For The Juniors
+4	20	Our Animals
+4	20	Being Me
+4	21	India
+4	22	Monarchy
+4	25	Parliament Question Time
+4	27	Strictly Dancing
+4	28	Parliament Question Time
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	Jakers!: The Adventures Of Piggley Winks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Roller Coaster (Hostings)
+4	33	Atomic Betty
+4	34	Bernard
+4	34	Avatar: The Last Airbender
+4	35	The Amazing Adrenalini Brothers
+4	35	Behind The News (5 Min)
+4	36	Aussie Animal Rescue
+4	38	ABC News
+4	39	The 7.30 Report
+4	40	Catalyst
+4	45	Lateline
+4	46	Lateline Business
+4	47	Live At The Basement
+4	0	Midday Report
+4	1	Lovejoy
+4	9	Ben Travers Farces
+4	11	Words With James Griffin
+4	12	Us Mob
+4	12	Radio Free Roscoe
+4	13	Angela Anaconda
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Miss BG
+4	16	Fifi And The Flowertots
+4	16	Five Minutes More
+4	17	Play With Me Sesame
+4	17	Lunar Jim
+4	18	Thomas And Friends
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	20	Take On Technology
+4	20	Behind The News Specials
+4	21	Food For Thought
+4	21	Designers
+4	22	British Isles: A Natural History
+4	23	British Isles: A Natural History
+4	27	Grumpy Old Men
+4	28	Welcher And Welcher
+4	29	Spicks & Specks
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	Jakers!: The Adventures Of Piggley Winks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Roller Coaster (Hostings)
+4	33	Fairly Odd Parents
+4	34	Radio Free Roscoe
+4	35	Croc Bites
+4	35	Behind The News (5 Min)
+4	36	Message Stick
+4	37	Can We Help?
+4	38	ABC News
+4	39	Stateline
+4	40	Collectors
+4	44	Sensitive Skin
+4	45	Lateline
+4	46	jtv
+4	47	Rage
+4	0	Midday Report
+4	1	Classic Parkinson
+4	10	Rage
+4	16	Rage: Guest Programmer
+4	18	jtv saturday
+4	22	Bowls: Tri Series: Men's Classic (2006)
+4	24	Rage
+4	26	Foreign Correspondent
+4	27	Words
+4	28	Orphans Of The Forest
+4	29	The Monkey Puzzle
+4	30	Children Galore
+4	32	Basketball: Women's National League 2006/07
+4	34	Head 2 Head
+4	35	Bowls: Victorian Grand Prix 2006
+4	37	Gardening Australia
+4	38	ABC News
+4	39	New Tricks
+4	40	ABC News Up-Date
+4	42	ABC News
+4	45	Changi
+4	47	The Glass House
+4	0	Stateline (NSW)
+4	1	Australian Story
+4	3	Marry Me
+4	6	Live At The Basement
+4	10	Rage
+4	13	The Fimbles
+4	13	Pablo The Little Red Fox
+4	13	Yoko! Jakamoko! Toto!
+4	14	I Spy
+4	14	Planet Cook
+4	15	Old Tom
+4	15	King Arthur's Disasters
+4	16	Dragon Booster
+4	17	Round The Twist
+4	18	Insiders (Including News)
+4	20	Inside Business
+4	21	Offsiders
+4	22	Asia Pacific Focus
+4	23	Songs Of Praise: Cirencester
+4	25	Order In The House
+4	26	Gardening Australia
+4	27	Message Stick
+4	28	Karen Blixen: Out Of This World
+4	30	Knowledge Is The Beginning: Daniel Barenboim And The West-Eastern Divan Orchestra
+4	34	Maggie: The First Lady
+4	36	At The Movies
+4	37	The Einstein Factor
+4	38	ABC News
+4	40	ABC News
+4	44	Compass
+4	45	Robert Harris
+4	47	The Farm
+4	0	Landline
+4	2	Theirs Is The Glory
+4	5	Second Opinion
+4	6	Bowls: Victorian Grand Prix 2006
+4	9	Miranda
+4	12	Grizzly Tales For Gruesome Kids
+4	12	Black Hole High
+4	13	Tutenstein
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Five Minutes More
+4	17	Play With Me Sesame
+4	17	Lunar Jim
+4	18	Thomas And Friends
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	20	For The Juniors
+4	20	Pyramid
+4	21	Book Box: Double Act
+4	21	Tate Modern
+4	22	Landline
+4	25	Fortress Australia:
+4	27	Head 2 Head
+4	28	The Bill
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	George Shrinks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Roller Coaster
+4	33	Tutenstein
+4	34	Black Hole High
+4	35	Grizzly Tales For Gruesome Kids
+4	35	Behind The News (5 Min)
+4	36	Off The Map
+4	37	Talking Heads
+4	38	ABC News
+4	39	The 7.30 Report
+4	40	Australian Story
+4	41	Four Corners
+4	42	Media Watch
+4	43	Enough Rope With Andrew Denton
+4	45	Lateline
+4	46	Lateline Business
+4	47	Jack And Bobby
+4	0	Midday Report
+4	1	Pilot Guides
+4	2	The Battle Of The River Plate
+4	6	Australians At War
+4	9	Mad About Men
+4	12	Nick Gets The Knack
+4	12	Girls In Love
+4	13	Class Of The Titans
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Curious George (15 x 24' Version)
+4	16	Five Minutes More
+4	17	Play With Me Sesame
+4	17	Lunar Jim
+4	18	Thomas And Friends
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	20	Behind The News
+4	20	Our History
+4	21	Extra French
+4	22	Primal Instincts
+4	24	Murder Investigation Team
+4	26	The Einstein Factor
+4	27	Catalyst
+4	28	The Bill
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	George Shrinks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Roller Coaster
+4	34	Uncle Dad
+4	34	Princess Natasha
+4	34	Naturally Sadie
+4	35	Naughty Naughty Pets
+4	35	Behind The News (5 Min)
+4	36	Message Stick (Shorts)
+4	36	Time Team
+4	38	ABC News
+4	39	The 7.30 Report
+4	42	Foreign Correspondent
+4	45	Lateline
+4	46	Lateline Business
+4	47	Hajj: The Greatest Trip On Earth
+4	0	Midday Report
+4	1	The New Inventors
+4	2	In The Realm Of The Hackers
+4	4	Phantom Light
+4	6	National Press Club Address
+4	9	Double Take
+4	12	Being Ian
+4	12	A Town Called Panic
+4	13	Blue Water High
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Curious George (15 x 24' Version)
+4	16	Five Minutes More
+4	17	Play With Me Sesame
+4	17	Lunar Jim
+4	18	Thomas And Friends
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	20	Count Us In
+4	20	For The Juniors
+4	21	Behind The News
+4	21	Australians
+4	22	Spy Master
+4	24	Media Watch
+4	25	Rough Justice
+4	27	Talking Heads
+4	28	The Bill
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	George Shrinks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Roller Coaster
+4	34	Yakkity Yak
+4	34	A Town Called Panic
+4	34	Blue Water High
+4	35	Behind The News (5 Min)
+4	36	Rick Stein's French Odyssey
+4	38	ABC News
+4	39	The 7.30 Report
+4	40	The New Inventors
+4	41	Spicks & Specks
+4	43	The Glass House
+4	44	At The Movies
+4	45	Lateline
+4	46	Lateline Business
+4	47	Four Corners
+4	0	Midday Report
+4	1	National Press Club Address
+4	4	The Card
+4	7	Songs Of Praise: Wakefield (May Day)
+4	9	Trouble In Store
+4	12	The Amazing Adrenalini Brothers
+4	12	Skyland
+4	13	Bernard
+4	13	Zombie Hotel
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Curious George (15 x 24' Version)
+4	16	Five Minutes More
+4	17	Play With Me Sesame
+4	17	Lunar Jim
+4	18	Thomas And Friends
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	20	For The Juniors
+4	20	Our Animals
+4	20	Being Me
+4	21	India
+4	22	Altered Statesmen
+4	25	Gods And Monsters
+4	27	Strictly Dancing
+4	28	The Bill
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	George Shrinks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Atomic Betty
+4	34	Bernard
+4	34	Avatar: The Last Airbender
+4	35	The Amazing Adrenalini Brothers
+4	35	Behind The News (5 Min)
+4	36	Aussie Animal Rescue
+4	37	The Pet Show
+4	38	ABC News
+4	39	The 7.30 Report
+4	40	Catalyst
+4	44	Lateline
+4	46	Lateline Business
+4	47	Live At The Basement
+4	0	Midday Report
+4	1	National Press Club Address
+4	9	It Started In Paradise
+4	12	Us Mob
+4	12	Radio Free Roscoe
+4	13	Angela Anaconda
+4	14	Time Warp Trio
+4	14	Edgar And Ellen (Shorts)
+4	14	Olliver's Adventures
+4	15	Martin Morning
+4	15	Gerald McBoing Boing
+4	16	Curious George (15 x 24' Version)
+4	16	Five Minutes More
+4	17	Play With Me Sesame
+4	17	Lunar Jim
+4	18	Thomas And Friends
+4	18	The Koala Brothers
+4	18	Bananas In Pyjamas
+4	19	Play School
+4	20	Take On Technology
+4	20	Behind The News Specials
+4	21	Our Earth
+4	21	Atoms Of Fire
+4	22	British Isles: A Natural History
+4	23	British Isles: A Natural History
+4	27	Grumpy Old Men
+4	28	Welcher And Welcher
+4	29	Spicks & Specks
+4	30	Bananas In Pyjamas
+4	30	Boohbah
+4	30	Pocoyo
+4	31	Play School
+4	32	George Shrinks
+4	32	Dr Dog
+4	33	The Secret Show
+4	33	Fairly Odd Parents
+4	34	Radio Free Roscoe
+4	35	Croc Bites
+4	35	Behind The News (5 Min)
+4	36	Message Stick
+4	37	Can We Help?
+4	38	ABC News
+4	39	Stateline
+4	40	Collectors
+4	45	Lateline
+4	46	jtv
+4	47	Rage
+4	0	Midday Report
+4	1	Classic Parkinson
+4	10	Rage
+4	16	Rage: Guest Programmer
+4	18	jtv saturday
+4	22	Bowls: Tri Nations: South Africa 2006
+4	26	Foreign Correspondent
+4	27	Words
+4	28	Nature Of Australia
+4	30	The Great Gildersleeve
+4	32	Basketball: Women's National League 2006/07
+4	34	Head 2 Head
+4	35	Bowls: Victorian Grand Prix 2006
+4	37	Gardening Australia
+4	38	ABC News
+4	40	ABC News Up-Date
+4	41	The Bill
+4	42	ABC News
+4	45	Changi
+4	47	The Glass House
+4	0	Stateline (NSW)
+4	1	Australian Story
+5	14	Rage: Guest Programmer
+5	16	Rage: New Releases
+5	20	Beck: Permanent Mutations
+5	22	Pop(b)session
+5	29	Delilah And Julius
+5	29	Nick Gets The Knack
+5	30	The New Captain Scarlet
+5	30	Radio Free Roscoe
+5	31	Girl Stuff, Boy Stuff
+5	32	Stateline (NSW)
+5	33	Stateline (ACT)
+5	34	Stateline (TAS)
+5	35	Stateline (VIC)
+5	36	Stateline (QLD)
+5	37	Stateline (SA)
+5	38	Stateline (NT)
+5	39	Stateline (WA)
+5	40	Landline
+5	42	Insiders
+5	44	Inside Business
+5	45	Offsiders
+5	46	Asia Pacific Focus
+5	46	Best Of Series 1: Late Night Legends
+5	0	The New Inventors
+5	1	WNBL
+5	13	Landline
+5	15	Insiders
+5	17	Inside Business
+5	18	Offsiders
+5	19	Asia Pacific Focus
+5	20	Engie Benjy
+5	20	Ebb And Flo
+5	20	Rubbadubbers
+5	21	The Fimbles
+5	21	Brum
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Fourways Farm
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	This Is Daniel Cook
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The World Of Peter Rabbit And Friends
+5	27	Spot's Musical Adventures
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Angelmouse
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Gardening Australia
+5	31	People Dimensions
+5	32	Landline
+5	34	Australia Wide
+5	35	At The Movies
+5	36	2030CE
+5	36	A Town Called Panic
+5	37	The Tribe
+5	38	Pop(b)session
+5	40	Australia Wide
+5	41	Talking Heads
+5	45	Talking Heads
+5	46	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	12	People Dimensions
+5	13	Lateline
+5	14	Lateline Business
+5	15	Australia Wide
+5	16	Talking Heads
+5	17	Gardening Australia
+5	18	Landline
+5	20	Engie Benjy
+5	20	Ebb And Flo
+5	20	Rubbadubbers
+5	21	The Fimbles
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Fourways Farm
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The World Of Peter Rabbit And Friends
+5	27	Spot's Musical Adventures
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Angelmouse
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Gardening Australia
+5	31	Dimensions In Time
+5	32	Pop(b)session
+5	34	Australia Wide
+5	35	Australian Story Classics
+5	36	Radio Free Roscoe
+5	36	The Tribe
+5	38	The Pet Show
+5	39	Can We Help?
+5	40	Australia Wide
+5	41	Good Game
+5	42	jtv XL
+5	43	jtv XL: The Bravery
+5	44	jtv XL
+5	45	Monkey Dust
+5	46	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	12	Dimensions In Time
+5	13	Lateline
+5	14	Lateline Business
+5	15	Australia Wide
+5	16	Can We Help?
+5	17	Gardening Australia
+5	18	The Bravery: Live in France
+5	19	Buckethead
+5	20	Engie Benjy
+5	20	Ebb And Flo
+5	20	Rubbadubbers
+5	21	The Fimbles
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Fourways Farm
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	This Is Daniel Cook
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The World Of Peter Rabbit And Friends
+5	27	Spot's Musical Adventures
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Angelmouse
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Gardening Australia
+5	31	Health Dimensions
+5	32	The Bravery: Live in France
+5	33	Buckethead
+5	34	Australia Wide
+5	35	Catalyst
+5	36	Class Of The Titans
+5	36	Freaky Stories
+5	36	The Tribe
+5	37	Winged Sandals
+5	39	Media Watch
+5	40	Australia Wide
+5	41	The Cook And The Chef
+5	42	Catalyst
+5	43	Four Corners
+5	44	Media Watch
+5	45	Good Game
+5	46	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	2	Good Game
+5	3	Short And Curly
+5	12	Health Dimensions
+5	13	Lateline
+5	14	Lateline Business
+5	15	Australia Wide
+5	16	The Cook And The Chef
+5	17	Gardening Australia
+5	18	Australian Story Classics
+5	19	The Pet Show
+5	20	Engie Benjy
+5	20	Jasper The Penguin
+5	20	Rubbadubbers
+5	21	The Fimbles
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Fourways Farm
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	This Is Daniel Cook
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The World Of Peter Rabbit And Friends
+5	27	Spot's Musical Adventures
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Angelmouse
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Gardening Australia
+5	31	People Dimensions
+5	32	Foreign Correspondent
+5	33	Words
+5	34	Australia Wide
+5	35	Behind The News
+5	35	World Ahoy
+5	36	Being Ian
+5	36	The Tribe
+5	37	Dust Echoes
+5	39	Media Watch
+5	40	Australia Wide
+5	41	Secret Recipes
+5	43	Foreign Correspondent
+5	44	Media Watch
+5	45	dig tv presents
+5	45	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	12	People Dimensions
+5	13	Lateline
+5	14	Lateline Business
+5	15	Australia Wide
+5	16	Secret Recipes
+5	17	Gardening Australia
+5	18	A Big Country Revisited
+5	18	Compass
+5	20	Engie Benjy
+5	20	Jasper The Penguin
+5	20	Rubbadubbers
+5	21	The Fimbles
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Fourways Farm
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	This Is Daniel Cook
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The Fimbles
+5	27	Elmo's World
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Angelmouse
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Pilot Guides
+5	31	Health Dimensions
+5	32	A Big Country Revisited
+5	33	A Gondola On The Murray
+5	34	Australia Wide
+5	35	Australian Story
+5	36	Delilah And Julius
+5	36	Freaky Stories
+5	37	The Tribe
+5	38	Compass
+5	39	Australia Wide
+5	40	WNBL: LIVE
+5	44	Short And Curly
+5	45	Plumpton High Babies
+5	46	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	12	Health Dimensions
+5	13	Lateline
+5	14	Lateline Business
+5	14	Mosaic: Eyes On The World
+5	15	Australia Wide
+5	16	The Einstein Factor
+5	17	Australian Story
+5	18	Behind The News
+5	18	Experimentals
+5	19	Archibald The Koala
+5	19	King Arthur's Disasters
+5	20	Anthony Ant
+5	21	Batfink
+5	21	Zombie Hotel
+5	22	Grizzly Tales For Gruesome Kids
+5	22	Cyberchase
+5	23	Angela Anaconda
+5	26	Gardening Australia
+5	27	Australian Story Classics
+5	28	Stateline (NSW)
+5	29	Stateline (ACT)
+5	30	Stateline (TAS)
+5	31	Stateline (VIC)
+5	32	NT AFL 2007
+5	36	A Gondola On The Murray
+5	37	Relive The Rivalry: Tasmania Vs Victoria
+5	42	The Glass House
+5	43	Plumpton High Babies
+5	44	The New Inventors
+5	45	Studio 22
+5	46	Monkey Dust
+5	47	Best Of Series 1: Late Night Legends
+5	0	Message Stick
+5	1	A Gondola On The Murray
+5	14	Rage: Guest Programmer
+5	16	Rage: New Releases
+5	20	The Bravery: Live in France 2005
+5	22	Pop(b)session
+5	29	Delilah And Julius
+5	29	Nick Gets The Knack
+5	30	The New Captain Scarlet
+5	30	Radio Free Roscoe
+5	31	Girl Stuff, Boy Stuff
+5	32	Stateline (NSW)
+5	33	Stateline (ACT)
+5	34	Stateline (TAS)
+5	35	Stateline (VIC)
+5	36	Stateline (QLD)
+5	37	Stateline (SA)
+5	38	Stateline (NT)
+5	39	Stateline (WA)
+5	40	Landline
+5	42	Insiders
+5	44	Inside Business
+5	45	Offsiders
+5	46	Asia Pacific Focus
+5	46	Best Of Series 1: Late Night Legends
+5	0	The New Inventors
+5	1	WNBL
+5	13	Landline
+5	15	Insiders
+5	17	Inside Business
+5	18	Offsiders
+5	19	Asia Pacific Focus
+5	20	Engie Benjy
+5	20	Jasper The Penguin
+5	20	Rubbadubbers
+5	21	Boblins
+5	21	Titch
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Fourways Farm
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	Yoko! Jakamoko! Toto!
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The Fimbles
+5	27	Elmo's World (Series 35 And 36)
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Angelmouse
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Gardening Australia
+5	31	People Dimensions
+5	32	Landline
+5	34	Australia Wide
+5	35	At The Movies
+5	36	2030CE
+5	36	A Town Called Panic
+5	37	The Tribe
+5	38	Pop(b)session
+5	40	Australia Wide
+5	41	Talking Heads
+5	42	dig tv presents
+5	43	Pop(b)session
+5	45	Talking Heads
+5	46	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	12	People Dimensions
+5	13	Lateline
+5	14	Lateline Business
+5	15	Australia Wide
+5	16	Talking Heads
+5	17	Gardening Australia
+5	18	Landline
+5	20	Engie Benjy
+5	20	Jasper The Penguin
+5	20	Rubbadubbers
+5	21	Boblins
+5	21	Titch
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Fourways Farm
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	Yoko! Jakamoko! Toto!
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The Fimbles
+5	27	Elmo's World (Series 35 And 36)
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Angelmouse
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Gardening Australia
+5	31	Dimensions In Time
+5	32	Pop(b)session
+5	34	Australia Wide
+5	35	Australian Story Classics
+5	36	Radio Free Roscoe
+5	36	Ace Day Jobs
+5	36	The Tribe
+5	38	The Pet Show
+5	39	Can We Help?
+5	40	Australia Wide
+5	41	Good Game
+5	42	jtv XL
+5	43	jtv XL: The Doves: Live At Eden 2002
+5	45	Monkey Dust
+5	46	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	12	Dimensions In Time
+5	13	Lateline
+5	14	Lateline Business
+5	15	Australia Wide
+5	16	Can We Help?
+5	17	Gardening Australia
+5	18	The Doves: Live At Eden 2002
+5	20	Engie Benjy
+5	20	Jasper The Penguin
+5	20	Rubbadubbers
+5	21	Boblins
+5	21	Titch
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Fourways Farm
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	Yoko! Jakamoko! Toto!
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The Fimbles
+5	27	Elmo's World (Series 35 And 36)
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Caillou
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Gardening Australia
+5	31	Health Dimensions
+5	32	The Doves: Live At Eden 2002
+5	33	Hello
+5	34	Australia Wide
+5	35	Catalyst
+5	36	Pitt And Kantrop
+5	36	Freaky Stories
+5	37	The Tribe
+5	38	Four Corners
+5	39	Media Watch
+5	40	Australia Wide
+5	41	The Cook And The Chef
+5	42	Catalyst
+5	43	Four Corners
+5	44	Media Watch
+5	45	Good Game
+5	46	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	2	Good Game
+5	3	Short And Curly
+5	12	Health Dimensions
+5	13	Lateline
+5	14	Lateline Business
+5	15	Australia Wide
+5	16	The Cook And The Chef
+5	17	Gardening Australia
+5	18	Australian Story Classics
+5	19	The Pet Show
+5	20	Engie Benjy
+5	20	Jasper The Penguin
+5	20	Rubbadubbers
+5	21	Boblins
+5	21	Titch
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Louie
+5	23	Inuk
+5	23	Adventures Of Spot
+5	26	Yoko! Jakamoko! Toto!
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The Fimbles
+5	27	Elmo's World (Series 35 And 36)
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Caillou
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Gardening Australia
+5	31	People Dimensions
+5	32	Foreign Correspondent
+5	33	Words
+5	34	Australia Wide
+5	35	Behind The News
+5	35	World Ahoy
+5	36	Being Ian
+5	36	Grizzly Tales For Gruesome Kids
+5	37	The Tribe
+5	38	Foreign Correspondent
+5	39	Media Watch
+5	40	Australia Wide
+5	41	Head 2 Head
+5	42	Australian Story
+5	43	Foreign Correspondent
+5	44	Media Watch
+5	45	dig tv presents
+5	45	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	12	People Dimensions
+5	13	Lateline
+5	14	Lateline Business
+5	15	Australia Wide
+5	16	Head 2 Head
+5	17	Gardening Australia
+5	18	A Big Country Revisited
+5	19	Compass
+5	20	Engie Benjy
+5	20	Jasper The Penguin
+5	20	Rubbadubbers
+5	21	Boblins
+5	21	Titch
+5	21	Teletubbies Everywhere
+5	22	Pablo The Little Red Fox
+5	22	Connie The Cow
+5	22	Pocoyo
+5	22	Pinky Dinky Doo
+5	23	Louie
+5	23	ToddWorld
+5	23	Angelmouse
+5	23	Adventures Of Spot
+5	26	Yoko! Jakamoko! Toto!
+5	26	Dr Otter
+5	26	Molly's Gang
+5	26	The Fimbles
+5	27	Elmo's World (Series 35 And 36)
+5	28	The Wubbulous World Of Dr Seuss
+5	28	Caillou
+5	29	Oswald
+5	29	Sali Mali
+5	29	Lights, Camera, Action, Wiggles!
+5	30	Pilot Guides
+5	31	Health Dimensions
+5	32	A Big Country Revisited
+5	33	A Gondola On The Murray
+5	34	Australia Wide
+5	35	Australian Story
+5	36	Zombie Hotel
+5	36	Freaky Stories
+5	37	The Tribe
+5	38	Compass
+5	39	Australia Wide
+5	40	WNBL: LIVE
+5	44	Short And Curly
+5	45	Plumpton High Babies
+5	46	Best Of Series 1: Late Night Legends
+5	0	Animal Jam
+5	0	Pingu
+5	1	Play School
+5	12	Health Dimensions
+5	13	Lateline
+5	14	Lateline Business
+5	14	Mosaic: Eyes On The World
+5	15	Australia Wide
+5	16	The Einstein Factor
+5	17	Australian Story
+5	18	Behind The News
+5	18	Experimentals
+5	19	Archibald The Koala
+5	19	King Arthur's Disasters
+5	20	Anthony Ant
+5	21	Batfink
+5	21	Zombie Hotel
+5	22	Grizzly Tales For Gruesome Kids
+5	22	Cyberchase
+5	23	Angela Anaconda
+5	26	Gardening Australia
+5	27	Australian Story Classics
+5	28	Stateline (NSW)
+5	29	Stateline (ACT)
+5	30	Stateline (TAS)
+5	31	Stateline (VIC)
+5	32	NT AFL 2007
+5	36	A Gondola On The Murray
+5	37	Message Stick
+5	38	The Einstein Factor
+5	39	Pilot Guides
+5	40	Australian Story
+5	41	At The Movies
+5	42	The Glass House
+5	43	The Gamblers
+5	44	The New Inventors
+5	46	Monkey Dust
+5	0	Message Stick
+5	1	A Gondola On The Murray
+6	2	Station - Close
+6	14	Rage: Guest Programmer
+6	16	Rage: New Releases
+6	20	Beck: Permanent Mutations
+6	22	Pop(b)session
+6	24	The New Inventors
+6	25	WNBL: Live
+6	29	Delilah and Julius
+6	29	Nick Gets the Knack
+6	30	The New Captain Scarlet
+6	30	Radio Free Roscoe
+6	31	Girl Stuff, Boy Stuff
+6	32	Stateline (NSW)
+6	33	Stateline (ACT)
+6	34	Stateline (TAS)
+6	35	Stateline (VIC)
+6	36	Stateline (QLD)
+6	37	Stateline (SA)
+6	38	Stateline (NT)
+6	39	Stateline (WA)
+6	40	Landline
+6	42	Insiders
+6	44	Inside Business
+6	45	Offsiders
+6	46	Asia Pacfic Focus
+6	46	Best of Series One: Late Night Legends
+6	1	Station - Close
+6	13	Landline
+6	15	Insiders
+6	17	Inside Business
+6	18	Offsiders
+6	19	Asia Pacfic Focus
+6	20	Engie Benjy
+6	20	Ebb and Flo
+6	20	Rubbadubbers
+6	21	The Fimbles
+6	21	Brum
+6	22	Pablo the Little Red Fox
+6	22	Connie the Cow
+6	22	Pocoyo
+6	22	Pinky Dinky Doo
+6	23	Fourways Farm
+6	23	Inuk
+6	23	Adventures of Spot
+6	24	Animal Jam
+6	24	Pingu
+6	25	Play School
+6	26	This Is Daniel Cook
+6	26	Dr Otter
+6	26	Molly's Gang
+6	26	The World of Peter Rabbit And Friends
+6	27	Spot's Musical Adventures
+6	28	The Wubbulous World of Dr Seuss
+6	28	Angelmouse
+6	29	Oswald
+6	29	Sali Mali
+6	29	Lights, Camera, Action, Wiggles!
+6	30	Gardening Australia
+6	31	People Dimensions
+6	32	Landline
+6	34	Australia Wide
+6	35	At the Movies
+6	36	2030 CE
+6	36	A Town Called Panic
+6	37	The Tribe
+6	38	Pop(b)session
+6	40	Australia Wide
+6	41	Talking Heads
+6	42	Dig tv
+6	43	Pop(b)session
+6	45	Talking Heads
+6	46	Best of Series One: Late Night Legends
+6	2	Station - Close
+6	12	People Dimensions
+6	13	Lateline
+6	14	Lateline Business
+6	15	Australia Wide
+6	16	Talking Heads
+6	17	Gardening Australia
+6	18	Landline
+6	20	Engie Benjy
+6	20	Ebb and Flo
+6	20	Rubbadubbers
+6	21	The Fimbles
+6	21	Teletubbies
+6	22	Pablo the Little Red Fox
+6	22	Connie the Crow
+6	22	Pocoyo
+6	22	Pinky Dinky Doo
+6	23	Fourways Farm
+6	23	Inuk
+6	23	Adventures of Spot
+6	24	Animal Jam
+6	24	Pingu
+6	25	Play School
+6	26	This Is Daniel Cook
+6	26	Dr Otter
+6	26	Molly's Gang
+6	26	The World of Peter Rabbit And Friends
+6	27	Spot's Musical Adventures
+6	28	The Wubbulous World of Dr Seuss
+6	28	Angelmouse
+6	29	Oswald
+6	29	Sali Mali
+6	29	Lights, Camera, Action, Wiggles!
+6	30	Gardening Australia
+6	31	Dimensions in Time
+6	32	Pop(b)session
+6	34	Australia Wide
+6	35	Australian Story Classics
+6	36	Radio Free Roscoe
+6	36	Ace Day Jobs
+6	37	The Tribe
+6	38	The Pet Show
+6	39	Can We Help?
+6	40	Australia Wide
+6	41	Good Game
+6	42	Jtv XL
+6	43	Jtv Live:
+6	45	Monkey Dust
+6	46	Best of Series One: Late Night Legends
+6	47	Station Close
+6	12	Dimensions in Time
+6	13	Lateline
+6	14	Lateline Business
+6	15	Australia Wide
+6	16	Can We Help?
+6	17	Gardening Australia
+6	18	The Bravery: Live In France
+6	20	Engie Benjy
+6	20	Ebb and Flo
+6	20	Rubbadubbers
+6	21	The Fimbles
+6	21	Teletubbies
+6	22	Pablo the Little Red Fox
+6	22	Connie the Crow
+6	22	Pocoyo
+6	22	Pinky Dinky Doo
+6	23	Fourways Farm
+6	23	Inuk
+6	23	Adventures of Spot
+6	24	Animal Jam
+6	24	Pingu
+6	25	Play School
+6	26	This Is Daniel Cook
+6	26	Dr Otter
+6	26	Molly's Gang
+6	26	The World of Peter Rabbit And Friends
+6	27	Spot's Musical Adventures
+6	28	The Wubbulous World of Dr Seuss
+6	28	Angelmouse
+6	29	Oswald
+6	29	Sali Mali
+6	29	Lights, Camera, Action, Wiggles!
+6	30	Gardening Australia
+6	31	Health Dimensions
+6	32	The Bravery: Live In France
+6	34	Australia Wide
+6	35	Catalyst
+6	36	Class of the Titans
+6	36	Freaky Stories
+6	36	The Tribe
+6	37	Winged Sandals
+6	38	Four Corners
+6	39	Media Watch
+6	40	Australia Wide
+6	41	The Cook and the Chef
+6	42	Catalyst
+6	43	Four Corners
+6	44	Media Watch
+6	45	Good Game
+6	46	Best of Series One: Late Night Legends
+6	47	Station Close
+6	12	Health Dimensions
+6	13	Lateline
+6	14	Lateline Business
+6	15	Australia Wide
+6	16	The Cook and the Chef
+6	17	Gardening Australia
+6	18	Australian Story Classics
+6	19	The Pet Show
+6	20	Engie Benjy
+6	20	Jasper the Penguin
+6	20	Rubbadubbers
+6	21	The Fimbles
+6	21	Teletubbies
+6	22	Pablo the Little Red Fox
+6	22	Connie the Crow
+6	22	Pocoyo
+6	22	Pinky Dinky Doo
+6	23	Fourways Farm
+6	23	Inuk
+6	23	Adventures of Spot
+6	24	Animal Jam
+6	24	Pingu
+6	25	Play School
+6	26	This Is Daniel Cook
+6	26	Dr Otter
+6	26	Molly's Gang
+6	26	The World of Peter Rabbit And Friends
+6	27	Spot's Musical Adventures
+6	28	The Wubbulous World of Dr Seuss
+6	28	Angelmouse
+6	29	Oswald
+6	29	Sali Mali
+6	29	Lights, Camera, Action, Wiggles!
+6	30	Gardening Australia
+6	31	People Dimensions
+6	32	Foreign Correspondent
+6	33	Words
+6	34	Australia Wide
+6	35	Behind the News
+6	36	Being Ian
+6	36	The Tribe
+6	37	Dust Echoes
+6	38	Foreign Correspondent
+6	39	Media Watch
+6	40	Australia Wide
+6	41	Secret Reciipes
+6	42	Australian Story
+6	43	Foreign Correspondent
+6	44	Media Watch
+6	45	Dig tv
+6	46	Best of Series One: Late Night Legends
+6	2	Good Game
+6	3	Short and Curly
+6	6	Station Close
+6	12	People Dimensions
+6	13	Lateline
+6	14	Lateline Business
+6	15	Australia Wide
+6	16	Secret Recipes
+6	17	Gardening Australia
+6	18	A Big Country Revisited
+6	18	Compass
+6	20	Engie Benjy
+6	20	Jasper the Penguin
+6	20	Rubbadubbers
+6	21	The Fimbles
+6	21	Teletubbies
+6	22	Pablo the Little Red Fox
+6	22	Connie the Cow
+6	22	Pocoyo
+6	22	Pinky Dinky Doo
+6	23	Fourways Farm
+6	23	Inuk
+6	23	Adventures of Spot
+6	24	Animal Jam
+6	24	Pingu
+6	25	Play School
+6	26	This Is Daniel Cook
+6	26	Dr Otter
+6	26	Molly's Gang
+6	26	The Fimbles
+6	27	Elmo's World
+6	28	The Wubbulous World of Dr Seuss
+6	28	Angelmouse
+6	29	Oswald
+6	29	Sali Mali
+6	29	Lights, Camera, Action, Wiggles!
+6	30	Pilot Guides
+6	31	Health Dimensions
+6	32	A Big Country Revisited
+6	33	A Gondola on the Murray
+6	34	Australia Wide
+6	35	Australian Story
+6	36	Delilah and Julius
+6	36	Freaky Stories
+6	37	The Tribe
+6	38	Compass
+6	39	Australia Wide
+6	40	WNBL: Live
+6	44	Short and Curly
+6	45	Plumpton High Babies
+6	46	Best of Series One: Late Night Legends
+6	1	Station - Close
+6	12	Health Dimensions
+6	13	Lateline
+6	14	Lateline Business
+6	14	Mosaic: Eyes on the World
+6	15	Australia Wide
+6	16	The Einstein Factor
+6	17	Australian Story
+6	18	Behind the News
+6	18	Experimentals
+6	19	Archibald the Koala
+6	19	King Arthur's Disasters
+6	20	Anthony Ant
+6	21	Battfink
+6	21	Zombie Hotel
+6	22	Grizzly Tales for Gruesome Kids
+6	22	Cyberchase
+6	23	Angela Anaconda
+6	24	Message Stick
+6	25	A Gondola on the Murray
+6	26	Gardening Australia
+6	27	Australian Story
+6	28	Stateline (NSW)
+6	29	Stateline (ACT)
+6	30	Stateline (TAS)
+6	31	Stateline (VIC)
+6	32	Stateline (QLD)
+6	33	Stateline (SA)
+6	34	Stateline (NT)
+6	35	Stateline (WA)
+6	36	A Gondola on the Murray
+6	37	Revive the Rivalry:
+6	41	Pilot Guides
+6	42	The Glass House
+6	43	Plumpton High Babies
+6	44	The New Inventors
+6	45	Studio 22
+6	46	Monkey Dust
+6	47	Best of Series One: Late Night Legends
+6	0	Rage
+6	13	The Fimbles
+6	13	Pablo the Little Red Fox
+6	13	Yoko! Jakamoko! Toto!
+6	14	I Spy
+6	14	Planet Cook
+6	15	Old Tom
+6	15	Help I'm A Teenage Outlaw
+6	16	Dragon Booster
+6	17	Round the Twist
+6	18	Insiders (Including News)
+6	20	Inside Business
+6	21	Offsiders
+6	22	Asia Pacfic Focus
+6	23	Songs of Praise:
+6	24	Landline
+6	26	Gardening Australia
+6	27	Message Stick
+6	28	The Agatha Christie Code
+6	29	River Woman
+6	30	From Shteti To Swing
+6	32	Sunday Arts
+6	34	Maggie: The First Lady
+6	36	At the Movies
+6	37	The Einstein Factor
+6	38	ABC News
+6	39	Operatunity Oz
+6	40	ABC News
+6	41	Space Race
+6	42	Pyramids of Death
+6	44	Compass
+6	45	The Private Life of a Masterpiece
+6	47	The Farm
+6	1	Order in the House
+6	3	49th Parallel
+6	7	Second Opinion
+6	8	Peter Coppin
+6	9	Norman Wisdom
+6	11	Gardening Australia
+6	12	Grizzly Tales for Gruesome Kids
+6	12	Black Hole High
+6	13	Tutenstein
+6	14	Time Warp Trio
+6	14	Edgar And Ellen
+6	14	Oliver's Adventures
+6	15	Martin Morning
+6	15	Gerald McBoing Boing
+6	16	Miss BG
+6	16	Fifi and the Flowertots
+6	16	Five Minutes More
+6	17	Play with Me Sesame
+6	17	Lunar Jim
+6	18	Thomas the Tank Engine
+6	18	The Koala Brothers
+6	18	Bananas in Pyjamas
+6	19	Play School
+6	19	Tiny Planets
+6	20	For the Juniors
+6	20	Pyramid
+6	21	Book Box
+6	21	Tate Modern
+6	22	Landline
+6	24	Midday Report
+6	25	Pilot Guides
+6	27	Family Story
+6	28	Parliament Question Time
+6	30	Bananas in Pyjamas
+6	30	Boohbah
+6	30	Pocoyo
+6	31	Play School
+6	32	Jakers! The Adventures of Piggley Winks
+6	32	Dr Dog
+6	33	The Secret Show
+6	33	Roller Coaster
+6	33	Tutenstein
+6	34	Black Hole High
+6	35	Grizzly Tales for Gruesome Kids
+6	35	Behind the News
+6	36	Off the Map
+6	37	Talking Heads
+6	38	ABC News
+6	39	The 7.30 Report
+6	40	Australian Story
+6	41	Four Corners
+6	42	Media Watch
+6	43	Enough Rope With Andrew Denton
+6	45	Lateline
+6	46	Lateline Business
+6	47	Netball: International Series 2006
+6	2	Parliament Question Time
+6	4	Ordinary People
+6	6	Bowls: Australian Indoor Championships 2006
+6	9	Poet's Pub
+6	11	Words with James Griffin
+6	12	Girl Stuff, Boy Stuff
+6	12	Girls in Love
+6	13	Class of the Titans
+6	14	Time Warp Trio
+6	14	Edgar And Ellen
+6	14	Oliver's Adventures
+6	15	Martin Morning
+6	15	Gerald McBoing Boing
+6	16	Miss BG
+6	16	FIFi and the Flowertots
+6	16	Five Minutes More
+6	17	Play with Me Sesame
+6	17	Lunar Jim
+6	18	Thomas the Tank Engine
+6	18	The Koala Brothers
+6	18	Bananas in Pyjamas
+6	19	Play School
+6	20	Behind the News
+6	20	Our History
+6	21	Extra French
+6	22	Animals: the inside story
+6	24	Midday Report
+6	25	The New Inventors
+6	26	The Einstein Factor
+6	27	Catalyst
+6	28	Parliament Question Time
+6	30	Bananas in Pyjamas
+6	30	Boohbah
+6	30	Pocoyo
+6	31	Play School
+6	32	Jackers!
+6	32	Dr Dog
+6	33	The Secret Show
+6	33	Roller Coaster (Hostings)
+6	34	Uncle Dad
+6	34	Princess Natasha
+6	34	Naturally Sadie
+6	35	Naughty Naughty Pets
+6	35	Behind the News
+6	36	Message Stick
+6	36	Time Team
+6	38	ABC News
+6	39	The 7.30 Report
+6	40	Two Men in a Tinnie
+6	41	The Bill
+6	42	Foreign Correspondent
+6	44	Artists At Work
+6	45	Lateline
+6	46	Lateline Business
+6	47	Hajj: the Greatest Trip on Earth
+6	0	Murder Investigation Team
+6	2	Parliament Question Time
+6	4	Account Rendered
+6	6	Australians at War
+6	9	Arthur Askey
+6	11	Animal Rites
+6	12	Being Ian
+6	12	A Town Called Panic
+6	13	Blue Water High
+6	14	Time Warp Trio
+6	14	Edgar And Ellen
+6	14	Oliver's Adventures
+6	15	Martin Morning
+6	15	Gerald McBoing Boing
+6	16	Miss BG
+6	16	FIFi and the Flowertots
+6	16	Five Minutes More
+6	17	The Wiggles
+6	18	The Koala Brothers
+6	18	Bananas in Pyjamas
+6	19	Play School
+6	19	Tiny Planets
+6	20	Count Us In
+6	20	Maths 4 Real 2
+6	21	Behind the News
+6	21	Australians
+6	22	Spy Master
+6	24	Midday Report
+6	25	National Press Club Address
+6	27	Talking Heads
+6	28	The Parliament Question Time
+6	30	Bananas in Pyjamas
+6	30	Boohbah
+6	30	Pocoyo
+6	31	Play School
+6	32	Jakers! The Adventures of Piggley Winks
+6	33	Dr Dog
+6	33	Roller Coaster (Hostings)
+6	34	Yakkity Yak
+6	34	A Town Called Panic
+6	34	Blue Water High
+6	35	Behind the News
+6	36	Rick Stein's French Odyssey
+6	37	The Cook and the Chef
+6	38	ABC News
+6	39	The 7.30 Report
+6	40	The New Inventors
+6	41	Spicks and Specks
+6	42	The It Crowd
+6	43	The Glass House
+6	44	At the Movies
+6	45	Lateline
+6	46	Lateline Business
+6	47	Four Corners
+6	0	Media Watch
+6	1	Rough Justice
+6	2	Parliament Question Time
+6	4	Baroud
+6	6	National Press Club Address
+6	9	The Perfect Woman
+6	11	Gardening Australia
+6	12	The Amazing Adrenalini Brothers
+6	12	Skyland
+6	13	Bernard
+6	13	Zombie Hotel
+6	14	Time Warp Trio
+6	14	Edgar And Ellen
+6	14	Oliver's Adventures
+6	15	Martin Morning
+6	15	Gerald McBoing Boing
+6	16	Miss BG
+6	16	FIFi and the Flowertots
+6	16	Five Minutes More
+6	17	The Wiggles
+6	18	The Koala Brothers
+6	18	Bananas in Pyjamas
+6	19	Play School
+6	20	For the Juniors
+6	20	Our Animals
+6	20	Being Me
+6	21	India
+6	22	Monarchy
+6	24	Midday Report
+6	25	Lovejoy
+6	27	Strictly Dancing
+6	28	Parliament Question Time
+6	30	Bananas in Pyjamas
+6	30	Boohbah
+6	30	Pocoyo
+6	31	Play School
+6	32	Jakers! The Adventures of Piggley Winks
+6	32	Dr Dog
+6	33	The Secret Show
+6	33	Roller Coaster (Hostings)
+6	33	Atomic Betty
+6	34	Bernard
+6	34	Avatar: The Last Airbender
+6	35	The Amazing Adrenalini Brothers
+6	35	Behind the News
+6	36	Aussie Animal Rescue
+6	37	The Pet Show
+6	38	ABC News
+6	39	The 7.30 Report
+6	40	Catalyst
+6	41	Life At 1
+6	43	Morning Sun
+6	45	Lateline
+6	46	Lateline Business
+6	47	Live At The Basement
+6	1	Parliament Question Time
+6	3	Top of the Form
+6	5	Sending a Message
+6	7	Songs of Praise:
+6	9	Ben Travers Farces
+6	11	Words with James Griffin
+6	12	Us Mob
+6	12	Radio Free Roscoe
+6	13	Angela Anaconda
+6	13	Time Warp Trio
+6	14	Edgar And Ellen
+6	14	Oliver's Adventures
+6	15	Martin Morning
+6	15	Gerald McBoing Boing
+6	16	Miss BG
+6	16	FIFi and the Flowertots
+6	16	Five Minutes More
+6	17	Play with Me Sesame
+6	17	Lunar Jim
+6	18	Thomas the Tank Engine
+6	18	The Koala Brothers
+6	18	Bananas in Pyjamas
+6	19	Play School
+6	20	Take on Technology
+6	20	Behind the News Specials
+6	21	Food for Thought
+6	21	Designers
+6	22	British Isles: A Natural History
+6	23	British Isles: A Natural History
+6	24	Midday Report
+6	25	Classic Parkinson
+6	27	Grumpy Old Men
+6	28	Welcher and Welcher
+6	29	Spicks and Specks
+6	30	Bananas in Pyjamas
+6	30	Boohbah
+6	30	Pocoyo
+6	31	Play School
+6	32	Jakers! The Adventures of Piggley Winks
+6	32	Dr Dog
+6	33	The Secret Show
+6	33	Roller Coaster
+6	33	Fairly Odd Parents
+6	34	Radio Free Roscoe
+6	35	Croc Bites
+6	35	Behind the News
+6	36	Message Stick
+6	37	Can We Help?
+6	38	ABC News
+6	39	Stateline
+6	40	Collectors
+6	41	Midsomer Murders
+6	44	Sensitive Skin
+6	45	Lateline
+6	46	Jtv
+6	47	Rage
+6	16	Rage: Guest Programmer
+6	18	Jtv Saturday
+6	22	Bowls: Tri Series
+6	24	Stateline (NSW)
+6	25	Australian Story
+6	26	Foreign Correspondent
+6	27	Words
+6	28	Orphans of the Forest
+6	29	The Monkey's Puzzle
+6	30	Children Galore
+6	32	Basketball: Woman's National League 2006/07
+6	34	Head 2 Head
+6	35	Bowls: Victorian Grand Prix 2006
+6	37	Gardening Australia
+6	38	ABC News
+6	39	New Tricks
+6	40	ABC News Up-Date
+6	41	The Bill
+6	42	ABC News
+6	42	The Last Detective
+6	45	Changi
+6	47	The Glass House
+6	2	Weather Watch
+6	13	Filipino News
+6	14	Hungarian News
+6	15	Italian News
+6	16	Weather Watch
+6	17	Chilean News
+6	18	Maltese News
+6	19	Polish News
+6	20	Ukrainian News
+6	21	Filipino News
+6	22	Hungarian News
+6	23	Italian News
+6	24	Weather Watch
+6	25	Chilean News
+6	26	Maltese News
+6	27	Polish News
+6	28	Ukrainian News
+6	29	Filipino News
+6	30	Hungarian News
+6	31	Italian News
+6	32	Weather Watch
+6	33	Chilean News
+6	34	Maltese News
+6	35	Polish News
+6	36	Ukranian News
+6	37	Filipino News
+6	38	Hungarian News
+6	39	Italian News
+6	40	Weather Watch
+6	41	Chilean News
+6	42	Maltese News
+6	43	Polish News
+6	44	Ukranian News
+6	45	Filipino News
+6	46	Hungarian News
+6	47	Italian News
+6	0	Weather Watch
+6	1	Chilean News
+6	2	Maltese News
+6	3	Polish News
+6	4	Ukrainian News
+6	5	Weather Watch
+6	11	Japanese News
+6	12	Cantonese News
+6	12	Mandarin News
+6	13	Weather Watch
+6	14	Italian News
+6	16	German News
+6	17	Spanish News
+6	18	French News
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Japanese News
+6	27	Cantonese News
+6	28	Mandarin News
+6	30	Weather Watch
+6	31	German News
+6	32	Spanish News
+6	33	French News
+6	34	Russian News
+6	35	Japanese News
+6	36	Arabic News
+6	38	Greek News
+6	40	Italian News
+6	41	Indonesian News
+6	42	Mandarin News
+6	43	Weather Watch
+6	44	Japanese News
+6	45	German News
+6	46	Spanish News
+6	47	Arabic News
+6	0	Indonesian News
+6	2	Station - Close
+6	5	Weather Watch
+6	11	Japanese News
+6	12	Cantonese News
+6	12	Mandarin News
+6	13	Weather Watch
+6	14	Italian News
+6	16	German News
+6	17	Spanish News
+6	18	French News
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Japanese News
+6	27	Cantonese News
+6	28	Mandarin News
+6	30	Weather Watch
+6	31	German News
+6	32	Spanish News
+6	33	French News
+6	34	Russian News
+6	35	Japanese News
+6	36	Arabic News
+6	38	Greek News
+6	40	Italian News
+6	41	Indonesian News
+6	42	Mandarin News
+6	43	Weather Watch
+6	44	Japanese News
+6	45	German News
+6	46	Spanish News
+6	47	Arabic News
+6	0	Indonesian News
+6	2	Station - Close
+6	5	Weather Watch
+6	10	Japanese News
+6	12	Cantonese News
+6	12	Mandarin News
+6	13	Weather Watch
+6	14	Italian News
+6	16	German News
+6	17	Spanish News
+6	18	French News
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Japanese News
+6	27	Cantonese News
+6	28	Mandarin News
+6	30	Weather Watch
+6	31	German News
+6	32	Spanish News
+6	33	French News
+6	34	Russian News
+6	35	Japanese News
+6	36	Arabic News
+6	38	Greek News
+6	40	Italian News
+6	41	Indonesian News
+6	42	Mandarin News
+6	43	Weather Watch
+6	44	Japanese News
+6	45	German News
+6	46	Spanish News
+6	47	Arabic News
+6	0	Indonesian News
+6	5	Weather Watch
+6	10	Japanese News
+6	12	Cantonese News
+6	12	Mandarin News
+6	13	Weather Watch
+6	14	Italian News
+6	16	German News
+6	17	Spanish News
+6	18	French News
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Japanese News
+6	27	Cantonese News
+6	28	Mandarin News
+6	30	Weather Watch
+6	31	German News
+6	32	Spanish News
+6	33	French News
+6	34	Russian News
+6	35	Japanese News
+6	36	Arabic News
+6	38	Greek News
+6	40	Italian News
+6	41	Indonesian News
+6	42	Mandarin News
+6	43	Weather Watch
+6	44	Japanese News
+6	45	German News
+6	46	Spanish News
+6	47	Arabic News
+6	0	Indonesian News
+6	2	Station - Close
+6	5	Weather Watch
+6	10	Japanese News
+6	11	Cantonese News
+6	12	Mandarin News
+6	13	Weather Watch
+6	14	Italian News
+6	15	German News
+6	16	Spanish News
+6	18	French News
+6	19	Russian News
+6	20	Greek News
+6	22	Arabic News
+6	23	Indonesian News
+6	24	Japanese News
+6	26	Cantonese News
+6	27	Mandarin News
+6	29	Weather Watch
+6	30	German News
+6	31	Spanish News
+6	32	French News
+6	34	Russian News
+6	35	Japanese News
+6	36	Arabic News
+6	37	Greek News
+6	39	Italian News
+6	40	Indonesian News
+6	42	Mandarin News
+6	43	Weather Watch
+6	44	Japanese News
+6	45	German News
+6	46	Spanish News
+6	47	Arabic News
+6	0	Indonesian News
+6	1	Station - Close
+6	4	Weather Watch
+6	8	Japanese News
+6	9	Cantonese News
+6	10	Mandarin News
+6	11	Weather Watch
+6	12	Italian News
+6	13	German News
+6	14	Spanish News
+6	16	French News
+6	17	Russian News
+6	18	Greek News
+6	20	Arabic News
+6	21	Indonesian News
+6	22	Japanese News
+6	24	Cantonese News
+6	25	Mandarin News
+6	27	Weather Watch
+6	28	German News
+6	29	Spanish News
+6	30	French News
+6	32	Russian News
+6	33	Japanese News
+6	34	Arabic News
+6	35	Greek News
+6	37	Italian News
+6	38	Indonesian News
+6	40	Mandarin News
+6	41	Weather Watch
+6	42	Japanese News
+6	43	German News
+6	44	Spanish News
+6	45	Arabic News
+6	46	Indonesian News
+6	1	When Sex Goes Wrong
+6	2	Crank Yankers
+6	3	The Daily Show: Global Edition
+6	4	Station - Close
+6	13	Filipino News
+6	14	Hungarian News
+6	15	Italian News Weekly
+6	16	Korean News
+6	17	Latin American News
+6	18	Maltese News
+6	19	Polish News
+6	20	Ukrainian News
+6	21	At the Piano with Mozart
+6	22	National Junior and Teams Road Cycling Championships
+6	24	Speedweek
+6	28	The World Game
+6	31	The World Game
+6	32	The World Game
+6	36	Thalassa
+6	37	Worlds News Australia
+6	38	Toyota World Sport
+6	39	Lost Worlds
+6	41	Can Dogs Smell Cancer
+6	43	Augustus
+6	46	The Film Biker (Lagarista)
+6	1	The Storm Rages Twice
+6	3	Station Close
+6	10	Weather Watch & Music
+6	10	Japanese News
+6	12	Weather Watch & Music
+6	12	Mandarin News
+6	13	Weather Watch & Music
+6	14	Italian News
+6	16	Das Journal
+6	17	Spanish News
+6	18	Le Jorunal
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Polish News
+6	26	Argentinian Rugby Club
+6	28	Insight
+6	30	Wine Lovers guide to Australia
+6	31	The Future is Wild
+6	32	Toyota World Sport
+6	33	The Journal
+6	34	She'll Be Right, Boss
+6	35	Living Black
+6	36	Global Village
+6	37	World News Australia
+6	38	Toyota World Sport
+6	39	Mythbusters.
+6	41	Bro'Town
+6	42	South Park
+6	43	World News Australia
+6	44	Oz
+6	46	Stealing Rembrandt
+6	1	The Nanny (Dadi)
+6	2	Train of Life
+6	5	Station - Close
+6	10	Weather Watch & Music
+6	10	Japanese News
+6	12	Cantonese News
+6	12	Mandarin News
+6	13	Weather Watch & Music
+6	14	Italian News
+6	16	Das Journal
+6	17	Spanish News
+6	18	Le Jorunal
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Business Report
+6	26	Metamorphosis
+6	29	Tales from a Suitcase
+6	30	Food Lovers guide to Australia
+6	31	Living Black
+6	32	Toyota World Sport
+6	33	The Journal
+6	34	The Newshour with Jim Lehrer
+6	36	Global Village
+6	37	World News Australia
+6	38	Toyota World Sport
+6	39	Insight
+6	41	Cutting Edge
+6	43	World News Australia
+6	44	Hot Docs
+6	47	The Marriage Certificate
+6	2	2LDK
+6	4	Station Close
+6	9	UEFA Championa League 06/07
+6	13	Mandarin News
+6	14	Italian News
+6	16	Das Journal
+6	17	Spanish News
+6	18	Le Jorunal
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Business Report
+6	26	Japanese News
+6	27	Chinese News
+6	28	The Price of Victory
+6	30	Food Lovers guide to Australia
+6	31	Cooking Series - Simply Ming
+6	32	Toyota World Sport
+6	33	The Journal
+6	34	The Newshour with Jim Lehrer
+6	36	Living Black
+6	37	World News Australia
+6	38	Toyota World Sport
+6	39	The Food Lovers' Guide to Australia
+6	40	Two of Us
+6	41	Dateline
+6	44	Behind the Sun
+6	47	A Kind of America
+6	3	The Crime of Crimes
+6	4	Station - Close
+6	9	UEFA Champions League 06/07
+6	13	Mandarin News
+6	14	Italian News
+6	16	Das Journal
+6	17	Spanish News
+6	18	Le Jorunal
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Business Report
+6	26	Dateline
+6	28	Japanese News
+6	29	Chinese News
+6	30	A Fork in the Road
+6	31	School Torque
+6	32	Toyota World Sport
+6	33	The Journal
+6	34	Newshour with Jim Lehrer
+6	36	Global Village
+6	37	World News Australia
+6	38	Toyota World Sport
+6	39	Inspector Rex
+6	40	Hotline
+6	41	Storyline Australia
+6	43	World News Australia
+6	44	VH1 Illustrated
+6	45	UEFA Champions League 06/07
+6	47	Frozen Land
+6	3	Station - Close
+6	9	WeatherWatch & Music
+6	10	Japanese News
+6	12	Chinese News
+6	12	Mandarin News
+6	13	Weather Watch & Music
+6	14	Italian News
+6	16	Das Journal
+6	17	Spanish News
+6	18	Le Journal
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Business Report
+6	26	Insight
+6	28	In Satmar Custody
+6	31	Elizabeth Chong's Tiny Delights
+6	32	Toyota World Sport
+6	33	The Journal
+6	34	Newshour with Jim Lehrer
+6	36	Global Village
+6	37	World News Australia
+6	38	Toyota World Sport
+6	39	Tales From The Palaces
+6	40	Feast Bazaar
+6	41	Bronski and Bernstein
+6	43	World News Australia
+6	44	Eros Under the Swastika
+6	45	Sex and Lucia
+6	1	Domenica
+6	5	Station - Close
+6	9	WeatherWatch & Music
+6	10	Japanese News
+6	12	Chinese News
+6	12	Mandarin News
+6	13	WeatherWatch & Music
+6	14	Italian News
+6	16	Das Journal
+6	17	Spanish News
+6	18	Le Journal
+6	19	Russian News
+6	21	Greek News
+6	23	Arabic News
+6	24	Indonesian News
+6	25	Business Report
+6	26	Masterpiece on Saturday
+6	29	Masterpiece on Saturday
+6	31	Masterpiece on Saturday
+6	32	Masterpiece on Saturday
+6	33	The Journal
+6	34	Newshour with Jim Lehrer
+6	36	Classical Destinations
+6	37	World News Australia
+6	38	Toyota World Sport
+6	39	As It Happened
+6	41	Iron Chef
+6	42	Rockwiz
+6	43	Shorts on Screen
+6	3	Quizmania
+6	8	Jesse Duplantis Ministries
+6	9	Life Today
+6	10	Tomorrow's World
+6	11	Rise and Shine
+6	12	Make Way for Noddy
+6	12	Little Red Tractor
+6	13	Barney & Friends
+6	14	Dora the Explorer
+6	15	[Hot] Source
+6	16	Fishing North Australia
+6	17	Business Success
+6	18	Sunday
+6	22	Talking Real Estate
+6	23	NBL on Nine
+6	25	Surfsport
+6	27	Planet X Winter Games 06
+6	28	Rock Eisteddfod Challenge 2006
+6	32	The Wildlife Man Featuring David Ireland
+6	34	Roar Of The Wild
+6	35	Airline
+6	36	National Nine News Sunday
+6	37	Backyard Blitz
+6	39	60 Minutes
+6	41	CSI: NY
+6	43	CSI: NY
+6	45	Comedy Inc The Late Shift
+6	47	The Apprentice
+6	0	Star Trek: Enterprise
+6	2	Late Show with David Letterman
+6	4	Farscape
+6	6	George Lopez
+6	7	Guthy Renker Australia
+6	8	Guthy Renker Australia
+6	9	Guthy Renker Australia
+6	10	20/20
+6	12	Today
+6	18	Mornings with Kerri-Anne
+6	22	National Nine Morning News
+6	23	Fresh Cooking with the Australian Womans Weekly
+6	24	Dr. Phil
+6	26	Days of our Lives
+6	28	The Young and the Restless
+6	30	Entertainment Tonight
+6	31	Hi-5
+6	32	The Shak
+6	33	National Nine Afternoon News
+6	34	Antiques Roadshow
+6	35	Bert's Family Feud
+6	36	National Nine News
+6	37	A Current Affair
+6	38	Temptation
+6	39	What's Good For You
+6	41	What a Year
+6	43	Cold Case
+6	45	Body of Evidence
+6	46	Psychic Detectives
+6	47	Nightline
+6	0	The Sopranos
+6	2	Late Show with David Letterman
+6	4	The Bernie Mac Show
+6	5	Rock Me Baby
+6	6	Guthy Renker Australia
+6	7	Guthy Renker Australia
+6	8	Creflo A Dollar, Jr.
+6	9	Good Morning America
+6	1	Wild Turkey Joker Poker
+6	3	Hack
+6	5	Video Hits Up-Late
+6	8	Bayless Conley
+6	9	Key of David
+6	10	Hour of Power
+6	12	Mass For You At Home
+6	13	Hillsong
+6	14	Wicked Science
+6	15	Totally Wild
+6	16	Meet The Press
+6	17	Video Hits
+6	23	Girl Band
+6	24	The Rugrats Movie
+6	27	Pippi Longstocking
+6	30	Carerra Cup Australia
+6	31	RPM
+6	34	Ten News
+6	35	Sports Tonight
+6	36	The Simpsons
+6	37	Meerkat Manor
+6	38	It's Me Or the Dog
+6	39	Australian Idol
+6	42	The Bourne Identity
+6	46	MotoGP
+6	4	Video Hits Up-Late
+6	5	Home Shopping
+6	8	Enjoying Everyday Life
+6	9	Kenneth Copeland
+6	10	Life Today with James Robison
+6	11	This is Your Day
+6	12	Ten Early News
+6	14	Toasted TV
+6	17	In the Box
+6	18	9am With David and Kim
+6	22	Ten Morning News
+6	24	Queer Eye for the Straight Guy
+6	26	Oprah
+6	28	Ready Steady Cook
+6	30	Judge Judy
+6	32	Scope
+6	33	The Bold & The Beautiful
+6	34	Ten News
+6	36	The Simpsons
+6	37	Neighbours
+6	38	Futurama
+6	39	Australian Idol - The Live Verdict
+6	41	Law & Order: Special Victims Unit
+6	43	The Biggest Loser
+6	45	Ten Late News/ Sports Tonight
+6	46	NYPD Blue
+6	0	The Up-Late Gameshow
+6	3	Video Hits Up-Late
+6	4	Home Shopping
+6	8	Enjoying Everyday Life
+6	9	Kenneth Copeland
+6	10	Life Today with James Robison
+6	11	This is Your Day
+6	1	Sunset Strip
+6	5	8 Simple Rules... for Dating My Teenage Daughter
+6	6	Malibu, CA
+6	8	Guthy Renker Australia
+6	10	NBC Dateline
+6	12	One
+6	13	Tractor Tom
+6	14	Stanley
+6	15	Fairy Tale Police
+6	16	Weekend Sunrise
+6	20	That Was Me
+6	22	My Business
+6	23	Staines Down Drains
+6	24	Staines Down Drains
+6	25	Reba
+6	26	According to Jim
+6	27	Get a Clue
+6	30	The Jewel of the Nile
+6	35	Coxy's Big Break
+6	36	Seven News
+6	37	The Real Seachange
+6	38	Medical Emergency
+6	39	Good As Gold
+6	41	Countdown to the Most Inspiring Movie of All Time
+6	46	One of the Top 5 Inspiring Movies of All Time
+6	3	Studio Portraits
+6	5	Malibu, CA
+6	6	Guthy Renker Australia
+6	8	NBC Today
+6	10	NBC Meet the Press

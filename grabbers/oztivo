@@ -1,0 +1,511 @@
+#!/usr/bin/perl -w
+
+# OzTivo grabber
+
+my $version = '1.13';
+
+# Requires configuration!
+# 1. Register at http://www.tvguide.org.au/
+# 2. Run "./oztivo --configure" to create "oztivo.pw" file.
+
+use strict;
+
+use Getopt::Long;
+use HTML::Entities;
+use POSIX;
+use Shepherd::Common;
+
+my $progname = 'oztivo';
+my $nicename = 'OzTivo';
+my $config_file = "$progname.pw";
+my $output_file = "output.xmltv";
+my $channels_file;
+my $channels, my $opt_channels;
+my @clist;
+my $ver;
+my $ready;
+my $configure;
+my $raw_input;
+my $raw_output;
+my $d;
+
+print "$nicename Grabber v$version\n";
+
+$| = 1;
+
+GetOptions( 
+	    'channels_file=s'   => \$channels_file,
+	    'output=s'		=> \$output_file,
+	    'rawoutput=s'	=> \$raw_output,
+	    'rawinput=s'	=> \$raw_input,
+	    'version'		=> \$ver,
+	    'ready'             => \$ready,
+	    'configure'		=> \$configure
+	  );
+
+exit 0 if ($ver);
+
+configure() if ($configure);
+
+unless (-r $config_file)
+{
+    print "Can't find $config_file!\n";
+    please_configure_me();
+    exit 1;
+}
+
+print "Reading configuration file $config_file.\n";
+
+unless (open(CONF, $config_file))
+{
+    print "Unable to read config file $config_file: $!\n";
+    please_configure_me();
+    exit 1;
+}
+my $line = <CONF>;
+close CONF;
+
+unless ($line =~ /^(.*):(.*)$/)
+{
+    print "Unable to parse config file!\n" .
+          "It should be in the format: username:password\n";
+    please_configure_me();
+    exit 1;
+}
+my ($user, $pw) = ($1, $2);
+
+unless ($user and $pw)
+{
+    print "Failed to extract a sensible username and password from config file.\n";
+    please_configure_me();
+    exit 1;
+}
+
+exit 0 if ($ready);
+
+unless ($channels_file)
+{
+    die "No --channels_file specified.\n";
+}
+
+unless( -r $channels_file)
+{
+    die "Unable to read channels file $channels_file: $!";
+}
+local (@ARGV, $/) = ($channels_file);
+eval <>;
+die "\nError in channels file!\nDetails:\n$@" if ($@);
+
+my $shortchannels;
+while (my ($name, $chanid) = each %$channels) 
+{
+  # Ignore differences between rural stations like
+  # Seven (Rockhampton) and Seven (Cairns) -- this is not a great
+  # solution and should be fixed.
+  $name =~ s/ *\(.*?\)//g;
+  # Ignore differences between rural stations like
+  # Prime Tamworth/Taree/Port,Prime Lismore/Coffs Hbr -- this is not a great
+  # solution and should be fixed.
+  $name = "Prime" if $name =~ /^Prime/;
+  $shortchannels->{$name} = $chanid;
+}
+
+# Create a list of channel names from longest to shortest
+@clist = sort { length $b <=> length $a } keys %$shortchannels;
+
+my $data;
+
+if (!defined $raw_input) {
+    my ($success, $status);
+
+    # Don't rely on Shepherd::Common::get_url()'s retry, because
+    # if we get a 401 (wrong password) there's no point in retrying.
+    my $max_tries = 3;
+    foreach my $tries (1 .. $max_tries) {
+        ($data, $success, $status) = Shepherd::Common::get_url(
+                url => "http://$user:$pw\@minnie.tuhs.org/tivo-bin/xmlguide.pl",
+                retries => 0);
+
+        unless ($success)
+        {
+            if ($status =~ /401/)
+            {
+                print "Your OzTivo username and/or password may be incorrect!\n".
+                        "The username and password you supplied when configuring the oztivo grabber\n" .
+                        "must match your registration details on the OzTivo.com site.\n".
+                        "If this error persists, try reconfiguring: ".
+                        "  tv_grab_au --configure $progname\n";
+		$tries = $max_tries;
+            }
+            print "Download failed: $status\n";
+        }
+
+	my $bytes = do { use bytes; length($data) };
+	my $sleep = 47;
+
+	# If we get a special message from the oztivo server, sleep
+	# a longer time before retrying.
+	if ($bytes < 1000 and defined $data and $data =~ /<message>(.*?)<\/message>/si)
+	{
+	    $success = 0;
+	    print "OzTivo message: $1\n";
+	    # Giveup unless message says to try again later
+	    # eg. OzTivo message: System load on minnie is too high right now to run your request. Please try again later.
+	    $tries = $max_tries unless $1 =~ /try\s+again\s+later/si;
+	    $sleep = 93 + int(rand(120));
+	}
+	last if ($success);
+	exit 6 if $tries == $max_tries; 
+	print "Sleeping for $sleep seconds...\n";
+	sleep($sleep);
+    }
+
+    if (defined $raw_output) {
+        open(F,">$raw_output") || die "could not write raw output to $raw_output: $!\n";
+        print F $data;
+        close(F);
+        print "Raw output saved in $raw_output.\n";
+    }
+} else {
+    open(F,"<$raw_input") || die "could not read raw input from $raw_input: $!\n";
+    while(<F>) {
+        $data .= $_;
+    }
+    close(F);
+    print "Raw input read from $raw_input.\n";
+}
+
+print "Converting apostrophes.\n";
+$data =~ s/\&#39;/'/g;
+
+# Adjust ABC2 times if we're in a non-DST zone but Sydney is in DST.
+# Apparently ABC2 times are set off Sydney's clock.
+adjust_abc2();
+
+print "Transforming XMLTVIDs.\n";
+&setup_channel_mappings;
+$data =~ s/channel="(.*)"/'channel="'.subme($1).'"'/ge;
+
+print "Writing output.\n";
+open (OUT, ">$output_file") || die "could not write to $output_file: $!\n";
+
+#
+# oztivo generates invalid XMLTV with fields out of order and
+# some blank fields.
+# the standard XMLTV.pm perl module gets very unhappy about these
+# write output in a manner which addresses the bad input
+#
+
+my @xmltv_tag_order = qw [ title sub-title desc credits date category language
+        orig-language length icon url country episode-num video audio
+        previously-shown permiere last-chance new subtitles rating
+        star-rating ];
+my %xmltv_tags = map { $_ => "" } @xmltv_tag_order;
+$xmltv_tags{"programme"}=""; $xmltv_tags{"/programme"}="";
+my $cur_field = "";
+
+foreach my $line (split/\n/,$data) {
+
+    # oztivo generates blank data for these fields - skip if blank
+    next if ($line =~ /<director><\/director>/);
+    next if ($line =~ /<desc><\/desc>/);
+    next if ($line =~ /^\s*$/);
+
+    # more oztivo weirdness. filter out 0/10 star-ratings
+    next if ($line =~ /<star-rating><value>0\/10</);
+
+    if ($line =~ /\s*<([\/a-zA-Z\-]+)/) {
+        my $field = lc($1);
+        # do we know about this tag?
+        $cur_field = $field if (defined $xmltv_tags{$field});
+    }
+
+    if ($cur_field eq "programme") {
+        # if we have a start="(time)" and/or stop="(time)" make sure they
+        # have a timezone on them.
+        $line = $1."start=\"".$2." +0000\"".$3 if ($line =~ /^(.*)start="([0-9]+)"(.*)/);
+        $line = $1."stop=\"".$2." +0000\"".$3 if ($line =~ /^(.*)stop="([0-9]+)"(.*)/);
+
+        print OUT $line."\n"; # programme tag
+        $cur_field = "";
+    } elsif ($cur_field eq "/programme") {
+        print "Program with no title!\n" 
+                if (($xmltv_tags{title} eq "") or ($xmltv_tags{title} =~ />\s*</));
+        # print all previously seen tags in xmltv_tag_order
+        foreach my $xmltag (@xmltv_tag_order) {
+            if ($xmltv_tags{$xmltag} ne "") {
+                print OUT $xmltv_tags{$xmltag};
+                $xmltv_tags{$xmltag} = "";
+            }
+        }
+        print OUT $line."\n"; # /programme tag
+        $cur_field = "";
+    } else {
+        if ($cur_field eq "") {
+            print OUT $line."\n"; # ?xml, tv and /tv tags
+        } else {
+            $xmltv_tags{$cur_field} .= $line."\n"; # xmltv_tags tags
+        }
+    }
+}
+
+close OUT;
+
+print "Done.\n";
+
+
+
+sub please_configure_me
+{
+    print "If you wish to use $nicename, please run \"" .
+          "tv_grab_au --configure $progname\".\n" .
+	  "Configuration of $progname is required.\n";
+}
+
+sub configure
+{
+    print "Configuring...\n\n" .
+	  "Before you can use the $nicename grabber, you must create an\n" .
+	  "OzTivo account here:\n\n" .
+	  '  http://minnie.tuhs.org/twiki/bin/view/TWiki/TWikiRegistration' .
+	  "\n\n" .
+	  "... and select some channels here:\n\n" .
+	  '  http://minnie.tuhs.org/tivo-bin/tvguide.pl' . "\n\n" .
+	  "When you're done, enter your username and password here, to\n" .
+	  "enable this grabber to retrieve your guide data automatically:\n\n" .
+	  "Username?\n";
+    my $username = <>;
+    chomp $username;
+    unless ($username)
+    {
+	print "No username supplied. Exiting configuration.\n";
+	exit 3;
+    }
+    print "Password?\n";
+    my $pw = <>;
+    chomp $pw;
+    unless ($pw)
+    {
+	print "No password supplied. Exiting configuration.\n";
+	exit 3;
+    }
+    print "Creating config file $config_file...\n";
+    open (CONF, ">$config_file")
+	or die "Unable to create $config_file: $!";
+    print CONF "$username:$pw";
+    close CONF;
+
+    print "Done.\n";
+    exit 0;
+}
+
+sub subme
+{
+    my $station = shift;
+
+    $station = $d->{chan_map}->{$station} if (defined $d->{chan_map}->{$station});
+    $station =~ s/SC10/Sthn Cross TEN/g; # clashes with TEN but @clist is sorted longest to shortest
+
+    my $num = $1 if ($station =~ /(\d{2,})/);
+    foreach my $ch (@clist)
+    {
+	if ($station =~ /$ch/i
+		or
+	    ($num and $ch =~ /$num/))
+	{
+	    return $shortchannels->{$ch};
+	}
+    }
+
+    return $opt_channels->{$station} if ((defined $opt_channels) && (defined $opt_channels->{$station}));
+    
+    if (!defined $d->{ignored_channels}->{$station}) {
+	$d->{ignored_channels}->{$station} = 1;
+	print "Warning: station \"$station\" unknown.\n";
+    }
+    return $station;
+}
+
+sub setup_channel_mappings
+{
+    # unmaped Foxtel channels: AdultsOnly960,FOXTELBoxOffice,FOXTELGamesworld,MainEvent
+    # unmaped SelecTV channels: AntennaGreek,ERTGreek
+    my %map = (
+	"SBS-NEWS" => "SBS NEWS",
+
+	"ACC" => "ACC",
+	"ADV1" => "NatGeoAdventure",
+	"ANIMAL" => "AnimalPlanet",
+	"ANT" => "AntennaPacific",
+	"ARNA" => "ARENATV",
+	"ARNA+2" => "ARENATV2",
+	"AUR" => "Aurora",
+	"BBC" => "BBCWorld",
+	"BIOG" => "Bio",
+	"BLM" => "BloombergTelevision",
+	"BOOM" => "Boomerang",
+	"CART" => "CartoonNetwork",
+	"CLAS" => "FOXClassics",
+	"CLAS+2" => "FOXClassics2",
+	"CMC" => "CountryMusicChannel",
+	"CMDY" => "THECOMEDYCHANNEL",
+	"CMDY+2" => "THECOMEDYCHANNEL2",
+	"CNBC" => "CNBC",
+	"CNNI" => "CNN",
+	"CRIME" => "CrimeandInvestigation",
+	"DISC" => "DiscoveryChannel",
+	"DISCRT" => "DiscoveryRealTime",	# SelecTV and OzTivo
+	"DISN" => "DisneyChannel",
+	"E!" => "E!Entertainment",
+	"ESPN" => "ESPN",
+	"EUROSPORT" => "Eurosportnews",
+	"EXPO" => "EXPO",
+	"FASH" => "FashionTV",
+	"FOOD" => "LifeStyleFOOD",
+	"FOX8" => "FOX8",
+	"FOX8+2" => "FOX82",
+	"FOXN" => "FOXNews",
+	"FS1" => "FOXSPORTS1",
+	"FS2" => "FOXSPORTS2",
+	"FS3" => "FOXSPORTS3",
+	"FSN" => "FOXSPORTSNews",
+	"FUEL" => "FUELTV",
+	"HALL" => "Hallmark",
+	"HEALTH" => "DiscoveryHealth",
+	"HIST" => "TheHistoryChannel",
+	"HOWTO" => "HOWTOChannel",
+	"LIFE" => "TheLifeStyleChannel",
+	"LIFE+2" => "LifestyleChannel2",
+	"MOV1" => "MOVIEONE",
+	"MOV1+2" => "MOVIETWO",
+	"MOVG" => "MOVIEGREATS",
+	"MOVX" => "MOVIEEXTRA",
+	"MTV" => "MTV",
+	"NGEO" => "NationalGeographic",
+	"NICK" => "Nickelodeon",
+	"NICKJR" => "NickJr",
+	"OVAT" => "Ovation",
+	"PHDISN" => "PlayhouseDisney",
+	"RAI" => "RAIInternational",
+	"SCIENCE" => "DiscoveryScience",
+	"SHOW" => "SHOWTIME",
+	"SHW2" => "SHOWTIME2",
+	"SHWGRTS" => "SHOWTIMEGreats",
+	"SKYN" => "SkyNewsAustralia",
+	"SKYR" => "SkyRacing",
+	"Sci-Fi" => "SCIFI",
+	"TCM" => "TCM",
+	"TRAVEL" => "DiscoveryTravel",
+	"TV1" => "TV1",
+	"TV1+2" => "TV12",
+	"TVCHILE" => "TVChileSpanish",		# SelecTV and OzTivo
+	"TVE" => "TVE",				# SelecTV and OzTivo
+	"TVN" => "TVN",
+	"TVSN" => "TVSN",
+	"TWC" => "TheWeatherChannel",
+	"UKTV" => "UKTV",
+	"UKTV+2" => "UKTV2",
+	"V" => "ChannelV",
+	"V2" => "ChannelV2",
+	"VH1" => "VH1",
+	"W" => "W",
+	"W+2" => "W2",
+	"WMOV" => "WORLDMOVIES",
+	"max" => "MAX"
+    );
+
+    foreach (keys %map)
+    {
+	$d->{chan_map}->{$_} = $map{$_};
+    }
+}
+
+# Wrapper sub to ensure TZ gets reset properly
+sub adjust_abc2
+{
+    adjust_abc2_times();
+    POSIX::tzset();
+}
+
+sub adjust_abc2_times
+{
+    my $local_tz = POSIX::strftime("%z",localtime);
+
+    local %ENV;
+    $ENV{TZ} = 'Australia/Sydney';
+    my $sydney_tz = POSIX::strftime("%z",localtime);
+
+    # Okay, I can't believe how hard this is... compute difference
+    # between two TZ strings.
+    my $l_min = int($local_tz / 100) * 60 + $local_tz % 100 % 60; 
+    my $s_min = int($sydney_tz / 100) * 60 + $sydney_tz % 100 % 60; 
+    my $tz_diff = int(($l_min - $s_min) / 60) * 100 + (($l_min - $s_min) % 60);
+
+    # Are we in DST?
+    my $local_dst = (localtime)[8];
+    my $sydney_dst = 0;
+    if (!$local_dst)
+    {
+	# Is Sydney in DST?
+	$sydney_dst = compare_sydney_dst();
+
+	if ($sydney_dst)
+	{
+	    print "DST in Sydney but not here: adding 1hr to ABC2 times" .
+		  ($sydney_dst != 1 ? ($sydney_dst > 1 ? 
+			  " from $sydney_dst GMT" : 
+			  " until " . ($sydney_dst*-1) . ' GMT') : '') .
+		  ".\n";
+	}
+    }
+    $data =~ s/(?!=")(\d+)(?=".* channel="ABC2")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
+}
+
+# Return '+0100' for any times that are in a period when Sydney's in DST
+# but we're not.
+sub add_offset
+{
+    my ($timestamp, $tz_diff, $sydney_dst) = @_;
+
+    if ($sydney_dst == 1
+	    or
+	($sydney_dst > 1 and $timestamp >= $sydney_dst)
+	    or
+	($sydney_dst < 0 and $timestamp <= ($sydney_dst*-1)))
+    {
+	$tz_diff += 0100;
+    }
+    return sprintf " %+0.4d", $tz_diff;
+}
+
+# Returns:
+# 0         : Sydney is not in DST in the next 7 days
+# 1         : Sydney is in DST for the next 7 days
+# <n>       : Sydney is in DST from <n> GMT, where n is (eg) 20070321030000
+# <-n>      : Sydney is in DST until <n> GMT, where n is (eg) -20070321030000
+# This func assumes that TZ has been set to Sydney by the caller (adjust_abc2_times)
+sub compare_sydney_dst
+{
+    my $sydney_dst = (localtime)[8];
+
+    # Normalize $start to 3AM Sydney time, or 2AM if it's in DST
+    my $start = time - (time % (60*60*24)) - (($sydney_dst ? 11 : 10) * 60*60) + (3*60*60);
+
+    # Check Sydney's DST status each day for 7 days
+    for (my $day = 0; $day < 7; $day++)
+    {
+	my $t = $start + ($day * 24*60*60);
+	my $sydney_dst_thisday = (localtime($t))[8];
+
+	# Any changeover?
+	if ($sydney_dst_thisday != $sydney_dst)
+	{
+	    # Convert $t to GMT
+	    $t -= (($sydney_dst ? 11 : 10) * 60*60);
+	    my $changeoverday = POSIX::strftime("%Y%m%d%H%M%S", localtime($t));
+	    $changeoverday *= -1 if ($sydney_dst);
+	    return $changeoverday;
+	}
+    }
+    return $sydney_dst;
+}

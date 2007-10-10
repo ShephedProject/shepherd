@@ -1,0 +1,542 @@
+#!/usr/bin/perl -w
+
+# sbsnews_website au_tv guide grabber - runs from "Shepherd" master grabber
+#  * written by ltd
+#  * uses SBS website for SBSNEWS data
+#    (http://www.sbs.com.au/whatson/WNC-Schedule.html)
+#  * when used in conjunction with Shepherd, shepherd can collect other channels
+#    using other grabbers
+#  * this does NOT use any config file - all settings are passed in from shepherd
+
+#  changelog:
+#    0.01 24oct06      initial release
+
+use strict;
+
+my $progname = "sbsnews_website";
+my $version = "0.18";
+
+use XMLTV;
+use POSIX qw(strftime);
+use Getopt::Long;
+use HTML::TreeBuilder;
+use Shepherd::Common;
+
+#
+# some initial cruft
+#
+
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels, my $gaps;
+my $tv_guide, my $tv_guide_by_wday;
+
+$| = 1;
+
+#
+# parse command line
+#
+
+my $opt;
+$opt->{days} =		7;	# default
+$opt->{offset} =	0;	# default
+$opt->{outputfile} =	"output.xmltv"; # default
+$opt->{channels_file} =  "";	# mandatory for user to specify
+$opt->{debug} =		0;	# default
+$opt->{lang} =		"en";	# default
+
+GetOptions(
+	'region=i'	=> \$opt->{region},	# ignored
+	'timezone=s'	=> \$opt->{timezone},	# ignored
+	'config-file=s'	=> \$opt->{configfile},	# ignored
+	'days=i'	=> \$opt->{days},
+	'offset=i'	=> \$opt->{offset},
+	'channels_file=s' => \$opt->{channels_file},
+	'gaps_file=s'	=> \$opt->{gaps_file},
+	'output=s'	=> \$opt->{outputfile},
+	'debug+'	=> \$opt->{debug},
+	'lang=s'	=> \$opt->{lang},
+	'help'		=> \$opt->{help},
+	'verbose'	=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'ready'		=> \$opt->{version},
+	'v'		=> \$opt->{help});
+
+&help if ($opt->{help});
+
+if ($opt->{version}) {
+	printf "%s %s\n",$progname,$version;
+	printf "Collects news lineup for SBSNEWS from SBS Web site." if $opt->{desc};
+	exit(0);
+}
+
+die "no channel file specified, see --help for instructions\n", if ($opt->{channels_file} eq "");
+
+#
+# go go go!
+#
+
+&log(sprintf "going to %sfetch %d days%s of data into %s",
+	(defined $opt->{gaps_file} ? "micro-gap " : ""),
+	$opt->{days},
+	($opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+	$opt->{outputfile});
+
+# read channels file
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt->{channels_file} could not be read: $!\n";
+}
+
+# unless we have SBSNEWS defined as a channel, nothing to do!
+
+die "no SBSNEWS channel found in channel lineup from $opt->{channels_file}\n"
+  unless (defined $channels->{'SBS News'});
+
+if (defined $opt->{gaps_file}) {
+	if (-r $opt->{gaps_file}) {
+		local (@ARGV, $/) = ($opt->{gaps_file});
+		no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		die "WARNING: gaps file $opt->{gaps_file} could not be read: $!\n";
+	}
+
+	die "no SBSNEWS channel in gaps lineup, nothing to do!\n"
+	  unless ((defined $gaps) && (defined $gaps->{'SBS News'}));
+}
+
+&get_sbsnews_data;
+&adjust_stop_times;
+&write_data;
+&print_stats;
+exit(0);
+
+######################################################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+options are as follows:
+	--help			show these help options
+	--days=N		fetch 'n' days of data (default: $opt->{days})
+	--output=file		send xml output to file (default: "$opt->{outputfile}")
+	--debug			increase debug level
+	--lang=[s]		set language of xmltv output data (default $opt->{lang})
+	--channels_file=file	where to get channel data from
+	--gaps_file=file	micro-fetch gaps only
+
+EOF
+;
+
+	exit(0);
+}
+
+######################################################################################################
+
+sub get_sbsnews_data
+{
+	# 7 days in one URL: http://www.sbs.com.au/whatson/WNC-Schedule.html
+	my $data = &Shepherd::Common::get_url( url => "http://www.sbs.com.au/whatson/WNC-Schedule.html",
+		    stats => \%stats,
+		    retries => 4,
+		    debug => $opt->{debug} ? 3 : 1,
+		    retry_delay => 20);
+	exit 22 unless ($data);
+
+	my %day_range_names = (sunday=>0,monday=>1,tuesday=>2,wednesday=>3,thursday=>4,friday=>5,saturday=>6);
+
+	#
+	# parse html using the following state machine:
+	# 0 = looking for first time tag
+	# 1 = got first time tag
+	# 2 = reading programmes
+	# 3 = end of programmes
+	#
+	my $state_machine = 0;
+	my @time_column;
+	my $tree = HTML::TreeBuilder->new_from_content($data);
+	my $time_tag_count = 0;
+	my $tr_count = 0;
+
+	my @seen_day_tag, my @column_is_day, my @column_maps_to_time;
+	my @time_column_wrapped_over_midnight;
+	my @prev_row_prog_tag;
+
+	my $seen_time_tag_column = -1;
+	&log("state machine is 0, looking for start of table") if $opt->{debug};
+
+	foreach my $tr1 ($tree->look_down('_tag' => 'tr')) {
+		my $td_count = 0;
+		my @row;
+
+		foreach my $td1 ($tr1->look_down('_tag' => 'td')) {
+			if ($td1->as_text() =~ /^Time$/) {
+				if ($state_machine < 2) {
+					&log("found time tag $time_tag_count in column $td_count") if $opt->{debug};
+					$time_column[$time_tag_count] = $td_count;
+					$seen_time_tag_column = $time_tag_count;
+					if ($time_tag_count == 0) {
+						$state_machine = 1;
+						&log("advanced state machine to 1, looking for day names") if $opt->{debug};
+					}
+
+					# if this is a new time tag & we have existing unprocessed
+					# columns, fix em up now
+					for my $col (0..($#column_maps_to_time)) {
+						if ((defined $column_maps_to_time[$col]) &&
+						    ($column_maps_to_time[$col] == -1)) {
+							$column_maps_to_time[$col] = $td_count;
+							&log("fixed up column $col to map to time in column $td_count") if $opt->{debug};
+						}
+					}
+					$time_tag_count++;
+				} else {
+					$state_machine = 3;
+				}
+			} elsif ($td1->as_text() =~ /^\S$/) {
+				if ($state_machine == 1) {
+					$time_tag_count++;
+					&log("blank column in $td_count, incremented time_tag to $time_tag_count") if $opt->{debug};
+
+					# blank column clears out our time column
+					$seen_time_tag_column = -1;
+				}
+			} else {
+				next if ($state_machine == 0);
+
+				# parse day name
+				if (($state_machine == 1) && ($td1->as_text() =~ /day$/)) {
+					# got a day name..
+					my $dname = lc($td1->as_text());
+					if (defined $day_range_names{$dname}) {
+						my $dnum = $day_range_names{$dname};
+						die "saw day tag for $dname more than once.  has the HTML format changed?"
+						  if (defined $seen_day_tag[$dnum]);
+						$seen_day_tag[$dnum]++;
+						$column_is_day[$td_count] = $dnum;
+						$column_maps_to_time[$td_count] = $seen_time_tag_column;
+						&log("column $td_count is day $dnum ($dname) epoch time column $seen_time_tag_column")
+						  if $opt->{debug};
+					} else {
+						die "expected day name, got '$dname'. has the HTML format changed?";
+					}
+				} elsif ($state_machine == 2) {
+					# soak up the data!
+					$row[$td_count] = $td1->as_text();
+					$row[$td_count] =~ s/(^\s+|\s+$)//g;
+					&log((sprintf "stored row data %d: '%s'", $td_count, $td1->as_text())) if $opt->{debug};
+				} else {
+					&log((sprintf "got other text: state_machine=%d, td_count=%d, got: '%s'",
+					  $state_machine,$td_count,$td1->as_text())) if $opt->{debug};
+				}
+			}
+			$td_count++;
+		}
+		if ($state_machine == 1) {
+			$state_machine = 2;
+			&log("advanced state machine to 2, now looking for programmes") if $opt->{debug};
+			next;
+		} elsif ($state_machine == 2) {
+			# process row
+			# 1. loop through $time_column ...
+			foreach my $tcount (0..($time_tag_count-1)) {
+				next if (!defined $time_column[$tcount]);
+				my $tcol = $time_column[$tcount];
+				next if (!defined $row[$tcol]);
+
+				# parse time from $row[$tcol] ... format is "13:30-13:50"
+				my $start_time = -1, my $stop_time = -1;
+				if ($row[$tcol] =~ /^(\d{1,2}):(\d{1,2})\s*\-\s*(\d{1,2}):(\d{1,2})$/) {
+					$start_time = ($1*60*60)+($2*60);
+					$stop_time = ($3*60*60)+($4*60);
+				} else {
+					&log("couldn't match start/stop time from '".$row[$tcol]."' in column $tcol") if $opt->{debug};
+				}
+
+				# sometimes-subtitle-line (but not always)
+				# if previous line had a programme in this slot and can't match a time,
+				# use this row data as a sub-title for the programme
+				if (($start_time == -1) || ($stop_time == -1)) {
+					foreach my $col (0..$td_count) {
+						if ((defined $column_is_day[$col]) &&
+						    (defined $column_maps_to_time[$col]) &&
+						    ($column_maps_to_time[$col] == $tcol) &&
+						    (defined $prev_row_prog_tag[$col])) {
+							if ($row[$col] ne "") {
+								&log("added subtitle '".$row[$col]."' from col $col to previous-row prog '".
+								  $tv_guide->{$prev_row_prog_tag[$col]}->{title}->[0]->[0]."'") if $opt->{debug};
+
+								$tv_guide->{$prev_row_prog_tag[$col]}->{'sub-title'} = [[ $row[$col], $opt->{lang} ]];
+								&Shepherd::Common::cleanup($tv_guide->{$prev_row_prog_tag[$col]}->{'sub-title'});
+							}
+							$prev_row_prog_tag[$col] = undef;
+						}
+					}
+					next;
+				}
+
+				# wrapping over midnight for the first time
+				if ($stop_time < $start_time) {
+					$time_column_wrapped_over_midnight[$tcol] = 1;
+					$stop_time += (24*60*60);
+					&log("detected wrap-around-midnight for time '$row[$tcol]' in column $tcol") if $opt->{debug};
+				}
+
+				# loop through all programmes which match this time column
+				foreach my $col (0..$td_count) {
+					if ((defined $column_is_day[$col]) &&
+					    (defined $column_maps_to_time[$col]) &&
+					    ($column_maps_to_time[$col] == $tcol)) {
+						next if ($row[$col] eq "");
+
+						my $prog;
+						$prog->{channel} = $channels->{'SBS News'};
+						$prog->{title} = [[ $row[$col], $opt->{lang} ]];
+						&Shepherd::Common::cleanup($prog->{title});
+						$prog->{start} = $start_time;
+						$prog->{stop} = $stop_time;
+
+						$prog->{category} = [[ 'News', undef ]] if ($progname =~ /News/i);
+						my $wday = $column_is_day[$col];
+						if (defined $time_column_wrapped_over_midnight[$tcol] and $stop_time < (24*60*60)) {
+							$wday = ($wday + 1) % 7;
+						}
+						$prog->{wday} = $wday;
+
+						$prev_row_prog_tag[$col] = $wday*(24*60*60) + $start_time;
+						$tv_guide->{$prev_row_prog_tag[$col]} = $prog;
+						$tv_guide_by_wday->{$wday}->{$start_time} = $prog;
+
+						&log((sprintf "got prog col %d: start=%s, stop=%s, '%s', day=%d (%d)",
+						  $col,&print_time($start_time),&print_time($stop_time),$row[$col],$column_is_day[$col],$wday))
+						  if $opt->{debug};
+
+						$stats{seen_progs}++;
+					}
+				}
+			}
+		}
+		$tr_count++;
+		&log("advanced tr_count to $tr_count") if $opt->{debug};
+	}
+	
+	$tree->delete;
+
+	die "didn't find 'time' tag in HTML table.  has the HTML format changed?\n"
+	  if ($state_machine == 0);
+
+	die "didn't find any programmes!  has the HTML format changed?\n"
+	  if ($stats{seen_progs} == 0);
+}
+
+######################################################################################################
+
+# sbsnews data from http://www.sbs.com.au/whatson/WNC-Schedule.html has 5 or 10 
+# minute holes in it.  this fills in those holes by extending programs over holes.
+# it also adds in "Station Close" programs for long overnight gaps.
+
+sub adjust_stop_times
+{
+	&log("Extending stop times to fill in small guide data holes.");
+
+	my @day_names = ("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday");
+
+	# reverse-sort thru list to adjust prog stop times
+	my @list = sort {$b <=> $a} keys %$tv_guide;
+	my $prev_start = $tv_guide->{$list[$#list]}->{start} + (7*24*60*60);
+	foreach my $key (@list) {
+		my $stop = $tv_guide->{$key}->{wday}*(24*60*60) + $tv_guide->{$key}->{stop};
+		if ($stop != $prev_start) {
+			my $diff = $prev_start - $stop;
+			$stop = $tv_guide->{$key}->{stop};
+			my $new_wday = $tv_guide->{$key}->{wday};
+			if ($stop >= (24*60*60)) {
+				$stop -= (24*60*60);
+				$new_wday = ($new_wday + 1) % 7;
+			}
+
+			# Gaps of at least 30 minutes before 7am are Station Closes
+			if ($diff / 60 >= 30 and (($prev_start % (24*60*60)) <= (7*60*60))) {
+				my $new_prog = { title => [[ 'Station Close', $opt->{lang} ]],
+						channel => $channels->{'SBS News'},
+						start => $stop,
+						stop => $prev_start % (24*60*60) };
+				&log(sprintf "Inserting \"Station Close\" on %s between %s to %s",
+						$day_names[$new_wday],
+						&print_time($new_prog->{start}),
+						&print_time($new_prog->{stop}));
+				$tv_guide_by_wday->{$new_wday}->{$stop} = $new_prog;
+
+			# Gaps of 15 or more minutes in other times are genuine holes
+			# If the gap is a weekday, fill it with whatever was in
+			# that timeslot tommorow (we have Monday holes for some reason)
+			} elsif ($diff / 60 >= 15) {
+				if ($new_wday > 0 and $new_wday < 6) {
+					my $copy_wday = $new_wday + 1;
+					$copy_wday = 1 if $copy_wday >= 6;
+
+					if ($tv_guide_by_wday->{$copy_wday}->{$stop}) {
+						my $new_prog = { %{$tv_guide_by_wday->{$copy_wday}->{$stop}}};
+						delete $new_prog->{wday} if $new_prog->{wday};
+						&log(sprintf "Filling weekday gap on %s at %s with next day's schedule \"%s\".",
+						$day_names[$new_wday], &print_time($stop), $new_prog->{title}[0][0]);
+						$tv_guide_by_wday->{$new_wday}->{$stop} = $new_prog;
+					} else {
+					    &log(sprintf "Unable to find suitable program to copy to fill " .
+						         "weekday gap on %s at %s.", $day_names[$new_wday], &print_time($stop));
+						 }
+				} else {
+					&log(sprintf "Can't fill gap on %s at %s after \"%s\" for %d mins.",
+						 $day_names[$new_wday],
+						 &print_time($stop),
+					     $tv_guide->{$key}->{title}[0][0],
+					     $diff/60);
+				}
+
+			# Gaps of <15 minutes shall be filled in
+			} else {
+				&log(sprintf "Extending stop time of \"%s\" by %d mins, from %s to %s on %s.", 
+					$tv_guide->{$key}->{title}[0][0],
+					$diff/60,
+					&print_time($tv_guide->{$key}->{stop}),
+					&print_time($tv_guide->{$key}->{stop} + $diff),
+					$day_names[$tv_guide->{$key}->{wday}]) if ($opt->{debug});
+				$tv_guide->{$key}->{stop} += $diff;
+				$stats{extended_stops}++
+			}
+		}
+		delete $tv_guide->{$key}->{wday};
+		$prev_start = $key;
+	}
+}
+
+######################################################################################################
+
+sub log
+{
+	my ($entry) = @_;
+	printf "%s\n",$entry;
+}
+
+######################################################################################################
+
+sub print_time
+{
+	my $t = shift;
+	return sprintf "%02d:%02d",$t/(60*60),$t/60%60;
+}
+
+######################################################################################################
+
+sub nice_time
+{
+	my $t = shift;
+	return POSIX::strftime("%Y%m%d%H%M",localtime($t));
+}
+
+######################################################################################################
+
+sub print_stats
+{
+	printf "STATS: %s v%s completed in %d seconds",$progname, $version, (time-$script_start_time);
+	foreach my $key (sort keys %stats) {
+		printf ", %d %s",$stats{$key},$key;
+	}
+	printf "\n";
+}
+
+######################################################################################################
+
+sub write_data
+{
+	my $writer;
+
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	my $fh = new IO::File(">$opt->{outputfile}") || die "can't open $opt->{outputfile}: $!";
+	$writer_args{OUTPUT} = $fh;
+
+	$writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-name'   => "$progname $version",
+	      'generator-info-name' => "$progname $version"} );
+
+	$writer->write_channel( {
+		'display-name' => [[ 'SBS News', $opt->{lang} ]],
+		'id' => $channels->{'SBS News'} } );
+
+	my $currtime = time;
+	my @today = localtime($currtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+	# set currtime back to match midnight.
+	$currtime -= (($today[0]) + ($today[1]*60) + ($today[2]*60*60));
+
+	foreach my $day ($opt->{offset} .. ($opt->{days}-1)) {
+		my $wday = ($today[6] + $day) % 7;
+		my $remove;
+
+		# fill gap at start of first day
+		if ($day == $opt->{offset}) {
+			my $prev_wday = $wday - 1;
+			$prev_wday = 6 if $prev_wday < 0;
+
+			my @sorted_times = (sort {$a <=> $b} keys %{$tv_guide_by_wday->{$prev_wday}});
+			my $last_prog = { %{$tv_guide_by_wday->{$prev_wday}->{$sorted_times[$#sorted_times]}}};
+
+			if ($last_prog->{stop} > (24*60*60)) {
+				$last_prog->{start} = $last_prog->{start} - (24*60*60);
+				$last_prog->{stop} = $last_prog->{stop} - (24*60*60);
+
+				$tv_guide_by_wday->{$wday}->{$last_prog->{start}} = $last_prog;
+				$remove = $last_prog->{start};
+			}
+		}
+
+		foreach my $key (sort {$a <=> $b} keys %{$tv_guide_by_wday->{$wday}}) {
+			my $start_time = $currtime + $day*(24*60*60) + $tv_guide_by_wday->{$wday}->{$key}->{start};
+			my $stop_time = $currtime + $day*(24*60*60) + $tv_guide_by_wday->{$wday}->{$key}->{stop};;
+
+			# if we are fetching microgaps, skip if this isn't
+			# in a micro-gap
+			if (defined $opt->{gaps_file}) {
+				my $found_gap_match = 0;
+				foreach my $g (@{($gaps->{'SBS News'})}) {
+					my ($s, $e) = split(/-/,$g);
+
+					$found_gap_match = 1 if
+					   ((($s >= $start_time) &&
+					     ($s <= $stop_time)) ||
+					    (($e >= $start_time) &&
+					     ($e <= $stop_time)) ||
+					    (($s <= $start_time) &&
+					     ($e >= $stop_time)));
+				}
+				if (!$found_gap_match) {
+					$stats{gaps_skipped}++;
+					next;
+				} else {
+					$stats{gaps_included}++;
+				}
+			}
+
+			my $prog = { %{$tv_guide_by_wday->{$wday}->{$key}}};
+			$prog->{start} = &nice_time($start_time);
+			$prog->{stop} = &nice_time($stop_time);
+
+			$writer->write_programme($prog);
+			$stats{progs}++;
+		}
+
+		if ($remove) {
+			delete $tv_guide_by_wday->{$wday}->{$remove};
+		}
+	}
+
+	$writer->end();
+}
+
+######################################################################################################

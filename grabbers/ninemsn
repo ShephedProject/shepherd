@@ -1,0 +1,1201 @@
+#!/usr/bin/perl -w
+
+# ninemsn au_tv guide grabber - runs from "Shepherd" master grabber
+#  * grabs data from NineMSN (http://tvguide.ninemsn.com.au/)
+#  * this does NOT use any config file - all settings are passed in from shepherd
+#  * roughly based on Michael 'Immar' Smith's excellent original
+#    ninemsn tv_grab_au script but essentially rewritten
+
+use strict;
+
+my $progname = "ninemsn";
+my $version = "0.15";
+
+use LWP::UserAgent;
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use HTML::TreeBuilder;
+use Data::Dumper;
+use JavaScript;
+use Compress::Zlib;
+use Storable;
+
+#
+# global variables and settings
+#
+
+$| = 1;
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels, my $gaps;
+my $data_cache;
+my $writer;
+my $jsc;
+my $ua;
+my $prev_url;
+my $d;
+my $opt;
+
+#
+# parse command line
+#
+
+$opt->{days} =          7;			# default
+$opt->{outputfile} =    "output.xmltv";		# default
+$opt->{cache_file} =	$progname.".storable.cache";	# default
+$opt->{lang} =		"en";
+$opt->{region} =	94;
+
+GetOptions(
+	'log-http'	=> \$opt->{log_http},
+	'region=i'	=> \$opt->{region},
+	'days=i'	=> \$opt->{days},
+	'offset=i'	=> \$opt->{offset},
+	'timezone=s'	=> \$opt->{timezone},
+	'channels_file=s' => \$opt->{channels_file},
+	'gaps_file=s'	=> \$opt->{gaps_file},
+	'output=s'	=> \$opt->{outputfile},
+	'cache-file=s'	=> \$opt->{cache_file},
+	'fast'		=> \$opt->{fast},
+	'no-cache'	=> \$opt->{no_cache},
+	'no-details'	=> \$opt->{no_details},
+	'debug+'	=> \$opt->{debug},
+	'warper'	=> \$opt->{warper},
+	'lang=s'	=> \$opt->{lang},
+	'obfuscate'	=> \$opt->{obfuscate},
+	'anonsocks=s'	=> \$opt->{anon_socks},
+	'scan-chan=s'	=> \$opt->{scan_chan},
+	'help'		=> \$opt->{help},
+	'verbose'	=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'ready'		=> \$opt->{version},
+	'v'		=> \$opt->{help});
+
+&help if ($opt->{help});
+
+&scan_channels if (defined $opt->{scan_chan});
+
+if ($opt->{version}) {
+	printf "%s %s\n",$progname,$version;
+	exit(0);
+}
+
+die "no channel file specified, see --help for instructions\n", if (!$opt->{channels_file});
+$opt->{days} = 7 if ($opt->{days} > 7); # limit to a max of 7 days
+
+&log("WARNING: JavaScript version ".$JavaScript::VERSION." is too old. Please use at least version 0.55.")
+  if $JavaScript::VERSION < 0.55;
+
+
+#
+# go go go!
+#
+
+&log(sprintf "going to %sgrab %d days%s of data into %s (%s%s%s%s%s)",
+	(defined $opt->{gaps_file} ? "micro-gap " : ""),
+	$opt->{days},
+	(defined $opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+	$opt->{outputfile},
+	(defined $opt->{fast} ? "with haste" : "slowly"),
+	(defined $opt->{anon_socks} ? ", via multiple endpoints" : ""),
+	(defined $opt->{warper} ? ", anonymously" : ""),
+	(defined $opt->{no_details} ? ", without details" : ", with details"),
+	(defined $opt->{no_cache} ? ", without caching" : ", with caching"));
+
+# read channels file
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt->{channels_file} could not be read\n";
+}
+
+# if just filling in microgaps, parse gaps
+if (defined $opt->{gaps_file}) {
+	if (-r $opt->{gaps_file}) {
+		local (@ARGV, $/) = ($opt->{gaps_file});
+		no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		die "WARNING: gaps_file $opt->{gaps_file} could not be read: $!\n";
+	}
+}
+
+&read_cache unless (defined $opt->{no_cache});
+
+&set_ua(1);
+&setup_socks if (defined $opt->{anon_socks});
+
+&setup_javascript;
+
+&get_initial_page;
+
+&start_writing_xmltv;
+
+&get_daily_pages;
+&get_detailed_pages;
+
+&write_cache unless (defined $opt->{no_cache});
+$writer->end();
+
+&print_stats;
+exit(0);
+
+##############################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+options are as follows:
+	--help			show these help options
+	--days=N		fetch 'n' days of data (default: $opt->{days})
+	--output=file		send xml output to file (default: "$opt->{outputfile}")
+	--no-cache		don't use a cache to optimize (reduce) number of web queries
+	--no-details		don't fetch detailed descriptions (default: do)
+	--cache-file=file	where to store cache (default "$opt->{cache_file}")
+	--fast			don't run slow - get data as quick as you can - not recommended
+	--debug			increase debug level
+	--warper		fetch data using WebWarper web anonymizer service
+	--obfuscate		pretend to be a proxy servicing multiple clients
+	--anonsocks=(ip:port)	use SOCKS4A server at (ip):(port) (for Tor: recommended)
+	--lang=[s]		set language of xmltv output data (default $opt->{lang})
+
+	--region=N		set region for where to collect data from (default: $opt->{region})
+	--channels_file=file	where to get channel data from
+	--gaps_file=file	micro-fetch gaps only
+
+EOF
+;
+
+	exit(0);
+}
+
+##############################################################################
+# populate cache
+
+sub read_cache
+{
+	if (-r $opt->{cache_file}) {
+		my $store = Storable::retrieve($opt->{cache_file});
+		$data_cache = $store->{data_cache};
+	} else {
+		printf "WARNING: no programme cache $opt->{cache_file} - have to fetch all details\n";
+
+		# try to write to it - if directory doesn't exist this will then cause an error
+		&write_cache;
+	}
+}
+
+##############################################################################
+# write out updated cache
+
+sub write_cache
+{
+	# cleanup old entries from cache
+	for my $cache_key (keys %{$data_cache}) {
+		my ($starttime, @rest) = split(/:/,$cache_key);
+		if ($starttime < (time-86400)) {
+			delete $data_cache->{$cache_key};
+			$stats{expired_from_cache}++;
+		}
+	}
+
+	my $store;
+	$store->{data_cache} = $data_cache;
+
+	Storable::store($store, $opt->{cache_file});
+}
+
+##############################################################################
+# logic to fetch a page via http
+#  retries up to $retrycount times to get a page with 10 second pauses inbetween
+
+sub get_url
+{
+	my ($url,$retrycount,$referer,$reqtype,$postvars,$waittime) = @_;
+	my $request;
+	my $response;
+	my $attempts = 0;
+	my ($raw, $page, $base);
+
+	$reqtype = "GET" if (!defined $reqtype);
+	$waittime = 600 if (!defined $waittime);
+
+	$retrycount = 5 if ($retrycount == 0);
+	$url =~ s#^http://#http://webwarper.net/ww/# if (defined $opt->{warper});
+
+	if ($reqtype eq "GET") {
+		$request = HTTP::Request->new(GET => $url);
+	} elsif ($reqtype eq "POST") {
+		$request = HTTP::Request->new(POST => $url);
+		$request->add_content($postvars);
+	}
+
+	if (defined $referer) {
+		$request->header('Referer' => $referer);
+		printf "DEBUG: explicitly set Referer to '%s'\n", $referer if (defined $opt->{debug});
+	} else {
+		if (defined $prev_url) {
+			$request->header('Referer' => $prev_url);
+			printf "DEBUG: set Referer to '%s'\n", $prev_url if (defined $opt->{debug});
+		}
+	}
+	$prev_url = $url;
+
+	$request->header('Accept-Encoding' => 'gzip');
+
+	if ($opt->{obfuscate}) {
+		my $randomaddr = sprintf "203.%d.%d.%d",rand(255),rand(255),(rand(254)+1);
+		$request->header('Via' => '1.0 proxy:81 (Squid/2.3.STABLE3)');
+		$request->header('X-Forwarded-For' => $randomaddr);
+	}
+	for (1..$retrycount) {
+		$response = $ua->request($request);
+
+		if ((defined $opt->{log_http}) && (open(F,">>http_log.txt"))) {
+			printf F "\n----------------------------------------------------\n";
+			printf F "request: %s %s %s\n",$reqtype,$url,(defined $postvars ? $postvars : "");
+			printf F "referer: %s\n",$request->header('Referer');
+			printf F "response: %s\n",$response->status_line;
+			print F $response->content;
+			close F;
+		}
+
+		last if ($response->is_success);
+
+		$stats{http_failed_requests}++;
+		$attempts++;
+
+		$waittime = 10 if (defined $opt->{anon_socks});
+		&log("attempt $attempts of $retrycount failed to fetch $url, sleeping for $waittime seconds: ".$response->status_line);
+
+		unless ($attempts == $retrycount)
+		{
+		    $stats{slept_for} += $waittime;
+		    sleep $waittime;
+		}
+	}
+	if (!($response->is_success)) {
+		&log("aborting after $attempts attempts to fetch url $url");
+		return undef;
+	}
+
+	$prev_url = $response->base;
+	$prev_url =~ s#^http://webwarper.net/ww/#http://# if (defined $opt->{warper});
+	printf "DEBUG: set prev_url to '%s'\n", $prev_url if (defined $opt->{debug});
+
+	$stats{bytes_fetched} += do {use bytes; length($response->content)};
+	$stats{http_successful_requests}++;
+
+	if ((!$opt->{fast}) && (!defined $opt->{anon_socks})) {
+		my $sleeptimer = int(rand(5)) + 16;  # sleep anywhere from 16 to 20 seconds
+		$stats{slept_for} += $sleeptimer;
+		sleep $sleeptimer;
+	}
+
+	if ($response->header('Content-Encoding') &&
+	    $response->header('Content-Encoding') eq 'gzip') {
+		$stats{compressed_pages} += do {use bytes; length($response->content)};
+		$response->content(Compress::Zlib::memGunzip($response->content));
+	}
+	return $response->content;
+}
+
+##############################################################################
+# turn a string into something that can be used on a URL line
+
+sub urlify
+{
+	my $str = shift;
+	$str =~ s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
+	return $str;
+}
+
+##############################################################################
+
+sub log
+{
+	my ($entry) = @_;
+	printf "%s\n",$entry;
+}
+
+##############################################################################
+
+sub print_stats
+{
+	printf "STATS: %s v%s completed in %d seconds",$progname, $version, time-$script_start_time;
+	foreach my $key (sort keys %stats) {
+		printf ", %d %s",$stats{$key},$key;
+	}
+	printf "\n";
+}
+
+##############################################################################
+# descend a structure and clean up various things, including stripping
+# leading/trailing spaces in strings, translations of html stuff etc
+#   -- taken & modified from Michael 'Immir' Smith's excellent tv_grab_au
+
+my %amp;
+BEGIN { %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } ) }
+
+sub cleanup {
+	my $x = shift;
+	if    (ref $x eq "REF")   { cleanup($_) }
+	elsif (ref $x eq "HASH")  { cleanup(\$_) for values %$x }
+	elsif (ref $x eq "ARRAY") { cleanup(\$_) for @$x }
+	elsif (defined $$x) {
+		$$x =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
+		$$x =~ s/[^\x20-\x7f]/ /g;
+		$$x =~ s/(^\s+|\s+$)//g;
+	}
+}
+
+##############################################################################
+
+sub start_writing_xmltv
+{
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($opt->{outputfile}) {
+		my $fh = new IO::File(">$opt->{outputfile}") || die "can't open $opt->{outputfile}: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	$writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-name'   => "$progname $version",
+	      'generator-info-name' => "$progname $version"} );
+
+	for my $channel (sort keys %{$channels}) {
+		$writer->write_channel( {
+			'display-name' => [[ $channel, $opt->{lang} ]],
+			'id' => $channels->{$channel}
+			} );
+	}
+}
+
+##############################################################################
+
+sub set_ua
+{
+	my $enable_cookies = shift;
+
+	my @agent_list = (
+		'Mozilla/4.0 (compatible; MSIE 5.5; Windows 98)',
+		'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)',
+		'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; FunWebProducts)',
+		'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322)',
+		'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+		'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; Q312466)',
+		'Mozilla/4.0 (compatible; MSIE 6.0; Windows XP)',
+		'Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en-us) AppleWebKit/85.8.5 (KHTML, like Gecko) Safari/85.8.1',
+		'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.4) Gecko/20060508 Firefox/1.5.0.4',
+		'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.7.6) Gecko/20050512 Firefox',
+		'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.8) Gecko/20061025 Firefox/1.5.0.8',
+		'Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.8.1) Gecko/20061010 Firefox/2.0',
+		'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
+		'Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en-us) AppleWebKit/412 (KHTML, like Gecko) Safari/412',
+		'Mozilla/5.0 (Macintosh; U; Intel Mac OS X; en-us) AppleWebKit/418.9 (KHTML, like Gecko) Safari/419.3',
+		'Mozilla/5.0 (Macintosh; U; Intel Mac OS X; fr) AppleWebKit/418.9 (KHTML, like Gecko) Safari/419.3',
+		'Opera/9.00 (Windows NT 5.1; U; en)');
+
+	$ua = undef;
+	$ua = LWP::UserAgent->new('timeout' => 30, 'agent' => $agent_list[(int(rand($#agent_list+1)))] );
+	$ua->env_proxy;
+	$ua->cookie_jar({}) if (defined $enable_cookies);
+	$prev_url = undef; # reset referer
+}
+
+##############################################################################
+# 1.
+# browse to http://tvguide.ninemsn.com.au/ via
+# http://tvguide.ninemsn.com.au/setlocation.asp?region=<reg>&returnURL=http://tvguide.ninemsn.com.au/
+# and soak up the "day" URLs
+
+sub get_initial_page
+{
+	my $returl = "http://tvguide.ninemsn.com.au/";
+	my $url = "http://tvguide.ninemsn.com.au/setlocation.asp?region=".$opt->{region}."&returnURL=$returl";
+
+	&log("setting location via $url");
+	my $data = &get_url($url, 5, $returl, "GET", undef, 30);
+
+	if (!$data) {
+		&log("CRITIAL ERROR: ABORTING: could not read initial page '$url'");
+		exit(1);
+	}
+
+	# parse initial page
+	my $tree = HTML::TreeBuilder->new_from_content($data);
+	if (!$tree) {
+		&log("CRITICAL ERROR: ABORTING: could not build tree from data in '$url'");
+		exit(1);
+	}
+
+	# find <select name=day..> tag
+	my $select_day_tag = $tree->look_down('_tag' => 'select', 'name' => 'day');
+	if (!$select_day_tag) {
+		&log("CRITICAL ERROR: ABORTING: could not find a day tag in '$url'");
+		exit(1);
+	}
+
+	# take note of options
+	my $found_options = 0;
+
+	foreach my $opt_tag ($select_day_tag->look_down('_tag' => 'option')) {
+		push (@{($d->{day_values})},$opt_tag->attr('value'));
+		$found_options++;
+
+		printf "DEBUG: day %d tag is '%s'\n",$found_options,$opt_tag->attr('value')
+		  if (defined $opt->{debug});
+	}
+
+	if ($found_options == 0) {
+		&log("CRITICAL ERROR: ABORTING: could not find any day tag options in '$url'");
+		exit(1);
+	}
+}
+
+##############################################################################
+# get daily pages
+
+sub get_daily_pages
+{
+	my $starttime = time;
+	my $day_num = 0;
+	my $skip_days = 0;
+
+	$skip_days = $opt->{offset} if (defined $opt->{offset});
+
+	foreach my $day_opt (@{($d->{day_values})}) {
+		my $currtime = $starttime + (60*60*24 * $day_num);
+		$day_num++;
+
+		return if ($day_num > $opt->{days});
+
+		# skip if --offset applies against this day
+		if ($skip_days > 0) {
+			$skip_days--;
+			next;
+		}
+
+		my @timeattr = localtime($currtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+		$timeattr[0] = 0; # zero sec
+		$timeattr[1] = 0; # zero min
+		$timeattr[2] = 0; # zero hour
+		my $day_start = mktime(@timeattr); # midnight on the day
+
+		&parse_daily_page($day_opt,$day_start,$day_num);
+	}
+}
+
+##############################################################################
+# parse a daily page
+
+sub parse_daily_page
+{
+	my ($day_opt,$day_start,$day_num) = @_;
+
+	my $url = "http://tvguide.ninemsn.com.au/todaytv/default.asp";
+	my $postvars = "channel=free&day=".urlify($day_opt)."&go=go";
+
+	my $progs_in_day = 0;
+
+	my $tries = 0;
+	my $tree;
+	while ((!$tree) && ($tries < 10)) {
+		$tries++;
+		&log("fetching day $day_num summary page (try $tries): POST $url $postvars");
+
+		# my $data = &get_url($url, 1, undef, "POST", $postvars);
+		my $data = &get_url($url."?".$postvars, 1, undef);
+		$tree = HTML::TreeBuilder->new_from_content($data) if ($data);
+	}
+
+	if (!$tree) {
+		&log("WARNING: skipping day $day_num: could not fetch '$url' afer 5 attempts: format/URL changed?");
+		return 0;
+	}
+
+	my $table_tag = $tree->look_down('_tag' => 'table', 'class' => 'tv');
+	if (!$table_tag) {
+		&log("WARNING: skipping day $day_num: could not find tv table in '$url': has the format changed?");
+		return 0;
+	}
+
+	my $row_num = 0;
+	my @row_span;	# used to track rowspan= counts
+	my @chan_col;
+	my $max_cols;
+
+	foreach my $tree_tr ($table_tag->look_down('_tag' => 'tr')) {
+		if ($row_num == 0) {
+			#
+			# parse channels
+			#
+
+			my $col_num = 0;
+			foreach my $tree_td ($tree_tr->look_down('_tag' => 'td')) {
+				my $ch = translate_channel_name($tree_td->as_text());
+
+				if (defined $channels->{$ch}) {
+					$chan_col[$col_num] = $channels->{$ch};
+	
+					printf "DEBUG: chan_map col %d '%s' -> %s\n", $col_num, $ch,
+					  (defined $chan_col[$col_num] ? $chan_col[$col_num] : "(undef)")
+					  if (defined $opt->{debug});
+				} else {
+					if (!defined $d->{unknown_chan}->{$ch}) {	
+						&log("Ignoring programmes from unknown channel '$ch'");
+						$d->{unknown_chan}->{$ch} = 1; # so we report this only once
+					}
+				}
+
+				$row_span[$col_num] = 1; # set initial row_span to 1
+				$col_num++;
+			}
+			$max_cols = $col_num;
+			printf "DEBUG: set max_cols to $max_cols\n" if (defined $opt->{debug});
+		} else {
+			#
+			# parse programmes
+			#
+
+			my $col_num = -1;
+			foreach my $tree_td ($tree_tr->look_down('_tag' => 'td', 'class' => 'tv')) {
+				$col_num++; # increment at beginning - just easier
+
+				my $prog;
+				my $prog_name = $tree_td->as_text();
+
+				# calculate programme starttime, either based on row number
+				# (each row = 5 mins) or an explicit start time in the prog_name
+				if ($prog_name =~ s/\s*\[\s* (\d+):(\d+) \s* (am|pm) \s*\]\s* //x) {
+					my ($hr, $min, $ampm) = ($1, $2, lc($3));
+					$hr = 0 if ($hr == 12);
+					$hr += 12 if ($ampm eq "pm");
+					$hr += 24 if (($ampm eq "am") && ($hr < 6));
+
+					$prog->{starttime} = $day_start + ((60*60)*$hr) + (60*$min);
+
+					printf "DEBUG: starttime of prog '%s' explicitly set to %s\n",
+					  $prog_name, (strftime "%Y%m%d%H%M", localtime($prog->{starttime}))
+					  if (defined $opt->{debug});
+				} else {
+					$prog->{starttime} = $day_start + ((60*60)*6) + ((5*60)*($row_num-1));
+
+					printf "DEBUG: starttime of prog '%s' calculated to be %s based on row %d\n",
+					  $prog_name, (strftime "%Y%m%d%H%M", localtime($prog->{starttime})),
+					  $row_num, if (defined $opt->{debug});
+				}
+
+				# got a cell.  work out what column it applies to,
+				# taking into account any rowspans that are going on
+				while (($col_num < $max_cols) && ($row_span[$col_num] > 1)) {
+					printf "DEBUG: row %d column %d skipped due to rowspan (%d)\n",
+					  $row_num, $col_num, $row_span[$col_num] if (defined $opt->{debug});
+
+					$row_span[$col_num]--; # decrease span
+					$col_num++; # jump to next column
+				}
+
+				if ($col_num == $max_cols) {
+					# no longer in a valid column!
+					&log("WARNING: Bad HTML (excess columns) in row $row_num of '$url': celltext: '$prog_name'. Format changed?");
+					next;
+				}
+
+				# set (future) rowspan
+				if ($tree_td->attr('rowspan')) {
+					my $found_span = $tree_td->attr('rowspan');
+
+					if ($found_span =~ /^(\d+)$/) {
+						$row_span[$col_num] = $found_span;
+					} else {
+						# a BOGUS span - invalid HTML - who would have thought?!???
+						printf "DEBUG: ignored a non-numeric rowspan in row %d column %d: '%s': skipped\n",
+						  $row_num, $col_num, $found_span if (defined $opt->{debug});
+						next;
+					}
+				}
+
+				# programme length is based on number of rows spanned
+				$prog->{stoptime} = $prog->{starttime} + ((5*60)*$row_span[$col_num]);
+
+				my $prog_a = $tree_td->look_down('_tag' => 'a');
+				$prog->{url} = $prog_a->attr('href') if ($prog_a);
+					
+				if (!defined $prog->{url}) {
+					# no url - not a programme?
+					&log("WARNING: Bad HTML (no link) in row $row_num column $col_num of '$url': '$prog_name' has no URL. Format changed?");
+					next;
+				}
+
+				if (!defined $chan_col[$col_num]) {
+					# no channel for this programme!
+					printf "DEBUG: Programme in row $row_num column $col_num had no known channel! ($prog_name)\n"
+					  if (defined $opt->{debug});
+					$stats{skipped_prog_no_channel}++;
+					next;
+				}
+				$prog->{channel} = $chan_col[$col_num];
+				$prog->{title} = [[ $prog_name, $opt->{lang} ]];
+				$progs_in_day++;
+
+				# if we are fetching microgaps, skip if this isn't
+				# in a micro-gap.
+				if (defined $opt->{gaps_file}) {
+					my $found_gap_match = 0;
+					if (defined $gaps->{$chan_col[$col_num]}) {
+						foreach my $g (@{($gaps->{$chan_col[$col_num]})}) {
+							my ($s, $e) = split(/-/,$g);
+							$found_gap_match = 1 if
+							 ((($s >= $prog->{starttime}) && ($s <= $prog->{stoptime})) ||
+							  (($e >= $prog->{starttime}) && ($e <= $prog->{stoptime})) ||
+							  (($s <= $prog->{starttime}) && ($e >= $prog->{stoptime})));
+						}
+					}
+					if (!$found_gap_match) {
+						$stats{gaps_skipped}++;
+						next;
+					} else {
+						$stats{gaps_included}++;
+					}
+				}
+
+				#
+				# got programme, store it for grabbing detailed info in next step
+				#
+
+				$stats{programmes}++;
+				push(@{($d->{progs})},$prog);
+			}
+
+			# update any remaining rowspan counters
+			$col_num++;
+			while (($col_num < $max_cols) && ($row_span[$col_num] > 1)) {
+				printf "DEBUG: blank row %d: decreasing column %d rowspan (%d)\n",
+				  $row_num, $col_num, $row_span[$col_num] if (defined $opt->{debug});
+
+				$row_span[$col_num]--; # decrease span
+				$col_num++; # jump to next column
+			}
+		}
+
+		$row_num++;
+	}
+
+	&log("WARNING: $progs_in_day programmes seen for day $day_num.  URL/formatting changed? (url $url)")
+	  if ($progs_in_day < 50);
+}
+
+##############################################################################
+# loop through our progs, fetching details where we don't have a pre-cached
+# entry for them.
+# write out XMLTV
+
+sub get_detailed_pages
+{
+	my $prog_count = 0;
+	my $added_to_cache = 0;
+
+	&set_ua;
+
+	foreach my $prog (@{($d->{progs})}) {
+		$prog_count++;
+		my $cache_key = sprintf "%d:%s:%s", $prog->{starttime}, $prog->{channel}, $prog->{title}->[0]->[0];
+
+		if ((!defined $data_cache->{$cache_key}) && (!defined $opt->{no_details}) &&
+		    ($prog->{title}->[0]->[0] ne "Station Close")) {
+			printf "DEBUG: Fetching detail page: %s: %s\n",
+			  $prog->{channel}, $prog->{url} if (defined $opt->{debug});
+
+			# not in cache, go fetch additional details if we can
+			&fetch_one_prog($cache_key, $prog->{url}, $prog_count, $stats{programmes});
+			$stats{added_to_cache}++;
+			&write_cache if ((($stats{added_to_cache} % 5) == 0) && (!defined $opt->{no_cache}));
+		} elsif (!defined $opt->{no_details}) {
+			$stats{used_existing_cache_entry}++;
+		}
+
+		# if we got additional details, add them now
+		if (defined $data_cache->{$cache_key}) {
+			foreach my $key (keys %{($data_cache->{$cache_key})}) {
+				$prog->{$key} = $data_cache->{$cache_key}->{$key};
+			}
+		}
+
+		# if we now have a length field, use that as a more accurate
+		# stop time (we may have got a length field in the detailed data)
+		$prog->{stop} = $prog->{start} + (60*$prog->{length})
+		  if (defined $prog->{length});
+
+		# convert epoch starttime into XMLTV starttime
+		$prog->{start} = strftime "%Y%m%d%H%M", localtime($prog->{starttime});
+		delete $prog->{starttime};
+
+		# convert epoch stoptime into XMLTV stoptime
+		$prog->{stop} = strftime "%Y%m%d%H%M", localtime($prog->{stoptime});
+		delete $prog->{stoptime};
+
+		delete $prog->{url};
+		&cleanup($prog);
+
+		printf "DEBUG: programme xmltv: ".Dumper($prog) if (defined $opt->{debug});
+		$writer->write_programme($prog);
+	}
+}
+
+##############################################################################
+# fetch detailed info on one prog
+
+sub fetch_one_prog
+{
+	my ($cache_key,$url,$prog_count,$total_prog_count) = @_;
+
+	$url = "http://tvguide.ninemsn.com.au".$url if ($url !~ /^http/);
+	$url =~ s/\/closeup\//\/cu\//;
+
+	my $sleep_for = 600;
+	$sleep_for = 10 if (defined $opt->{anon_socks});
+
+	my $tries = 0;
+	my $data;
+	my $parsed_text = "";
+	while ((!$data) && ($tries < 12)) {
+		$tries++;
+		&log("fetching programme detail page ($prog_count of $total_prog_count) [try $tries]");
+		$data = &get_url($url, 1);
+
+		if ($data) {
+			$data =~ s{<script language="?Javascript"?[^>]*>(.*?)</script>}{
+				my $x = $1;
+				$jsc->eval(qq{ doc = '' });
+				$jsc->eval($x);
+				$parsed_text .= $jsc->eval(qq{ doc }) || '';
+				}isge;
+
+			if ($data =~ /we are unable/i) {
+				&log("got unable page, sleeping for $sleep_for seconds");
+				sleep $sleep_for;
+				$stats{slept_for} += $sleep_for;
+				&set_ua;
+				$data = undef;
+			}
+		} else {
+			&log("failed, sleeping for $sleep_for seconds");
+			sleep $sleep_for;
+			$stats{slept_for} += $sleep_for;
+			&set_ua;
+			# &get_initial_page;
+		}
+	}
+
+	if (!$data) {
+		&log("WARNING: skipping programme, could not fetch '$url' afer 12 attempts: format/URL changed?");
+		return;
+	}
+
+	if ($parsed_text eq "") {
+		&log("WARNING: skipping programme, could not find javascript to execute in '$url': format changed?");
+		return;
+	}
+
+	# split HTML up into sections seperated by <BR><BR>
+	my @html_lines = split(/<BR><BR>/,$parsed_text);
+	&cleanup(@html_lines);
+
+	# line 1 contains progname, duration and genre
+	$html_lines[0] =~ s/<.*?>//g;	# note: can fail on complex tags
+	if ($html_lines[0] =~ /\((\d+) mins/) {
+		$data_cache->{$cache_key}->{length} = $1;
+		printf "DEBUG: set 'length' to '%d'\n",$1 if (defined $opt->{debug});
+	}
+	if ($html_lines[0] =~ /Rated: ([^\)]+)\)/) {
+		my @ratings;
+		push(@ratings, [$1, 'ABA', undef]);
+		$data_cache->{$cache_key}->{rating} = [ @ratings ];
+		printf "DEBUG: set 'rating' to '%s'\n",$1 if (defined $opt->{debug});
+	}
+	if ($html_lines[0] =~ /Genre: (.*)$/) {
+		my $cat = translate_category($1);
+		my @categories;
+		push(@categories,$cat,$opt->{lang});
+		$data_cache->{$cache_key}->{category} = [[ @categories ]];
+		printf "DEBUG: set 'category' to '%s'\n",$cat if (defined $opt->{debug});
+	}
+
+	# line 2 contains description
+	if ($html_lines[1] ne "") {
+		$data_cache->{$cache_key}->{desc} = [[ $html_lines[1], $opt->{lang} ]];
+		printf "DEBUG: set desc to '%s'\n",$html_lines[1] if (defined $opt->{debug});
+	}
+}
+
+##############################################################################
+
+sub setup_javascript
+{
+	$jsc = new JavaScript::Runtime->create_context();
+	$jsc->set_error_handler( sub { } );
+ 
+	$jsc->eval(qq{
+		var doc = '';
+		function Location() { this.href  = 'http://ninemsn.com.au'; }
+		function Document() { this.write = function(x) { doc += x; } }
+		function Window()   { this.___ww = 0 }
+
+		location = new Location;
+		document = new Document;
+		window   = new Window;
+		});
+}
+
+##############################################################################
+
+sub translate_category
+{
+	my $genre = shift;
+	my %translation = (
+		'Sport' => 'sports',
+		'Soap Opera' => 'Soap',
+		'Science and Technology' => 'Science/Nature',
+		'Real Life' => 'Reality',
+		'Cartoon' => 'Animation',
+		'Family' => 'Children',
+		'Murder' => 'Crime' );
+
+	return $translation{$genre} if defined $translation{$genre};
+	return $genre;
+}
+
+
+##############################################################################
+
+sub setup_socks
+{
+	use LWP::Protocol::http;
+	my $orig_new_socket = \&LWP::Protocol::http::_new_socket;
+
+	# override LWP::Protocol::http's _new_socket method with our own
+	local($^W) = 0;
+	*LWP::Protocol::http::_new_socket = \&socks_new_socket;
+
+	# test that it works
+	&log("configured to use Tor, testing that it works by connecting to www.google.com ...");
+	my $data = &get_url("http://www.google.com/",10);
+	if (($data) && ($data =~ /Google/i)) {
+		&log("success.  Tor appears to be working!");
+		return;
+	}
+
+	&log("ERROR: Could not connect to www.google.com via Tor, disabling Tor.");
+	&log("       DATA FETCHING WILL BE VERY SLOW.");
+	&log("       DISABLING DETAILS-FETCHING BECAUSE OF THIS - SIGNIFICANTLY LOWER DATA QUALITY!!");
+
+	$opt->{no_details} = 1;
+	delete $opt->{anon_socks};
+	$stats{fallback_to_non_tor}++;
+
+	*LWP::Protocol::http::_new_socket = $orig_new_socket;
+}
+
+##############################################################################
+# our own SOCKS4Aified version of LWP::Protocol::http::_new_socket
+
+sub socks_new_socket
+{
+	my($self, $host, $port, $timeout) = @_;
+
+	my ($socks_ip,$socks_port) = split(/:/,$opt->{anon_socks});
+	$socks_ip = "127.0.0.1" if (!defined $socks_ip);
+	$socks_port = "9050" if (!defined $socks_port);
+
+	local($^W) = 0;  # IO::Socket::INET can be noisy
+	my $sock = $self->socket_class->new(
+		PeerAddr => $socks_ip,
+		PeerPort => $socks_port,
+		Proto    => 'tcp');
+
+	unless ($sock) {
+		# IO::Socket::INET leaves additional error messages in $@
+		$@ =~ s/^.*?: //;
+		&log("Can't connect to $host:$port ($@)");
+		return undef;
+	}
+
+	# perl 5.005's IO::Socket does not have the blocking method.
+	eval { $sock->blocking(0); };
+
+	# establish connectivity with socks server - SOCKS4A protocol
+	print { $sock } pack("CCnN", 0x04, 0x01, $port, 1) .
+		(pack 'x') .
+		$host . (pack 'x');
+
+	my $received = "";
+	my $timeout_time = time + $timeout;
+	while ($sock->sysread($received, 8) && (length($received) < 8) ) {
+		select(undef, undef, undef, 0.25);
+		last if ($timeout_time < time);
+	}
+
+	if ($timeout_time < time) {
+		&log("Timeout ($timeout) while connecting via SOCKS server");
+		return $sock;
+	}
+
+	my ($null_byte, $req_status, $port_num, $ip_addr) = unpack('CCnN',$received);
+	&log("Connection via SOCKS4A server rejected or failed") if ($req_status == 0x5b);
+	&log("Connection via SOCKS4A server because client is not running identd") if ($req_status == 0x5c);
+	&log("Connection via SOCKS4A server because client's identd could not confirm the user") if ($req_status == 0x5d);
+
+	$sock;
+}
+
+##############################################################################
+
+sub scan_channels
+{
+	my %REGIONS = (
+		126 => "ACT",               73 => "NSW: Sydney",            184 => "NSW: Newcastle",
+		66 => "NSW: Central Coast", 67 => "NSW: Griffith",          63 => "NSW: Broken Hill",
+		69 => "NSW: Northern NSW",  71 => "NSW: Southern NSW",      106 => "NSW: Remote and Central",
+		74 => "NT: Darwin",         108 => "NT: Remote & Central",  75 => "QLD: Brisbane",
+		78 => "QLD: Gold Coast",    79 => "QLD: Regional",          114 => "QLD: Remote & Central",
+		81 => "SA: Adelaide",       82 => "SA: Renmark",            83 => "SA: Riverland",
+		85 => "SA: South East SA",  86 => "SA: Spencer Gulf",       107 => "SA: Remote & Central",
+		88 => "Tasmania",           94 => "VIC: Melbourne",         93 => "VIC: Geelong",
+		90 => "VIC: Eastern Victoria", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Western Victoria",
+		101 => "WA: Perth",         102 => "WA: Regional");
+
+	&set_ua(1);
+	&setup_socks if (defined $opt->{anon_socks});
+	&setup_javascript;
+
+	my $now = time;
+
+	printf "\nScanning channels:\n\n";
+
+	foreach my $r (sort { $a <=> $b } keys %REGIONS) {
+		next if (($opt->{scan_chan} ne "all") && ($opt->{scan_chan} ne $r));
+
+		printf "Looking up region %d (%s) ..\n",$r, $REGIONS{$r};
+
+		#
+		# 1. get shepherd channels
+		#
+		my $ua2 = LWP::UserAgent->new();
+		$ua2->agent('Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 1.1.4322');
+		$ua2->cookie_jar({});
+		$ua2->get('http://www.yourtv.com.au');
+		my $response = $ua2->get('http://www.yourtv.com.au/profile/ajax.cfm?action=channels&region_id='.$r);
+		my $page = $response->content;
+		if ($response->is_error()) {
+			printf "Unable to download channel list for region $r from YourTV\n";
+			next;
+		}
+
+		# shepherd rules for station names
+		my (%shepherd_channels, $clist, $cn, $rq);
+		while ($page =~ /<label for="venue_id.*?>(.*?)<\/label>/sg) {
+			my $channel = $1;
+			$channel =~ s/\s{2,}//g;
+			if ($channel =~ /(.*) (\(.*\))/) {
+				($cn, $rq) = ($1, $2);
+			} else {
+				($cn, $rq) = ($channel, "");
+			}
+
+			if ($clist->{$cn}) {    # Is there already a channel with this name?
+				$clist->{$cn} = [ "(".$REGIONS{$r}.")" ] if (@{$clist->{$cn}} == 1 and $clist->{$cn}[0] eq '');
+				$rq = $REGIONS{$r} if ($rq eq '');
+				die "Bad channel list in region $r!" if (grep($rq eq $_, @{$clist->{$cn}}));
+				push @{$clist->{$cn}}, $rq;
+			} else {
+				$clist->{$cn} = [ $rq ];
+			}
+		}
+
+		foreach $cn (keys %$clist) {
+			if (@{$clist->{$cn}} == 1) {
+				$shepherd_channels{$cn} = 1;
+			} else {
+				foreach $rq (@{$clist->{$cn}}) {
+					$shepherd_channels{"$cn $rq"} = 1;
+				}
+			}
+		}
+
+
+		#
+		# 2. get ninemsn channels
+		#
+		$opt->{region} = $r;
+		delete $d->{day_values};
+
+		&set_ua(1);
+		&get_initial_page;
+
+		my $url = "http://tvguide.ninemsn.com.au/todaytv/default.asp";
+		my $postvars = "channel=free&day=".urlify(splice(@{($d->{day_values})},0,1))."&go=go";
+
+		my $tries = 0;
+		my $tree;
+		while ((!$tree) && ($tries < 10)) {
+			$tries++;
+			my $data = &get_url($url."?".$postvars, 1, undef);
+			$tree = HTML::TreeBuilder->new_from_content($data) if ($data);
+		}
+		if (!$tree) {
+			printf "WARNING: skipping region $r, couldn't fetch '$url' afer 10 attempts";
+			next;
+		}
+
+		my $table_tag = $tree->look_down('_tag' => 'table', 'class' => 'tv');
+		if (!$table_tag) {
+			printf "WARNING: skipping region $r, couldn't find tv table in '$url': has the format changed?";
+			next;
+		}
+
+		my %seen_ch;
+		my $tree_tr = $table_tag->look_down('_tag' => 'tr');
+		foreach my $tree_td ($tree_tr->look_down('_tag' => 'td')) {
+			my $channel = translate_channel_name($tree_td->as_text());
+
+			if (!defined $shepherd_channels{$channel}) {
+				$shepherd_channels{$channel} = 0;	# shepherd doesn't know about this channel, ninemsn does
+			} elsif ($shepherd_channels{$channel} == 1) {
+				$shepherd_channels{$channel} = 2;       # both shepherd & ninemsn know about channel
+			} elsif ($shepherd_channels{$channel} == 2) {
+				$shepherd_channels{$channel} = 3;       # shepherd/ninemsn knew about channel but was duplicated!
+			} elsif ($shepherd_channels{$channel} == 0) {
+				;                                       # aiee. a duplicate of a channel that shepherd doesn't know about!
+			} else {
+				die "unhandled shepherd_channels case for '$channel' value ".$shepherd_channels{$channel};
+			}
+
+			printf "  %35s %s%s%s\n",
+				$channel, 
+				(defined $seen_ch{$channel} ? "\t[Duplicate in ninemsn]" : ""),
+				($shepherd_channels{$channel} == 0 ? "\t[Only known to ninemsn]" : ""),
+				($shepherd_channels{$channel} == 2 ? "\t[Known to both ninemsn/Shepherd (good!)]" : ""),
+				($shepherd_channels{$channel} == 3 ? "\t[Known to both ninemsn/Shepherd but duplicate in ninemsn]" : "");
+
+			$seen_ch{$channel}++;
+		}
+
+		# any channels in Shepherd that ninemsn didn't return?
+		foreach my $ch (keys %shepherd_channels) {
+			printf "  %35s\t[Only known to Shepherd]\n",$ch if ($shepherd_channels{$ch} == 1);
+		}
+
+		printf "\n";
+	}
+
+	exit(0);
+}
+
+##############################################################################
+
+sub translate_channel_name
+{
+	my $ch = shift;
+	return $ch if (defined $channels->{$ch});
+
+	# generic remapping
+	if ($ch =~ /^ABC\s/) {
+		$ch = "ABC";
+	} elsif (($ch =~ /^SBS/) && ($ch !~ /news/i)) {
+		$ch = "SBS";
+	} elsif ($ch =~ /^SBS News/i) {
+		$ch = "SBS News";
+	} elsif ($ch =~ /^CENTRAL\s(.*)$/) {
+		$ch = "Central $1";
+	} elsif ($ch =~ /^SOUTHERN CROSS\s(.*)$/) {
+		$ch = "Sthn Cross $1";
+	}
+	return $ch if (defined $channels->{$ch});
+
+	# more specific remapping
+	if ($ch =~ /^CHANNEL NINE [A-Z]+$/) {
+		$ch = "Nine";
+	} elsif ($ch =~ /^CHANNEL SEVEN [A-Z]+$/) {
+		$ch = "Seven";
+	} elsif ($ch =~ /^NETWORK TEN [A-Z]+$/) {
+		$ch = "TEN";
+	} elsif ($ch =~ /^PRIME [A-Z]+$/) {
+		$ch = "Prime";
+	} elsif ($ch =~ /^Sthn Cross [A-Z]+$/) {
+		$ch = "Southern Cross";
+	} elsif ($ch =~ /^WIN TELEVISION [A-Z]+$/) {
+		$ch = "WIN";
+	} elsif ($ch =~ /^IMPARJA TELEVISION/) {
+		$ch = "Imparja";
+	}
+	return $ch if (defined $channels->{$ch});
+
+	# very specific channel mapping when the above generic ones don't match
+	if ($opt->{region} == 63) {
+		return "Sthn Cross TEN"	if ($ch eq "Southern Cross");
+	} elsif ($opt->{region} == 66) {
+		return "Prime"		if ($ch eq "PRIME NORTHERN, NEWCASTLE");
+		return "Sthn Cross TEN"	if ($ch eq "Sthn Cross TEN NORTHERN NSW, NON GOLD COAST");
+	} elsif ($opt->{region} == 67) {
+		return "TEN"		if ($ch eq "Sthn Cross TEN CAPITAL, WAGGA");
+	} elsif ($opt->{region} == 69) {
+		return "Prime"		if ($ch eq "PRIME NORTHERN, TAMWORTH/TAREE/LISMORE/COFFS HARBOUR");
+		return "Sthn Cross TEN"	if ($ch eq "Sthn Cross TEN NORTHERN NSW, NON GOLD COAST");
+	} elsif ($opt->{region} == 71) {
+		return "TEN (Mildura Digital)" if ($ch eq "NETWORK TEN DIGITAL, MILDURA");
+		return "Prime (Canberra/Wollongong/South Coast)" if ($ch eq "PRIME SOUTHERN, CANBERRA/WOLLONGONG/STH COAST");
+		return "Prime (Wagga Wagga/Orange)" if ($ch eq "PRIME SOUTHERN, WAGGA WAGGA/ORANGE");
+		return "TEN (NSW: Southern NSW)" if ($ch eq "Sthn Cross TEN CAPITAL, WAGGA");
+	} elsif ($opt->{region} == 75) {
+		return "Nine"		if ($ch eq "CHANNEL NINE BRISBANE METRO");
+	} elsif ($opt->{region} == 78) {
+		return "Nine"		if ($ch eq "CHANNEL NINE GOLD COAST");
+		return "NBN"		if ($ch eq "NBN GOLD COAST");
+		return "Prime"		if ($ch eq "PRIME GOLD COAST");
+		return "Sthn Cross TEN"	if ($ch eq "Sthn Cross TEN NORTHERN NSW, GOLD COAST");
+	} elsif ($opt->{region} == 79) {
+		return "Seven (Cairns)" if ($ch eq "CHANNEL SEVEN QUEENSLAND, CAIRNS");
+		return "Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)" if ($ch eq "CHANNEL SEVEN QUEENSLAND, TOWNSVILLE/MACKAY");
+		return "Seven (Rockhampton/Toowoomba)" if ($ch eq "CHANNEL SEVEN QUEENSLAND, ROCKHAMPTON/TOOWOOMBA");
+		return "TEN"		if ($ch eq "Sthn Cross TEN QUEENSLAND");
+		return "WIN (Mackay/Wide Bay)" if ($ch eq "WIN TELEVISION QLD, MACKAY/WIDE BAY");
+		return "WIN (QLD: Regional)" if ($ch eq "WIN TELEVISION QLD, REGIONAL QLD");
+	} elsif ($opt->{region} == 85) {
+		return "WIN"		if ($ch eq "WIN TELEVISION SOUTH EAST SA");
+	} elsif ($opt->{region} == 86) {
+		return "Sthn Cross TEN"	if ($ch eq "Southern Cross");
+	} elsif ($opt->{region} == 88) {
+		return "TDT"		if ($ch eq "TASMANIAN DIGITAL TELEVISION");
+	} elsif ($opt->{region} == 90) {
+		return "Prime (Albury)"	if ($ch eq "PRIME TELEVISION, ALBURY");
+		return "Prime (Regional)" if ($ch eq "PRIME TELEVISION, REGIONAL VICTORIA");
+		return "TEN"		if ($ch eq "Sthn Cross TEN VICTORIA");
+	} elsif ($opt->{region} == 95) {
+		return "Prime"		if ($ch eq "PRIME TELEVISION, REGIONAL VICTORIA");
+	} elsif ($opt->{region} == 98) {
+		return "Prime"		if ($ch eq "PRIME TELEVISION, REGIONAL VICTORIA");
+		return "TEN"		if ($ch eq "Sthn Cross TEN VICTORIA");
+	} elsif ($opt->{region} == 101) {
+		return "Access 31"	if ($ch eq "ACCESS 31");
+	} elsif ($opt->{region} == 102) {
+		return "Golden West"	if ($ch eq "GOLDEN WEST NETWORK");
+	} elsif ($opt->{region} == 106) {
+		return "Prime"		if ($ch eq "PRIME SOUTHERN, WAGGA WAGGA/ORANGE");
+	} elsif ($opt->{region} == 126) {
+		return "Prime"		if ($ch eq "PRIME SOUTHERN, CANBERRA/WOLLONGONG/STH COAST");
+		return "TEN"		if ($ch eq "Sthn Cross TEN CAPITAL, CANBERRA");
+	} elsif ($opt->{region} == 184) {
+		return "Prime"		if ($ch eq "PRIME NORTHERN, NEWCASTLE");
+		return "Sthn Cross TEN"	if ($ch eq "Sthn Cross TEN NORTHERN NSW, NON GOLD COAST");
+	}
+
+	return $ch;	# no match
+}
+

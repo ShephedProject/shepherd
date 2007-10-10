@@ -1,0 +1,1269 @@
+#!/usr/bin/perl
+
+# server-side maintenance script
+#  * can be run daily or multiple times per day
+#  * best if run (say) every 3 hours or 12 hours
+#    (typically no need to run more often - it will still generate per-hour data)
+#
+#  - deletes old feedback
+#  - updates store of some common statistics (users, failures, duration, time-of-day) etc.
+#  - generates pretty graphs and html
+#  - generates graphs showing when components have missing data (...Max to add this part. :) )
+
+
+# settings
+my $days_to_keep = 14;		# keep 14 days
+my $missing_interval = (5*60);	# record missing data in 5 minute intervals
+my $store_dir = $ENV{HOME} . "/whuffy.com/dev/stats";	 # where we retrieve our feedback
+my $graph_dir = $ENV{HOME} . "/whuffy.com/dev/feedback"; # where we store our graphs
+my $template_dir = $ENV{HOME} . "/shepherd/util";  # where we store our templates
+my $stylesheet = '/svgstyles.css';
+my $debug = 0;
+
+use strict;
+use Data::Dumper;
+use POSIX qw(strftime);
+use SVG::TT::Graph::TimeSeries;
+use SVG::TT::Graph::Bar;
+use SVG::TT::Graph::Pie;
+use Storable;
+use HTML::Template;
+use Time::Local;
+
+my $stats_file = $store_dir . "/stats.config";
+my $store = { };
+my $starttime = time;
+
+print "Running at:\n";
+print strftime "- %a %b %e %H:%M:%S %Y %z (system time)\n", localtime;
+# Set timezone to Australian EST
+$ENV{TZ}="EST-10EDT-11,M10.5.0/02:00,M3.5.0/02:00";
+strftime("%z", localtime);  # This is necessary to force the change
+print strftime "- %a %b %e %H:%M:%S %Y %z (Australian EST)\n", localtime;
+
+$debug = 1 if (grep ($_ eq '--debug', @ARGV));
+
+&read_config;		# read in our existing stats
+&set_default_values;
+
+&rollover_statistics;	# rotate statistics
+
+&delete_old_files;	# delete old feedback files
+&parse_feedback;	# parse any (new) feedback files
+
+&aggregate_stats;	# use last 7 days to build last week, etc.
+
+if (grep ($_ eq '--dump', @ARGV))
+{
+    print Dumper($store);
+    exit;
+}
+
+&generate_reports;	# generate reports and graphs
+
+$store->{last_run} = $starttime; # update our last_run time
+&write_config;		# write out our updated stats
+
+print "Done.\n";
+
+exit(0);
+
+###############################################################################
+
+sub delete_old_files
+{
+	chdir($store_dir) || die "can't chdir $store_dir: $!\n";
+	opendir(DIR, $store_dir) || die "can't opendir $store_dir: $!\n";
+	my @files = readdir(DIR);
+	closedir DIR;
+
+	foreach my $file (@files) {
+		next if (!-f $file);			# only work on normal files
+		next if ($file !~ /^\d+\.done$/);	# only delete processed files
+
+		if ((-M $file) > $days_to_keep) {
+			if ($debug) {
+				print "would have tried to delete $store_dir/$file if debug wasn't set\n";
+			} else {
+				if ((unlink "$store_dir/$file") == 0) {
+					print "failed to delete $store_dir/$file: $!\n";
+				}
+			}
+		}
+	}
+}
+
+###############################################################################
+# read in our saved statistics
+
+sub read_config
+{
+	if (-r $stats_file) {
+		$store = Storable::retrieve($stats_file);
+	} else {
+		printf "WARNING: no config file $stats_file - ok if this is the first time running!\n";
+
+		# try to write to it - if we can't then this will cause us to barf
+		&write_config;
+	}
+}
+
+###############################################################################
+# write out our saved statistics
+
+sub write_config
+{
+	Storable::store($store, $stats_file);
+}
+
+###############################################################################
+# define some initial settings to basic values if they weren't already set
+# (have to do this _after_ reading config file, as Storable overwrites)
+
+sub set_default_values
+{
+	$store->{last_run} = 0 if (!defined $store->{last_run});
+
+	$store->{num_hours} = 1 if (!defined $store->{num_hours});
+	$store->{num_days} = 0 if (!defined $store->{num_days});
+	$store->{num_weeks} = 0 if (!defined $store->{num_weeks});
+	$store->{num_months} = 0 if (!defined $store->{num_months});
+
+	$store->{max_hours} = 72 if (!defined $store->{max_hours});	# keep per-hour stats for 72 hours (need min 24)
+	$store->{max_days} = 30 if (!defined $store->{max_days});	# keep per-day stats for 30 days (need min 30)
+	$store->{max_weeks} = 12 if (!defined $store->{max_weeks});	# keep per-week stats for 12 weeks
+	$store->{max_months} = 36 if (!defined $store->{max_months});	# keep per-month stats for 36 months
+}
+
+###############################################################################
+# rollover 'daily' / 'weekly' / 'monthly' statistics if day/week/month is 
+# different from the last time we were run
+
+sub rollover_statistics
+{
+
+	# 1. new month
+	if (strftime("%m", localtime($store->{last_run})) != strftime("%m", localtime($starttime))) {
+		for (my $i = ($store->{num_months}-1); $i >= 0; $i--) {
+			if (defined $store->{per_month}->[$i]) {
+				$store->{per_month}->[$i+1] = undef;
+				$store->{per_month}->[$i+1] = $store->{per_month}->[$i];
+				$store->{per_month}->[$i] = undef;
+			}
+		}
+		if ($store->{num_months} >= $store->{max_months}) {
+			delete $store->{per_month}->[($store->{num_months})];
+		} else {
+			$store->{num_months}++;
+		}
+	}
+
+	# 2. new week
+	if (strftime("%U", localtime($store->{last_run})) != strftime("%U", localtime($starttime))) {
+		for (my $i = ($store->{num_weeks}-1); $i >= 0; $i--) {
+			if (defined $store->{per_week}->[$i]) {
+				$store->{per_week}->[$i+1] = undef;
+				$store->{per_week}->[$i+1] = $store->{per_week}->[$i];
+				$store->{per_week}->[$i] = undef;
+			}
+		}
+		if ($store->{num_weeks} >= $store->{max_weeks}) {
+			delete $store->{per_week}->[($store->{num_weeks})];
+		} else {
+			$store->{num_weeks}++;
+		}
+	}
+
+	# 3. new day
+	if (strftime("%w", localtime($store->{last_run})) != strftime("%w", localtime($starttime))) {
+		for (my $i = ($store->{num_days}-1); $i >= 0; $i--) {
+			if (defined $store->{per_day}->[$i]) {
+				$store->{per_day}->[$i+1] = undef;
+				$store->{per_day}->[$i+1] = $store->{per_day}->[$i];
+				$store->{per_day}->[$i] = undef;
+			}
+		}
+		if ($store->{num_days} >= $store->{max_days}) {
+			delete $store->{per_day}->[($store->{num_days})];
+		} else {
+			$store->{num_days}++;
+		}
+	}
+
+	# 4. new hour
+	if (strftime("%H", localtime($store->{last_run})) != strftime("%H", localtime($starttime))) {
+		for (my $i = ($store->{num_hours}-1); $i >= 0; $i--) {
+			if (defined $store->{per_hour}->[$i]) {
+				$store->{per_hour}->[$i+1] = undef;
+				$store->{per_hour}->[$i+1] = $store->{per_hour}->[$i];
+				$store->{per_hour}->[$i] = undef;
+			}
+		}
+		if ($store->{num_hours} >= $store->{max_hours}) {
+			delete $store->{per_hour}->[($store->{num_hours})];
+		} else {
+			$store->{num_hours}++;
+		}
+	}
+
+}
+
+###############################################################################
+# aggregate stats:
+#  - last 24 hours = day 0 statistics,
+#  - last 7 days = week 0 statistics,
+#  - last 30 days = month 0 statistics
+
+sub aggregate_stats
+{
+	# build day 0 based on last 24 hours
+	delete $store->{per_day}->[0];
+	for (my $i = 0; $i < 24; $i++) {
+		next if (!defined $store->{per_hour}->[$i]);
+		$store->{per_day}->[0] = &merge_in_stats($store->{per_day}->[0], $store->{per_hour}->[$i]);
+	}
+
+	# build week 0 based on last 7 days
+	delete $store->{per_week}->[0];
+	for (my $i = 0; $i < 7; $i++) {
+		next if (!defined $store->{per_day}->[$i]);
+		$store->{per_week}->[0] = &merge_in_stats($store->{per_week}->[0], $store->{per_day}->[$i]);
+	}
+
+	# build month 0 based on last 30 days
+	delete $store->{per_month}->[0];
+	for (my $i = 0; $i < 30; $i++) {
+		next if (!defined $store->{per_day}->[$i]);
+		$store->{per_month}->[0] = &merge_in_stats($store->{per_month}->[0], $store->{per_day}->[$i]);
+	}
+}
+
+###############################################################################
+
+sub record_duration
+{
+	my ($where, $suffix, $dur) = @_;
+	$suffix .= "_" if ($suffix ne "");
+
+	$where->{$suffix."duration"} += $dur;
+	$where->{$suffix."duration_count"} ++;
+	$where->{$suffix."duration_max"} = $dur if (!defined $where->{$suffix."duration_max"});
+	$where->{$suffix."duration_max"} = $dur if ($dur > $where->{$suffix."duration_max"});
+	$where->{$suffix."duration_min"} = $dur if (!defined $where->{$suffix."duration_min"});
+	$where->{$suffix."duration_min"} = $dur if ($dur < $where->{$suffix."duration_min"});
+}
+
+###############################################################################
+# merge statistics in an intelligent manner
+#  - can recursively descend HASH lists
+#  - accumulates totals
+#  - fields with _min/_max suffix take the minimum/maximum value
+
+sub merge_in_stats
+{
+	my ($to, $from) = @_;
+
+	foreach my $field (keys %{($from)}) {
+		if (ref($from->{$field}) eq "HASH") {
+			$to->{$field} = &merge_in_stats($to->{$field}, $from->{$field});
+		} elsif (defined $from->{$field}) {
+			if (!defined $to->{$field}) {
+				$to->{$field} = $from->{$field};
+			} else {
+				# fields ending in _min and _max are special
+				if ($field =~ /_min$/) {
+					$to->{$field} = $from->{$field} if ($from->{$field} < $to->{$field});
+				} elsif ($field =~ /_max$/) {
+					$to->{$field} = $from->{$field} if ($from->{$field} > $to->{$field});
+				} else {
+					$to->{$field} += $from->{$field};
+				}
+			}
+		}
+	}
+	return $to;
+}
+
+###############################################################################
+
+sub parse_feedback
+{
+	chdir($store_dir) || die "can't chdir $store_dir: $!\n";
+	opendir(DIR, $store_dir) || die "can't opendir $store_dir: $!\n";
+	my @files = readdir(DIR);
+	closedir DIR;
+
+	foreach my $file (@files) {
+		next if (!-f $file);			# only work on normal files
+		next if ($file !~ /^\d+$/);		# only look at non-processed files
+		next if ((stat(_))[9] < $store->{last_updated}); # only look at newly modified files
+
+		my $file_modtime = (stat(_))[9];
+		my $hr_num = int((time - $file_modtime) / 3600);
+		$hr_num = $store->{max_hours} if ($hr_num > $store->{max_hours});
+		$hr_num = 0 if ($hr_num < 0);
+
+		printf " - gathering statistics from $store_dir/$file ($file_modtime -> hr $hr_num)\n" if ($debug);
+
+		my $parsed = 0;
+		$store->{per_hour}->[$hr_num]->{visits}++;		 # total # of visits seen
+		$store->{total}->{visits}++;
+
+		my $sid;
+
+		open(F,"<$store_dir/$file") || die "could not open $store_dir/$file: $!\n";
+		while(<F>) {
+			chop;
+			if ($_ =~ /^shepherd\t(SUCCESS|FAIL)\t([0-9\.]+)\t(\d+)\t(\d+)\t(\d+)\t(.*)$/) {
+				# shepherd status response
+				my ($status, $sysid, $user_starttime, $duration, $region, $components_used) = ($1,$2,$3,$4,$5,$6);
+				$parsed = 1;
+				$sid = $sysid;
+				$sid = undef if ($sid eq '');
+				$status = lc($status);
+
+				#
+				# usage statistics
+				#
+
+				# success and failure by unique ID
+				if ($status eq 'success' or $status eq 'fail')
+				{
+				    $store->{per_hour}->[$hr_num]->{$status.'_sysid_list'}->{$sid}++;
+				    $store->{total}->{$status.'_sysid_list'}->{$sid}++;
+				}
+
+				# shepherd's duration (total count, min, max, average from duration/visits)
+				if ($status eq 'success')
+				{
+				    &record_duration($store->{per_hour}->[$hr_num], "", $duration);
+				    &record_duration($store->{total}, "", $duration);
+				}
+
+				# list of sysid's seen (used to derive # unique users)
+				$store->{per_hour}->[$hr_num]->{seen_sysid_list}->{$sysid}++;
+				$store->{total}->{seen_sysid_list}->{$sysid}++;
+
+				# where user is
+				if ($region > 0 and $region < 200)
+				{
+				    $store->{per_hour}->[$hr_num]->{region_list}->{$region}->{$sysid}++;
+				}
+
+				# when shepherd was run, normalized to 15 minute buckets
+				my $when_run = strftime("%H:%M", localtime(($file_modtime-($file_modtime%(15*60)))));
+				$store->{per_hour}->[$hr_num]->{when_run_list}->{"$when_run"}++;
+				$store->{total}->{when_run_list}->{"$when_run"}++;
+
+				# what components were used (and in what order?)
+				$components_used =~ s/\(.*?\)//g;   # ignore version numbers
+				$store->{per_hour}->[$hr_num]->{components_used_order_list}->{$components_used}++;
+
+			} elsif ($_ =~ /^(\S+)\tSUCCESS\t(\S+)\t(\S+)\t(\S+)\t(\S+)\t(\S+)/) {
+				# success line
+				my ($c, $retcode, $c_start, $c_dur, $c_ver, $c_grab) = ($1, $2, $3, $4, $5, $6);
+
+				$c = $1 if ($c =~ /^(.*)-\d+$/);
+				my $g = "c_".$c."_success";
+				$store->{per_hour}->[$hr_num]->{'c_'.$c.'_runs'}++;
+				$store->{total}->{'c_'.$c.'_runs'}++;
+				$store->{per_hour}->[$hr_num]->{$g."_sysid_list"}->{$sid}++ if ($sid);
+
+				# duration (total count, min, max, average from duration/counter)
+				&record_duration($store->{per_hour}->[$hr_num], $g, $c_dur);
+				&record_duration($store->{total}, $g, $c_dur);
+
+				# version count
+				$store->{per_hour}->[$hr_num]->{$g."_version_list"}->{$c_ver}++;
+
+				# data download count
+				if ($c_grab)
+				{
+				    $store->{per_hour}->[$hr_num]->{mins_grabbed_list}->{$c} += $c_grab;
+				}
+			} elsif ($_ =~ /^(\S+)\tFAIL\t(.+)\t(\S+)\t(\S+)\t(\S+)\t(\S+)/) {
+				# fail line
+				my ($c, $retcode, $c_start, $c_dur, $c_ver, $num_failures) = ($1, $2, $3, $4, $5, $6);
+
+				$c = $1 if ($c =~ /^(.*)-\d+$/);
+				my $g = "c_".$c."_fail";
+				$store->{per_hour}->[$hr_num]->{'c_'.$c.'_runs'}++;
+				$store->{total}->{'c_'.$c.'_runs'}++;
+				$store->{per_hour}->[$hr_num]->{$g."_sysid_list"}->{$sid}++ if ($sid);
+				if ($retcode =~ /(.*?):(.*)/)
+				{
+				    my ($code, $msg) = ($1, $2);
+				    my $shortsid = $1 if ($sid =~ /\d+\.(\d+)/);
+				    unshift @{$store->{failcodes}->{$c}}, { timestamp => $starttime, sysid => $shortsid, file => $file, code => $code, msg => $msg };
+				}
+
+				# duration (total count, min, max, average from duration/counter)
+				&record_duration($store->{per_hour}->[$hr_num], $g, $c_dur);
+				&record_duration($store->{total}, $g, $c_dur);
+
+				# version count
+				$store->{per_hour}->[$hr_num]->{$g."_version_list"}->{$c_ver}++;
+			} elsif ($_ =~ /^(\S+)\tMISSING_DATA\t(.*)$/) {
+				# component didn't return as much data as we expected it to
+				#  record as: $store->{missing_data}->{$channel}->{$component_name}->{$epoch} = count
+				# note that old missing_data is aged out in read_config().
+
+				my ($c, $missing) = ($1, $2);
+				$c = $1 if ($c =~ /^(.*)-\d+$/);
+				my $g = ($c eq 'shepherd' ? '' : 'c_'.$c.'_') . 'missing_sysid_list';
+				$store->{per_hour}->[$hr_num]->{$g}->{$sid}++;
+				$store->{total}->{$g}->{$sid}++;
+				unless ($c eq 'shepherd')
+				{
+				    foreach my $chgroup (split(/\t/,$missing)) 
+				    {
+					my ($ch, $missing_times) = split(/:/,$chgroup);
+					foreach my $missing_interval (split(/,/,$missing_times)) 
+					{
+					    my ($miss_start, $miss_stop) = split(/\-/,$missing_interval);
+					    $store->{missing_data}->{$ch}->{"$miss_start-$miss_stop"}->{$c}->{$sid} = $starttime;
+					}
+				    }
+				}
+			} elsif ($_ =~ /^(\S+)\tstats\t(.*)$/) {
+				# component statistics line
+
+				# parse stats from line if in the form of:
+				#   (delim1) (space) (number) (space) (varname) (delim)
+				#
+				# (delim1) has to be a comma or dot
+				# (number) must be a number - can be a float or integer
+				# (varname) must be either end-of-line or be followed by a . or ,
+				# (delim2) must be either end-of-line or be a . or ,
+
+				# e.g. a STATS line of:
+				#  sbsnews_website v0.03 completed in 1.23 seconds, 51887 bytes_fetched, 1 http_successful_requests, 236 progs
+				# will pick up the statistics:
+				#    field 'bytes_fetched' with a value of 51887
+				#    field 'http_successful_requests' with a value of 1
+				#    field 'progs' with a value of 236
+
+				# skip if any '/' or '`' chars in name
+				next if (($1 =~ /\//) || ($1 =~ /`/));
+				next if (($2 =~ /\//) || ($2 =~ /`/));
+
+				my $c = $1;
+				my $stats_string = $2 . ".";
+
+				$c = $1 if ($c =~ /^(.*)-\d+$/);
+
+				while ($stats_string ne "") {
+					# find delim1
+					while ((substr($stats_string,0,1) !~ /[,\.]/) && (length($stats_string) > 0)) {
+						$stats_string = substr($stats_string,1,1000);
+					}
+					last if (length($stats_string) < 2);
+
+					if ($stats_string =~ /^[\,\.]\s([0-9\.]+)\s(\S+)[\,\.]/) {
+						my $count = $1;
+						my $var = "cs.".$c.".".$2;
+						&record_duration($store->{per_hour}->[$hr_num],$var,$count);
+						&record_duration($store->{total},$var,$count);
+					}
+
+					$stats_string = substr($stats_string,2,1000);
+				}
+			} else {
+			    print "WARNING: unknown line in $file:\n$_\n";
+			}
+		}
+		close(F);
+
+		if (!$parsed) {
+			# anonymous, old version or no details
+			$store->{per_hour}->[$hr_num]->{visits_with_no_details}++;
+			$store->{total}->{visits_with_no_details}++;
+		}
+
+		# rename processed files so we don't re-process them
+		rename("$file", "$file.done") if (!$debug);
+	}
+}
+
+###############################################################################
+
+sub numvar
+{
+	my ($var,$field,$notdef) = @_;
+	$notdef = 0 if (!defined $notdef);
+	$field = "" if (!defined $field);
+
+	return $notdef if (!defined $var);
+
+	if ($field =~ /_list$/) {
+		# fields which end in _list are HASHes - return # of keys
+		my $count = keys %{$var};
+		return $count;
+	} else {
+		return $var;
+	}
+}
+
+###############################################################################
+
+sub report_count_data
+{
+	my ($template, $varname, $field, $reptype, $ignore_zero) = @_;
+	$reptype = "all" unless (defined $reptype);
+
+	my @ret = ();
+	my @loop = ($reptype eq 'all' ?  ( 'hour', 'day', 'week', 'month' ) :  ( 'day', 'week' ));
+
+	foreach my $timeslice (@loop)
+	{
+		next if ($ignore_zero and !numvar($store->{"per_$timeslice"}->[0]->{$field},$field));
+		my %h;
+	        $h{'TIMESLICE'} = $timeslice;
+		$h{'SEEN'} = numvar($store->{"per_$timeslice"}->[0]->{$field},$field);
+		$h{'PREVIOUS'} = numvar($store->{"per_$timeslice"}->[1]->{$field},$field);
+
+		push (@ret, \%h);
+	}
+
+	my $total = numvar($store->{total}->{$field},$field);
+
+	if ($template)
+	{
+		$template->param($varname => \@ret);
+	        $template->param($varname. '_TOTAL' => $total);
+	}
+	else
+	{
+		return (\@ret, $total);
+	}
+}
+
+sub calc_success_rate
+{
+	my ($c, $timeslice) = @_;
+
+	my $s = numvar($store->{"per_$timeslice"}->[0]->{'c_'.$c.'_success_sysid_list'},'c_'.$c.'_success_sysid_list');
+	my $f = numvar($store->{"per_$timeslice"}->[0]->{'c_'.$c.'_fail_sysid_list'},'c_'.$c.'_fail_sysid_list');
+
+	return '-' unless ($s or $f);
+	my $n = int(100*$s/($s+$f));
+	my $color = ($n < 75 ? "red" : $n < 90 ? "orange" : "lightgreen");
+	return "<font color=\"$color\">$n%</font>";
+}
+
+sub report_failure_msgs
+{
+    my ($template, $c) = @_;
+
+    return unless $store->{failcodes}->{$c};
+
+    my @msgs;
+    for (my $i = 0; $i < @{$store->{failcodes}->{$c}}; $i++)
+    {
+	my %h = %{$store->{failcodes}->{$c}[$i]};
+
+	# Remove any entries older than 1 week
+	if ($h{timestamp} + 604800 < $starttime)
+	{
+	    splice(@{$store->{failcodes}->{$c}}, $i);
+	    last;
+	}
+	$h{timestamp} = strftime("%a %d %b %H:%M", localtime($h{timestamp}));
+	$h{msg} = '(no msg)' unless $h{msg};
+	push @msgs, { %h };
+    }
+
+    $template->param(FAILURE_MSGS => \@msgs);
+}
+
+###############################################################################
+
+sub sec2hms
+{
+	my $sec = shift;
+
+	return sprintf "%.1f", ($sec/60);
+}
+
+###############################################################################
+
+sub graph_runtime
+{
+	my ($when, $startwhen, $endwhen, $title ) = @_;
+
+	my $field = 'when_run_list';
+	my $gname = $field."_".$when."_".$startwhen."_".$endwhen;
+
+        # gather up data
+        my %data; 
+        for (my $i = $startwhen; $i < $endwhen; $i++) {
+                if (defined $store->{$when}->[$i]->{$field}) {
+                        foreach my $k (keys %{($store->{$when}->[$i]->{$field})}) {
+                                $data{"2000-1-1 $k"} += $store->{$when}->[$i]->{$field}->{$k};
+                        }
+                }
+        }
+
+	# fill in empty timeslots with zeros
+	for (my $i = 0; $i < 24; $i++)
+	{
+	    	for (my $j = 0; $j < 60; $j += 15)
+		{
+		    	my $key = sprintf "2000-1-1 %02d:%02d", $i, $j;
+			$data{$key} = 0 unless defined $data{$key};
+		}
+	}
+
+        # sort it into key order
+        my ($min, $max, @sorted_data);
+        foreach my $k (sort keys %data) 
+	{
+		push(@sorted_data, $k, $data{$k});
+
+                $min = $data{$k} if (!defined $min or $data{$k} < $min);
+                $max = $data{$k} if (!defined $max or $data{$k} > $max);
+        }
+
+        # work out our scaling
+        my $scalediv = ($max - $min) / 3;
+        $scalediv = $max if ($scalediv < 1);
+
+        # only graph if we have some data
+        return if ($min == 0 and $max == 0);
+
+        return graph_one_count_data($gname, $title, '%l:%M %p', '2 hours', [ \@sorted_data ], 0, 505 );
+}
+
+sub gather_region_data
+{
+    my ($when, $startwhen, $endwhen, $long_ids) = @_;
+	
+    my %short_regions = (
+	126 => "ACT", 73 => "Sydney", 184 => "NSW", 66 => "NSW", 
+	67 => "NSW", 63 => "NSW", 69 => "NSW",  71 => "NSW",
+	106 => "NSW", 74 => "Darwin", 108 => "NT", 75 => "Brisbane",
+	78 => "QLD", 79 => "QLD", 114 => "QLD",	81 => "Adelaide",
+	82 => "SA", 83 => "SA", 85 => "SA", 86 => "SA", 107 => "SA",
+	88 => "Tasmania", 94 => "Melbourne", 93 => "VIC",
+	90 => "VIC", 95 => "VIC", 98 => "VIC", 101 => "Perth",
+	102 => "WA" );
+    my %long_regions = (
+       126 => "ACT", 73 => "Sydney", 184 => "Newcastle",
+	66 => "Central Coast NSW", 67 => "Griffith", 63 => "Broken Hill",
+	69 => "Northern NSW", 71 => "Southern NSW", 106 => "NSW Remote",
+	74 => "Darwin", 108 => "NT Remote", 75 => "Brisbane",
+	78 => "Gold Coast", 79 => "QLD Regional", 114 => "QLD Remote",
+	81 => "Adelaide", 82 => "Renmark", 83 => "Riverland", 
+	85 => "South East SA", 86 => "Spencer Gulf", 
+	107 => "SA Remote", 88 => "Tasmania", 94 => "Melbourne",
+	93 => "Geelong", 90 => "Eastern VIC", 95 => "Mildura/Sunraysia",
+	98 => "Western VIC", 101 => "Perth", 102 => "WA: Regional");
+
+    my $data;
+    for (my $i = $startwhen; $i < $endwhen; $i++) 
+    {
+	my $h = $store->{$when}->[$i]->{'region_list'}; 
+	if ($h)
+	{
+	    foreach my $k (keys %$h)
+	    {
+		my $label = ($long_ids ? $long_regions{$k} : $short_regions{$k});
+		foreach my $sysid (keys %{$h->{$k}})
+		{
+		    push (@{$data->{$label}}, $sysid) unless (grep($_ eq $sysid, @{$data->{$label}}));
+		}
+	    }
+	}
+    }
+
+    # convert to # of unique sysids
+    foreach (keys %$data)
+    {
+	$data->{$_} = scalar(@{$data->{$_}});
+    }
+    return $data;
+}
+
+sub graph_regions
+{
+	my ($when, $startwhen, $endwhen, $title) = @_;
+
+	my $gname = "region_list_".$when."_".$startwhen."_".$endwhen;
+
+	my $rdata = &gather_region_data($when, $startwhen, $endwhen, 0);
+	return unless ($rdata);
+
+	my $gheight = 220;
+	my $gwidth = 360;
+	print "Generating pie graph $gname ..\n" if ($debug);
+	my $graph = SVG::TT::Graph::Pie->new({
+		'show_graph_title' => 1,
+		'graph_title' => $title,
+		'height' => $gheight,
+		'width' => $gwidth,
+		'show_shadow' => 1,
+		'shadow_offset' => 5,
+		'shadow_size' => 2,
+		'expanded' => 0,
+		'show_percent' => 0,
+		'show_data_labels' => 1,
+		'fields' => [ keys %$rdata ],
+		'style_sheet' => $stylesheet
+		});
+	$graph->add_data({
+		'data' => [ values %$rdata ],
+		});
+
+	open(SVG,">$graph_dir/$gname".".svg") || die "could not create $graph_dir/$gname".".svg: $!\n";
+	print SVG $graph->burn();
+	close(SVG);
+
+	return sprintf "<object type='image/svg+xml' data='%s.svg' height='%d' width='%d'></object>\n",$gname,$gheight,$gwidth;
+}
+
+# Pretty nasty stuff in here... sorry!
+sub graph_missing_data
+{
+    my ($template, $varname, $component) = @_;
+
+    my $day = 60*60*24; # 1 day
+    my $interval = 60 * 60; # 1 hour
+
+    # Figure out what "start of today" to "end of the 7th day from now" 
+    # in localtime is in epoch seconds
+    my @now = localtime();
+    @now = (0, 0, 0, splice(@now, 3)); # reset to start of today
+    my $start = timelocal(@now);
+    my $end = $start + (7 * $day);
+
+    my $data;	# missing by channel
+    my $gdata;	# missing by grabber
+    foreach my $ch (keys %{$store->{missing_data}})
+    {
+	foreach my $slice (keys %{$store->{missing_data}->{$ch}})
+	{
+	    my ($s, $f) = split(/-/,$slice);
+	    $s = $s - $s%(60*60);
+
+	    # We treat each unique combination of grabber and sysid ("csid") as
+	    # 1 unit. That is, if 5 unique users all have a yahoo7widget hole, that's
+	    # 5, and so is 1 unique user who has 5 different grabbers with a hole.
+	    my @csids;
+	    foreach my $c (keys %{$store->{missing_data}->{$ch}->{$slice}})
+	    {
+		next if ($component and $component ne $c);
+		foreach my $sysid (keys %{$store->{missing_data}->{$ch}->{$slice}->{$c}})
+		{
+		    # Age out missing_data received more than 24 hours ago, since it's
+		    # probably stale; we want to allow newer information to shine through
+		    if ($store->{missing_data}->{$ch}->{$slice}->{$c}->{$sysid} + $day < $starttime)
+		    {
+			delete $store->{missing_data}->{$ch}->{$slice}->{$c}->{$sysid};
+			next;
+		    }
+		    my $csid = $c.'_'.$sysid;
+		    push @csids, $csid unless (grep ($_ eq $csid, @csids));
+		}
+	    }
+	    for (my $i = $s; $i < $f; $i += $interval)
+	    {
+		next if ($i < $start or $i > $end);
+		my $n = ((($i - $start) / $interval) * 2) + 1;
+
+		foreach my $csid (@csids)
+		{
+		    push @{$data->{$ch}->[$n]}, $csid unless (grep ($_ eq $csid, @{$data->{$ch}->[$n]}));
+		    if (!$component and $csid =~ /(.+)_(.+)/)
+		    {
+			my $c = $1;
+			my $sid = $2;
+			push @{$gdata->{$c}->[$n]}, $sid unless (grep $_ eq $sid, @{$gdata->{$c}->[$n]});
+		    }
+		}
+	    }
+	}
+    } 
+
+    my @graphs;
+    &pad_missing_data_hash($data, $start, $end, $interval);
+    my $gname = ($component ? 'c_'.$component.'_' : '') . 'missing_by_channel';
+    my $gtitle = 'Missing ' . ($component ? "$component " : '') . 'Data by Channel';
+    push @graphs, { GRAPH => &graph_one_count_data($gname, $gtitle, "%a %H:%M", '12 hours', [ values %$data ], 220, 1010, 0, [ keys %$data ]) };
+
+    unless ($component)
+    {
+	&pad_missing_data_hash($gdata, $start, $end, $interval);
+	push @graphs, { GRAPH => &graph_one_count_data('missing_by_grabber', 'Missing Data by Grabber', "%a %H:%M", '12 hours', [ values %$gdata ], 220, 1010, 0, [ keys %$gdata ]) };
+    }
+
+    $template->param($varname => \@graphs);
+}
+
+# Pad out the hash of 'missing data' with timestamps and 0s to make
+# a timeseries array suitable for graphing
+sub pad_missing_data_hash
+{
+    my ($h, $start, $end, $interval) = @_;
+
+    foreach my $key (keys %$h)
+    {
+	for (my $n = 0; $n <= @{$h->{$key}}; $n += 2)
+	{
+	    my $t = $start + ($n / 2 * $interval);
+	    last if ($t > $end);
+	    $h->{$key}->[$n] = strftime("%Y-%m-%d %H:%M:%S", localtime($t));
+	    if (!defined $h->{$key}->[$n+1])
+	    {
+		$h->{$key}->[$n+1] = 0;
+	    }
+	    else
+	    {
+		$h->{$key}->[$n+1] = scalar(@{$h->{$key}->[$n+1]});
+	    }
+	}
+    }
+}
+
+###############################################################################
+
+sub graph_mins_grabbed
+{
+    my ($when, $startwhen, $endwhen, $title, $gheight, $gwidth) = @_;
+
+    my $gname = "mins_grabbed_".$when."_".$startwhen."_".$endwhen;
+
+    # gather up data
+    my %data;
+    for (my $i = $startwhen; $i < $endwhen; $i++) 
+    {
+	foreach my $c (keys %{$store->{$when}->[$i]->{mins_grabbed_list}})
+	{
+	    $data{$c} += $store->{$when}->[$i]->{mins_grabbed_list}->{$c};
+	}
+    }
+
+    # sort it into key order
+    my $min, my $max;
+    my @sorted_keys, my @sorted_data;
+    foreach my $k (sort { $data{$b} <=> $data{$a} } keys %data) 
+    {
+	push(@sorted_keys,$k);
+	push(@sorted_data, int($data{$k}/60));
+
+	$min = $data{$k} if (!defined $min);
+	$max = $data{$k} if (!defined $max);
+	$min = $data{$k} if ($data{$k} < $min);
+	$max = $data{$k} if ($data{$k} > $max);
+    }
+
+    # work out our scaling
+    my $scalediv = ($max - $min) / 3;
+    $scalediv = $max if ($scalediv < 1);
+
+    # only graph if we have some data
+    return if (($min == 0) && ($max == 0));
+
+    print "Generating bar graph $gname ..\n" if ($debug);
+    my $graph = SVG::TT::Graph::Bar->new({
+		'show_graph_title' => 1,
+		'graph_title' => $title,
+		'show_data_values' => 1,
+		'height' => $gheight,
+		'width' => $gwidth,
+		'stagger_x_labels' => 1,
+		'show_x_labels' => 1,
+		'show_y_labels' => 0,
+		'show_data_values' => 1,
+		'scale_divisions' => $scalediv,
+		'style_sheet' => $stylesheet,
+		'fields' => \@sorted_keys,
+		});
+	$graph->add_data({
+		'data' => \@sorted_data,
+		});
+
+	open(SVG,">$graph_dir/$gname".".svg") || die "could not create $graph_dir/$gname".".svg: $!\n";
+	print SVG $graph->burn();
+	close(SVG);
+
+	return sprintf "<object type='image/svg+xml' data='%s.svg' height='%d' width='%d'></object>\n",$gname,$gheight,$gwidth;
+}
+
+###############################################################################
+
+sub graph_one_count_data
+{
+	my ($gname, $title, $time_format, $timediv, $data, $gheight, $gwidth, $nofill, $keys) = @_;
+
+	$gheight ||= 120;
+	$gwidth ||= 250;
+	$nofill = 0 unless $nofill;
+
+	print "Generating graph $gname ($title)...\n" if ($debug);
+	# work out scale..
+	my $min, my $max;
+	foreach my $dset (@$data) {
+		my $valnum = 0;
+		foreach my $val (@$dset) {
+			$valnum++;
+			next if ($valnum % 2 == 1);
+
+			$min = $val if (!defined $min);
+			$max = $val if (!defined $max);
+			$min = $val if ($val < $min);
+			$max = $val if ($val > $max);
+		}
+	}
+	my $scalediv = ($max-$min)/3;
+	$scalediv = 1 if ($scalediv < 1);
+
+	return if (($min == 0) && ($max == 0));
+
+	my $graph = SVG::TT::Graph::TimeSeries->new({
+		'show_graph_title' => 1,
+		'graph_title' => $title,
+		'height' => $gheight,
+		'width' => $gwidth,
+		'stagger_x_labels' => 1,
+		'area_fill' => !$nofill,
+		'rollover_values' => 1,
+		'show_data_values' => 1,
+		'x_label_format' => $time_format,
+		'scale_divisions' => $scalediv,
+		'timescale_divisions' => $timediv,
+		'key' => ($keys ? 1 : 0),
+		'key_position' => 'bottom',
+		'style_sheet' => $stylesheet
+		});
+
+	foreach my $dset (@$data) {
+		my $key = shift @$keys;
+		$graph->add_data({
+			'data' => \@$dset,
+			'title' => $key
+			});
+	}
+
+	open(SVG,">$graph_dir/$gname".".svg") || die "could not create $graph_dir/$gname".".svg: $!\n";
+	print SVG $graph->burn();
+	close(SVG);
+
+	return sprintf "<object type='image/svg+xml' data='%s.svg' height='%d' width='%d'></object>\n",$gname,$gheight,$gwidth;
+}
+
+###############################################################################
+# produces sets of graphs, from requests like "day week 6month".
+
+sub graph_count_data
+{
+	my ($template, $varname, $request, $gheight, $gwidth, $show_key, @fields) = @_;
+
+	my @requests = split(/ /, $request);
+	my @graphs;
+
+	my $tdata = {
+			hour => { n => 3600, tformat => "%a %H:%M", abbrev => "hr" },
+			day =>  { n => 86400, tformat => "%a %e %b", abbrev => "day", section => "24hour" },
+			week => { n => 604800, tformat => "%e %b %y", abbrev => "wk", section => "7day" },
+			month =>{ n => 2592000, tformat => "%b %y", abbrev => "mn" },
+			year => { section => "12month" }
+		    };
+
+	foreach my $r (@requests)
+	{
+		my $title;
+		if ($tdata->{$r})
+		{
+			$title = "Last $r";
+			$r = $tdata->{$r}->{section};
+		}
+		next unless ($r =~ /(\d+)(\w+)/);
+		my $max = $1;
+		my $timeslice = $2;
+		$title = "Last $max $timeslice" . 's' unless ($title);
+
+		my $fieldnum = 0, my $d, my $fielddesc = "", my @keys;
+                foreach my $field (@fields) 
+		{
+			my $anydata = 0;
+			my @data;
+			for (my $i = ($max-1); $i >= 0; $i--) 
+			{
+				my $val = numvar($store->{"per_$timeslice"}->[$i]->{$field},$field,0);
+				if ($field =~ /duration/)
+				{
+				    $val /= 60; # convert to minutes
+				    if ($field =~ /duration$/)  # average
+				    {
+					$val /= numvar($store->{"per_$timeslice"}->[$i]->{duration_count},$field,1);
+				    }
+				    $val = int($val + 0.49);
+				}
+                                my $time_offset = $starttime - ($i * $tdata->{$timeslice}->{n});
+                                push(@data, strftime("%Y-%m-%d %H:%M:%S", localtime($time_offset)), $val);
+				$anydata = 1 if ($val);
+                        }
+			$fielddesc .= $field."_";
+
+			# Prevent unnecessary entries in keyed graphs
+			next if ($show_key and !$anydata);
+
+			push (@{$d->[$fieldnum]}, @data);
+			$fieldnum++;
+			if ($show_key)
+			{
+			    my $k = $field;
+			    $k = $1 if ($k =~ /^c_(.+)_fail/);
+			    push (@keys, $k);
+			}
+		}
+		$fielddesc = substr($fielddesc, 0, 150) . "-more-" if (length($fielddesc) > 160);
+		my $ts = int($max > 20 ? $max / 4 : $max > 6 ? 3 : 2);
+                push @graphs, { GRAPH => &graph_one_count_data($fielddesc.$tdata->{$timeslice}->{abbrev}, 
+							       $title, 
+							       $tdata->{$timeslice}->{tformat},
+							       "$ts $timeslice" . 's',
+							       $d,
+							       $gheight,
+							       $gwidth,
+							       ($varname =~ /duration/i ? 1 : 0),
+							       ($show_key ? \@keys : undef) ) }; 
+	}
+
+	if ($template)
+	{
+	    $template->param($varname => \@graphs);
+	}
+	else
+	{
+	    return \@graphs;
+	}
+}
+
+###############################################################################
+
+sub generate_reports
+{
+	my $template = HTML::Template->new(filename => "$template_dir/server_daily_maint_main.tmpl");
+	$template->param(NOW => strftime "%a %b %e %H:%M:%S %Y %z", localtime($starttime));
+
+	&report_count_data($template, 'SUCCESS', 'success_sysid_list', 'all');
+	&report_count_data($template, 'MISSING', 'missing_sysid_list', 'all');
+	&report_count_data($template, 'FAILURE', 'fail_sysid_list', 'all');
+	&graph_count_data($template, 'GRAPHS_USAGE', 'day week 12week year', 0, 0, 0, 'success_sysid_list', 'missing_sysid_list', 'fail_sysid_list');
+
+	&graph_missing_data($template, 'GRAPHS_MISSING');
+
+	&report_count_data($template, 'RUNS_SEEN', "visits", "all");
+	&graph_count_data($template, 'GRAPHS_RUNS', "day week 12week year", 0, 0, 0, "visits");
+
+	my @graphs = ();
+	push @graphs, { GRAPH => &graph_runtime("per_day", 0, 7, "Last week") };
+	push @graphs, { GRAPH => &graph_runtime("per_month", 0, 1, "Last month") };
+	$template->param('GRAPHS_RUNTIME', \@graphs);
+
+	my @duration;
+	foreach my $timeslice ( 'week', 'month' )
+	{
+		my $h;
+		$h->{'TIMESLICE'} = $timeslice;
+		$h->{'AVG'} = sec2hms(numvar($store->{"per_$timeslice"}->[0]->{duration},"",0) / $store->{"per_$timeslice"}->[0]->{duration_count}) if ($store->{"per_$timeslice"}->[0]->{duration_count});
+		$h->{'MIN'} = sec2hms(numvar($store->{"per_$timeslice"}->[0]->{duration_min},"",0));
+		$h->{'MAX'} = sec2hms(numvar($store->{"per_$timeslice"}->[0]->{duration_max},"",0));
+		push @duration, $h;
+	}
+	$template->param('DURATION' => \@duration);
+
+	&graph_count_data($template, 'GRAPHS_DURATION', "day week 12week year", 0, 0, 0, "duration_min", "duration", "duration_max");
+
+	@graphs = ( );
+	my $rdata = &gather_region_data("per_day", 0, 7, 1);
+	my @regions = ();
+	my $top = 10; # list top 5
+	foreach (sort { $rdata->{$b} <=> $rdata->{$a} } keys %$rdata)
+	{
+	    push @regions, { REGION => $_, SEEN => $rdata->{$_} };
+	    $top--;
+	    last if ($top < 1);
+	}
+	$template->param('REGIONS', \@regions);
+	push @graphs, { GRAPH => graph_regions("per_day", 0, 7, "Last week") };
+	push @graphs, { GRAPH => graph_regions("per_month", 0, 6, "Last 6 months") };
+	$template->param('GRAPHS_REGION', \@graphs);
+
+	my @components_used;
+	foreach my $timeslice ( 'day', 'week' )
+	{
+		my $h;
+		my @cu_timeslices;
+		$top = 5;  # only show top 5
+		$h->{'TIMESLICE'} = $timeslice;
+		foreach my $c ( 
+			sort { $store->{"per_$timeslice"}->[0]->{components_used_order_list}->{$b} <=> $store->{"per_$timeslice"}->[0]->{components_used_order_list}->{$a} }
+			keys %{($store->{"per_$timeslice"}->[0]->{components_used_order_list})}) 
+		{
+			my $h2;
+			my $val = $store->{"per_$timeslice"}->[0]->{components_used_order_list}->{$c};
+			$h2->{'TIMES'} = $val . " time" . ($val != 1 ? "s" : "");
+			$h2->{'DETAIL'} = $c;
+			push @cu_timeslices, $h2;
+			$top--;
+			last if ($top < 1);
+		}
+		$h->{'COMPONENTS_USED_TIMESLICES'} = \@cu_timeslices;
+		push @components_used, $h;
+	}
+	$template->param('COMPONENTS_USED' => \@components_used);
+
+	# build a component list
+	my %clist;
+	foreach my $c (sort keys %{($store->{total})}) {
+		if ($c =~ /^c_(.*)_runs$/) {
+			# skip if any '/' or '`' chars in name
+			next if (($1 =~ /\//) || ($1 =~ /`/));
+			$clist{$1}++;
+		}
+	}
+
+	my (@components, @cfailures, @counters);
+	my $ccount = 0;
+	foreach my $c (sort keys %clist) {
+		my $h;
+		my @details;
+		$h->{'NAME'} = $c;
+		$h->{'FOURTH'} = 1 if (($ccount % 4 == 0) && ($ccount > 0));
+		my @ret = report_count_data(0, 0, "c_".$c."_success_sysid_list", "all");
+		$h->{'COMPONENT_SUCCESS_RUNS'} = $ret[0];
+		@ret = report_count_data(0, 0, "c_".$c."_fail_sysid_list", "all", "ignore-zero");
+		$h->{'COMPONENT_FAIL_RUNS'} = $ret[0];
+
+		$h->{'SUCCESS_RATE_DAY'} = calc_success_rate($c, "day");
+		$h->{'SUCCESS_RATE_WEEK'} = calc_success_rate($c, "week");
+
+		push @components, $h;
+		my @uniques = report_count_data(0, 0, "c_".$c."_fail_sysid_list", "brief", "ignore-zero");
+		push @cfailures, { NAME => $c, TIMESLICES => $uniques[0] } if (@{$uniques[0]});
+		push @counters, "c_".$c."_fail_sysid_list";
+
+		$ccount++;
+	}
+	$template->param('COMPONENTS', \@components);
+	$template->param('CFAILURES', \@cfailures);
+	&graph_count_data($template, 'CFAILURE_GRAPHS', 'day week', 220, 1010, 1, @counters);
+
+	@graphs = ();
+	push @graphs, { GRAPH => &graph_mins_grabbed('per_hour', 0, 24, "Last day", 120, 505) };
+	push @graphs, { GRAPH => &graph_mins_grabbed('per_day', 0, 7, "Last week", 120, 505) };
+	$template->param('MINS_GRABBED_GRAPHS', \@graphs);
+
+	print "Generating index.html...\n\n" if ($debug);
+	open(F,">$graph_dir/index.html") || die "couldn't open $graph_dir/index.html for writing: $!\n";
+	$template->output(print_to => *F);
+	close(F);
+
+	#
+	# iterate through every component we have seen, sorted alphabetically
+	# generate per-component statistics
+	#
+
+	foreach my $c (sort keys %clist) 
+	{
+		$template = HTML::Template->new(filename => "$template_dir/server_daily_maint_component.tmpl");
+		$template->param(NOW => "". localtime($starttime));
+		$template->param('NAME', $c);
+
+		&report_count_data($template, 'SUCCESS', 'c_'.$c.'_success_sysid_list', 'all');
+		&report_count_data($template, 'MISSING', 'c_'.$c.'_missing_sysid_list', 'all');
+		&report_count_data($template, 'FAILURE', 'c_'.$c.'_fail_sysid_list', 'all');
+		&graph_count_data($template, 'GRAPHS_USAGE', 'day week 12week year', 0, 0, 0, 'c_'.$c.'_success_sysid_list', 'c_'.$c.'_missing_sysid_list', 'c_'.$c.'_fail_sysid_list');
+
+		&graph_missing_data($template, 'GRAPHS_MISSING', $c);
+
+		&report_count_data($template, 'RUNS_SEEN', 'c_'.$c.'_runs', "all");
+		&graph_count_data($template, 'GRAPHS_RUNS', "day week 12week year", 0, 0, 0, 'c_'.$c.'_runs');
+
+		&report_failure_msgs($template, $c);
+
+		my @sf; 
+		foreach my $w ("success", "failure") 
+		{
+			my $h;
+			$h->{NAME} = $w;
+
+			my $g = "c_".$c."_".$w;
+
+			my @timeslices;
+			foreach my $timeslice ("day", "month")
+			{
+			    my @versions;
+			    foreach my $c 
+			    (
+				sort { $store->{"per_$timeslice"}->[0]->{$g."_version_list"}->{$b} <=> $store->{"per_$timeslice"}->[0]->{$g."_version_list"}->{$a} }
+				keys %{($store->{"per_$timeslice"}->[0]->{$g."_version_list"})}) {
+				    my $val = $store->{"per_$timeslice"}->[0]->{$g."_version_list"}->{$c};
+				    my $h2;
+				    $h2->{'TIMES'} = sprintf("%d time%s", $val, ($val != 1 ? "s" : ""));
+				    $h2->{'VERSION'} = $c;
+				    push @versions, $h2;
+			    }
+			    push @timeslices, { TIMESLICE => $timeslice, VERSIONS => \@versions };
+			}
+			$h->{'SFV_TIMESLICES'} = \@timeslices;
+
+			my @durations = ( );
+			foreach my $timeslice ("day", "month")
+			{
+			    if  ((defined $store->{"per_$timeslice"}->[0]->{$g."_duration_count"}) && ($store->{"per_$timeslice"}->[0]->{$g."_duration_count"} > 0))
+			    {
+				push @durations, { AVG => sec2hms(numvar($store->{"per_$timeslice"}->[0]->{$g."_duration"},"",0) / $store->{"per_$timeslice"}->[0]->{$g."_duration_count"}),
+						MIN => sec2hms(numvar($store->{"per_$timeslice"}->[0]->{$g."_duration_min"},"",0)),
+						MAX => sec2hms(numvar($store->{"per_$timeslice"}->[0]->{$g."_duration_max"},"",0)) };
+			    }
+			}
+			$h->{'DURATIONS'} = \@durations;
+
+			$h->{'GRAPHS_DURATIONS'} = &graph_count_data(undef, undef, "day week 12week year", 0, 0, 0, $g."_duration", $g."_duration_min", $g."_duration_max");
+			push @sf, $h;
+		}
+		$template->param(SUCCESS_FAILURE => \@sf);
+
+		# iterate across every component statistic seen from this component
+		my @statistics;
+		foreach my $s (sort keys %{($store->{total})}) {
+			next if ($s !~ /^cs\.(.*)\.(.*)_duration$/);
+			next if ($1 ne $c);
+			my $sname = $2;
+			my $svar = "cs\.".$c.".".$sname;
+
+			my @timeslices = ();
+			foreach my $timeslice ("day", "month")
+			{
+			    if ((defined $store->{"per_$timeslice"}->[0]->{$svar."_duration_count"}) && ($store->{"per_$timeslice"}->[0]->{$svar."_duration_count"} > 0))
+			    {
+				my $h;
+				$h->{TIMESLICE} = $timeslice;
+				$h->{AVG} = nformat(numvar($store->{"per_$timeslice"}->[0]->{$svar."_duration"},"",0) / $store->{"per_$timeslice"}->[0]->{$svar."_duration_count"});
+				$h->{MIN} = nformat(numvar($store->{"per_$timeslice"}->[0]->{$svar."_duration_min"},"",0));
+				$h->{MAX} = nformat(numvar($store->{"per_$timeslice"}->[0]->{$svar."_duration_max"},"",0));
+				push @timeslices, $h;
+			    }
+			}
+			push @statistics, { STATNAME => $sname, TIMESLICES => [ @timeslices ], GRAPHS_STATISTICS => &graph_count_data(undef, undef, "72hour 12week", 0, 0, 0, $svar."_duration", $svar."_duration_min", $svar."_duration_max")};
+		}
+		$template->param(STATISTICS => \@statistics);
+
+		open(F,">$graph_dir/$c.html") || die "couldn't open $graph_dir/$c for writing: $!\n";
+		$template->output(print_to => *F); 
+		close(F);
+	}
+}
+
+sub nformat
+{
+    my $n = shift;
+    return sprintf("%0.2f", $n);
+}
+
+###############################################################################
+
+

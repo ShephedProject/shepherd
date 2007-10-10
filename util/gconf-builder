@@ -1,0 +1,310 @@
+#!/usr/bin/perl -w
+
+my $version = '0.1';
+
+use strict;
+
+use Data::Dumper;
+use XMLTV::Ask;
+
+my $config;
+my $s;
+
+print "GConf Builder for Shepherd\n\n";
+
+my $grabber = lc(ask("Name of grabber? "));
+exit unless ($grabber);
+
+die "I don't think so.\n" if ($grabber eq 'shepherd');
+
+print	"\nCATEGORY: Grabber Type\n\n" .
+	"Grabbers generally fall into two categories:\n" .
+	"(1) Grabbers that fetch detailed data by downloading one page\n" .
+	"    per show\n" .
+	"(2) Grabbers that either cannot fetch detailed data, or fetch\n" .
+	"    it for many shows with each download (e.g. one download\n" .
+	"    per day, or one download for all shows)\n" .
+	"Category 1 grabbers tend to be slow and use relatively large\n" .
+	"amounts of bandwidth. Category 2 grabbers are quite fast\n" .
+	"and download relatively few files.\n\n";
+$config->{category} = ask_choice("Which category is $grabber?", 1, 1, 2);
+
+print   "\nCATEGORY: Regions Supported\n\n" .
+        "Enter the region IDs supported by $grabber. If $grabber supports\n" .
+	"all regions, just hit Enter. If it supports a limited number of regions,\n" .
+	"enter these separated by spaces (e.g. \"94 104 118\"). If it supports\n" .
+	"most but not all regions, enter a minus sign followed by a list of the\n" .
+	"unsupported regions (e.g. \"-112 114 128\").\n\n";
+
+$config->{regions} = ask("Regions supported?");
+
+print   "\nCATEGORY: Channel type\n\n" .
+        "Which type of channels can $grabber acquire data for?\n".
+	"(1) Free-to-air channels only\n".
+	"(2) Pay TV channels only\n".
+	"(3) Free-to-air and Pay TV channels\n\n";
+	"If $grabber supports free-to-air channels only, just hit enter.\n" .
+	"If $grabber supports paytv only, enter 'paytv' below.\n" .
+	"If $grabber supports both paytv and free-to-air, enter 'both' below.\n\n";
+
+$s = ask_choice("Channel types supported?", 1, 1, 2, 3);
+$config->{type} = 'both' if ($s == 3);
+$config->{type} = 'paytv' if ($s == 2);
+# The default (FTA) is undefined
+
+print	"\nCATEGORY: Channels Supported\n\n" .
+	"Enter the names of channels supported by $grabber. If $grabber\n" .
+	"supports all free-to-air channels, just hit Enter. If it supports\n" .
+	"a limited number of channels, enter these separated by commas\n" .
+	"(e.g. \"SBS,SBS News\"). If it supports most channels with a\n" .
+	"limited number of exceptions, enter a minus sign then a list\n" .
+	"of the exceptions, separated by commas (e.g. \"-ABC,Nine\").\n" .
+	"If you need to specify particular channels by region, you will\n" .
+	"be able to do that next; for now, specify what's usually supported.\n" .
+	"Please use standard channel names (e.g. Nine, TEN, Seven, etc).\n\n";
+
+$config->{channels} = ask("Channels supported?");
+$config->{channels} =~ s/ /_/g;
+
+if (ask_boolean("\nAre there any regional exceptions to the supported channels?"))
+{
+    print "\nCATEGORY: Channels Supported: Exceptions\n\n" .
+          "Here you can list regional exceptions to the policy you specified\n" .
+	  "above. For example, if you specified that your grabber supports\n" .
+	  "Channel TEN, but in region 79 that's not the case, you need\n" .
+	  "to create an exception.\n\n" .
+	  "When asked for channel names, use the same format as for the\n" .
+	  "previous question: e.g. to specify that in this region the grabber\n" .
+	  "does NOT support TEN and ABC, unlike in the other regions, you\n" .
+	  "would enter \"-TEN,ABC\".\n\n".
+	  "When you're finished creating exemptions, just hit Enter.\n\n";
+    my $exceptions = '';
+    while (my $r = ask("Region number to create exemption for?"))
+    {
+	unless ($r =~ /^\d+$/)
+	{
+	    print "Please enter a region code (e.g. 94 for Melbourne).\n";
+	    next;
+	}
+	my $e = ask("Channel exception(s) in region $r? ");
+	last unless ($e);
+	$e =~ s/ /_/g;
+	$e = "$r:$e";
+	print "OK: registered exception \"$e\".\n\n";
+	$exceptions = $exceptions ? "$exceptions $e" : $e;
+    }
+    $config->{channel_support_exceptions} = $exceptions if (length($exceptions));
+}
+
+print	"\nCATEGORY: Days Supported\n\n" .
+	"Enter the maximum number of days of data $grabber can retrieve.\n\n";
+
+$config->{max_days} = ask("Days supported? [default=7]");
+$config->{max_days} ||= 7;
+
+print	"\nSome grabbers aren't always able to retrieve the maximum number\n" .
+	"of days, because their datasource isn't always topped up. Enter\n" .
+	"the minimum number of days of data that $grabber can reliably fetch.\n\n";
+
+$config->{max_reliable_days} = ask("Days reliably supported? [default=7]");
+$config->{max_reliable_days} ||= 7;
+
+if (ask_boolean("\nDoes the number of days $grabber supports vary by channel?"))
+{
+    my $example = $config->{max_days} - 1;
+    print   "\nHere you can specify the number of days $grabber supports on a\n".
+	    "per-channel basis. These are exceptions to the 'max_days' and\n".
+	    "'max_reliable_days' values you specified above.\n\n".
+	    "First, per-channel exceptions to 'max_days': if $grabber never offers\n".
+	    "$config->{max_days} days of data for some channels, list the maximum number of days\n".
+	    "supported. For example, if $grabber only ever has up to $example days\n".
+	    "of ABC2 and SBS News, enter \"ABC2:$example,SBS News:$example\".\n\n".
+	    "To skip, hit Enter.\n\n";
+    $config->{max_days_per_chan} = channel_variations(ask("Per-channel variations of max_days?"));
+
+    $example = $config->{max_reliable_days} - 2;
+    print   "\nSecondly, per-channel exceptions to 'max_reliable_days': if $grabber\n".
+	    "tends to *reliably* support fewer than $config->{max_reliable_days} days of data\n".
+	    "for some channels, enter the minimum number of days that can reliably\n".
+	    "be fetched for these channels. For example, if $grabber sometimes\n".
+	    "has as few as $example days of Channel 31 and TVS, enter\n".
+	    "\"Channel 31:$example,TVS:$example\".\n\n".
+	    "To skip, hit Enter.\n\n";
+    $config->{max_reliable_days_per_chan} = channel_variations(ask("Per-channel variations of max_reliable_days?"));
+}
+	
+print	"\nCATEGORY: Configuration Requirements\n\n" .
+	"Specify whether $grabber requires any manual configuration\n" .
+	"before it can run (such as registration on a remote web site).\n\n";
+
+if (ask_boolean("Requires manual configuration?"))
+{
+    $config->{config_reqd} = 1;
+	
+    print   "\nShepherd needs a way of detecting whether $grabber has been\n" .
+	    "correctly configured or not. Please enter a command-line option\n" .
+	    "that will cause $grabber to exit with status 0 if it is configured\n" .
+	    "correctly, and exit with another status if it is not.\n\n";
+	    $config->{option_ready} = ask("Command-line option for readiness? [default=--ready]");
+	    $config->{option_ready} ||= '--ready';
+
+    print   "\nShepherd needs to know the commend-line parameter $grabber uses\n" .
+	    "uses for manual configuration. This will be used when the user\n" .
+	    "runs shepherd's --configure option.\n\n";
+	    $config->{option_config} = ask("Command-line option for configure? [default=--configure]");
+	    $config->{option_config} ||= '--configure';
+}
+else
+{
+    print   "\nShepherd needs a way to run $grabber just to check that it compiles\n" .
+	    "on the user's system. Please enter a command-line option that will cause\n" .
+	    "$grabber to exit with status 0 as quickly as possible, i.e. preferably\n" .
+	    "without fetching any data.\n\n";
+    $config->{option_ready} = ask("Command-line option for compilation check? " .
+	    "[default=--version]");
+    $config->{option_ready} ||= '--version';
+}
+
+print	"\nCATEGORY: Data Quality\n\n" .
+	"Rate the accuracy of the data $grabber fetches; i.e. how often it\n" .
+	"can be relied upon to report the right programs in the right timeslots.\n" .
+	"(This is a measure of the source $grabber relies upon rather than a\n".
+	"a judgement of $grabber itself.)\n" .
+	"(1) Guide data is often inaccurate\n" .
+	"(2) Guide data is occasionally or sometimes inaccurate\n" .
+	"(3) Guide data is 100% accurate, or very close to it\n\n";
+
+$config->{quality} = ask_choice("Data quality?", 3, 1, 2, 3);
+
+print	"\nCATEGORY: Granularity\n\n" .
+	"Specify whether $grabber is able to fetch data in slices,\n" .
+	"as opposed to having to fetch all or nothing.\n\n";
+
+if (ask_boolean("Can $grabber fetch a single day of data only?", 1))
+{
+    print   "\nWhat option needs to be sent to $grabber to specify the\n" .
+	    "number of days wanted? (E.g. if $grabber supports an option\n" .
+	    "\"--days n\", where n is the number of days to fetch data for,\n".
+	    "enter \"--days\").\n\n";
+    $config->{option_days} = ask("Command-line option for max days? " .
+	    "[default=--days]");
+    $config->{option_days} ||= '--days';
+
+    print   "\nWhat option needs to be sent to $grabber to specify that it should\n" .
+	    "not start grabbing at day 1? (E.g. if $grabber supports an option\n" .
+	    "\"--offset n\", which indicates that it should skip the first\n" .
+	    "n days, enter \"--offset\".)\n\n";
+    $config->{option_days_offset} = ask("Command-line option for offset? " .
+	    "[default=--offset]");
+    $config->{option_days_offset} ||= '--offset';
+
+    print   "\nIf invoked with the command:\n" .
+	    "  ./$grabber $config->{option_days} 2 $config->{option_days_offset} 1\n" .
+	    "... how many days of data will $grabber fetch?\n\n";
+    $s = ask("Days fetched? [default=2]");
+    $s ||= 2;
+    unless ($s == 2)
+    {
+	$config->{option_offset_eats_days} = 1;
+    }
+
+    print   "\nDoes $grabber support Shepherd-compliant micro-grabbing? Micro-\n".
+	    "grabbing is when a grabber fetches a small part a single day; for\n".
+	    "example, 2:30pm to 2:45pm. In order to be compliant, $grabber must be\n".
+	    "able to interpret the --gaps_file <s> command-line option, where <s>\n".
+	    "is the file name of a Shepherd gaps data structure.\n\n";
+    if (ask_boolean("Does $grabber support micro-grabbing?"))
+    {
+	$config->{micrograbs} = 1;
+    }
+}
+
+if ($config->{category} == 1)
+{
+    print   "\nCATEGORY: Verified Caching\n\n" .
+	    "Category 1 grabbers often have an internal cache. They can use this\n" .
+	    "to greatly reduce the amount of downloads necessary, by returning the\n" .
+	    "cached data rather than fetching it anew. An important part of this\n" .
+	    "process is verification, or checking to make sure that the schedule\n" .
+	    "hasn't changed significantly from the cache.\n\n";
+
+    $config->{cache} = ask_boolean("Can $grabber reduce downloads by through verified caching?", 1);
+}
+
+print	"\nCATEGORY: Running Time\n\n".
+	"One of the key attributes of shepherd is that it handles failure\n" .
+	"of individual grabbers. It is possible that a grabber could fail in such\n" .
+	"a manner that it never finishes or runs for an excessive amount of time.\n\n";
+$config->{max_runtime} = ask("How many minutes (maximum) should Shepherd allow $grabber to run for? [default=60]");
+$config->{max_runtime} ||= '60';
+
+print   "\nCATEGORY: TOR\n\n" .
+        "Some grabbers work better (faster) if they fetch data via multiple\n" .
+        "sources.  Tor (The Onion Router, tor.eff.org) makes it possible\n" .
+        "to do this, allowing a single user to fetch data via multiple\n" .
+        "endpoints around the internet. $grabber can make use of this\n" .
+        "if it is useful; Shepherd can signal to a grabber that this\n" .
+        "is available via a command-line parameter (e.g. --socks localhost:9050).\n" .
+        "If this grabber supports SOCKS and wishes to use Tor, provide the\n".
+        "command-line option to enable it here, or blank if not desired/required.\n\n";
+$config->{option_anon_socks} = ask("Anon SOCKS command-line option (or blank)?");
+
+print	"\nCATEGORY: Description\n\n" .
+	"Please enter a brief description of $grabber.\n\n";
+
+$config->{desc} = ask("Description?");
+
+foreach (keys %$config)
+{
+    delete $config->{$_} unless defined $config->{$_};
+}
+
+print	"\nCONFIGURATION COMPLETE!\n\n" .
+	"Grabber: $grabber\n" .
+	Dumper($config);
+	
+abort() unless (ask_boolean("\nDo you want to go ahead and create $grabber.conf?"));
+
+if (-e "$grabber.conf")
+{
+    print "WARNING: $grabber.conf already exists!\n";
+    abort() unless (ask_boolean("Do you want to overwrite $grabber.conf?"));
+}
+
+print "Creating $grabber.conf.\n";
+open(CONF, ">$grabber.conf") or die "cannot write to $grabber.conf: $!";
+print CONF Data::Dumper->Dump([$config], ['config']);
+close CONF;
+
+print "Done.\n";
+
+sub abort
+{
+    print "Aborting.\n";
+    exit;
+}
+
+sub channel_variations
+{
+    my $s = shift;
+
+    return unless ($s);
+    my %h;
+    my @a = split(/,\s*/, $s);
+    foreach my $chday (@a)
+    {
+	if ($chday =~ /(.*):(\d+)/)
+	{
+	    if ($2 > $config->{max_days})
+	    {
+		print   "\nError: max_days_per_channel cannot exceed max_days.\n".
+		"You can only reduce the number of days supported on a\n".
+		"per-channel basis, not extend it.\n";
+		exit;
+	    }
+	    $h{$1} = $2;
+	}
+    }
+    return \%h;
+}
+

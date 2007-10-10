@@ -1,0 +1,365 @@
+#!/usr/bin/perl -w
+
+# details of jrobbo's tv guide data is posted at
+#    http://wiki.dvbowners.com/index.php?title=JRobbo's_EPG_Guides
+# the actual guides are at http://www.jrobbo.com/dwxmltv/<name>.zip
+
+use strict;
+
+my $progname = "jrobbo";
+my $version = "0.16";
+
+use Shepherd::Common;
+use Getopt::Long;
+use XMLTV;
+use Archive::Zip;
+$| = 1;
+
+#
+# table mapping 'region_id' to guidenames
+#
+my @guidename;
+# VIC
+$guidename[93] = "Geelong",		$guidename[94] = "Melbourne",		$guidename[95] = "MilduraSunraysia";
+$guidename[90] = "EasternVictoria", 	$guidename[98] = "WesternVictoria";
+# NSW
+$guidename[73] = "Sydney",		$guidename[66] = "CentralCoastNSW",	$guidename[67] = "Griffith";
+$guidename[63] = "BrokenHill",		$guidename[69] = "NorthernNSW",		$guidename[71] = "SouthernNSW";
+$guidename[106] = "RemoteCentralNSW",	$guidename[184] = "Newcastle";
+# QLD
+$guidename[75] = "Brisbane",		$guidename[78] = "GoldCoast",		$guidename[79] = "RegionalQLD";
+$guidename[114] = "RemoteCentralQLD";
+# WA
+$guidename[101] = "Perth",		$guidename[102] = "RegionalWA";
+# SA
+$guidename[81] = "Adelaide", 		$guidename[82] = "Renmark",		$guidename[83] = "Riverland";
+$guidename[85] = "SouthEastSA",		$guidename[86] = "SpencerGulf",		$guidename[107] = "RemoteCentralSA";
+# NT
+$guidename[74] = "Darwin",		$guidename[108] = "RemoteCentralNT";
+# ACT
+$guidename[126] = "ACT";
+# TAS
+$guidename[88] = "Hobart";
+
+# default settings
+my $opt = { };
+my $channels, my $opt_channels;
+my $script_start_time = time;
+my %stats;
+$opt->{channels_file} =		"";
+$opt->{outputfile} =		"output.xmltv";
+$opt->{region} =		94;
+
+#
+# 1. parse options
+#
+
+GetOptions(
+	'region=i'	=> \$opt->{region},
+	'min_title=i',	=> \$opt->{min_title},
+	'days=i'	=> \$opt->{days},		# ignored
+	'offset=i'	=> \$opt->{offset},		# ignored
+	'timezone=s'	=> \$opt->{timezone},		# ignored
+	'channels_file=s' => \$opt->{channels_file},	# ignored
+	'output=s'	=> \$opt->{outputfile},
+	'warper'	=> \$opt->{warper},
+	'obfuscate'	=> \$opt->{obfuscate},
+	'anonymous'	=> \$opt->{anonymous},
+	'readzipfile'	=> \$opt->{readzipfile},
+	'debug+'	=> \$opt->{debug},
+	'help'		=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'v'		=> \$opt->{version},
+	'ready'		=> \$opt->{version},
+	'desc'		=> \$opt->{desc});
+
+printf "%s %s\n",$progname,$version;
+exit(0) if ($opt->{version});
+if ($opt->{desc}) {
+	printf "%s grabs tvguide data from jrobbo's website.  see http://wiki.dvbowners.com/index.php?title=JRobbo's_EPG_Guides for details\n",$progname;
+	exit(0);
+}
+if ($opt->{help}) {
+	printf "\noptions as follows:\n";
+	printf "   --channels_file=<file> channels file (mandatory)\n";
+	printf "   --region=<i>           region as per the table below (default $opt->{region})\n";
+	printf "   --min_title=<i>        minimum title for colon title split (default: 5)\n";
+	printf "   --output=<file>        file to send output to (default $opt->{outputfile})\n";
+	printf "   --warper               fetch via webwarper (default: don't)\n";
+	printf "   --obfuscate            fetch using squid ip masking (default: don't)\n";
+	printf "   --anonymous            fetch anonymously (default: don't)\n";
+	printf "   --readzipfile          read old zip file (default: don't)\n";
+	printf "\n";
+	printf "  regions are as follows:\n";
+	my $count = 0;
+	foreach my $i (1..1000) {
+		if (defined $guidename[$i]) {
+			$count++;
+			printf "\t%d=%-15s%s",$i,$guidename[$i],(($count % 4) == 0) ? "\n" : "";
+		}
+	}
+	printf "\n";
+	exit(0);
+}
+
+die "Invalid region \"$opt->{region}\" specified; see --help for list of valid regions.\n" if (!defined $guidename[($opt->{region})]);
+die "no channel file specified, see --help for instructions\n", if ($opt->{channels_file} eq "");
+$opt->{min_title} = 5 if not defined $opt->{min_title};
+
+my $zipfilename = "xmltv$guidename[($opt->{region})].zip";
+my $url = sprintf "http://www.jrobbo.com/dwxmltv/$zipfilename",;
+
+
+#
+# 2. read channels
+#
+
+# read channels file
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "channels file $opt->{channels_file} could not be read: $!\n";
+}
+
+my $shortchannels;
+while (my ($name, $chanid) = each %$channels) 
+{
+  # Ignore differences between rural stations like
+  # Seven (Rockhampton) and Seven (Cairns) -- this is not a great
+  # solution and should be fixed.
+  $name =~ s/ *\(.*?\)//g;
+  $shortchannels->{$name} = $chanid;
+  # Ignore differences between rural stations like
+  # Prime Tamworth/Taree/Port,Prime Lismore/Coffs Hbr -- this is not a great
+  # solution and should be fixed.
+  # Matches "PrimN" and "PrimS" for http://www.jrobbo.com/dwxmltv/xmltvNorthernNSW.zip so first "Prime" gets all programs
+  $name = "Prim" if $name =~ /^Prime/; 
+  $shortchannels->{$name} = $chanid;
+}
+
+# Create a list of channel names from longest to shortest
+my @clist = sort { length $b <=> length $a } keys %$shortchannels;
+
+#
+# 3. fetch data
+#
+if (defined $opt->{readzipfile}) {
+	print "Reading $zipfilename, ";
+}
+if (defined $opt->{debug}) {
+	Shepherd::Common::set_default("debug", $opt->{debug});
+	print "Debug Level = " . $opt->{debug} . ", ";
+}
+if (defined $opt->{warper}) {
+	Shepherd::Common::set_default("webwarper", 1);
+	print "Via Webwarper, ";
+}
+if (defined $opt->{obfuscate}) {
+	Shepherd::Common::set_default("squid", 1);
+	print "Squid IP Masking, ";
+}
+if (not defined $opt->{anonymous}) {
+	Shepherd::Common::set_default("agent", "Shepherd/$progname $version");
+	print "Agent \'Shepherd/$progname $version\', ";
+} else {
+	print "Anonymously, ";
+}
+print "Retry Delay = 43, Output into $opt->{outputfile}.\n";
+Shepherd::Common::set_defaults(stats => \%stats, "retry_delay" => 43);
+
+if (not $opt->{readzipfile}) {
+	Shepherd::Common::get_url(url => $url, mirror => $zipfilename) || die "Failed to fetch $url\n";
+}
+
+#
+# 4. uncompress data
+#
+
+my $zip = Archive::Zip->new();
+$zip->read($zipfilename) == Archive::Zip::AZ_OK || die "Error reading $zipfilename :$!";
+my $rawdata = $zip->contents('xmltv.xml');
+
+#
+# 5. cleanup data
+#
+
+#print "Converting apostrophes.\n";
+$rawdata =~ s/\&#39;/'/g;
+
+#$rawdata =~ s/^.*programme_ID.*$//igm;
+#$data = $rawdata;
+# OR
+
+my $data = "";
+my @xmltv_tag_order = qw [ title sub-title desc credits date category language
+        orig-language length icon url country episode-num video audio
+        previously-shown permiere last-chance new subtitles rating
+        star-rating ];
+my %xmltv_tags = map { $_ => "" } @xmltv_tag_order;
+$xmltv_tags{"programme"}=""; $xmltv_tags{"/programme"}="";
+my $cur_field = "";
+
+foreach my $line (split/\n/,$rawdata) {
+
+    # oztivo generates blank data for these fields - skip if blank
+    next if ($line =~ /<director><\/director>/);
+    next if ($line =~ /<desc><\/desc>/);
+    next if ($line =~ /^\s*$/);
+    next if ($line =~ /<programme_ID>/i);
+
+    if ($line =~ /\s*<([\/a-zA-Z\-]+)/) {
+        my $field = lc($1);
+        # do we know about this tag?
+        $cur_field = $field if (defined $xmltv_tags{$field});
+    }
+
+    if ($cur_field eq "programme") {
+        # if we have a start="(time)" and/or stop="(time)" make sure they
+        # have a timezone on them.
+        $line = $1."start=\"".$2." +0000\"".$3 if ($line =~ /^(.*)start="([0-9]+)"(.*)/);
+        $line = $1."stop=\"".$2." +0000\"".$3 if ($line =~ /^(.*)stop="([0-9]+)"(.*)/);
+
+        $data .= $line."\n"; # programme tag
+        $cur_field = "";
+    } elsif ($cur_field eq "/programme") {
+        print "Program with no title!\n" 
+                if (($xmltv_tags{title} eq "") or ($xmltv_tags{title} =~ />\s*</));
+        # print all previously seen tags in xmltv_tag_order
+        foreach my $xmltag (@xmltv_tag_order) {
+            if ($xmltv_tags{$xmltag} ne "") {
+                $data .= $xmltv_tags{$xmltag};
+                $xmltv_tags{$xmltag} = "";
+            }
+        }
+        $data .= $line."\n"; # /programme tag
+        $cur_field = "";
+    } else {
+        if ($cur_field eq "") {
+            $data .= $line."\n"; # ?xml, tv and /tv tags
+        } else {
+            $xmltv_tags{$cur_field} .= $line."\n"; # xmltv_tags tags
+        }
+    }
+}
+
+$rawdata=undef;
+
+#
+# 6. start writing output XMLTV
+#
+
+my %writer_args = ( encoding => 'ISO-8859-1' );
+my $fh = new IO::File(">".$opt->{outputfile}) || die "can't open $opt->{outputfile} for writing: $!";
+$writer_args{OUTPUT} = $fh;
+my $writer = new XMLTV::Writer(%writer_args);
+$writer->start( { 'source-info-name' => "$progname $version", 'generator-info-name' => "$progname $version"} );
+
+
+#
+# 6. interpret downloaded XMLTV, writing output file as we go
+#
+
+XMLTV::parse_callback($data, undef, undef, \&channel_cb,\&programme_cb);
+$writer->end();
+
+
+#
+# 7. all done
+#
+
+Shepherd::Common::print_stats($progname,$version,$script_start_time,%stats);
+exit(0);
+
+###############################################################################
+
+sub channel_cb
+{
+	my $c = shift;
+	#printf "got channel ".Dumper($c);
+
+	my $chan_found = sub_channel($c->{id});
+	if (!defined $chan_found) {
+		printf "Skipping unknown channel '%s'\n",$c->{id};
+		return;
+	}
+
+	$c->{id} = $chan_found;
+	$writer->write_channel($c);
+}
+
+###############################################################################
+
+sub programme_cb
+{
+	my $prog=shift;
+
+	my $chan_found = sub_channel($prog->{channel});
+	return if (!defined $chan_found);
+
+	# if there is no subtitle and a ": " in the title, split title into "title: subtitle"
+	# provided each of title/subtitle will be at least $opt->{min_title} characters long
+	if (!defined $prog->{'sub-title'}) {
+		my ($title1,$title2) = split(/\b: /,$prog->{title}->[0]->[0],2);
+
+		if (($title1) && ($title2) &&
+				(length($title1) >= $opt->{min_title} &&
+				(length($title2) >= $opt->{min_title}))) {
+			printf "Spliting title \"%s\" into title \"%s\" subtitle \"%s\"\n",
+					$prog->{title}->[0]->[0], $title1, $title2 if $opt->{debug};
+
+			$prog->{title}->[0]->[0] = $title1;
+			$prog->{'sub-title'}->[0]->[0] = $title2;
+			$prog->{'sub-title'}->[0]->[1] = $prog->{'title'}->[0]->[1];
+			$stats{derived_subtitle_from_title}++;
+		}
+	}
+
+	$prog->{channel} = $chan_found;
+	$writer->write_programme($prog);
+}
+
+###############################################################################
+
+sub sub_channel
+{
+	my $chan = shift;
+
+	return $channels->{$chan} if (defined $channels->{$chan});
+	return $shortchannels->{$chan} if (defined $shortchannels->{$chan});
+
+	my $channelname = $chan;
+	# To match "10Cap" and "10Nth" to "TEN" but http://www.jrobbo.com/dwxmltv/xmltvNorthernNSW.zip wants "Sthn Cross TEN"
+	$channelname =~ s/10/TEN/g;
+	$channelname =~ s/SBS-NEWS/SBS NEWS/g;
+	$channelname =~ s/SBS Digital/SBS NEWS/g;
+	my $num = $1 if ($channelname =~ /(\d{2,})/);
+	foreach my $ch (@clist)
+	{
+		if ($channelname =~ /$ch/i or
+			($num and $ch =~ /$num/))
+		{
+			return $shortchannels->{$ch};
+		}
+	}
+
+	my $channame = "";
+
+	if ($chan =~ /^ABC2/i)			{ $channame = "ABC2"; }
+	elsif ($chan =~ /^ABC/i)		{ $channame = "ABC"; }
+	elsif ($chan =~ /^Seven/i)		{ $channame = "Seven"; }
+	elsif ($chan =~ /^Prime/i)		{ $channame = "Seven"; }
+	elsif ($chan =~ /^Nine/i)		{ $channame = "Nine"; }
+	elsif ($chan =~ /^WIN/i)		{ $channame = "Nine"; }
+	elsif ($chan =~ /^Ten/i)		{ $channame = "TEN"; }
+	elsif ($chan =~ /^Southern Cross/i)	{ $channame = "TEN"; }
+	elsif ($chan =~ /^SBS News/i)		{ $channame = "SBS News"; }
+	elsif ($chan =~ /^SBS Digital/i)	{ $channame = "SBS News"; }
+	elsif ($chan =~ /^SBS/i)		{ $channame = "SBS"; }
+
+	return $shortchannels->{$channame} if (($channame ne "") && (defined $shortchannels->{$channame}));
+	return undef;
+}
+
+###############################################################################
+

@@ -1,0 +1,863 @@
+#!/usr/bin/perl -w
+
+# foxtel_swf australian paytv grabber
+#  * grabs data from www.foxtel.com.au
+#  * this does NOT use any config file - all settings (channels) are passed in from shepherd
+
+use strict;
+
+my $progname = "foxtel_swf";
+my $version = "0.24";
+my $cache_file = $progname.".storable.cache";
+
+use XML::Simple;
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use Data::Dumper;
+use Shepherd::Common;
+
+#
+# global variables and settings
+#
+
+$| = 1;
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels, my $gaps;
+my $data_cache;
+my $writer;
+my $d;
+my $opt;
+
+$d->{common_post_start} = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<SOAP-ENV:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header><HeaderVar xmlns=\"http://rbsw.foxtel.com.au/\"><Var><string>bae4e7</string><string>c263a851-f</string><string>b85b5aee-485</string><string>3ec1fba0-24</string></Var></HeaderVar></SOAP-ENV:Header><SOAP-ENV:Body>";
+$d->{common_post_end} = "</SOAP-ENV:Body></SOAP-ENV:Envelope>";
+
+#
+# parse command line
+#
+
+$opt->{days} =          7;			# default
+$opt->{outputfile} =    "output.xmltv";		# default
+$opt->{lang} =		"en";
+$opt->{region} =	94;
+
+GetOptions(
+	'log-http'	=> \$opt->{log_http},
+	'region=i'	=> \$opt->{region},
+	'days=i'	=> \$opt->{days},
+	'offset=i'	=> \$opt->{offset},
+	'timezone=s'	=> \$opt->{timezone},
+	'channels_file=s' => \$opt->{channels_file},
+	'gaps_file=s'	=> \$opt->{gaps_file},
+	'output=s'	=> \$opt->{outputfile},
+	'fast'		=> \$opt->{fast},
+	'debug+'	=> \$opt->{debug},
+	'all_channels'	=> \$opt->{all_channels},
+	'warper'	=> \$opt->{warper},
+	'lang=s'	=> \$opt->{lang},
+	'obfuscate'	=> \$opt->{obfuscate},
+	'anonsocks=s'	=> \$opt->{anon_socks},
+	'help'		=> \$opt->{help},
+	'verbose'	=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'ready'		=> \$opt->{version},
+	'v'		=> \$opt->{help});
+
+&help if ($opt->{help});
+
+if ($opt->{version}) {
+	printf "%s %s\n",$progname,$version;
+	exit(0);
+}
+
+die "no channel file specified, see --help for instructions\n", if (!$opt->{channels_file});
+$opt->{days} = 7 if ($opt->{days} > 7); # limit to a max of 7 days
+
+#
+# go go go!
+#
+
+Shepherd::Common::log(sprintf "%s v%s going to %sgrab %d days%s of data into %s (%s%s%s)",
+	$progname, $version,
+	(defined $opt->{gaps_file} ? "micro-gap " : ""),
+	$opt->{days},
+	(defined $opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+	$opt->{outputfile},
+	(defined $opt->{fast} ? "with haste" : "slowly"),
+	(defined $opt->{anon_socks} ? ", via multiple endpoints" : ""),
+	(defined $opt->{warper} ? ", anonymously" : ""));
+
+# read channels file
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt->{channels_file} could not be read\n";
+}
+
+# if just filling in microgaps, parse gaps
+if (defined $opt->{gaps_file}) {
+	if (-r $opt->{gaps_file}) {
+		local (@ARGV, $/) = ($opt->{gaps_file});
+		no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		die "WARNING: gaps_file $opt->{gaps_file} could not be read: $!\n";
+	}
+}
+
+# set defaults
+Shepherd::Common::set_default("debug", (defined $opt->{debug} ? 2 : 0));
+Shepherd::Common::set_default("webwarper", 1) if (defined $opt->{warper});
+Shepherd::Common::set_default("squid", 1) if (defined $opt->{obfuscate});
+Shepherd::Common::set_default("referer", "http://www.foxtel.com.au/images/RemoteBooking/EPG.swf");
+Shepherd::Common::set_default("retry_delay", 10);
+Shepherd::Common::setup_ua('cookie_jar' => 1, 'fake' => 1);
+Shepherd::Common::setup_socks($opt->{anon_socks}) if (defined $opt->{anon_socks});
+
+&read_cache;
+
+&get_initial_page;
+&get_reference_data();
+&get_region_data();
+&start_writing_xmltv;
+&choose_channel_lineup();
+
+if (!defined $opt->{gaps_file}) {
+	my $starttime = $script_start_time;
+	my $endtime = $starttime + ($opt->{days} * 86400);
+	$starttime += ($opt->{offset} * 86400) if (defined $opt->{offset});
+
+	&get_program_window($starttime, $endtime);
+} else {
+	Shepherd::Common::log("microgaps not yet supported."); # TODO: microgaps
+}
+
+$writer->end();
+
+&write_cache;
+
+Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
+exit(0);
+
+##############################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+options are as follows:
+	--help			show these help options
+	--days=N		fetch 'n' days of data (default: $opt->{days})
+	--output=file		send xml output to file (default: "$opt->{outputfile}")
+	--fast			don't run slow - get data as quick as you can - not recommended
+	--anonsocks=(ip:port)	use SOCKS4A server at (ip):(port) (for Tor: recommended)
+
+	--debug			increase debug level
+	--warper		fetch data using WebWarper web anonymizer service
+	--obfuscate		pretend to be a proxy servicing multiple clients
+	--lang=[s]		set language of xmltv output data (default $opt->{lang})
+
+	--region=N		set region for where to collect data from (default: $opt->{region})
+	--channels_file=file	where to get channel data from
+	--gaps_file=file	micro-fetch gaps only
+
+EOF
+;
+
+	exit(0);
+}
+
+##############################################################################
+# logic to fetch a page via http
+
+sub get_url
+{
+	my %cnf = @_;
+	my ($html_data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts) = Shepherd::Common::get_url(%cnf);
+
+	$stats{failed_requests} += $failed_attempts;
+	$stats{slept_for} += $seconds_slept;
+	$stats{bytes_fetched} += $bytes_fetched;
+
+	return undef if ((!$html_data) || (!$success));
+	return $html_data;
+}
+
+##############################################################################
+# populate cache
+
+sub read_cache
+{
+	my $store = Shepherd::Common::read_cache(\$cache_file);
+	
+	if ($store) {
+		$data_cache = $store->{data_cache};
+
+		# age out old entries
+		for my $k (keys %{($data_cache->{prog_cache})}) {
+			# not used for 30 days
+			if ($data_cache->{prog_cache}->{$k}->{last_used} < ($script_start_time - (86400*30))) {
+				delete $data_cache->{prog_cache}->{$k};
+				$stats{expired_from_cache}++;
+				next;
+			}
+			# add new field if doesn't exist and expire within a month (2007/07/30)
+			$data_cache->{prog_cache}->{$k}->{first_used} =
+				$data_cache->{prog_cache}->{$k}->{last_used} - (86400*30*5)
+					if not defined $data_cache->{prog_cache}->{$k}->{first_used};
+			# not updated for 6 months
+			if ($data_cache->{prog_cache}->{$k}->{first_used} < ($script_start_time - (86400*30*6))) {
+				delete $data_cache->{prog_cache}->{$k};
+				$stats{expired_from_cache}++;
+			}
+		}
+	}
+}
+
+##############################################################################
+# write out updated cache
+
+sub write_cache
+{
+	my $store;
+	$store->{data_cache} = $data_cache;
+	Shepherd::Common::write_cache($cache_file, $store);
+}
+
+##############################################################################
+
+sub start_writing_xmltv
+{
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($opt->{outputfile}) {
+		my $fh = new IO::File(">$opt->{outputfile}") || die "can't open $opt->{outputfile}: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	$writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-name' => "$progname $version",
+	      'generator-info-name' => "$progname $version"} );
+}
+
+##############################################################################
+
+sub get_initial_page
+{
+	my $data;
+
+	Shepherd::Common::log(" - fetching initial page...");
+
+	$data = &get_url(url => "http://www.foxtel.com.au/EPG/EPG.aspx", retries => 4);
+	die "Failed to retrieve initial page! Aborting..\n" if (!$data);
+
+	$data = &get_url(url => "http://www.foxtel.com.au/EPGServiceWrapper/WebService/EPG/EPGServiceWrapper.wsdl", retries => 4);
+	Shepherd::Common::log("DEBUG: get_initial_page got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+}
+
+##############################################################################
+
+sub get_reference_data
+{
+	my $data, my $postvars, my @additional_headers;
+
+	Shepherd::Common::log(" - fetching reference data...");
+
+	push(@additional_headers, "Content-type: text/xml; charset=utf-8");
+	push(@additional_headers, "SOAPAction: \"http://rbsw.foxtel.com.au/GetReferenceData\"");
+	$postvars = $d->{common_post_start}."<GetReferenceData xmlns=\"undefined\" />".$d->{common_post_end};
+
+        $data = &get_url(
+		url => "http://www.foxtel.com.au/EPGServiceWrapper/WebService/EPG/EPGServiceWrapper.asmx",
+		retries => 4,
+		method => "POST",
+		postvars => $postvars,
+		headers => \@additional_headers);
+
+	Shepherd::Common::log("DEBUG: get_reference_data got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+
+	my $parsed_xml = XMLin($data);
+
+	die "Failed to retrieve valid ReferenceData\n"
+	  if (!defined $parsed_xml->{'soap:Body'}->{'GetReferenceDataResponse'}->{'GetReferenceDataResult'});
+	my $ref = $parsed_xml->{'soap:Body'}->{'GetReferenceDataResponse'}->{'GetReferenceDataResult'};
+
+	# check for error response
+	die "ReferenceData page indicated failure code: ".$ref->{'ErrorStatus'}->{'content'}.": aborting!\n"
+	  if ($ref->{'ErrorStatus'}->{'content'} ne "OK");
+
+	# gather up genres
+	$d->{genre_count} = 0;
+	foreach my $genre_ref (@{($ref->{'Genres'}->{'Genre'})}) {
+		my $genre_code = $genre_ref->{'GenreCode'};
+		my $genre_name = $genre_ref->{'GenreName'};
+
+		$d->{genres}->{$genre_code}->{name} = $genre_name;
+		$d->{genre_count}++;
+		Shepherd::Common::log(" - parsed genre $genre_code: $genre_name") if (defined $opt->{debug});
+	}
+
+	# gather up program features
+	foreach my $feature_ref (@{($ref->{'ProgramFeatures'}->{'ProgramFeature'})}) {
+		my $feature_id = $feature_ref->{'FeatureId'};
+		my $feature_name = $feature_ref->{'FeatureName'};
+
+		$d->{features}->{$feature_id} = $feature_name;
+		Shepherd::Common::log(" - parsed feature $feature_id: $feature_name") if (defined $opt->{debug});
+	}
+
+	# gather up sub genres
+	$d->{subgenre_count} = 0;
+	foreach my $subgenre_ref (@{($ref->{'SubGenres'}->{'SubGenre'})}) {
+		my $subgenre_code = $subgenre_ref->{'SubGenreCode'};
+		my $genre_code = $subgenre_ref->{'GenreCode'};
+		my $subgenre_name = $subgenre_ref->{'SubGenreName'};
+
+		$d->{genres}->{$genre_code}->{$subgenre_code} = $subgenre_name;
+		$d->{subgenre_count}++;
+		Shepherd::Common::log(" - parsed subgenre code $subgenre_code for genre code $genre_code: $subgenre_name") if (defined $opt->{debug});
+	}
+
+	# gather up categories
+	foreach my $category_ref (@{($ref->{'Categories'}->{'Category'})}) {
+		my $category_id = $category_ref->{'ChannelCategoryId'};
+		my $category_name = $category_ref->{'ChannelCategoryName'};
+
+		$d->{categories}->{$category_id} = $category_name;
+		Shepherd::Common::log(" - parsed category $category_id: $category_name") if (defined $opt->{debug});
+	}
+
+	# gather up states
+	foreach my $state_ref (@{($ref->{'States'}->{'State'})}) {
+		my $state_id = $state_ref->{'StateId'};
+		my $state_code = $state_ref->{'StateCode'};
+		my $state_desc = $state_ref->{'StateDesc'};
+		my $boquet_id = $state_ref->{'BouquetId'};
+		my $subboquet_id = $state_ref->{'SubBouquetId'};
+
+		$d->{state_codes}->{$state_id} = $state_code;
+		$d->{states}->{$state_code}->{id} = $state_id;
+		$d->{states}->{$state_code}->{desc} = $state_desc;
+		$d->{states}->{$state_code}->{boquet_id} = $boquet_id;
+		$d->{states}->{$state_code}->{subboquet_id} = $subboquet_id;
+		Shepherd::Common::log(" - parsed state id:$state_id, code:$state_code, boquet_id:$boquet_id, subboquet_id:$subboquet_id, desc:$state_desc") if (defined $opt->{debug});
+	}
+
+	Shepherd::Common::log("   ".$d->{genre_count}." genres, ".$d->{subgenre_count}." subgenres");
+}
+
+##############################################################################
+
+sub get_region_data
+{
+	my $data, my $postvars, my @additional_headers;
+
+	Shepherd::Common::log(" - fetching region data...");
+
+	# map region to a subboquet ..
+	my $state;
+	if ($opt->{region} =~ /^(93|94|95|90|98)$/) {
+		$state = "VIC";
+	} elsif ($opt->{region} =~ /^(73|66|67|63|69|71|106|184)$/) {
+		$state = "NSW";
+	} elsif ($opt->{region} =~ /^(75|78|79|114)$/) {
+		$state = "QLD";
+	} elsif ($opt->{region} =~ /^(101|102)$/) {
+		$state = "WA";
+	} elsif ($opt->{region} =~ /^(81|82|83|85|86|107)$/) {
+		$state = "SA";
+	} elsif ($opt->{region} =~ /^(74|108)$/) {
+		$state = "NT";
+	} elsif ($opt->{region} =~ /^(126)$/) {
+		$state = "ACT";
+	} elsif ($opt->{region} =~ /^(88)$/) {
+		$state = "TAS";
+	}
+
+	die "could not map region ".$opt->{region}." to a state/boquet_id/subboquet_id, aborting!\n"
+	  if ((!defined $state) ||
+	      (!defined $d->{states}->{$state}) ||
+	      (!defined $d->{states}->{$state}->{boquet_id}) ||
+	      (!defined $d->{states}->{$state}->{subboquet_id}));
+	Shepherd::Common::log("   mapped region ".$opt->{region}." to state ".$state.", boquet_id ".
+	  $d->{states}->{$state}->{boquet_id}.", subboquet_id ".
+	  $d->{states}->{$state}->{subboquet_id});
+	$d->{chosen_state} = $state;
+
+	push(@additional_headers, "Content-type: text/xml; charset=utf-8");
+	push(@additional_headers, "SOAPAction: \"http://rbsw.foxtel.com.au/GetRegionChannels\"");
+	$postvars = $d->{common_post_start}.
+		"<GetRegionChannels xmlns=\"http://rbsw.foxtel.com.au/\"><BouquetId>".$d->{states}->{$state}->{boquet_id}."</BouquetId><SubBouquetId>".$d->{states}->{$state}->{subboquet_id}."</SubBouquetId><AccountNumber>0</AccountNumber></GetRegionChannels>".
+		$d->{common_post_end};
+
+        $data = &get_url(
+		url => "http://www.foxtel.com.au/EPGServiceWrapper/WebService/EPG/EPGServiceWrapper.asmx",
+		retries => 4,
+		method => "POST",
+		postvars => $postvars,
+		headers => \@additional_headers);
+
+	Shepherd::Common::log("DEBUG: get_region_data got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+
+	my $parsed_xml = XMLin($data);
+
+	die "Failed to retrieve valid ReferenceData\n"
+	  if (!defined $parsed_xml->{'soap:Body'}->{'GetRegionChannelsResponse'}->{'GetRegionChannelsResult'});
+	my $ref = $parsed_xml->{'soap:Body'}->{'GetRegionChannelsResponse'}->{'GetRegionChannelsResult'};
+
+	# check for error response
+	die "RegionData page indicated failure code: ".$ref->{'ErrorStatus'}->{'content'}.": aborting!\n"
+	  if ($ref->{'ErrorStatus'}->{'content'} ne "OK");
+
+	# gather up channels
+	$d->{channel_count} = 0;
+	foreach my $channel_ref (@{($ref->{'ChannelDetails'}->{'Channel'})}) {
+		my $channel_id = $channel_ref->{'ChannelId'};
+		my $channel_name = $channel_ref->{'ChannelName'};
+		my $orig_channel_name = $channel_name;
+		$channel_name =~ s/[ \t()\[\]\+\.\-]//g;	# remove special chars
+		$channel_name =~ s/(&amp;|&)/and/g;		# &amp; to and
+		$channel_name =~ s|[/,].*||;			# and deleting after / or ,
+
+		$d->{channel_names}->{$channel_name} = $channel_id;
+		$d->{channels}->{$channel_id}->{name} = $orig_channel_name;
+		$d->{channels}->{$channel_id}->{number} = $channel_ref->{'DigitalNumber'};
+		$d->{channels}->{$channel_id}->{category} = $channel_ref->{'ChannelCategoryId'};
+		$d->{channels}->{$channel_id}->{content_warning} = $channel_ref->{'ContentWarningInd'};
+		$d->{channels}->{$channel_id}->{available} = $channel_ref->{'ChannelAvailableInd'};
+		$d->{channels}->{$channel_id}->{timeshift} = $channel_ref->{'TimeShiftInd'};
+
+		$d->{channel_count}++;
+		Shepherd::Common::log(" - parsed channel $channel_id: (".$d->{channels}->{$channel_id}->{number}.") $channel_name)") if (defined $opt->{debug});
+	}
+
+	Shepherd::Common::log("   ".$d->{channel_count}." channels for region");
+}
+
+##############################################################################
+
+sub choose_channel_lineup
+{
+	$d->{included_chan_count} = 0;
+
+	foreach my $ch (keys %{($d->{channel_names})}) {
+		if ((defined $channels->{$ch}) ||
+		    (defined $opt_channels->{$ch}) ||
+		    (defined $opt->{all_channels})) {
+			my $ch_id = $d->{channel_names}->{$ch};
+			my $ch_xmlid = $ch;
+			$ch_xmlid = $channels->{$ch} if (defined $channels->{$ch});
+			$ch_xmlid = $opt_channels->{$ch} if (defined $opt_channels->{$ch});
+
+			$d->{including_channels}->{$ch_id} = $ch_xmlid;
+			$d->{channels}->{$ch_id}->{xmlid} = $ch_xmlid;
+			$d->{included_chan_count}++;
+
+			$writer->write_channel( {
+				'display-name' => [[ $d->{channels}->{$ch_id}->{name}, $opt->{lang} ]],
+				'id' => $ch_xmlid } );
+		}
+	}
+
+	die "no channels found to include. aborting! (channels:".
+		join(",",keys %$channels).", opt_channels:".
+		join(",",keys %$opt_channels)."\n"
+	  if ($d->{included_chan_count} == 0);
+}
+
+##############################################################################
+
+sub get_program_window
+{
+	my ($starttime, $stoptime) = @_;
+	my $curr_start, my $curr_stop;
+	my $consecutive_failures = 0;
+
+	Shepherd::Common::log("fetching program data for ".$d->{included_chan_count}." channels from lineup");
+
+	$curr_start = $starttime;
+	while ($curr_start < $stoptime) {
+		$curr_stop = $curr_start + (6 * 60 * 60); # 6 hours
+		$curr_stop = $stoptime if ($curr_stop > $stoptime);
+
+		my $success;
+		my $goback = 0;
+		while ((!($success = &get_programs($curr_start,$curr_stop))) && ($goback++ < 2)) {
+			$curr_start -= 5 * 60;
+			$curr_stop  -= 5 * 60;
+			$stoptime   -= 5 * 60;
+			Shepherd::Common::log("  going back 5 minutes");
+			$stats{gone_back}++;
+		}
+
+		if (!$success) {
+			$consecutive_failures++;
+
+			if ($consecutive_failures >= 2) {
+				Shepherd::Common::log(" aborting fetching due to errors.");
+				$stats{aborted_fetching}++;
+				last;
+			}
+		} else {
+			$consecutive_failures = 0;
+		}
+
+		$curr_start = $curr_stop;
+
+		my $waittime = 6 + int(rand(5));
+		$waittime = 2 if (defined $opt->{fast});
+		$stats{slept_for} += $waittime;
+		sleep($waittime);
+	}
+}
+
+##############################################################################
+
+sub get_programs
+{
+	my ($starttime, $stoptime) = @_;
+	my $data, my $postvars, my @additional_headers;
+
+	Shepherd::Common::log(" - ".POSIX::strftime("%a %e %b %H:%M", localtime($starttime))." to ".POSIX::strftime("%a %e %b %H:%M", localtime($stoptime))." ...");
+
+	my $state = $d->{chosen_state};
+	push(@additional_headers, "Content-type: text/xml; charset=utf-8");
+	push(@additional_headers, "SOAPAction: \"http://rbsw.foxtel.com.au/GetSelectedPrograms\"");
+
+	$postvars = $d->{common_post_start}.
+		"<GetSelectedPrograms xmlns=\"http://rbsw.foxtel.com.au/\"><BouquetId>".$d->{states}->{$state}->{boquet_id}."</BouquetId><SubBouquetId>".$d->{states}->{$state}->{subboquet_id}."</SubBouquetId><AccountNumber>0</AccountNumber>".
+		"<DateRanges><DateRange><ns1:StartDate xmlns:ns1=\"http://rbs.foxtel.com.au/\">".POSIX::strftime("%Y-%m-%dT%H:%M:00.000Z",gmtime($starttime))."</ns1:StartDate><ns2:EndDate xmlns:ns2=\"http://rbs.foxtel.com.au/\">".POSIX::strftime("%Y-%m-%dT%H:%M:00.000Z",gmtime($stoptime))."</ns2:EndDate></DateRange></DateRanges>".
+		"<StateId>".$d->{states}->{$state}->{id}."</StateId><ProgramFeatures /><Keyword></Keyword><ExtendedSearchInd>false</ExtendedSearchInd>".
+		"<ChannelCategoryId>0</ChannelCategoryId><Channels>";
+	foreach my $ch_id (keys %{($d->{including_channels})}) {
+		$postvars .= "<Channel>".$ch_id."</Channel>";
+	}
+	$postvars .= "</Channels><ParentalRating /><SubGenre><ns3:SubGenreCode xmlns:ns3=\"http://rbs.foxtel.com.au/\" /><ns4:GenreCode xmlns:ns4=\"http://rbs.foxtel.com.au/\" /></SubGenre><SortOrder><Sort><ns5:SortExpression xmlns:ns5=\"http://rbs.foxtel.com.au/\">CHANNELID</ns5:SortExpression><ns6:SortOrder xmlns:ns6=\"http://rbs.foxtel.com.au/\">ASC</ns6:SortOrder></Sort><Sort><ns7:SortExpression xmlns:ns7=\"http://rbs.foxtel.com.au/\">TIME</ns7:SortExpression><ns8:SortOrder xmlns:ns8=\"http://rbs.foxtel.com.au/\">ASC</ns8:SortOrder></Sort></SortOrder><StartRecordNbr>0</StartRecordNbr><NbrRecordsRequested>0</NbrRecordsRequested><InProgressInd>true</InProgressInd></GetSelectedPrograms>".$d->{common_post_end};
+
+	my $parsed_xml;
+	my $ref;
+	my $found_array = 0;
+
+        $data = &get_url(
+		url => "http://www.foxtel.com.au/EPGServiceWrapper/WebService/EPG/EPGServiceWrapper.asmx",
+		retries => 2,
+		method => "POST",
+		postvars => $postvars,
+		headers => \@additional_headers);
+
+	my $failure_code = "";
+
+	if (!$data) {
+		$failure_code = "no_data";
+	} else {
+		Shepherd::Common::log("DEBUG: get_programs got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+		$parsed_xml = XMLin($data);
+
+		if (!defined $parsed_xml->{'soap:Body'}->{'GetSelectedProgramsResponse'}->{'GetSelectedProgramsResult'}) {
+			$failure_code = "no_GetSelectedPrograms";
+		} else {
+			$ref = $parsed_xml->{'soap:Body'}->{'GetSelectedProgramsResponse'}->{'GetSelectedProgramsResult'};
+
+			if (!defined $ref->{'ErrorStatus'}->{'content'}) {
+				$failure_code = "no_ErrorStatus";
+			} else {
+				if ($ref->{'ErrorStatus'}->{'content'} ne "OK") {
+					$failure_code = "ErrorStatus_".$ref->{'ErrorStatus'}->{'content'};
+				} else {
+					if (!defined $ref->{'EPGDetails'}->{'EPG'}) {
+						$failure_code = "no_EPGDetails";
+					} else {
+						if (ref $ref->{'EPGDetails'}->{'EPG'} ne "ARRAY") {
+							$failure_code = "not_array_EPGDetails";
+						} else {
+							$found_array = 1; # success
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (!$found_array) {
+		Shepherd::Common::log("   failed to retrieve programme guide: error: $failure_code"); 
+		Shepherd::Common::log("   aborting fetching this programme guide");
+		$stats{$failure_code}++;
+		$stats{aborted_fetching_programs}++;
+		return 0;
+	}
+
+	Shepherd::Common::log("   gathering synopsis for up to ".(scalar(@{($ref->{'EPGDetails'}->{'EPG'})}))." progs ...");
+
+	# gather up programmes
+	my $prog_count = 0;
+	foreach my $prog_ref (@{($ref->{'EPGDetails'}->{'EPG'})}) {
+		my $prog;
+		$prog_count++;
+
+		$prog->{title} = [[ $prog_ref->{'ProgramName'}, $opt->{lang} ]];
+		$prog->{length} = int($prog_ref->{'Duration'} * 60);
+
+		if (!defined $prog_ref->{'Duration'}) {
+			$stats{skipped_prog_no_duration}++;
+			next;
+		}
+
+		if ((defined $prog_ref->{'ScheduledDate'}) &&
+		    ($prog_ref->{'ScheduledDate'} =~ /^(\d{4})-(\d{2})\-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{7})\+(\d{2}):(\d{2})$/)) {
+			my $prog_tz = "+".$8.$9;
+			my @t = ($6, $5, $4, $3, ($2-1), ($1-1900), -1, -1, -1);
+
+			my $prog_start = mktime(@t);
+			my $prog_stop = $prog_start + $prog->{length};
+
+			$prog->{start} = POSIX::strftime("%Y%m%d%H%M", localtime($prog_start))." ".$prog_tz;
+			$prog->{stop} =  POSIX::strftime("%Y%m%d%H%M", localtime($prog_stop))." ".$prog_tz;
+		} else {
+			$stats{skipped_prog_bad_starttime}++;
+			Shepherd::Common::log("unparsable date ".$prog_ref->{'ScheduledDate'})
+			  if ((defined $prog_ref->{'ScheduledDate'}) &&
+			      ($stats{skipped_prog_bad_starttime} < 10));
+			next;
+		}
+
+		if ((defined $prog_ref->{'ChannelId'}) &&
+		    (defined $d->{channels}->{$prog_ref->{'ChannelId'}}->{xmlid})) {
+			$prog->{channel} = $d->{channels}->{$prog_ref->{'ChannelId'}}->{xmlid};
+		} else {
+			$stats{skipped_prog_bad_channel}++;
+			next;
+		}
+
+		$prog->{'sub-title'} = [[ $prog_ref->{'EpisodeTitle'}, $opt->{lang} ]]
+		  if ((defined $prog_ref->{'EpisodeTitle'}) &&
+		      (ref $prog_ref->{'EpisodeTitle'} ne "HASH") &&
+		      ($prog_ref->{'EpisodeTitle'} ne ""));
+		$prog->{rating} = [[ $prog_ref->{'ParentalRating'}, 'ABA', undef ]] if $prog_ref->{'ParentalRating'} ne "-";
+		$prog->{subtitles} = [ { 'type' => 'teletext' } ]
+		  if (((defined $prog_ref->{'SubtitledInd'}) && ($prog_ref->{'SubtitledInd'} ne "false")) ||
+		      ((defined $prog_ref->{'ClosedCaptionInd'}) && ($prog_ref->{'ClosedCaptionInd'} ne "false")));
+		$prog->{video}->{aspect} = "16:9"
+		  if ((defined $prog_ref->{'WideScreenInd'}) && ($prog_ref->{'WideScreenInd'} ne "false"));
+		if (defined $prog_ref->{'Audio'}) {
+			# try to match bad values like 'dolby stereo'
+		  	$prog->{audio}->{stereo} = 'mono' if ($prog_ref->{'Audio'} =~ /mono/);
+			$prog->{audio}->{stereo} = 'stereo' if ($prog_ref->{'Audio'} =~ /stereo/);
+			$prog->{audio}->{stereo} = 'dolby' if ($prog_ref->{'Audio'} =~ /dolby/);
+			$prog->{audio}->{stereo} = 'dolby digital' if ($prog_ref->{'Audio'} =~ /dolby digital/);
+			$prog->{audio}->{stereo} = 'surround' if ($prog_ref->{'Audio'} =~ /surround/);
+		}
+
+		if ((defined $prog_ref->{'GenreCode'}) &&
+		    (defined $prog_ref->{'SubGenreCode'}) &&
+		    (defined $d->{genres}->{$prog_ref->{'GenreCode'}}->{$prog_ref->{'SubGenreCode'}})) {
+			my $category = $d->{genres}->{$prog_ref->{'GenreCode'}}->{$prog_ref->{'SubGenreCode'}};
+			$prog->{category} = [[ $category , $opt->{lang} ]];
+
+			if (defined $prog_ref->{'ChannelId'} and
+					defined $d->{channels}->{ $prog_ref->{'ChannelId'} }->{category} and
+					defined $d->{categories}->{ $d->{channels}->{ $prog_ref->{'ChannelId'} }->{category} }) {
+				my $ch_category = $d->{categories}->{ $d->{channels}->{ $prog_ref->{'ChannelId'} }->{category} };
+				push(@{$prog->{category}}, ['movie', undef]) if $ch_category eq 'Movies';
+				push(@{$prog->{category}}, ['sports', undef]) if $ch_category eq 'Sport';
+			}
+		} else {
+			$stats{skipped_categories}++;
+		}
+
+		if (defined $prog_ref->{'ProgramId'}) {
+			my $cache_key = $prog->{title}->[0]->[0];
+			$cache_key .= ": ".$prog->{'sub-title'}->[0]->[0] if (defined $prog->{'sub-title'});
+			$cache_key .= " (".int(($prog->{length}/60 + 7.5)/15)*15 ." mins"; #rounded to 15 minutes
+			$cache_key .= ", ".$prog->{category}->[0]->[0]
+					if defined $prog->{category} && $prog->{category}->[0]->[0];
+			$cache_key .= ", ".$prog->{rating}->[0]->[0]
+					if defined $prog->{rating} && $prog->{rating}->[0]->[0];
+			$cache_key .= ")";
+
+			my $desc = get_prog_desc($prog_ref->{'ProgramId'}, $cache_key, $prog_count);
+			if ((defined $desc) && ($desc ne "")) {
+				if (defined $prog->{'sub-title'}) {
+					my $st=$prog->{'sub-title'}->[0]->[0];
+					$st =~ s/([\{\}\[\]\(\)\^\$\.\|\*\+\?\\])/\\$1/g;
+					if ($st =~ /:/) {
+						$desc =~ s/$st. // ;
+					} else {
+						$desc =~ s/$st: // ;
+					}
+				}
+				$prog->{rating}->[0]->[0] .= " $1" if ($desc =~ s/\((([a-z],)*[a-z])\)//i);
+				$prog->{date} = $1 if ($desc =~ s/\(((19|20)\d\d)\)//);
+				# hard to parse cast, country and languages
+				$desc =~ s/\*\*MISSING\*\*\.//g;
+				$desc =~ s/(^\s+|\s+$)//g;
+				$prog->{desc} = [[ $desc, $opt->{lang} ]] if length($desc) > 0;
+			}
+		}
+
+		# <ContentWarning>als</ContentWarning>
+		# 'DSTInd' => 'true', 'ProgramAvailableInd' => 'true'
+		Shepherd::Common::cleanup($prog);
+
+		Shepherd::Common::log("DEBUG: programme xmltv: ".Dumper($prog)) if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+		$writer->write_programme($prog);
+
+		$stats{programmes}++;
+	}
+
+	return 1;
+}
+
+##############################################################################
+
+sub get_prog_desc
+{
+	my ($progid, $cache_key, $prognum) = @_;
+
+	# use cache if we can (use our own cache-key based on title/subtitle
+	# rather than $progid, as duplicates of the same programme have different
+	# progid's for some bizarre reason.
+	if (defined $data_cache->{prog_cache}->{$cache_key} && !ref($data_cache->{prog_cache}->{$cache_key}->{desc})) {
+		$stats{used_prog_cache}++;
+		$data_cache->{prog_cache}->{$cache_key}->{last_used} = $script_start_time;
+		return $data_cache->{prog_cache}->{$cache_key}->{desc};
+	}
+
+	# do an update from old cache keys
+	my $old_cache_key = $cache_key;
+	$old_cache_key =~ s/ \(.*?\)$//;
+	if (defined $data_cache->{prog_cache}->{$old_cache_key} && !ref($data_cache->{prog_cache}->{$old_cache_key}->{desc})) {
+		$stats{used_prog_cache}++;
+		$data_cache->{prog_cache}->{$cache_key} = $data_cache->{prog_cache}->{$old_cache_key};
+		delete $data_cache->{prog_cache}->{$old_cache_key};
+		$data_cache->{prog_cache}->{$cache_key}->{last_used} = $script_start_time;
+
+		Shepherd::Common::log(" $cache_key < $old_cache_key @ " . ((30*6) - (($script_start_time -
+				$data_cache->{prog_cache}->{$cache_key}->{first_used})/86400)) . " days")
+			if ((defined $opt->{debug}) && ($opt->{debug} > 0));
+
+		return $data_cache->{prog_cache}->{$cache_key}->{desc};
+	}
+
+	# if we have had multiple failures grabbing synopsis, don't keep trying
+	return undef if ((defined $stats{aborted_fetching_synopsis}) && ($stats{aborted_fetching_synopsis} > 5));
+
+	my $data, my $postvars, my @additional_headers;
+	push(@additional_headers, "Content-type: text/xml; charset=utf-8");
+	push(@additional_headers, "SOAPAction: \"http://rbsw.foxtel.com.au/GetSynopsis\"");
+
+	$postvars = $d->{common_post_start}.
+		"<GetSynopsis xmlns=\"http://rbsw.foxtel.com.au/\"><ProgramId>".$progid."</ProgramId></GetSynopsis>".
+		$d->{common_post_end};
+
+	my $parsed_xml;
+	my $ref;
+	my $found_desc = 0;
+
+        $data = &get_url(
+		url => "http://www.foxtel.com.au/EPGServiceWrapper/WebService/EPG/EPGServiceWrapper.asmx",
+		retries => 0,
+		method => "POST",
+		postvars => $postvars,
+		headers => \@additional_headers);
+
+	my $failure_code = "";
+
+	if (!$data) {
+		$failure_code = "no_data";
+	} else {
+		Shepherd::Common::log("DEBUG: get_prog_desc got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+
+		$parsed_xml = XMLin($data);
+		if (!defined $parsed_xml->{'soap:Body'}->{'GetSynopsisResponse'}->{'GetSynopsisResult'}) {
+			$failure_code = "no_GetSynopsis";
+		} else {
+			$ref = $parsed_xml->{'soap:Body'}->{'GetSynopsisResponse'}->{'GetSynopsisResult'};
+
+			if (!defined $ref->{'ErrorStatus'}->{'content'}) {
+				$failure_code = "no_ErrorStatus";
+			} else {
+				if ($ref->{'ErrorStatus'}->{'content'} ne "OK") {
+					$failure_code = "ErrorStatus_".$ref->{'ErrorStatus'}->{'content'};
+				} else {
+					if (!defined $ref->{'Synopsis'}->{'SynopsisDesc'}) {
+						$failure_code = "no_Synopsis";
+					} else {
+						if (ref($ref->{'Synopsis'}->{'SynopsisDesc'})) {
+							Shepherd::Common::log(Data::Dumper->Dump([$ref->{'Synopsis'}->{'SynopsisDesc'}],[qw($ref->{'Synopsis'}->{'SynopsisDesc'})]))
+									if ((defined $opt->{debug}) && ($opt->{debug} > 0));
+							$ref->{'Synopsis'}->{'SynopsisDesc'} = "";
+						}
+						$found_desc = 1; # success
+					}
+				}
+			}
+		}
+	}
+
+	if (!$found_desc) {
+		Shepherd::Common::log("   failed to retrieve synopsis: error: $failure_code"); 
+		Shepherd::Common::log("   aborting fetching synopsis");
+		$stats{$failure_code}++;
+		$stats{aborted_fetching_synopsis}++;
+		return undef;
+	}
+
+	# gather up desc
+	my $desc = $ref->{'Synopsis'}->{'SynopsisDesc'};
+
+	$data_cache->{prog_cache}->{$cache_key}->{first_used} = $script_start_time;
+	$data_cache->{prog_cache}->{$cache_key}->{last_used} = $script_start_time;
+	$data_cache->{prog_cache}->{$cache_key}->{desc} = $desc;
+	$stats{inserted_prog_cache}++;
+
+	if (($stats{inserted_prog_cache} % 35) == 0) {
+		&write_cache;
+
+		my $waittime = 5 + int(rand(3));
+		$waittime = 2 if (defined $opt->{fast});
+
+		Shepherd::Common::log("    .. at prog ".$prognum.", pausing for ".$waittime."s (".$stats{inserted_prog_cache}." lookups, ".(defined $stats{used_prog_cache} ? $stats{used_prog_cache} : 0)." used existing cached lookups)");
+		$stats{slept_for} += $waittime;
+		sleep($waittime);
+	}
+
+	return $desc;
+}
+
+##############################################################################
+
+sub window_is_within_microgap
+{
+	my ($start, $stop, $channel) = @_;
+
+	return window_channel_is_within_microgap($start, $stop, $channel) if (defined $channel);
+
+	foreach my $ch (keys %{$channels}) {
+		return 1 if window_channel_is_within_microgap($start, $stop, $ch);
+	}
+	return 0;
+}
+
+sub window_channel_is_within_microgap
+{
+	my ($start, $stop, $channel) = @_;
+
+	if (defined $gaps->{$channel}) {
+		foreach my $g (@{($gaps->{$channel})}) {
+			my ($s, $e) = split(/-/,$g);
+			return 1 if
+			  ((($s >= $start) && ($s <= $stop)) ||
+			   (($e >= $start) && ($e <= $stop)) ||
+			   (($s <= $start) && ($e >= $stop)));
+		}
+	}
+	$stats{gaps_skipped}++;
+	return 0;
+}
+
+##############################################################################
+

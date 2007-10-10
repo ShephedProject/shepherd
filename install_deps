@@ -1,0 +1,139 @@
+#!/usr/bin/perl -w
+
+#
+# This script is little more than a wrapper for CPAN that first ensures
+# any module dependencies are first satisfied.  All the 'real' shepherd
+# logic is implemented in the 'shepherd'
+#
+# shepherd will only call this script whenever it installs any new
+# programmes or whenever _this_ script is updated in some manner.
+#
+
+my $progname = "install_deps";
+my $version = "0.01";
+my $CWD, my $MODULE_DIR;
+
+# we wrap this in a BEGIN prior to 'use CPAN' so as to trick
+# CPAN into where to build our modules..
+BEGIN {
+	sub neatvalue {  # from CPAN/HandleConfig.pm
+	    my($v) = @_;
+	    return "undef" unless defined $v;
+	    my($t) = ref $v;
+	    return "q[$v]" unless $t;
+	    if ($t eq 'ARRAY') {
+	        my(@m, @neat);
+	        push @m, "[";
+	        foreach my $elem (@$v) {
+	            push @neat, "q[$elem]";
+	        }
+	        push @m, join ", ", @neat;
+	        push @m, "]";
+	        return join "", @m;
+	    }
+	    return "$v" unless $t eq 'HASH';
+	    my(@m, $key, $val);
+	    while (($key,$val) = each %$v){
+	        last unless defined $key; # cautious programming in case (undef,undef) is true
+	        push(@m,"q[$key]=>".neatvalue($val)) ;
+	    }
+	    return "{ ".join(', ',@m)." }";
+	}
+
+
+	$| = 1;
+	my $shepherd_progname = 'shepherd';
+
+	# By default, Shepherd runs from ~/.shepherd/. If it's not run as a user,
+	# it will try /opt/shepherd/ instead.
+	$CWD = ($ENV{HOME} ? $ENV{HOME} . "/." : "/opt/") . $shepherd_progname;
+	-d $CWD or mkdir $CWD or die "Cannot create directory $CWD: $!";
+	chdir($CWD);
+	$MODULE_DIR = "$CWD/CPAN";
+	-d $MODULE_DIR or mkdir $MODULE_DIR or die "Cannot create directory $MODULE_DIR: $!";
+
+	#
+	# first check that we have important environment variables set
+	#
+	if (!defined $ENV{HAVE_INSTALLED_SHEPHERD_VARS}) {
+		$ENV{HAVE_INSTALLED_SHEPHERD_VARS} = 1;
+		$ENV{PERL5LIB} = "" if (!defined $ENV{PERL5LIB});
+		$ENV{PERL5LIB} = "$MODULE_DIR:".$ENV{PERL5LIB};
+		$ENV{JS_THREADSAFE} = "n";	# stop JavaScript asking us this question..
+		system($0); # calls ourselves again
+		exit $?;
+	}
+
+	# find the standard CPAN/Config.pm
+	my $loc;
+	foreach my $systemdir (@INC) {
+		if (-r "$systemdir/CPAN/Config.pm") {
+			$loc = $systemdir;
+			last;
+		}
+	}
+	die "could not locate system-wide CPAN/Config.pm: is CPAN set up?\n" unless $loc;
+	eval { require CPAN::Config };
+
+	# create our own overrides for specific items
+	$CPAN::Config->{'build_dir'} = $MODULE_DIR."/build";
+	$CPAN::Config->{'cpan_home'} = $MODULE_DIR;
+	$CPAN::Config->{'histfile'} = $MODULE_DIR."/histfile";
+	$CPAN::Config->{'inhibit_startup_message'} = 1;
+	$CPAN::Config->{'keep_source_where'} = $MODULE_DIR."/sources";
+	$CPAN::Config->{'prerequisites_policy'} = "follow";
+	$CPAN::Config->{'makepl_arg'} = "PREFIX=$MODULE_DIR/mod SITELIBEXP=$MODULE_DIR/mod LIB=$MODULE_DIR/mod INSTALLMAN1DIR=$MODULE_DIR/man INSTALLMAN3DIR=$MODULE_DIR/man INSTALLSITEMAN1DIR=$MODULE_DIR/man INSTALLSITEMAN3DIR=$MODULE_DIR/man";
+
+	open(F,">$MODULE_DIR/MyConfig.pm") || die "can't write to $MODULE_DIR/MyConfig.pm: $!\n";
+	print F "\$"."CPAN::Config = \{\n";
+	foreach my $k (keys %{$CPAN::Config}) {
+		my $v = $CPAN::Config->{$k};
+		printf F "  '%s' => %s,\n",$k,neatvalue($v);
+	}
+	print F "};\n1;\n__END__\n";
+	close(F);
+}
+
+#undef @INC;
+push (@INC,$MODULE_DIR);
+
+require CPAN;
+
+print "$progname v$version (operating in $CWD, modules in $MODULE_DIR)\n\n";
+
+print "CPAN home seems to be $CPAN::Config->{cpan_home}\n";
+
+
+# required modules list
+# (generated from "grep '^use' ./shepherd */* | cut -d: -f2-100 | cut -d' ' -f2-100 | sort | uniq")
+my @mod_list =
+	( "Algorithm::Diff", "Compress::Zlib", "Cwd", "Data::Dumper", "Date::Manip", 
+	  "DateTime::Format::Strptime", "File::Basename", "File::Path", "Getopt::Long",
+	  "HTML::Entities", "HTML::TokeParser", "HTML::TreeBuilder",
+	  "Sub::Uplevel", "Test::Builder", "Test::Builder::Tester", "Test::Exception",
+	  "HTTP::Request::Common", "IO::File", "JavaScript", "List::Compare",
+	  "LWP::UserAgent", "Sort::Versions", "Storable", "Time::HiRes", 
+	  "XML::DOM", "XMLTV" );
+
+print "Checking dependencies..\n";
+
+foreach my $mod (@mod_list) {
+	print " >>>> $mod .. ";
+
+	my $modname = $mod.".pm";
+	$modname =~ s/::/\//g;
+
+	eval { require $modname; };
+	if ($@) {
+		print "got $@\n";
+		sleep 5;
+		print "installing ..\n";
+		my $obj = CPAN::Shell->expand("Module", $mod);
+
+		$obj->install;
+	} else {
+		print "ok.\n";
+	}
+}
+
+

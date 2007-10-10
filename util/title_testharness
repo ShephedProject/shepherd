@@ -1,0 +1,686 @@
+#!/usr/bin/perl -w
+
+#
+# test harness for evaluating different title-matching algorithms
+#
+
+use strict;
+$| = 1;
+
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use Data::Dumper;
+use Time::HiRes qw(gettimeofday tv_interval);
+
+my %algorithms = (
+	'imdb_type' =>		\&alternativeTitles_match,
+	'canonicalize' =>	\&canonicalizeTitles_match,
+	# ... add more algorithms here ...
+	'simple_string' => 	\&string_match);
+
+my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
+my $gmt_offset;
+my $num_programmes = 0;
+my $datafile, my $datafile_num = 0;
+my $prog_lineup;
+
+my $opt = { };
+GetOptions(
+	'create=s'		=> \$opt->{create},
+	'show_non_matches' 	=> \$opt->{show_non_matches},
+	'show_matches'		=> \$opt->{show_matches},
+	'test=s'		=> \$opt->{test},
+	'compare=s'		=> \$opt->{compare},
+	'title1=s'		=> \$opt->{title1},
+	'title2=s'		=> \$opt->{title2},
+	'help'			=> \$opt->{help});
+
+printf "title-matching test harness\n";
+if (($opt->{help}) ||
+    (!defined $opt->{test}) &&
+    (!defined $opt->{create}) &&
+    (!defined $opt->{compare}) &&
+    ((!defined $opt->{title1}) && (!defined $opt->{title2}))) {
+	my $alg_names = join("'\n\t\t  '",sort keys %algorithms);
+	print <<EOF
+  usage:
+	$0 --create (title_file) [FILE(s)]
+		create a listing of programmes from input xmltv files
+		(supplied from stdin or a list of files)
+		the resulting {titles_file} can then be used as input
+		into testing (--test) various title-matching algorithms
+
+	$0 --test {algorithm|all} [--show_non_matches] [--show_matches]
+		test the various title-matching algorithms based on
+		stdin from a list of titles {titles_file}
+
+	$0 --compare algorithm1,alghrithm2
+		compare two title-matching algorithms against each other,
+		printing only cases where they differ.
+		Algorithm names: $alg_names
+
+	$0 --title1=(title) --title2=(title)
+		compare two titles supplied from command line
+
+EOF
+;
+
+	exit(0);
+}
+
+@ARGV = ('-') if not @ARGV;
+$opt->{test} = $opt->{compare} if ($opt->{compare});
+&create_programme_lineup($opt->{create}) if ($opt->{create});
+&test_algorithms($opt->{test}) if ($opt->{test});
+&test_single_title($opt->{title1},$opt->{title2}) if (($opt->{title1}) && ($opt->{title2}));
+exit(0);
+
+##############################################################################
+# descend a structure and clean up various things, including stripping
+# leading/trailing spaces in strings, translations of html stuff etc
+#   -- taken & modified from Michael 'Immir' Smith's excellent tv_grab_au
+
+sub cleanup {
+	my $x = shift;
+	if    (ref $x eq "REF")   { cleanup($_) }
+	elsif (ref $x eq "HASH")  { cleanup(\$_) for values %$x }
+	elsif (ref $x eq "ARRAY") { cleanup(\$_) for @$x }
+	elsif (defined $$x) {
+		$$x =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
+		# $$x =~ s/[^\x20-\x7f]/ /g;
+		$$x =~ s/(^\s+|\s+$)//g;
+	}
+}
+
+##############################################################################
+# strptime type date parsing - BUT - if no timezone is present, treat time as
+# being in localtime rather than the various other perl implementation which
+# treats it as being in UTC/GMT
+
+sub parse_xmltv_date
+{
+	my $datestring = shift;
+	my @t; # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+	my $tz_offset = 0;
+
+	# work out GMT offset - we only do this once
+	if (!$gmt_offset) {
+		my @l = localtime(43200), my @g = gmtime(43200);
+		$gmt_offset = (($l[2] - $g[2])*(60*60)) + (($l[1] - $g[1])*60);
+	}
+
+	if ($datestring =~ /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/) {
+		($t[5],$t[4],$t[3],$t[2],$t[1],$t[0]) = (int($1)-1900,int($2)-1,int($3),int($4),int($5),0);
+		($t[6],$t[7],$t[8]) = (-1,-1,-1);
+
+		# if input data has a timezone offset, then offset by that
+		if ($datestring =~ /\+(\d{2})(\d{2})/) {
+			$tz_offset = $gmt_offset - (($1*(60*60)) + ($2*60));
+		} elsif ($datestring =~ /\-(\d{2})(\d{2})/) {
+			$tz_offset = $gmt_offset + (($1*(60*60)) + ($2*60));
+		}
+
+		my $e = mktime(@t);
+		return ($e+$tz_offset) if ($e > 1);
+	}
+	return undef;
+}
+
+##############################################################################
+
+sub dontcare_cb( $ )
+{
+	return;
+}
+
+##############################################################################
+
+sub programme_cb( $ )
+{
+	my $prog=shift;
+	&cleanup($prog);
+	# print "got programme from $datafile: ".Dumper($prog);
+
+	# make sure programme has a title
+ 	if (!defined $prog->{title} || !defined $prog->{title}->[0]) {
+		printf STDERR "programme with no title in %s; ignored.", $datafile;
+		return;
+	}
+	my $prog_title = $prog->{title}->[0]->[0];
+
+	my $t = &parse_xmltv_date($prog->{start});
+
+	if (!$t) {
+		printf STDERR "programme '%s' from %s had invalid start time (%s); ignored",
+		  $prog_title, ($prog->{start} ? $prog->{start} : "undef");
+		return;
+	}
+
+	# make programme time within a half-hour increment (0-47)
+	my $inc = int((($t + $gmt_offset) % (60*60*24)) / (60*30));
+
+	# print out programmes half-hour increments (0-47) & programme title
+	printf O "%d\t%d\t%s\n",$datafile_num,$inc,$prog_title;
+
+	$num_programmes++;
+}
+
+##############################################################################
+
+sub create_programme_lineup
+{
+	my $output = shift;
+
+	if (!(open(O,">$output"))) {
+		die "could not create output file $output: $!\n";
+	}
+
+	printf STDERR "creating programme lineup in file $output\n";
+	printf O "# datafile_num\thalf-hour-slot\tprogramme_name\n";
+
+	foreach my $file (@ARGV) {
+		$datafile = $file;
+		printf STDERR "parsing: %s\n",($datafile eq "-" ?
+		  "(from-stdin, hit control-D to finiah)" : $datafile);
+		eval { XMLTV::parsefiles_callback(\&dontcare_cb, \&dontcare_cb,
+		  \&dontcare_cb, \&programme_cb, $datafile); };
+		$datafile_num++;
+	}
+
+	printf STDERR "finished, $num_programmes programmes from $datafile_num sources in $output\n";
+	close(O);
+}
+
+
+
+##############################################################################
+
+sub test_algorithms
+{
+	my $alg = shift;
+	printf STDERR "testing %s algorithm%s against programmes from stdin\n",
+	  $alg, ($alg eq "all" ? "s" : "");
+
+	while (<STDIN>) {
+		chop;
+		next if ($_ =~ /^#/);
+		my ($n,$t,$p) = split(/\t/,$_);
+		push(@{($prog_lineup->[$t]->[$n])},$p);
+		$num_programmes++;
+		$datafile_num = $n if ($n > $datafile_num);
+	}
+	printf STDERR "%d programmes from %d sources across %d timeslots\n",
+		$num_programmes, $datafile_num, $#{$prog_lineup};
+
+	foreach my $a (sort keys %algorithms) {
+		if (($alg eq $a) || ($alg eq "all")) {
+			# printf STDERR "testing algorithm '%s' against %d programmes\n", $a, $num_programmes;
+			&test_alg($a);
+		}
+	}
+
+	&test_alg() if ($opt->{compare});
+
+	printf STDERR "\n";
+	printf STDERR "to see details on matches, use the --show_matches option.\n" unless $opt->{show_matches};
+	printf STDERR "to see details on non-matches, use the --show_non_matches option.\n" unless $opt->{show_non_matches};
+}
+
+##############################################################################
+
+sub test_single_title
+{
+	my $title1 = shift;
+	my $title2 = shift;
+
+	print "Testing matches between title1 \"$title1\" and \"$title2\" ...\n";
+
+	foreach my $alg (keys %algorithms) {
+		printf "  %20s algorithm %s\n",
+			$alg,
+			(($algorithms{$alg}->($title1,$title2)) ? "MATCH" : "NON-MATCH");
+	}
+}
+
+##############################################################################
+
+sub test_alg
+{
+	my $alg = shift;
+	my $matches = 0;
+	my $non_matches = 0;
+	my $alg_start = [gettimeofday];
+
+	my ($al1, $al2);
+	if ($opt->{compare} and $opt->{compare} =~ /(.*),(.*)/) {
+	    if ($algorithms{$1} and $algorithms{$2}) {
+		($al1, $al2) = ($1, $2);
+		print "Comparing $al1 to $al2.\n";
+	    }
+	}
+	    
+	foreach my $timeslot (0..$#{$prog_lineup}) {
+		foreach my $source (0..$datafile_num) {
+			next if (!defined $prog_lineup->[$timeslot]->[$source]);
+
+			# within each timeslot, compare programmes between
+			# data sources using the algorithm routine passed in
+			my @c1 = @{($prog_lineup->[$timeslot]->[$source])};
+
+			for my $source2 (0..$datafile_num) {
+				next if ($source == $source2);
+				next if (!defined $prog_lineup->[$timeslot]->[$source2]);
+
+				my @c2 = @{($prog_lineup->[$timeslot]->[$source2])};
+
+				# see how many matches we get between c1 and c2
+				foreach my $prog1 (@c1) {
+					foreach my $prog2 (@c2) {
+
+						# No point comparing the same string, is there?
+						next if ($prog1 eq $prog2);
+
+						if ($al1 and $al2) {
+						    my $m1 = $algorithms{$al1}->($prog1,$prog2);
+						    my $m2 = $algorithms{$al2}->($prog1,$prog2);
+						    if ($m1 != $m2) {
+							print "\"$prog1\" vs \"$prog2\": $al1 says " .
+							      ($m1 ? "MATCH" : "NON-MATCH") .
+							      " and $al2 says " .
+							      ($m2 ? "MATCH" : "NON-MATCH") . 
+							      ".\n";
+						    }
+						}
+						else {
+						    if ($algorithms{$alg}->($prog1,$prog2)) {
+							printf "algorithm $alg said '$prog1' and '$prog2' DO match\n" if ($opt->{show_matches});
+							$matches++;
+						    } else {
+							printf "algorithm $alg said '$prog1' and '$prog2' don't match\n" if ($opt->{show_non_matches});
+							$non_matches++;
+						    }
+						}
+					}
+				}
+			}
+		}
+	}
+
+	printf STDERR " - algorithm %s took %0.2fsec to record %d matches and %d non-matches.\n",
+	  $alg, tv_interval($alg_start), $matches, $non_matches;
+}
+
+##############################################################################
+# simple string match
+
+sub string_match
+{
+	my ($s1,$s2) = @_;
+	return 1 if (lc($s1) eq lc($s2));
+	return 0;
+}
+
+##############################################################################
+# original alternativeTitles() from XMLTV::IMDB, this one knows about even more translations..
+
+sub alternativeTitles($)
+{
+	my $title=shift;
+	my @titles;
+
+	push(@titles, $title);	# seed with original title
+
+	# try "&" -> "and" conversion ('Spicks & Specks' => 'Spicks and Specks')
+	if ( $title=~m/\&/o ) {
+		my $t=$title;
+		push(@titles, $t) while ( $t=~s/(\s)\&(\s)/$1and$2/o );
+	}
+
+	# try the "and" -> "&" conversion ('Spicks and Specks' => 'Spicks & Specks')
+	if ( $title=~m/\sand\s/io ) {
+		my $t=$title;
+		push(@titles, $t) while ( $t=~s/(\s)and(\s)/$1\&$2/io );
+	}
+
+	# 'Barney  Friends' => 'Barney & Friends'
+	foreach my $t (@titles) {
+		if ($t =~ /^(.*)  (.*)$/) {
+			push(@titles,"$1 & $2");
+		}
+	}
+
+	# 'Barney  Friends' => 'Barney - Friends'
+	foreach my $t (@titles) {
+		if ($t =~ /^(.*)  (.*)$/) {
+			push(@titles,"$1 - $2");
+		}
+	}
+
+	# "Creflo A. Dollar, Jr" => "Creflo A Dollar" 
+	# "House, M.D." => "House"
+	foreach my $t (@titles) {
+		push(@titles,"$1") if ($t =~ /^(.*), Jr$/);
+		push(@titles,"$1") if ($t =~ /^(.*), M\.D\.$/);
+	}
+
+	# "quotes" -> quotes
+	foreach my $t (@titles) {
+		push(@titles,$1) if ( $t =~ /^\"(.*)\"$/);
+	}
+
+	# remove full stops - e.g. will translate 'Dr. Dog.' to 'Dr Dog.' and 'Dr Dog'
+	foreach my $t (@titles) {
+		if ($t =~ /\./) {
+			my @new_titles;
+			push(@new_titles, $t) while ( $t=~s/(.*)\.(.*)/$1$2/io );
+			push(@titles,@new_titles);
+		}
+	}
+
+	# remove dashes
+	foreach my $t (@titles) {
+		if ($t =~ /\-/) {
+			my @new_titles;
+			push(@new_titles, $t) while ( $t=~s/(.*)\-(.*)/$1$2/io );
+			push(@titles,@new_titles);
+		}
+	}
+
+	# # strip *'s: "M*A*S*H" => "MASH";
+	foreach my $t (@titles) {
+		if ($t =~ /\*/) {
+			my @new_titles;
+			push(@new_titles, $t) while ( $t=~s/(.*)\*(.*)/$1$2/io );
+			push(@titles,@new_titles);
+		}
+	}
+
+	# remove !s
+	foreach my $t (@titles) {
+		if ($t =~ /\'/) {
+			my @new_titles;
+			push(@new_titles, $t) while ( $t=~s/(.*)\'(.*)/$1$2/io );
+			push(@titles,@new_titles);
+		}
+	}
+
+	# remove :s
+	foreach my $t (@titles) {
+		if ($t =~ /:/) {
+			my @new_titles;
+			push(@new_titles, $t) while ( $t=~s/(.*):(.*)/$1$2/io );
+			push(@titles,@new_titles);
+		}
+	}
+
+	# remove apostrophies
+	foreach my $t (@titles) {
+		if ($t =~ /\!/) {
+			my @new_titles;
+			push(@new_titles, $t) while ( $t=~s/(.*)!(.*)/$1$2/io );
+			push(@titles,@new_titles);
+		}
+	}
+
+	# remove commas
+	foreach my $t (@titles) {
+		if ($t =~ /\,/) {
+			my @new_titles;
+			push(@new_titles, $t) while ( $t=~s/(.*)\,(.*)/$1$2/io );
+			push(@titles,@new_titles);
+		}
+	}
+
+	# strip text after !s provided we have at least one word
+	# e.g. will fix 'Jakers! The Adventures of Piggley Winks' to match 'Jakers'
+	# or 'Jakers! The Adventures of Piggley Winks' to match 'The Adventures of Piggley Winks'
+	foreach my $t (@titles) {
+		if ($t =~ /! /) {
+			my @t2 = split(/! /,$t);
+			push(@titles, @t2);
+		}
+	}
+
+	# 'Behind The News (5 Min)' => 'Behind the News 5 Min'
+	#
+	# also used to do:
+	#   'Behind The News (5 Min)' => 'Behind the News'
+	#   'Message Stick (Shorts)' => 'Message Stick'
+	# but removed because it caused false positives on "Stateline (VIC)", "Stateline (TAS)" etc.
+	foreach my $t (@titles) {
+		if ($t =~ /(.+)\((.+)\)$/) {
+			# my $t2 = $1;
+			my $t3 = $1.$2;
+			# $t2 =~ s/(^\s+|\s+$)//g; # strip leading/trailing spaces
+			$t3 =~ s/(^\s+|\s+$)//g; # strip leading/trailing spaces
+			# push(@titles,$t2);
+			push(@titles,$t3);
+		}
+	}
+
+	# 'Family Story: The Longest Season' => 'Family Story'
+	foreach my $t (@titles) {
+		if ($t =~ /: /) {
+			my @t2 = split(/: /,$t);
+			push(@titles, @t2);
+		}
+	}
+
+	# removed: causes a false positive on "One World  USA" / "One World  Sri Lanka"
+	# # 'Family Story  The Longest Season' => 'Family Story: The Longest Season'
+	# foreach my $t (@titles) {
+	# 	if ($t =~ /  /) {
+	# 		my @t2 = split(/  /,$t);
+	# 		push(@titles, @t2);
+	# 	}
+	# }
+
+	# #39; -> '  ('He&#39;s Having A Baby' => 'He\'s Having a Baby')
+	foreach my $t (@titles) {
+		my $t2 = $t;
+		$t2 =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
+		push(@titles,$t2) if ($t2 ne $t);
+	}
+
+	# 'Head 2 Head' => 'Head To Head'
+	foreach my $t (@titles) {
+		push(@titles, "$1 to $2") if ($t =~ /(.*) 2 (.*)/);
+	}
+
+	# remove leading 'The':
+	# "Iron Chef" alternatives "The Iron Chef"
+	# "The Newshour with Jim Lehrer" alternative "Newshour with Jim Lehrer"
+	foreach my $t (@titles) {
+		push(@titles,"$1") if ($t =~ /^The (.*)$/);
+	}
+
+	# strip "With [..]" if at least 10 chars before With
+	#   "The 7.30 Report With Kerry O'brien" alternatives "The 7.30 Report"
+	#   "Seven News With Peter Mitchell" alternatives "Seven News"
+	#   "Today Tonight With Naomi Robson" alternatives "Today Tonight"
+	foreach my $t (@titles) {
+		if ($t =~/^(.*) [Ww]ith (.*)$/) {
+			my $t2 = $1;
+			push (@titles, $t2) if (length($t2) >= 10);
+		}
+	}
+
+	# Place the articles last
+	# 'The Daily Show' => 'Daily Show, The'
+	foreach (@titles) {
+		if ( m/^(The|A|Une|Les|Los|Las|L\'|Le|La|El|Das|De|Het|Een)\s+(.*)$/io ) {
+			my $t=$_;
+			$t=~s/^(The|A|Une|Les|Los|Las|L\'|Le|La|El|Das|De|Het|Een)\s+(.*)$/$2, $1/iog;
+			push(@titles, $t);
+		}
+	}
+
+	#foreach my $t (@titles) { printf "alternativeTitles: alternative \"$t\"\n"; }
+
+	return(@titles);
+}
+
+sub alternativeTitles_match
+{
+	my ($s1,$s2) = @_;
+
+	my @alt1 = alternativeTitles($s1);
+	my @alt2 = alternativeTitles($s2);
+
+	foreach my $a1 (@alt1) {
+		foreach my $a2 (@alt2) {
+			return 1 if (lc($a1) eq lc($a2));
+		}
+	}
+	return 0;
+}
+
+##############################################################################
+
+sub canonicalizeTitle
+{
+	my $title=shift;
+	$title =~ s/^\s+//;
+	$title =~ s/\s+$//;
+	$title =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
+	$title =~ s/ *\& */ and /g;
+	$title =~ s/[^ a-zA-Z0-9]//g;
+	$title =~ s/\s+/ /;
+	return(lc($title));
+}
+
+my %alternatives = ( one => "1",
+		     two => "2",
+		     to  => "2",
+		     too => "2",
+		     three => "3",
+		     four => "4",
+		     for => "4",
+		     five => "5",
+		     six => "6",
+		     seven => "7",
+		     eight => "8",
+		     nine => "9"
+		   );
+
+sub forgivingMatch
+{
+	my $word1 = shift;
+	my $word2 = shift;
+
+	# exact match
+	return 1 if $word1 eq $word2;
+	# they match according to our alternatives lookup table
+	return 1 if $alternatives{$word1} && $alternatives{$word1} eq $word2 ||
+		    $alternatives{$word2} && $alternatives{$word2} eq $word1;
+	# irreconcilable differences
+	return 0 if abs(length($word1) - length($word2)) > 1 ||
+		    length($word1) < 3;
+
+	my @list1 = split(//,$word1);
+	my @list2 = split(//,$word2);
+	my $i = 0;
+	my $j = 0;
+
+	# find first difference
+	while ($i < @list1 && $j < @list2 && $list1[$i] eq $list2[$j]) {
+		++$i; ++$j;
+	}
+	if ($i+1 < @list1 && $j+1 < @list2) {
+		# at least 2 chars to go in both words
+		if ($list1[$i+1] eq $list2[$j] && $list1[$i] eq $list2[$j+1]) {
+			# characters transposed
+			$i += 2;
+			$j += 2;
+		} elsif ($list1[$i+1] eq $list2[$j]) {
+			# extra character inserted into @list1
+			$i += 2;
+			++$j;
+		} elsif ($list1[$i] eq $list2[$j+1]) {
+			# extra character inserted into @list2
+			++$i;
+			$j += 2;
+		} else {
+			# single character difference
+			++$i;
+			++$j;
+		}
+		# we forgave one difference; now do rest of strings match exactly?
+		while ($i < @list1 && $j < @list2 && $list1[$i] eq $list2[$j]) {
+			++$i; ++$j;
+		}
+		return($i == @list1 && $j == @list2);
+	} elsif ($i == @list1 || $j == @list2) {
+		# only difference is one word has one extra letter, or last char
+		# of each word differ.  That's still only one one-char difference
+		return(1);
+	}
+}
+
+sub canonicalizeTitles_match
+{
+	my $word1=canonicalizeTitle(shift);
+	my $word2 =canonicalizeTitle(shift);
+	my @longer;
+	my @shorter;
+
+	if (length($word1) > length($word2)) {
+		@longer  = split(/\s+/, $word1);
+		@shorter = split(/\s+/, $word2);
+	} else {
+		@shorter = split(/\s+/, $word1);
+		@longer  = split(/\s+/, $word2);
+	}
+
+#printf "got shorter: '%s', longer '%s'\n",$shorter,$longer;
+	WORD: for my $word (@shorter) {
+#printf "got word: '%s'\n",$word;
+		for(my $i=0; $i < @longer; ++$i) {
+			if (forgivingMatch($longer[$i], $word)) {
+				splice(@longer,$i,1);
+				next WORD;
+			} elsif ($i+1 < @longer &&
+				 $word eq "$longer[$i]$longer[$i+1]") {
+				splice(@longer,$i,2);
+				next WORD;
+			}
+		}
+		return(0);
+	}
+
+	# if the left-hand-side programme matches the right-hand-side, ensure the
+	# alternate programme ALSO matches the right-hand-side
+	my $canonical_stop_list_exceptions = {
+		'Law.*Order' => [ "Criminal", "SVU", "Special", "Trial" ],
+		'(CSI|Crime.*Scene.*Investigation).*:' => [ ":.*Crime", "NY", "N.Y", "New", "Miami" ]
+		};
+	foreach my $stop1 (keys %$canonical_stop_list_exceptions) {
+		#printf "checking word1 ($word1) against stoplist stop1 ($stop1) ..\n";
+		if ($word1 =~ /^$stop1/i) {
+			#printf "  word1 ($word1) contains stop1 ($stop1)\n";
+			foreach my $stop2 (@{($canonical_stop_list_exceptions->{$stop1})}) {
+				#printf "    checking whether word1 ($word1) contains stop2 ($stop2)\n";
+				if ($word1 =~ /$stop2/i) {
+					#printf "      word1 ($word1) contains stop2 ($stop2)\n";
+					if ($word2 !~ /$stop2/i) {
+						#printf "        word2 ($word2) doesn't contain stop2 ($stop2). rejecting match!\n";
+						return 0;
+					}
+				}
+				#printf "    checking whether word2 ($word2) contains stop2 ($stop2)\n";
+				if ($word2 =~ /$stop2/i) {
+					#printf "      word2 ($word2) contains stop2 ($stop2)\n";
+					if ($word1 !~ /$stop2/i) {
+						#printf "        word1 ($word1) doesn't contain stop2 ($stop2). rejecting match!\n";
+						return 0;
+					}
+				}
+			}
+		}
+	}
+
+	return(1);
+}
+
+##############################################################################

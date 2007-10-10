@@ -1,0 +1,334 @@
+#!/usr/bin/perl
+#
+# ebroadcast
+#
+# Proof-of-concept grabber. Not ready for prime time.
+#
+# The main thing that makes this interesting is that it can supply PayTV.
+
+my $version = '0.1';
+
+# Issues:
+# * Doesn't grab details. Could be made to, but details are really sparse
+#   so it hardly seems worth it.
+# * Server seems incredibly flaky. Often craps out, and even when it's
+#   up it's very slow.
+# * Show titles are often ALL IN CAPS
+# * Idiosyncratic channel names
+# * Rural regions are combined into a single guide with notes like
+#   "(excl. Albury)" beside individual shows
+
+use strict;
+use Getopt::Long;
+use POSIX;
+use Date::Manip;
+use HTML::TreeBuilder;
+use XMLTV;
+use Data::Dumper;
+use Shepherd::Common;
+use Shepherd::JS;
+
+$| = 1;
+
+my $progname =	    'ebroadcast';
+my $DATASOURCE =    'http://www.ebroadcast.com.au';
+my $GUIDE =	    "$DATASOURCE/cgi-bin/TV/grid?";
+my $JS =	    "$DATASOURCE/tv/crypt.js";
+my $JS_LOCAL =	    "crypt.js";
+my $lang =	    "en";
+
+my $opt = { };
+my $channels = { };
+my $opt_channels = { };
+my $debug = 0;
+my $tv_guide = { };
+my %stats;
+
+print "$progname $version\n";
+&set_defaults;
+&get_command_line_options;
+
+exit 0 if ($opt->{version});
+
+&read_channels_file;
+&read_gaps_file;
+
+Shepherd:Common::set_defaults(debug => $debug * 4, stats => \%stats, delay => "1-5", retry_delay => "8-12");
+
+&setup_js_file;
+
+&get_guide_data;
+
+&adjust_times;
+
+print Dumper($tv_guide);
+&write_xml;
+
+print "Done.\n";
+
+exit 0;
+
+
+###############
+# Subs
+#
+
+sub get_guide_data
+{
+    print "Grabbing data for days $opt->{offset}-" .
+          ($opt->{days} - 1) . " into $opt->{output}.\n";
+
+    my @lt = localtime;
+
+    # Establish epoch time for midnight on day 0
+    my $epoch = time - ($lt[0] + ($lt[1] * 60) + $lt[2] * 3600); 
+
+    for my $day ($opt->{offset} .. $opt->{days} - 1)
+    {
+	my $date = POSIX::strftime("%A_%d_%B", localtime($epoch + ($day * 86400)));
+
+	print "Day $day: $date\n" if ($debug);
+
+	my @sessions = ( 'LateNight', 'Morning', 'Afternoon', 'Night');
+	my $i = 0;
+	while ($i++ < @sessions)
+	{
+	    # Don't get any times earlier than now
+	    next unless ($day or time < $epoch + (($i+1) * 6 * 3600));
+
+	    my $url = sprintf("%sdate=%s&TVperiod=%s&state=%s&fta=%d&fox=%d&opt=%d",
+			$GUIDE,
+			$date,
+			$sessions[$i],
+			'Melbourne',	# FIXME: allow other regions
+			1,
+			0,		# FIXME: allow paytv details
+			0);		# FIXME? Need Optus as well?
+	    my $data = Shepherd::Common::get_url($url);
+	    next unless ($data);
+
+	    $data = Shepherd::JS::read($data, $debug);
+
+	    parse_guide($data, $epoch+($day*86400));
+	}
+    }
+}
+
+sub parse_guide
+{
+    my ($data, $midnight) = @_;
+
+    my $tree = HTML::TreeBuilder->new_from_content($data);
+    foreach my $tag ($tree->look_down('_tag' => 'th', 'background' => '/pic/2005/2005_grid_blur.gif'))
+    {
+	my $channame = find_channel($tag->as_text());
+	unless ($channels->{$channame})
+	{
+	    print "Unsubscribed channel: \"$channame\". Skipping.\n" if ($debug);
+	    next;
+	}
+	print "Channel \"$channame\"\n" if ($debug);
+
+	while ($tag = $tag->right)
+	{
+	    my @parts = split /<br>/, $tag->as_HTML;
+
+	    foreach my $part (@parts)
+	    {
+		$part =~ s/<.*?>//g;
+		if ($part =~ /(\d+).(\d+) ([ap]m): ([^|]*)/g)
+		{
+		    my $show;
+
+		    my $title = $4;
+		    my $time = $1;
+		    $time = 0 if ($time == 12);
+		    $time += 12 if ($3 eq 'pm');
+		    $time = ($time * 3600) + ($2 * 60);	# seconds past midnight
+		    $time += $midnight;
+		    $show->{start} = POSIX::strftime("%Y%m%d%H%M", localtime($time));
+
+		    if ($title =~ s/( \(.*?\))//g)
+		    {
+			# Ignore shows with no easily available start time
+			next if ($1 eq ' (Cont.)');
+
+			# FIXME: regional stuff "(excl. Albury)"
+			print "Removed $1 from $title\n";
+		    }
+		    $show->{title} = [ [ $title, $lang ] ];
+		    $show->{channel} = $channame;
+
+		    print "- $title\n";
+		    $tv_guide->{$channame}->{$time} = $show;
+		}
+	    }
+	}
+    }
+}
+
+sub adjust_times
+{
+    my $stoptimes = { };
+    foreach my $channel (keys %$tv_guide)
+    {
+	foreach my $starttime (reverse sort keys %{$tv_guide->{$channel}})
+	{
+	    my $prog = $tv_guide->{$channel}->{$starttime};
+
+	    if (defined $stoptimes->{$channel})
+	    {
+		$tv_guide->{$channel}->{$starttime}->{stop} = POSIX::strftime("%Y%m%d%H%M", localtime($stoptimes->{$channel}));
+	    }
+	    else
+	    {
+		# Don't know stop time
+		delete $tv_guide->{$channel}->{$starttime};
+	    }
+	    $stoptimes->{$channel} = $starttime;
+	}
+    }
+}
+
+sub write_xml
+{
+    my %writer_args = ( encoding => 'ISO-8859-1' );
+
+    print "Writing XML.\n";
+
+    my $fh = new IO::File(">" . $opt->{output})
+	or die "Can't open " . $opt->{output} . ": $!";
+    $writer_args{OUTPUT} = $fh;
+
+    my $writer = new XMLTV::Writer(%writer_args);
+
+    $writer->start
+    	( { 'source-info-url'    => $DATASOURCE,
+	    'source-info-name'   => "ebroadcast",
+	    'generator-info-name' => "$progname $version"} );
+
+    foreach my $channel (sort keys %$tv_guide)
+    {
+	my $chanid = $channels->{$channel};
+	$writer->write_channel( { 'display-name' => [[$channel, $lang]],
+		'id' => $chanid } );
+    }
+
+    foreach my $channel (sort keys %$tv_guide)
+    {
+	foreach my $starttime (keys %{$tv_guide->{$channel}})
+	{
+	    print "- " . $tv_guide->{$channel}->{$starttime}->{'title'}[0][0] . "\n" if ($debug);
+	    $writer->write_programme($tv_guide->{$channel}->{$starttime});
+	}
+    }
+
+    $writer->end();
+}
+
+sub find_channel
+{
+    my $str = shift;
+
+    my $channames = {
+	'SBSNEWS' => 'SBS News',
+	'31' => 'Channel 31',
+	'Ten' => 'TEN'
+    };
+
+    $str =~ s/ \(.*?\)//g; # Remove anything in brackets
+    $str =~ s/[\W _-]//g;  # Remove weird chars
+    return $channames->{$str} if ($channames->{$str});
+    return $str;
+}	 
+
+###############
+# Utilities
+#
+
+sub setup_js_file
+{
+    my $data;
+    if (-r $JS_LOCAL)
+    {
+	if (open (F, $JS_LOCAL))
+	{
+	    print "Reading local file $JS_LOCAL.\n" if ($debug);
+	    $data = '';
+	    while (<F>)
+	    {
+		$data .= $_;
+	    }
+	    close F;
+	}
+    }
+    unless ($data)
+    {
+	$data = Shepherd::Common::get_url(url => $JS, retries => 9);
+	if ($data and open (F, ">$JS_LOCAL"))
+	{
+	    print "Storing $JS_LOCAL locally.\n";
+	    print F $data;
+	    close F;
+	}
+    }
+    unless ($data)
+    {
+	print "*** WARNING: Failure to fetch $JS will probably be fatal. ***\n";
+    }
+    Shepherd::JS::eval_js($data, $debug);
+}
+
+sub set_defaults
+{
+    $opt->{days} = 7;
+    $opt->{offset} = 0;
+    $opt->{region} = 94;
+    $opt->{output} = getcwd() . "/output.xmltv";
+}
+
+sub get_command_line_options
+{
+    Getopt::Long::Configure(qw/pass_through/);
+    GetOptions($opt, qw(
+                        help
+                        debug
+                        output=s
+                        days=i
+                        offset=i
+                        region=i
+                        channels_file=s
+                        version
+                    ));	
+    $debug = $opt->{debug};
+}
+
+sub read_channels_file 
+{
+    read_config_file('channels', 'channels_file');
+}
+
+sub read_gaps_file
+{
+    read_config_file('gaps', 'gaps_file');
+}
+
+sub read_config_file
+{
+    my ($name, $arg) = @_;
+
+    return unless ($opt->{$arg});
+    print "Reading $name file: $opt->{$arg}\n";
+    if (-r $opt->{$arg})
+    {
+        local (@ARGV, $/) = ($opt->{$arg});
+        no warnings 'all';
+        eval <>;
+        die "Can't parse $name file: $@" if ($@);
+    }
+    else
+    {
+        print "Unable to read $name file.\n";
+    }
+}
+

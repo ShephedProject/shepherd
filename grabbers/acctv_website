@@ -1,0 +1,336 @@
+#!/usr/bin/perl -w
+
+use strict;
+use XMLTV;
+use Shepherd::Common;
+use POSIX qw(strftime mktime);
+use Data::Dumper;
+use HTML::TreeBuilder;
+
+#
+# global variables and settings
+#
+
+$| = 1;
+my $details_cache;
+my $writer;
+my $baseurl = "http://www.acctv.com.au/";
+
+#
+# go go go!
+#
+
+my %stats;
+my $o;
+Shepherd::Common::program_begin(\$o, "acctv_website", "0.02", \%stats);
+
+my ($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, ("ACC"));
+
+&read_cache unless (defined $o->{no_cache});
+&start_writing_xmltv;
+&get_days();
+$writer->end();
+&write_cache unless (defined $o->{no_cache});
+
+Shepherd::Common::program_end($o, %stats);
+exit(0);
+
+##############################################################################
+# populate cache
+
+sub read_cache
+{
+	my $store = Shepherd::Common::read_cache(\$o->{cache_file});
+
+	if ($store) {
+		$details_cache = $store->{details_cache} if (defined $store->{details_cache});
+	}
+}
+
+##############################################################################
+# write out updated cache
+
+sub write_cache
+{
+        # cleanup old prog entries from cache
+	for my $cache_key (keys %{$details_cache}) {
+		# no real way to detect changes so check every four weeks
+		if ($details_cache->{$cache_key}->{added} < ($o->{script_start_time} - (28*24*60*60))) {
+			delete $details_cache->{$cache_key};
+			$stats{cache_expire}++;
+		}
+	}
+
+	my $store = { };
+	$store->{details_cache} = $details_cache;
+	Shepherd::Common::write_cache($o->{cache_file}, $store);
+}
+
+##############################################################################
+
+sub start_writing_xmltv
+{
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($o->{outputfile}) {
+		my $fh = new IO::File(">$o->{outputfile}") || die "can't open $o->{outputfile}: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	$writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+	  ( { 'source-info-name' => "$o->{program_name} v$o->{version_number}",
+	      'generator-info-name' => "$o->{program_name} v$o->{version_number}"} );
+
+	$writer->write_channel( {'display-name' => [[ "ACC", $o->{lang} ]], 'id' => $opt_channels->{ACC} } );
+}
+
+##############################################################################
+
+sub get_days
+{
+	Shepherd::Common::log("Setting region");
+	my $intnewtzstate = 0;
+	$intnewtzstate = 7 if ($o->{region} =~ /^(126)$/);
+	$intnewtzstate = 0 if ($o->{region} =~ /^(73|184|66|67|63|69|71|106)$/);
+	$intnewtzstate = 6 if ($o->{region} =~ /^(74|108)$/);
+	$intnewtzstate = 2 if ($o->{region} =~ /^(75|78|79|114)$/);
+	$intnewtzstate = 3 if ($o->{region} =~ /^(81|82|83|85|86|107)$/);
+	$intnewtzstate = 5 if ($o->{region} =~ /^(88)$/);
+	$intnewtzstate = 1 if ($o->{region} =~ /^(94|93|90|95|98)$/);
+	$intnewtzstate = 4 if ($o->{region} =~ /^(101|102)$/);
+	my $data = &Shepherd::Common::get_url(url => $baseurl."schedule.asp",
+			postvars => "intnewtzstate=" . $intnewtzstate);
+
+	my @timeattr = localtime($o->{script_start_time});
+	# 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+	$timeattr[0] = 0; # zero sec
+	$timeattr[1] = 0; # zero min
+	$timeattr[2] = 0; # zero hour
+	$timeattr[3] += $o->{offset}; # day
+	my $first_day = mktime(@timeattr); # don't return anything before first day
+	# guide pages have part days so grab day before
+	$timeattr[3]--; # day
+
+	my $progs;
+	foreach my $day (($o->{offset}-1) .. ($o->{days}-1)) {
+		my $date = mktime(@timeattr);
+		$timeattr[3]++; # day
+	
+		&Shepherd::Common::log("Fetching day $day");
+
+		my $progs_in_day = &get_day($first_day, $date);
+		last if ($progs_in_day == 0 && $day >= 0);
+
+		&Shepherd::Common::log("  found $progs_in_day programmes.");
+	}
+}
+
+##############################################################################
+
+sub get_day
+{
+	my ($first_day, $date) = @_;
+
+	my $url = $baseurl."schedule.asp?day=" . POSIX::strftime("%m%%2F%d%%2F%Y", localtime($date));
+
+	my $data = &Shepherd::Common::get_url($url);
+	if (!$data) {
+		Shepherd::Common::log("Failed to get html for '$url'");
+		$stats{failed_html_get}++;
+		return 0;
+	}
+	Shepherd::Common::log("DEBUG: html: $data") if ((defined $o->{debug}) && ($o->{debug} > 2));
+
+	my $tree = HTML::TreeBuilder->new_from_content($data);
+	if (!$tree) {
+		Shepherd::Common::log("Can't parse html for '$url'");
+		$stats{failed_html_parse}++;
+		return 0;
+	}
+
+	my @tables = $tree->find_by_tag_name('table');
+	if (@tables < 2) {
+		Shepherd::Common::log("Format has changed for '$url'");
+		$stats{failed_html_change}++;
+		return 0;
+	}
+
+	my $progs_in_day = 0;
+	my @tds = $tables[1]->find_by_tag_name('td'); # from second table
+	my $td = shift @tds;
+	my $text = $td->as_trimmed_text() if $td;
+	while (@tds > 0) {
+		my $prog;
+
+		if ($text !~ /(\d+):(\d+) (am|pm)/) { # start
+			Shepherd::Common::log("skipped   : " . $td->as_HTML()) if $o->{debug};
+			$td = shift @tds || last;
+			$text = $td->as_trimmed_text();
+			next;
+		}
+		$prog->{start} = $date + (($1)*60 + $2)*60;
+		$prog->{start} += 12*60*60 if ($3 eq 'pm' && $1 != 12);
+		$prog->{start} += 24*60*60 if ($3 eq 'am' && $1 < 6);
+		$prog->{start} += 12*60*60 if ($3 eq 'am' && $1 == 12);
+		Shepherd::Common::log("\ntime      : $1:$2 $3  " .
+				POSIX::strftime("%Y%m%d%H%M", localtime($prog->{start})))
+				if $o->{debug};
+		$td = shift @tds || last;
+		$text = $td->as_trimmed_text();
+
+		my $a = $td->find_by_tag_name('a') || next; # title
+		$prog->{title} = [[$a->as_trimmed_text(), $o->{lang}]];
+		my $link = $a->attr('href'); # link
+		Shepherd::Common::log("title link: $prog->{title}->[0]->[0] \t$link") if ($o->{debug});
+		$td = shift @tds || goto PART;
+		$text = $td->as_trimmed_text();
+
+	PART:
+		# don't return anything before first day
+		next if ($prog->{start} <= ($first_day - 2*60*60));
+
+		$prog = get_details($prog, $link);
+
+		# don't return anything before first day
+		next if (defined $prog->{stop} && $prog->{stop} <= $first_day);
+
+		$prog->{start} = POSIX::strftime("%Y%m%d%H%M",localtime($prog->{start}));
+		$prog->{stop} = POSIX::strftime("%Y%m%d%H%M",localtime($prog->{stop})) if defined $prog->{stop};
+		$prog->{channel} = $opt_channels->{ACC};
+		push(@{$prog->{'category'}}, ["Religion", $o->{lang}])
+				if !grep($_->[0] eq "Religion", @{$prog->{'category'}});
+
+		Shepherd::Common::cleanup($prog);
+
+		Shepherd::Common::log("DEBUG: xmltv: ".Dumper($prog))
+				if ((defined $o->{debug}) && ($o->{debug} > 1));
+
+		$writer->write_programme($prog);
+
+		$progs_in_day++;
+		$stats{programmes}++;
+	}
+
+	$tree->delete();
+
+	Shepherd::Common::log("WARNING: Only $progs_in_day programmes seen for url $url")
+			if ($progs_in_day < 5);
+
+	return $progs_in_day;
+}
+
+sub get_details
+{
+	my ($prog, $link) = @_;
+
+	my $cache_key = sprintf("%s:%s", $prog->{title}->[0]->[0], $link);
+	if (defined $details_cache->{$cache_key}) {
+		foreach ('desc', 'length', 'category', 'credits') {
+			next if !defined $details_cache->{$cache_key}->{$_};
+			Shepherd::Common::log(" cache use $_ \t: $details_cache->{$cache_key}->{$_}") if ($o->{debug});
+			$prog->{$_} = $details_cache->{$cache_key}->{$_};
+		}
+		if (defined $prog->{length}) {
+			$prog->{stop} = $prog->{start} + $prog->{length};
+			delete $prog->{length};
+		}
+		$stats{cached_used}++;
+		return $prog;
+	}	
+
+	my $url = $baseurl . $link;
+	if (($stats{failed_details_html_get} && $stats{failed_details_html_get} > 5) ||
+		($stats{failed_details_html_parse} && $stats{failed_details_html_parse} > 5) ||
+		($stats{failed_details_html_change} && $stats{failed_details_html_change} > 5)) {
+		Shepherd::Common::log("Too many errors retrieving details, skipping '$url'");
+		return $prog;
+	}
+
+	my $data = &Shepherd::Common::get_url($url);
+	if (!$data) {
+		Shepherd::Common::log("Failed to get html for details '$url'");
+		$stats{failed_details_html_get}++;
+		return $prog;
+	}
+	Shepherd::Common::log("DEBUG: html: $data") if ((defined $o->{debug}) && ($o->{debug} > 2));
+
+	my $tree = HTML::TreeBuilder->new_from_content($data);
+	if (!$tree) {
+		Shepherd::Common::log("Can't parse html for details '$url'");
+		$stats{failed_details_html_parse}++;
+		return $prog;
+	}
+
+	my @tables = $tree->find_by_tag_name('table');
+	if (@tables < 3) {
+		Shepherd::Common::log("Format has changed for details '$url'");
+		$stats{failed_details_html_change}++;
+		return $prog;
+	}
+
+	my $h4 = $tables[1]->find_by_tag_name('h4') || return; # from second table
+	my $desc = $h4->right();
+        $prog->{desc} = [[$desc, $o->{lang}]] if !ref($desc); # desc
+	Shepherd::Common::log("desc      : $desc") if ($o->{debug});
+
+	my @categories;
+
+	my @tds = $tables[2]->find_by_tag_name('td'); # from third table
+	my $td = shift @tds;
+	my $header = $td->as_trimmed_text() if $td;
+	$header =~ s/[^\x20-\x7f]//g; # remove &nbsp;
+	my $content;
+	while (@tds > 0) {
+		$td = shift @tds || last;
+		$content = $td->as_trimmed_text();
+		Shepherd::Common::log("header content : $header\t$content") if ($o->{debug});
+
+		if ($header eq 'Length') {
+			if ($content !~ /^(\d+) /) { # length
+				Shepherd::Common::log("skipped detail length : " . $td->as_HTML()) if $o->{debug};
+				$td = shift @tds || last;
+				$header = $td->as_trimmed_text();
+				next;
+			}
+			my $length = ($1 < 3 ? ($1*60*60) : ($1*60));
+			$prog->{length} = $length;
+			Shepherd::Common::log("set length     : $length") if ($o->{debug});
+		} elsif ($header eq 'Genre') {
+			push(@categories, [$content, $o->{lang}]); # category
+			Shepherd::Common::log("set category   : $content") if ($o->{debug});
+		} elsif ($header eq 'Speaker/Host') {
+			#Amanda Wells and Chris Byers
+			my @actors = split(/,|and/, $content);
+			$prog->{credits}->{actor} = [@actors];	# actor
+			Shepherd::Common::log("set actors     : @actors") if ($o->{debug});
+		}
+
+		$td = shift @tds || last;
+		$header = $td->as_trimmed_text();
+		$header =~ s/[^\x20-\x7f\x0a]//g; # remove &nbsp;
+	}
+
+	$prog->{category} = [@categories];
+
+	foreach ('desc', 'length', 'category', 'credits') {
+		next if !defined $prog->{$_};
+		Shepherd::Common::log(" cache add $_ \t: $prog->{$_}") if ($o->{debug});
+		$details_cache->{$cache_key}->{$_} = $prog->{$_};
+	}
+	$details_cache->{$cache_key}->{added} = $o->{script_start_time};
+
+	$stats{cached_added}++;
+	if (($stats{cached_added} % 32) == 0)
+	{
+		&write_cache unless (defined $o->{no_cache});
+		Shepherd::Common::log(" cache write");
+	}
+
+	if (defined $prog->{length}) {
+		$prog->{stop} = $prog->{start} + $prog->{length};
+		delete $prog->{length};
+	}
+
+	return $prog;
+}

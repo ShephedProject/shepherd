@@ -1,0 +1,667 @@
+#!/usr/bin/perl -w
+
+# ABC/ABC2 au_tv guide grabber - runs from "Shepherd" master grabber
+#  * written by ltd
+#  * uses ABC website for ABC or ABC2 data
+#  * when used in conjunction with Shepherd, shepherd can collect other channels
+#    using other grabbers
+#  * this does NOT use any config file - all settings are passed in from shepherd
+
+#  changelog:
+#    1.50  22sep06      added support for "shepherd" master grabber script
+#    1.51  02oct06      --ready option
+#    1.52  03oct06      split out abc grabber into its own grabber
+#    1.55  09oct06      formalize --cheap option
+#    1.56  20oct06      misc cleanups
+#    1.60  11nov06	fix midday time calculation
+#    1.70  16nov06	also use "printable" TV guide to determine 'station close'
+#    2.00  23nov06	simplified
+
+use strict;
+
+my $progname = "abc2_website";
+my $chan_id = "ABC2";
+my $version = "2.15";
+
+use LWP::UserAgent;
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use HTML::TreeBuilder;
+use Data::Dumper;
+use Storable;
+use Shepherd::Common;
+
+#
+# constants
+#
+my $urls;
+$urls->{station_close}->{ABC} = "http://www.abc.net.au/tv/guide/abctvweekguide.htm";
+$urls->{station_close}->{ABC2} = "http://www.abc.net.au/tv/guide/abc2weekguide.htm";
+$urls->{guide}->{ABC} = "http://www.abc.net.au/tv/guide/netw";
+$urls->{guide}->{ABC2} = "http://www.abc.net.au/tv/guide/abc2";
+
+#
+# some initial cruft
+#
+
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels, my $gaps;
+my $tv_guide;
+my $data_cache;
+my $override_settings = { };
+my @station_close_data;
+my $writer;
+my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
+
+my $ua;
+$ua = LWP::UserAgent->new('timeout' => 30, 'keep_alive' => 30, 'agent' => "Shepherd / $progname $version");
+$ua->env_proxy;
+# $ua->cookie_jar({});
+$ua->conn_cache(LWP::ConnCache->new());
+$| = 1;
+
+#
+# parse command line
+#
+
+my $opt_days =          7;				# default
+my $opt_offset =        0;				# default
+my $opt_timezone =      "1000";				# default
+my $opt_outputfile =    $progname.".xmltv";		# default
+my $opt_configfile =    $progname.".conf";		# ignored
+my $opt_cache_file =	$progname.".storable.cache";
+my $opt_old_cache_file = $progname.".cache";
+my $opt_channels_file=  "";
+my $opt_gaps_file=  "";
+my $opt_no_cache =	0;
+my $opt_cheap =		0;
+my $opt_fast =          0;
+my $opt_warper =        0;
+my $opt_obfuscate =     0;
+my $opt_do_extra_days =	0;
+my $opt_set = "";
+my $opt_help =          0;
+my $opt_version =       0;
+my $opt_desc =          0;
+my $opt_dont_retry =    0;
+my $debug =             0;
+my $lang =              "en";
+my $region =            94;
+my $time_offset =       0;
+
+GetOptions(
+	'region=i'	=> \$region,
+	'days=i'	=> \$opt_days,
+	'offset=i'	=> \$opt_offset,
+	'timezone=s'	=> \$opt_timezone,
+	'channels_file=s' => \$opt_channels_file,
+	'gaps_file=s' => \$opt_gaps_file,
+	'output=s'	=> \$opt_outputfile,
+	'config-file=s'	=> \$opt_configfile,
+	'cache-file=s'	=> \$opt_cache_file,
+	'do-extra-days' => \$opt_do_extra_days,
+	'fast'		=> \$opt_fast,
+	'no-cache'	=> \$opt_no_cache,
+	'cheap'		=> \$opt_cheap,
+	'debug+'	=> \$debug,
+	'warper'	=> \$opt_warper,
+	'lang=s'	=> \$lang,
+	'obfuscate'	=> \$opt_obfuscate,
+	'no-retry'	=> \$opt_dont_retry,
+	'set=s'		=> \$opt_set,
+	'help'		=> \$opt_help,
+	'verbose'	=> \$opt_help,
+	'version'	=> \$opt_version,
+	'ready'		=> \$opt_version,
+	'desc'		=> \$opt_desc,
+	'v'		=> \$opt_help);
+
+&help if ($opt_help);
+
+if ($opt_version || $opt_desc) {
+	printf "%s %s\n",$progname,$version;
+	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for %s only.",$progname,$chan_id if $opt_desc;
+	exit(0);
+}
+
+&set_override if ($opt_set ne "");
+
+die "no channel file specified, see --help for instructions\n", if ($opt_channels_file eq "");
+
+#
+# go go go!
+#
+
+my $starttime = time;
+&read_cache if ($opt_no_cache == 0);
+
+&log(sprintf "going to %s%s %s%d%s days%s of data into %s (%s%s)",
+	($opt_gaps_file ne "" ? "micro-gap " : ""),
+	($opt_cheap ? "verify (cache-validate)" : "grab"),
+	($opt_do_extra_days ? "somewhere between " : ""),
+	$opt_days,
+	($opt_do_extra_days ? " to 28" : ""),
+	($opt_offset ? " (skipping first $opt_offset days)" : ""),
+	$opt_outputfile,
+	($opt_no_cache ? "without caching" : "with caching"),
+	($opt_warper ? ", anonymously" : ""));
+
+# read channels file
+if (-r $opt_channels_file) {
+	local (@ARGV, $/) = ($opt_channels_file);
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt_channels_file could not be read: $!\n";
+}
+die "nothing to do; $chan_id not in channels lineup!\n" if (!defined $channels->{$chan_id});
+
+# if just filling in microgaps, parse gaps
+if ($opt_gaps_file ne "") {
+	if (-r $opt_gaps_file) {
+		local (@ARGV, $/) = ($opt_gaps_file);
+		no warnings 'all'; eval <>; die "$@" if $@;
+	} else {
+		die "WARNING: gaps_file $opt_gaps_file could not be read: $!\n";
+	}
+}
+
+my %writer_args = ( encoding => 'ISO-8859-1' );
+my $fh = new IO::File(">$opt_outputfile") || die "can't open $opt_outputfile: $!";
+$writer_args{OUTPUT} = $fh;
+
+$writer = new XMLTV::Writer(%writer_args);
+$writer->start( { 'source-info-name'   => "$progname $version", 'generator-info-name' => "$progname $version"} );
+$writer->write_channel( { 'display-name' => [[ $chan_id, $lang ]], 'id' => $channels->{$chan_id} } );
+
+&get_station_close($channels->{$chan_id}, $urls->{station_close}->{$chan_id});
+&get_abc_data($channels->{$chan_id}, $urls->{guide}->{$chan_id});
+&write_cache if ($opt_no_cache == 0);
+
+$writer->end;
+
+&print_stats;
+exit(0);
+
+######################################################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+options are as follows:
+	--help			show these help options
+	--days=N		fetch 'n' days of data (default: $opt_days)
+	--output=file		send xml output to file (default: "$opt_outputfile")
+	--config-file=file	(ignored - historically used by grabbers not not this one)
+	--no-cache		don't use a cache to optimize (reduce) number of web queries
+	--cheap			validate contents of cache - fetch summary only, not details
+	--cache-file=file	where to store cache (default "$opt_cache_file")
+	--fast			don't run slow - get data as quick as you can - not recommended
+	--debug			increase debug level
+	--warper		fetch data using WebWarper web anonymizer service
+	--obfuscate		pretend to be a proxy servicing multiple clients
+	--do-extra-days		fetch extra (21 days) from ABC website
+	--no-retry		if webserver is rejecting our request, don't retry (default: do retry)
+	--lang=[s]		set language of xmltv output data (default $lang)
+
+	--region=N		set region for where to collect data from (default: $region)
+	--channels_file=file	where to get channel data from (if not set manually)
+	--timezone=HHMM		timezone for channel data (default: $opt_timezone)
+
+	--set (option):(1/0)	setting override options (1=enable, 0=disable)
+		do_extra_days:1/0   enable/disable fetching up to 24 days
+		fast:1/0            enable/disable extra-fast grab speed (not recommended)
+		debug:1/0           enable/disable debugging
+
+EOF
+;
+
+	exit(0);
+}
+
+######################################################################################################
+
+sub set_override
+{
+	&read_cache;
+	my ($setting, $val) = split(/:/,$opt_set);
+
+	die "--set format is (setting):(value) where value is 0 for disable, 1 for enable.\n"
+	  if (($val ne "0") && ($val ne "1"));
+
+	die "unknown '--set' parameter '$setting', see --help for details.\n"
+	  if (($setting ne "do_extra_days") &&
+	      ($setting ne "fast") &&
+	      ($setting ne "debug"));
+
+	$override_settings->{$setting} = $val;
+	printf "%s: override parameter %s: %s\n", $progname, $setting, ($val eq "0" ? "disabled" : "enabled");
+
+	&write_cache;
+	exit(0);
+}
+
+######################################################################################################
+# populate cache
+
+sub read_cache
+{
+	if (-r $opt_cache_file) {
+		my $store = Storable::retrieve($opt_cache_file);
+		$data_cache = $store->{data_cache};
+		$override_settings = $store->{override_settings};
+
+		# apply settings overrides
+		$opt_do_extra_days = 1 if ((defined $override_settings->{do_extra_days}) && ($override_settings->{do_extra_days} == 1));
+		$opt_fast = 1 if ((defined $override_settings->{fast}) && ($override_settings->{fast} == 1));
+		$debug = 1 if ((defined $override_settings->{debug}) && ($override_settings->{debug} > 0));
+	} else {
+		printf "WARNING: no programme cache $opt_cache_file - have to fetch all details\n";
+
+		# try to write to it - if directory doesn't exist this will then cause an error
+		&write_cache;
+	}
+}
+
+######################################################################################################
+# write out updated cache
+
+sub write_cache
+{
+	# cleanup old entries from cache
+	for my $cache_key (keys %{$data_cache}) {
+		my ($starttime, @rest) = split(/,/,$cache_key);
+		if ($starttime < (time-86400)) {
+			delete $data_cache->{$cache_key};
+			$stats{removed_items_from_cache}++;
+		}
+	}
+
+	my $store;
+	$store->{data_cache} = $data_cache;
+	$store->{override_settings} = $override_settings;
+	Storable::store($store, $opt_cache_file);
+}
+
+######################################################################################################
+
+sub get_abc_data
+{
+	my ($xmlid,$urlbase) = @_;
+	my $try_to_add_abc_detail;
+	my $unprocessed_programmes = 0;
+	my $stop_fetching = 0;
+	my @unprocessed_progname, my @unprocessed_starttime, my @unprocessed_url;
+
+        my $to_skip = $opt_offset;
+        my $daynum = 0;
+	my @gap_s, my @gap_e;
+
+	$opt_days = 28 if (($opt_do_extra_days) && ($opt_gaps_file eq "") && ($opt_offset == 0) && ($opt_days == 7));
+	my $days_left = $opt_days;
+
+DAYS:	while ($days_left > 0) {
+		my $currtime = $starttime + ($daynum * 86400);
+		$days_left--;
+		$daynum++;
+
+		if ($to_skip > 0) {
+			$to_skip--;
+			next;
+		}
+
+		if ($opt_gaps_file ne "") {		# micro-gap mode!
+			my $found_gap_match = 0;
+
+			if ((defined $gaps) && (defined $gaps->{$chan_id})) {
+				foreach my $g (@{($gaps->{$chan_id})}) {
+					my ($s, $e) = split(/-/,$g);
+					if (($s >= $currtime) && ($s <= ($currtime+86400))) {
+						$found_gap_match++;
+						push(@gap_s,$s);
+						push(@gap_e,$e);
+						printf "including day %d channel '%s' gap start %d, gap end %d\n",
+							$daynum, $chan_id, $s, $e if $debug;
+					}
+				}
+			}
+			next if (!$found_gap_match);	# no gaps for this day - skip!
+		}
+
+		my @timeattr = localtime($currtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+		$timeattr[0] = 0; # zero seconds
+
+		my $url = sprintf "%s/%s.htm",$urlbase, POSIX::strftime("%Y%m/%Y%m%d",localtime($currtime));
+
+		my $tries = ($daynum > 7 ? 1 : 5);
+		&log((sprintf "Fetching %s summary data: day %d of %d",
+			$xmlid, $daynum, $opt_days ));
+		my $data = Shepherd::Common::get_url(url => $url, retries => ($tries-1), debug => $debug * 2);
+		my $tree = HTML::TreeBuilder->new_from_content($data) if ($data);
+
+		if (!defined $tree) {
+			&log("failed to fetch $url after $tries attempts; skipping");
+
+			die "couldn't fetch first daily page after $tries attempts, network is probably down. aborting!"
+			  if ((!defined $stats{abc_daily_pages}) || ($stats{abc_daily_pages} == 0));
+
+			if ($daynum > 7) {
+				&log("failed to fetch $url, assuming we only have $daynum days..");
+				$days_left = 0;
+			}
+			next;
+		}
+
+		my $seen_programmes = 0;
+		my $seen_pm = 0;
+
+		for ($tree->look_down('_tag' => 'div', 'class' => 'scheduleDiv')) {
+			foreach my $tree_tr ($_->look_down('_tag' => 'tr')) {
+				if (my $tree_row = $tree_tr->look_down('_tag' => 'th', 'scope' => 'row')) {
+					if ($tree_row->as_text() =~ /^(\d+):(\d+)(.)m/) {
+						$timeattr[2] = $1; # hour
+						$timeattr[1] = $2; # min
+
+						if ($3 eq "p") {
+							# pm
+							$timeattr[2] += 12 if ($timeattr[2] != 12);
+							$seen_pm = 1;
+						}
+						my $found_time = mktime(@timeattr);
+
+						# handle programmes that are after midnight
+						if (($seen_pm) && ($3 eq "a")) {
+							if ($timeattr[2] == 12) {
+								$found_time += (12*60*60); # 12:xx am
+							} else {
+								$found_time += (24*60*60);
+							}
+						}
+							
+						if ($tree_tr->look_down('_tag' => 'td')) {
+							foreach my $prog ($tree_tr->look_down('_tag' => 'a')) {
+								my $programme = $prog->as_text();
+								my $progurl = $prog->attr('href');
+	
+								if ($progurl =~ /^\/tv\/guide\//) {
+									printf "day %d time '%s' (%s) prog: %s url: %s\n",
+										$daynum,$tree_row->as_text(),POSIX::strftime("%Y%m%d%H%M", localtime($found_time)),
+										$programme,$progurl if ($debug && $debug > 1);
+
+									$unprocessed_progname[$unprocessed_programmes] = $programme;
+									$unprocessed_starttime[$unprocessed_programmes] = $found_time;
+									$unprocessed_url[$unprocessed_programmes] = "http://www.abc.net.au".$progurl;
+									$unprocessed_programmes++;
+									$seen_programmes++;
+								} else {
+									printf "ignoring prog %s because url %s is not a detail page\n",
+										$programme,$progurl if $debug;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if ($seen_programmes > 0) {
+			$stats{abc_daily_pages}++;
+
+			if (defined $station_close_data[$daynum]) {
+				# get station-close time from the previously-fetched "weekly programme guide"
+
+				$unprocessed_progname[$unprocessed_programmes] = "Station Close";
+				$unprocessed_starttime[$unprocessed_programmes] = $station_close_data[$daynum];
+				$unprocessed_url[$unprocessed_programmes] = "";
+				$unprocessed_programmes++;
+			} else {
+				# throw away last programme from each day - we can't use it as
+				# we don't have a 'stop' time for it
+
+				printf "throwing away '%s' (%s) because we won't have a valid stop time\n",
+					$unprocessed_progname[$unprocessed_programmes-1],
+					POSIX::strftime("%Y%m%d%H%M", localtime($unprocessed_starttime[$unprocessed_programmes-1]))
+					if $debug;
+				$unprocessed_progname[$unprocessed_programmes-1] = "";
+			}
+		} else {
+			# if we were trying to fetch more than 7 days, stop on first day with no programmes
+			if ($daynum > 7) {
+				&log("failed to fetch $url, assuming we only have $daynum days..");
+				$days_left = 0;
+				next DAYS;
+			}
+		}
+	}
+
+	# have 'n' days of this channel unprocessed - process it!
+	&log((sprintf "have summary data, now fetching detail pages for up to %d programmes..",$unprocessed_programmes-2));
+
+	for (my $i = 0; $i < ($unprocessed_programmes-1); $i++) {
+		next if ($unprocessed_progname[$i] eq "");
+
+		# if we are micro-gap fetching, only include programmes which match our micro gaps
+		if ($opt_gaps_file ne "") {
+			my $found_gap_match = 0;
+			for (my $g_num = 0; $g_num < $#gap_s; $g_num++) {
+				$found_gap_match++
+				  if ((($gap_s[$g_num] >= $unprocessed_starttime[$i]) &&
+				       ($gap_s[$g_num] <= $unprocessed_starttime[$i+1])) ||
+				      (($gap_e[$g_num] >= $unprocessed_starttime[$i]) &&
+				       ($gap_e[$g_num] <= $unprocessed_starttime[$i+1])) ||
+				      (($gap_s[$g_num] <= $unprocessed_starttime[$i]) &&
+				       ($gap_e[$g_num] >= $unprocessed_starttime[$i+1])));
+			}
+			next if (!$found_gap_match);
+
+			$stats{programme_gaps_used}++;
+			printf "gap-fetching: including prog '%s', start %d, end %d\n", $unprocessed_progname[$i], 
+				$unprocessed_starttime[$i], $unprocessed_starttime[$i+1] if $debug;
+		}
+
+		$stats{programmes}++;
+		my $prog;
+
+		my $cache_key = sprintf "%d,%d,%s,%s", $unprocessed_starttime[$i], $unprocessed_starttime[$i+1], $xmlid, $unprocessed_progname[$i];
+
+		$prog->{'channel'} =	$xmlid;
+		$prog->{'start'} =	POSIX::strftime("%Y%m%d%H%M", localtime($unprocessed_starttime[$i]));
+		$prog->{'stop'} = 	POSIX::strftime("%Y%m%d%H%M", localtime($unprocessed_starttime[$i+1]));
+		$prog->{'title'} = 	[[ $unprocessed_progname[$i], $lang ]];
+
+		if (defined $data_cache->{$cache_key}) {
+			$stats{used_cached_data}++;
+		} else {
+			if ((!$opt_cheap) && ($unprocessed_url[$i] ne "")) {
+				$stats{portal_detail_pages}++;
+				&get_one_abc_event($cache_key, $unprocessed_url[$i]);
+
+				if (($stats{portal_detail_pages} % 25) == 1) {
+					&log((sprintf "  .. at %s detail page %d of %d (used %d cached entries)",
+						$xmlid, ($i+1), $unprocessed_programmes-2, 
+						(defined $stats{used_cached_data} ? $stats{used_cached_data} : 0)));
+
+					if (!$opt_fast) {
+						# slow down ..
+						my $waittime = 3 + int(rand(10));
+						sleep($waittime);
+						$stats{slept_for} += $waittime;
+					}
+				}
+			}
+		}
+
+		if (defined $data_cache->{$cache_key}) {
+			$prog->{'sub-title'} = [[ $data_cache->{$cache_key}->{subtitle}, $lang ]] 
+			  if $data_cache->{$cache_key}->{subtitle};
+			$prog->{'desc'} = [[ $data_cache->{$cache_key}->{desc}, $lang ]]
+			  if $data_cache->{$cache_key}->{desc};
+			$prog->{'category'} = [[ $data_cache->{$cache_key}->{genre}, $lang ]]
+			  if $data_cache->{$cache_key}->{genre};
+			$prog->{'previously-shown'} = { } if (defined $data_cache->{$cache_key}->{repeat});
+			$prog->{'subtitles'} = [ { 'type' => 'teletext' } ] if (defined $data_cache->{$cache_key}->{cc});
+			$prog->{'rating'} = [ [ $data_cache->{$cache_key}->{rating}, 'ABA', undef] ]
+			  if (defined $data_cache->{$cache_key}->{rating});
+		}
+
+		Shepherd::Common::cleanup($prog);
+		$writer->write_programme($prog);
+	}
+}
+
+######################################################################################################
+
+sub get_one_abc_event
+{
+	my ($cache_key, $url) = @_;
+	my $seen_programme = 0;
+
+	my $data = Shepherd::Common::get_url(url => $url, debug => $debug);
+	my $tree = HTML::TreeBuilder->new_from_content($data) if ($data);
+	if (!defined $tree) {
+		&log("failed to fetch $url; skipping");
+		return;
+	}
+
+	if (my $inner_tree = $tree->look_down('_tag' => 'div', 'class' => 'column2')) {
+		my $event_title = undef, my $event_subtitle = undef, my $event_description = undef, my $event_genre = undef;
+
+		if (my $prog_h2 = $inner_tree->look_down('_tag' => 'h2')) {
+			my $full_title = $prog_h2->as_HTML();
+			($event_title,$event_subtitle) = split(/<br>/,$full_title);
+
+			$event_title =~ s/(<[a-zA-Z0-9]+\>)//g;	# remove html tags
+			$event_title =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
+
+			if ($event_subtitle) {
+				$event_subtitle =~ s/(<[\/a-zA-Z0-9]+\>)//g;	# remove html tags
+				$event_subtitle =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
+				$data_cache->{$cache_key}->{subtitle} = $event_subtitle;
+			}
+		}
+			
+		my $paranum = 0;
+		my $seen_genre = 0;
+		foreach my $para ($inner_tree->look_down('_tag' => 'p')) {
+			$paranum++;
+
+			if (($paranum > 1) && (!($para->as_text() =~ /^Go to website/)) && (!($para->as_text() =~ /^Send to a Friend/))) {
+				if (my $try_genre = $para->look_down('_tag' => 'a')) {
+					$data_cache->{$cache_key}->{genre} = $try_genre->as_text();
+					$seen_genre = 1;
+				}
+
+				if (!$seen_genre) {
+					$data_cache->{$cache_key}->{desc} .= $para->as_text() . "\n";
+				} else {
+					$data_cache->{$cache_key}->{repeat} = 1 if ($para->as_text() =~ /Repeat/);
+					$data_cache->{$cache_key}->{cc} = 1 if ($para->as_text() =~ /CC/);
+					$data_cache->{$cache_key}->{rating} = $1 if ($para->as_text() =~ /(M|PG|G)/);
+				}
+			}
+		}
+
+		if (defined $data_cache->{$cache_key}->{desc}) {
+			$data_cache->{$cache_key}->{desc} =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
+			$data_cache->{$cache_key}->{desc} =~ s/(^\s+|\s+$)//g;		# strip trailing/leading spaces
+			delete $data_cache->{$cache_key}->{desc} if ($data_cache->{$cache_key}->{desc} eq "");
+		}
+
+		$seen_programme++;
+		$stats{added_cached_data}++;
+
+		&write_cache if (($opt_no_cache == 0) &&
+		  (($stats{added_cached_data} % 30) == 0)); # incrementally write
+	}
+
+	if ($seen_programme == 0) {
+		printf "WARNING: failed to parse any programme data from '%s' - blocked/rate-limited/format-changed?\n",$url;
+		$stats{failed_to_parse_portal_detail_page}++;
+	}
+}
+
+######################################################################################################
+
+sub log
+{
+	my ($entry) = @_;
+	printf "%s\n", $entry;
+}
+
+######################################################################################################
+
+sub print_stats
+{
+	printf "STATS: %s v%s completed in %d seconds", $progname, $version, (time-$script_start_time);
+	foreach my $key (sort keys %stats) {
+		printf ", %d %s",$stats{$key},$key;
+	}
+	printf "\n";
+}
+
+######################################################################################################
+
+sub get_station_close
+{
+	my ($xmlid,$url) = @_;
+	&log("fetching (weekly) station close data for $xmlid");
+	my $data = Shepherd::Common::get_url(url => $url, debug => $debug);
+	my $tree = HTML::TreeBuilder->new_from_content($data) if ($data);
+
+	if (!defined $tree) {
+		&log("failed to fetch $url; skipping");
+		return;
+	}
+
+	my $to_skip = $opt_offset;
+	my $daynum = 0;
+	my $last_td_text;
+
+	foreach my $tree_td ($tree->look_down('_tag' => 'td')) {
+		if ($tree_td->as_text() =~ /^\.\.\.programs start at /) {
+			if (defined $last_td_text) {
+				if ($to_skip > 0) {
+					$to_skip--;
+				} else {
+					# 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+					my @timeattr = localtime($starttime + ($daynum*86400));
+					$timeattr[0] = 0; # zero seconds
+
+					if ($last_td_text =~ /^(\d+):(\d+)(.)m/) {
+						$timeattr[2] = $1; # hour
+						$timeattr[1] = $2; # min
+
+						if ($3 eq "p") {
+							# pm
+							$timeattr[2] += 12 if ($timeattr[2] != 12);
+						}
+						my $found_time = mktime(@timeattr);
+
+						if ($3 eq "a") {
+							# am - must be tomorrow
+							if ($timeattr[2] == 12) {
+								$found_time += (12*60*60); # 12:xx am
+							} else {
+								$found_time += (24*60*60);
+							}
+						}
+
+						$daynum++;
+						$station_close_data[$daynum] = $found_time;
+
+						printf "station close time for day %d is %s\n",
+							$daynum, POSIX::strftime("%Y%m%d%H%M", localtime($found_time))
+							if $debug;
+					}
+				}
+			}
+		}
+		$last_td_text = $tree_td->as_text();
+	}
+}
+
+######################################################################################################

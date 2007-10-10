@@ -1,0 +1,345 @@
+/* Copy from here for external style sheet */
+.svgBackground{
+	fill:#ffffff;
+}
+.graphBackground{
+	fill:#f0f0f0;
+}
+
+/* graphs titles */
+.mainTitle{
+	text-anchor: middle;
+	fill: #000000;
+	font-size: 14px;
+	font-family: "Arial", sans-serif;
+	font-weight: normal;
+}
+.subTitle{
+	text-anchor: middle;
+	fill: #999999;
+	font-size: 12px;
+	font-family: "Arial", sans-serif;
+	font-weight: normal;
+}
+
+.axis{
+	stroke: #000000;
+	stroke-width: 1px;
+}
+
+.guideLines{
+	stroke: #666666;
+	stroke-width: 1px;
+	stroke-dasharray: 5 5;
+}
+
+.xAxisLabels{
+	text-anchor: middle;
+	fill: #000000;
+	font-size: 12px;
+	font-family: "Arial", sans-serif;
+	font-weight: normal;
+}
+
+.yAxisLabels{
+	text-anchor: end;
+	fill: #000000;
+	font-size: 12px;
+	font-family: "Arial", sans-serif;
+	font-weight: normal;
+}
+
+.xAxisTitle{
+	text-anchor: middle;
+	fill: #ff0000;
+	font-size: 14px;
+	font-family: "Arial", sans-serif;
+	font-weight: normal;
+}
+
+.yAxisTitle{
+	fill: #ff0000;
+	text-anchor: middle;
+	font-size: 14px;
+	font-family: "Arial", sans-serif;
+	font-weight: normal;
+}
+
+.dataPointLabel{
+	fill: #000000;
+	text-anchor:middle;
+	font-size: 10px;
+	font-family: "Arial", sans-serif;
+	font-weight: normal;
+}
+.staggerGuideLine{
+	fill: none;
+	stroke: #000000;
+	stroke-width: 0.5px;	
+}
+/* default fill styles */
+.fill1{
+	fill: #cc0000;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill2{
+	fill: #0000cc;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill3{
+	fill: #00cc00;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill4{
+	fill: #ffcc00;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill5{
+	fill: #00ccff;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill6{
+	fill: #ff00ff;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill7{
+	fill: #00ffff;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill8{
+	fill: #ffff00;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill9{
+	fill: #cc6666;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill10{
+	fill: #663399;
+	fill-opacity: 0.2;
+	stroke: none;
+}
+.fill11{
+    fill: #339900;
+    fill-opacity: 0.2;
+    stroke: none;
+}
+.fill12{
+    fill: #9966FF;
+    fill-opacity: 0.2;
+    stroke: none;
+}
+
+/* default line styles */
+.line1{
+	fill: none;
+	stroke: green;
+	stroke-width: 1px;	
+}
+.line2{
+	fill: none;
+	stroke: blue;
+	stroke-width: 1px;	
+}
+.line3{
+	fill: none;
+	stroke: red;
+	stroke-width: 1px;	
+}
+.line4{
+	fill: none;
+	stroke: #ffcc00;
+	stroke-width: 1px;	
+}
+.line5{
+	fill: none;
+	stroke: #00ccff;
+	stroke-width: 1px;	
+}
+.line6{
+	fill: none;
+	stroke: #ff00ff;
+	stroke-width: 1px;	
+}
+.line7{
+	fill: none;
+	stroke: #00ffff;
+	stroke-width: 1px;	
+}
+.line8{
+	fill: none;
+	stroke: #ffff00;
+	stroke-width: 1px;	
+}
+.line9{
+	fill: none;
+	stroke: #cc6666;
+	stroke-width: 1px;	
+}
+.line10{
+	fill: none;
+	stroke: #663399;
+	stroke-width: 1px;	
+}
+.line11{
+    fill: none;
+    stroke: #339900;
+    stroke-width: 1px;  
+}
+.line12{
+    fill: none;
+    stroke: #9966FF;
+    stroke-width: 1px;  
+}
+
+/* default line styles */
+.key1,.fill1{
+	fill: green;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key2,.fill2{
+	fill: blue;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key3,.fill3{
+	fill: red;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key4,.fill4{
+	fill: #ffcc00;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key5,.fill5{
+	fill: #00ccff;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key6,.fill6{
+	fill: #ff00ff;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key7,.fill7{
+	fill: #00ffff;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key8,.fill8{
+	fill: #ffff00;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key9,.fill9{
+	fill: #cc6666;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key10,.fill10{
+	fill: #663399;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key11,.fill11{
+    fill: #339900;
+    stroke: none;
+    stroke-width: 1px;  
+}
+.key12,.fill12{
+    fill: #9966FF;
+    stroke: none;
+    stroke-width: 1px;  
+}
+.key1,.dataPoint1{
+	fill: green;
+	fill-opacity: 0.5;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key2,.dataPoint2{
+	fill: blue;
+	fill-opacity: 0.5;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key3,.dataPoint3{
+	fill-opacity: 0.5;
+	fill: red;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key4,.dataPoint4{
+	fill-opacity: 0.5;
+	fill: #ffcc00;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key5,.dataPoint5{
+	fill-opacity: 0.5;
+	fill: #00ccff;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key6,.dataPoint6{
+	fill-opacity: 0.5;
+	fill: #ff00ff;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key7,.dataPoint7{
+	fill-opacity: 0.5;
+	fill: #00ff99;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key8,.dataPoint8{
+	fill-opacity: 0.5;
+	fill: #ffff00;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key9,.dataPoint9{
+	fill-opacity: 0.5;
+	fill: #cc6666;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key10,.dataPoint10{
+	fill-opacity: 0.5;
+	fill: #663399;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key11,.dataPoint11{
+	fill-opacity: 0.5;
+	fill: #339900;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.key12,.dataPoint12{
+	fill-opacity: 0.5;
+	fill: #9966FF;
+	stroke: none;
+	stroke-width: 1px;	
+}
+.keyText{
+	fill: #000000;
+	text-anchor:start;
+	font-size: 10px;
+	font-family: "Arial", sans-serif;
+	font-weight: normal;
+}
+
+/* End copy for external style sheet */

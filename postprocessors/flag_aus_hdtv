@@ -1,0 +1,758 @@
+#!/usr/bin/perl
+
+# flag_aus_hdtv
+
+# performs two functions:
+#   1. takes existing programmes flagged as HDTV by grabbers,
+#   2. checks the digital broadcasting australia (www.dba.org.au)
+#  .. and populates the '(chan)HD' channels (if they exist)
+#  with the HD versions of the programs.
+
+#  originally written by Richard Dale <richard@interlink.com.au>,
+#  September 2006
+
+my $progname = "flag_aus_hdtv";
+my $version = "0.21";
+
+$| = 1;
+print "$progname v$version\n";
+
+use strict;
+use Getopt::Long;
+use LWP::UserAgent;
+use HTML::TreeBuilder;
+use IO::File;
+use XMLTV;
+use Data::Dumper;
+
+#
+# customizations
+#
+
+# Add overrides for HD - sometimes DBA doesn't always have the latest HD information about TV shows so set them here in the override
+my $hdoverride;
+$hdoverride->{TEN} = [
+	"The Handler",
+	"N.Y.P.D. Blue",
+	"The Office",
+	"Battlestar Galactica"
+	];
+
+# Add translations for show names that differ between DBA and our normal tv_grab_au names
+my $translation;
+$translation->{'ACA'} = 'A Current Affair';
+$translation->{'CSI'} = 'CSI: Crime Scene Investigation';
+$translation->{'CSI-Miami'} = 'CSI: Miami';
+
+# translations between DBA website and what we know channels as
+my $chan_name_translations;
+$chan_name_translations->{"Ten"} = "TEN";
+$chan_name_translations->{"ABC Main"} = "ABC";
+
+#
+# options
+#
+
+my %stats;
+my $channels, my $opt_channels;
+my $d;
+my $override_settings = { };
+my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
+my $ua = LWP::UserAgent->new('timeout' => 30, 'keep_alive' => 1, 'agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)' );
+$ua->env_proxy;
+
+my $opt;
+$opt->{dbaurl} = "http://www.dba.org.au/dtvprograms"; # This URL seems to work fine Sep 2006
+$opt->{output_file} = "output.xmltv";
+$opt->{region} = 94;
+$opt->{debug} = 1;
+$opt->{action} = "copy";
+
+&parse_command_line;
+
+# check XMLTV version for HDTV compatability
+my @xmltv_version = split(/\./,$XMLTV::VERSION);
+if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2] <= "43")) {
+	print " - XMLTV version ".$XMLTV::VERSION." too old to support HDTV flags. Disabling HDTV flags.\n";
+	$opt->{notag} = 1;
+	$stats{disabled_hdtv_flag}++;
+}
+
+&read_config_file($progname.".config",0);
+&apply_setting_overrides;
+
+&read_config_file($opt->{channels_file},1);
+
+&decode_region($opt->{region});
+&lookup_dba unless ((defined $opt->{nodbalookup}) || (!defined $opt->{locality}));
+
+#
+# now eat up the XMLTV inputs we were given!
+#
+
+my %writer_args = ( encoding => 'ISO-8859-1' );
+my $fh = new IO::File(">".$opt->{output_file}) || die "can't open $opt->{output_file} for writing: $!";
+$writer_args{OUTPUT} = $fh;
+
+my $writer = new XMLTV::Writer(%writer_args);
+$writer->start( {
+	'source-info-name' => "$progname $version",
+	'generator-info-name' => "$progname $version"} );
+
+foreach my $file (@ARGV) {
+	printf "Parsing: %s\n",($file eq "-" ? "(from-stdin, hit control-D to finish)" : $file);
+	XMLTV::parsefiles_callback(undef, undef, \&channel_cb,\&programme_cb, $file);
+}
+
+$writer->end();
+printf "Finished parsing, output in $opt->{output_file}\n";
+
+&print_stats;
+exit(0);   
+
+######################################################################################################
+# read settings
+
+sub read_config_file
+{
+        my($file,$die_on_failure) = @_;
+        if (!(-r $file)) {
+                die "file $file could not be read.  aborting.\n" if $die_on_failure;
+                return;
+        }
+        local (@ARGV, $/) = ($file);
+        no warnings 'all'; eval <>; die "$@" if $@;
+}
+
+######################################################################################################
+
+sub parse_command_line
+{
+	GetOptions(
+		'channels_file=s' => \$opt->{channels_file},
+		'config=s'	=> \$opt->{config_file},
+		'action=s'	=> \$opt->{action},
+		'region=i'	=> \$opt->{region},
+		'nodbalookup'	=> \$opt->{nodbalookup},
+		'dbaurl=s'	=> \$opt->{dbaurl},
+		'notag'		=> \$opt->{notag},
+		'days=i'	=> \$opt->{days},	# ignored
+		'offset=i'	=> \$opt->{offset},	# ignored
+		'output=s'	=> \$opt->{output_file},
+		'debug+'	=> \$opt->{debug},
+		'set=s'		=> \$opt->{set},
+		'help'		=> \$opt->{help},
+		'h'		=> \$opt->{help},
+		'v'		=> \$opt->{version},
+		'version'	=> \$opt->{version});
+
+	if ($opt->{help}) {
+		print<<EOF
+
+options:
+  --channels_file=(f)  shepherd channels file (mandatory)
+  --region=(region)    region where we are (mandatory) (default: $opt->{region})
+                         (VIC)     90,93,94,95,98
+                         (NSW/ACT) 63,66,67,69,71,73,106,126,184
+                         (QLD)     75,78,79,114
+                         (SA)      81,82,83,85,86,107
+                         (WA)      101,102
+                         (TAS)     88
+
+  --nodbalookup        don't look up programmes on DBA website (default: do)
+  --dbaurl=(url)       URL where dba lists HDTV programming (default: $opt->{dbaurl})
+
+  --action=(policy)    policy can be one of:
+                        move - move prog to HD channel (remove it from SD channel)
+                        copy - copy prog to HD channel (keep it in SD channel also) (default)
+  --notag              don't tag with HD flags (default: do)
+
+  --output=(f)         output XMLTV filename (default: $opt->{output})
+  --debug              increase debug level
+
+  --set=(setting):(value) save setting override: (value)
+        nodbalookup:1/0   (disable / enable) DBA website lookup
+	notag:1/0         (don't / do) tag with HD flags
+	action:move/copy  set policy (as per above)
+
+EOF
+;
+	}
+
+	exit 0 if (($opt->{version}) || ($opt->{help}));
+
+	if (defined $opt->{set}) {
+		&set_overrides;
+	}
+
+	die "'--channels_file {file}' must be specified. see --help for details.\n" if (!$opt->{channels_file});
+	die "unknown --action policy, see --help for details.\n" if ($opt->{action} !~ /^(copy|move)$/);
+}
+
+######################################################################################################
+
+sub set_overrides
+{
+	&read_config_file($progname.".config",0);
+        my ($setting, $val) = split(/:/,$opt->{set});
+
+        die "--set format is (setting):(value)\n" if (!defined $val);
+
+	if (($setting eq "nodbalookup") || ($setting eq "notag")) {
+		die "--set value must be 1/0 for setting '$setting'.\n" if (($val ne "1") && ($val ne "0"));
+		$override_settings->{$setting} = $val;
+		printf "%s: override parameter %s: %s\n", $progname, $setting, ($val eq "0" ? "disabled" : "enabled");
+	} elsif ($setting eq "action") {
+		die "--set value must be copy/move for setting '$setting'.\n" if (($val ne "copy") && ($val ne "move"));
+		$override_settings->{$setting} = $val;
+		printf "%s: override parameter %s: %s\n", $progname, $setting, $val;
+	} else {
+		die "unknown '--set' parameter '$setting', see --help for details.\n";
+	}
+
+	&write_config;
+	exit(0);
+}
+
+######################################################################################################
+
+sub write_config
+{
+	open(F,">".$progname.".config") || die "can't write to config file $progname.config: $!\n";
+	print F Data::Dumper->Dump([$override_settings],["override_settings"]);
+	close F;
+}
+
+######################################################################################################
+
+sub apply_setting_overrides
+{
+	foreach my $setting (keys %$override_settings) {
+		if ($override_settings->{$setting} ne "0") {
+			printf "overriding setting %s: %s\n", $setting, $override_settings->{$setting};
+			$opt->{$setting} = $override_settings->{$setting};
+		}
+	}
+}
+
+######################################################################################################
+
+sub decode_region
+{
+	my $r = shift;
+
+	if ($r =~ /^(90|93|94|95|98)$/) {
+		$opt->{locality} = "M";
+	} elsif ($r =~ /^(101|102)$/) {
+		$opt->{locality} = "W";
+	} elsif ($r =~ /^(63|66|67|69|71|73|76|106|184)$/) {
+		$opt->{locality} = "S";
+	} elsif ($r =~ /^(75|78|79|114)$/) {
+		$opt->{locality} = "B";
+	} elsif ($r =~ /^(81|82|83|85|86|107)$/) {
+		$opt->{locality} = "A";
+	} elsif ($r =~ /^(88)$/) {
+		# locality T doesnt actually exist on DBA website but it may one day
+		$opt->{locality} = "T";
+	} elsif ($r =~ /^(126)$/) {
+		# treat ACT to be the same as Sydney for now
+		$opt->{locality} = "S";
+	}
+
+	if (!defined $opt->{locality}) {
+		print " - region $r doesn't receive HDTV, not moving channels.\n";
+		$stats{no_hdtv_region}++;
+	}
+
+	my ($shortchannels, $shortoptchannels);
+	while (my ($name, $chanid) = each %$channels)
+	{
+	    my $oldname = $name;
+
+	    # Ignore differences between rural stations like
+	    # Seven (Rockhampton) and Seven (Cairns) -- this is not a great
+	    # solution and should be fixed.
+	    $name =~ s/ *\(.*?\)//g;
+
+	    # Translate station name to program provider
+	    if ($name eq "WIN") {
+		if ($opt->{locality} eq "W") {
+		    $name = "TEN";
+		} else {
+		    $name = "Nine";
+		}
+	    }
+	    if ($name eq "WIN TEN") {
+		$name = "TEN";
+	    }
+	    if ($name =~ /^Prime/) {
+		$name = "Seven";
+	    }
+	    if ($name eq "Sthn Cross TEN") {
+		$name = "TEN";
+	    }
+	    if ($name eq "Southern Cross") { # didn't test all regions
+		$name = "Seven";
+	    }
+	    if ($name eq "Central GTS/BKN") {
+		$name = "Seven";
+	    }
+	    if ($name eq "Golden West") { # didn't test all regions
+		$name = "Seven";
+	    }
+	    if ($name eq "TDT") { # didn't test all regions
+		$name = "TEN";
+	    }
+	    if ($name eq "NBN") { # didn't test all regions
+		$name = "Nine";
+	    }
+	    if ($name eq "Imparja") { # didn't test all regions
+		$name = "Nine";
+	    }
+
+	    push @{$shortchannels->{$name}}, $chanid;
+	    push @{$shortoptchannels->{$name."HD"}}, $opt_channels->{$oldname."HD"}
+		    if defined $opt_channels->{$oldname."HD"};
+
+	    if ($name ne $oldname) {
+		print "  '$oldname' treated as '$name' with xmlid '$chanid'\n";
+		print "  '${oldname}HD' treated as '${name}HD' with xmlid '" . $opt_channels->{$oldname."HD"} . "'\n"
+			if defined $opt_channels->{$oldname."HD"};
+	    }
+	}
+	$channels = $shortchannels;
+	$opt_channels = $shortoptchannels;
+}
+
+######################################################################################################
+
+sub lookup_dba
+{
+	my $data = &get_url($opt->{dbaurl},"Obtaining DBA data",0);
+	return if (!$data);
+
+	my $tree = HTML::TreeBuilder->new_from_content($data); 
+	return if (!$tree);
+
+	# each daily section starts with:
+	# <TABLE class=tv... 
+	# so we'll search for that and populate an array
+	my @chan_map;
+	for ($tree->look_down('_tag' => 'table', 'class' => 'tv')) {
+		my $firstrowdone=0;
+		my $dayname = "";
+
+		foreach my $row ($_->look_down('_tag' => 'tr')) {
+			if ($firstrowdone == 0) { # Channel list is the first row
+				$firstrowdone = 1;
+				my $colnum = 0;
+				for my $channel ($row->look_down('_tag' => 'td')) {
+					my $this_chan = $channel->as_text;
+					$colnum++;
+					$this_chan =~ s/[^\x20-\x7f]/ /g;
+					$this_chan =~ s/(^\s+|\s+$)//g;
+					next if ($this_chan eq "");
+
+					$this_chan = $chan_name_translations->{$this_chan}
+					  if (defined $chan_name_translations->{$this_chan});
+
+					if (!defined $channels->{$this_chan}) {
+						printf "DBA listed unknown channel '$this_chan'! Ignored.\n";
+						$stats{unknown_channels}++;
+						next;
+					}
+
+					$chan_map[$colnum] = $this_chan;
+					#printf "got channel '$this_chan' in column $colnum\n";
+				}
+				next;
+			}
+
+			# These must be the program details
+			my $colnum = 0;
+			foreach my $session ($row->look_down('_tag' => 'td')) {
+				$colnum++;
+				if ($colnum == 1) {
+					# This session has the day name in it
+					my $newdayname = $session->as_text();
+					$newdayname =~ s/Night//;
+					$newdayname =~ s/Day//;
+					$newdayname =~ s/Sat/Saturday/;
+					$newdayname = "" if ($dayname =~ m/Subject to avail/i);
+
+					$dayname = $newdayname if ($newdayname =~ m/day$/);
+					next;
+				}
+                 
+				my $this_chan = $chan_map[$colnum]; 
+
+				my $sessionshows = $session->as_HTML();
+				$sessionshows =~ s/<p>/<br \/>/g; # Convert new paragraphs to newlines because they're not always consistent
+				$sessionshows =~ s/<\/p>//g;
+				$sessionshows =~ s/<u>//g;
+				$sessionshows =~ s/<\/u>//g;
+				$sessionshows =~ s/<\/td>//g;
+				$sessionshows =~ s/<\/font>//g;
+				$sessionshows =~ s/<font.*?>//g;
+				$sessionshows =~ s/<td.*?>//g;
+				#print "\nFound " . $session->as_HTML() . "\n\n";
+				my @shows = split(/<br[\s\/]*>/,$sessionshows);
+				foreach my $show (@shows) {
+					# Bodgy stuff to fix html markup
+					$show =~ s/\&amp;/\&/g; $show =~ s/\&apos;/\'/g; $show =~ s/\&quot;/\"/g; 
+					$show =~ s/\&#184;/\,/g; 
+					$show =~ s/\&#39;/\'/g; 
+					$show =~ s/\&nbsp;/\ /g; 
+
+					# Remove trailing asterisk - just means could be widescreen if content is in widescreen - duh!
+					$show =~ s/\*$//;
+
+					# High Definition and locality
+					my $hd = 0;
+					if ($show =~ m/\(HD\)\s*? \(([SMAPB])\)/) {
+						$hd = 1 if ($1 eq $opt->{locality});
+						$show =~ s/\(HD\)\s*? \([SMAPB]\)//;
+					}
+
+
+					# High Definition
+					if ($show =~ m/\(HD\)/ || $show =~ m/\(JHD\)/ ) {
+						$hd = 1;
+						$show =~ s/\(HD\)//;
+						$show =~ s/\(JHD\)//; # JHD was probably a typo but we've included it here because they'll probably have fat fingers again
+					}
+
+					# Dolby Digital 5.1
+					my $dd51 = 0;
+					if ($show =~ m/DD 5.1/ || $show =~ m/DD5.1/) {
+						$dd51 = 1;
+						$show =~ s/\[\+ DD 5.1 sound\]//;
+						$show =~ s/\[\+ DD 5.1 Audio\]//;
+						$show =~ s/\[\+ DD 5.1 audio\]//;
+						$show =~ s/\[\+DD 5.1 audio\]//;
+						$show =~ s/\[\+DD 5.1 Audio\]//;
+						$show =~ s/\[\+DD 5.1 sound\]//;
+						$show =~ s/\[\+DD 5.1 sound\]//;
+						$show =~ s/\[\+DD5.1 sound\]//;
+						$show =~ s/\[\+DD5.1\]//;
+						$show =~ s/\[\+ DD 5.1\]//;
+						$show =~ s/\[\DD5.1\]//;
+						$show =~ s/\[\DD 5.1\]//;
+					}
+					$show =~ s/\s+$//;
+					$show =~ s/^\s+//;
+
+					if (defined($translation->{$show})) {
+						$show = $translation->{$show};
+						$stats{manual_translations}++;
+					}
+    
+					next if (length($show) == 0);
+
+					# Widescreen handling 
+					# Now we're here, this show must be in widescreen - we don't (yet) do anything with widescreen in mythtv 
+
+					# DD5.1
+					if ($dd51 == 1) {
+						# This show is is in DD5.1 - we don't (yet) do anything wiht DD5.1 in mythtv
+						;
+					}
+ 
+					# High Definition Handling
+					if ($hd == 1) {
+						#print "HD Channel $this_chan $dayname \"$show\"\n" if $opt->{debug};
+						foreach my $xmlid (@{$channels->{$this_chan}}) {
+							$d->{prog}->{$xmlid}->{$show}->{chan} = $this_chan;
+							$d->{prog}->{$xmlid}->{$show}->{days}->{$dayname} = 1;
+
+						}
+						$stats{parsed_hd_progs}++;
+					} else {
+						#print "SD Widescreen Channel $channels[$channelnumber]: $dayname $show \n" if $opt->{debug};
+						$stats{parsed_sd_widescreen_progs}++;
+					}
+				}
+			}
+		}
+	}
+	$tree->delete;
+}
+
+######################################################################################################
+# logic to fetch a page via http
+#  retries up to 3 times to get a page with 5 second pauses inbetween
+
+sub get_url
+{
+        my($url,$status,$dontretry) = (@_);
+        my $response;
+        my $attempts = 0;
+        my ($raw, $page, $base);
+
+        my $request = HTTP::Request->new(GET => $url);
+        $request->header('Accept-Encoding' => 'gzip');
+
+        print "$status $url\n";
+
+        my $max_tries = 3;
+	$max_tries = 1 if ($dontretry);
+
+        for (1..$max_tries) {
+                $response = $ua->request($request);
+                last if ($response->is_success || $dontretry);
+
+                $stats{http_failed_requests}++;
+                $attempts++;
+                print "Failed attempt # $attempts to retrieve $url\n";
+		unless ($attempts == $max_tries) {
+		    print "Sleeping for 10 seconds.\n";
+		    sleep 10;
+		}
+        }
+        if (!($response->is_success)) {
+                if ($dontretry == 0) {
+                        printf "ERROR: could not open url %s in %d attempts\n",$url,$attempts;
+                }
+                return undef;
+        }
+
+        $stats{bytes_fetched} += do {use bytes; length($response->content)};
+        $stats{http_successful_requests}++;
+
+        if ($response->header('Content-Encoding') &&
+            $response->header('Content-Encoding') eq 'gzip') {
+                $stats{compressed_pages} += do {use bytes; length($response->content)};
+                $response->content(Compress::Zlib::memGunzip($response->content));
+        }
+
+        if ($response->header('Content-type') eq 'xapplication/ywe-octet-stream') {
+                $stats{transformed_pages}++;
+                $base = &transform_output(length($response->content), $response->content);
+        } else {
+                $base = $response->content;
+        }
+        return $base;
+}
+
+######################################################################################################
+
+sub print_stats
+{
+	printf "%s v%s completed", $progname, $version;
+        foreach my $key (sort keys %stats) {
+                printf ", %d %s",$stats{$key},$key;
+        }
+        printf "\n";
+}
+
+######################################################################################################
+
+sub channel_cb( $ )
+{
+	my $c = shift;
+	# printf "got channel ".Dumper($c);
+	$writer->write_channel($c);
+}
+
+######################################################################################################
+
+sub programme_cb( $ )
+{
+	my $prog=shift;
+	my $this_chan = $prog->{channel};
+	my $this_title;
+	my $hd_chan_base;
+
+	$this_title = $prog->{title}->[0]->[0]
+	  if (($prog->{title}) && ($prog->{title}->[0]) && ($prog->{title}->[0]->[0]));
+	# print "got programme ".Dumper($prog);
+
+	goto NOMATCH if (!defined $this_chan);
+	goto NOMATCH if (!defined $this_title);
+	goto NOMATCH if (!defined $d->{prog}->{$this_chan});
+
+	# if programme is already marked as HDTV, just skip all of this
+	if ((defined $prog->{video}) && (defined $prog->{video}->{quality}) &&
+	    ($prog->{video}->{quality} =~ /hdtv/i)) {
+		printf "  matched '$this_title' (pre-marked)\n" if (!defined $d->{seenprog}->{$this_title});
+		$stats{prog_already_marked}++;
+		goto MATCH;
+	}
+
+	# see if title matches everything we have seen on this channel
+	foreach my $t (keys %{($d->{prog}->{$this_chan})}) {
+		if (canonicalizeTitles_match($t,$this_title)) {
+			# match!
+			printf "  matched '$t' to '$this_title' (canonical match)\n" if (!defined $d->{seenprog}->{$this_title});
+			$stats{matched_prog}++;
+			$hd_chan_base = $d->{prog}->{$this_chan}->{$t}->{chan}."HD";
+			goto MATCH;
+		}
+	}
+
+	# see if title matches something in our override table
+	foreach my $ch (keys %{($hdoverride)}) {
+		my $found = 0;
+		foreach my $xmlid (@{$channels->{$ch}}) {
+			if ($xmlid eq $this_chan) {
+				$found = 1;
+				last;
+			}
+		}
+		next if !$found;
+		foreach my $t (@{($hdoverride->{$ch})}) {
+			if (canonicalizeTitles_match($t,$this_title)) {
+				# match!
+				printf "  matched '$t' to '$this_title' (hd override)\n" if (!defined $d->{seenprog}->{$this_title});
+				$stats{override_matched_prog}++;
+				$hd_chan_base = $ch."HD";
+				goto MATCH;
+			}
+		}
+	}
+
+NOMATCH:
+	$writer->write_programme($prog);
+	return;
+
+MATCH:
+	$d->{seenprog}->{$this_title}++;
+	$prog->{video}->{aspect} = "16:9"; # widescreen
+
+	if (!defined $opt_channels->{$hd_chan_base}) {
+		# no HD variant
+		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
+
+		$writer->write_programme($prog);
+		$stats{rewrote_prog_as_hdtv_inplace}++;
+	} else {
+		if ($opt->{action} =~ /copy/) {
+			$writer->write_programme($prog);
+			$stats{rewrote_prog_as_hdtv_inplace}++;
+		}
+
+		# populate this programme in HD channel
+		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
+		foreach (@{$opt_channels->{$hd_chan_base}}) {
+			$prog->{channel} = $_;
+			$writer->write_programme($prog);
+			$stats{wrote_prog_into_hdtv_channel}++
+		}
+	}
+	return;
+}
+
+######################################################################################################
+
+sub canonicalizeTitle
+{
+	my $title=shift;
+	$title =~ s/^\s+//;
+	$title =~ s/\s+$//;
+	$title =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
+	$title =~ s/ *\& */ and /g;
+	$title =~ s/[^ a-zA-Z0-9]//g;
+	$title =~ s/\s+/ /;
+	return(lc($title));
+}
+
+my %alternatives = ( one => "1",
+		     two => "2",
+		     to  => "2",
+		     too => "2",
+		     three => "3",
+		     four => "4",
+		     for => "4",
+		     five => "5",
+		     six => "6",
+		     seven => "7",
+		     eight => "8",
+		     nine => "9"
+		   );
+
+sub forgivingMatch
+{
+	my $word1 = shift;
+	my $word2 = shift;
+
+	# exact match
+	return 1 if $word1 eq $word2;
+	# they match according to our alternatives lookup table
+	return 1 if $alternatives{$word1} && $alternatives{$word1} eq $word2 ||
+		    $alternatives{$word2} && $alternatives{$word2} eq $word1;
+	# irreconcilable differences
+	return 0 if abs(length($word1) - length($word2)) > 1 ||
+		    length($word1) < 3;
+
+	my @list1 = split(//,$word1);
+	my @list2 = split(//,$word2);
+	my $i = 0;
+	my $j = 0;
+
+	# find first difference
+	while ($i < @list1 && $j < @list2 && $list1[$i] eq $list2[$j]) {
+		++$i; ++$j;
+	}
+	if ($i+1 < @list1 && $j+1 < @list2) {
+		# at least 2 chars to go in both words
+		if ($list1[$i+1] eq $list2[$j] && $list1[$i] eq $list2[$j+1]) {
+			# characters transposed
+			$i += 2;
+			$j += 2;
+		} elsif ($list1[$i+1] eq $list2[$j]) {
+			# extra character inserted into @list1
+			$i += 2;
+			++$j;
+		} elsif ($list1[$i] eq $list2[$j+1]) {
+			# extra character inserted into @list2
+			++$i;
+			$j += 2;
+		} else {
+			# single character difference
+			++$i;
+			++$j;
+		}
+		# we forgave one difference; now do rest of strings match exactly?
+		while ($i < @list1 && $j < @list2 && $list1[$i] eq $list2[$j]) {
+			++$i; ++$j;
+		}
+		return($i == @list1 && $j == @list2);
+	} elsif ($i == @list1 || $j == @list2) {
+		# only difference is one word has one extra letter, or last char
+		# of each word differ.  That's still only one one-char difference
+		return(1);
+	}
+}
+
+sub canonicalizeTitles_match
+{
+	my $word1=canonicalizeTitle(shift);
+	my $word2 =canonicalizeTitle(shift);
+	my @longer;
+	my @shorter;
+
+	if (length($word1) > length($word2)) {
+		@longer  = split(/\s+/, $word1);
+		@shorter = split(/\s+/, $word2);
+	} else {
+		@shorter = split(/\s+/, $word1);
+		@longer  = split(/\s+/, $word2);
+	}
+
+	WORD: for my $word (@shorter) {
+		for(my $i=0; $i < @longer; ++$i) {
+			if (forgivingMatch($longer[$i], $word)) {
+				splice(@longer,$i,1);
+				next WORD;
+			} elsif ($i+1 < @longer &&
+				 $word eq "$longer[$i]$longer[$i+1]") {
+				splice(@longer,$i,2);
+				next WORD;
+			}
+		}
+		return(0);
+	}
+	return(1);
+}
+
+##############################################################################
