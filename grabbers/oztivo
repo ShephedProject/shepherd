@@ -2,7 +2,7 @@
 
 # OzTivo grabber
 
-my $version = '1.13';
+my $version = '1.14';
 
 # Requires configuration!
 # 1. Register at http://www.tvguide.org.au/
@@ -439,7 +439,8 @@ sub adjust_abc2_times
     # between two TZ strings.
     my $l_min = int($local_tz / 100) * 60 + $local_tz % 100 % 60; 
     my $s_min = int($sydney_tz / 100) * 60 + $sydney_tz % 100 % 60; 
-    my $tz_diff = int(($l_min - $s_min) / 60) * 100 + (($l_min - $s_min) % 60);
+    # can't use %60 because it always returns a positive number
+    my $tz_diff = int(($l_min - $s_min) / 60) * 100 + (($l_min - $s_min) - (int(($l_min - $s_min)/60)*60));
 
     # Are we in DST?
     my $local_dst = (localtime)[8];
@@ -492,7 +493,7 @@ sub compare_sydney_dst
     my $start = time - (time % (60*60*24)) - (($sydney_dst ? 11 : 10) * 60*60) + (3*60*60);
 
     # Check Sydney's DST status each day for 7 days
-    for (my $day = 0; $day < 7; $day++)
+    for (my $day = 0; $day < 8; $day++)
     {
 	my $t = $start + ($day * 24*60*60);
 	my $sydney_dst_thisday = (localtime($t))[8];
