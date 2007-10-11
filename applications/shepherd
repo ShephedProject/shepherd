@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.24';
+my $version = '1.2.25';
 
 # tv_grab_au
 # "Shepherd"
@@ -1365,6 +1365,12 @@ sub call_prog
     $want_output = 0 if (!defined $want_output);
     $display_output = 1 if (!defined $display_output);
     $progtype = $components->{$component}->{type} unless ($progtype);
+    if ($components->{$component}->{default_cmdline})
+    {
+	my $parameters = $components->{$component}->{default_cmdline};
+	$parameters =~ s/:/ /g;
+	$prog .= " $parameters";
+    }
 
     my $prog_output = "";
 
@@ -1816,30 +1822,14 @@ sub component_set
     }
     my $arg = join(":",@args);
 
-    if ($component eq $progname) {
-	if ((!defined $arg) || ($arg eq "")) {
-	    delete $components->{$progname}->{default_cmdline};
-	    &log("\ncleared default options for $progname\n");
-	} else {
-	    $components->{$progname}->{default_cmdline} = "--".join(":--",@args);
-	    &log("\nset default options for $progname to: ".$components->{$progname}->{default_cmdline}."\n");
-	}
-	write_config_file();
-	return;
-    }
-
     if ((!defined $arg) || ($arg eq "")) {
-	&log("\nNothing to set: you need to use this as --component-set (component):(settings)\n");
-	return;
+	delete $components->{$component}->{default_cmdline};
+	&log("\nCleared default options for $component.\n");
+    } else {
+	$components->{$component}->{default_cmdline} = "--".join(":--",@args);
+	&log("\nSet default options for $component to: --".join(" --",@args)."\n");
     }
-
-    my $opt_set = query_config($component, 'option_set');
-    if (!defined $opt_set) {
-	&log("\nComponent $component does not have any tunable parameters.\n");
-	return;
-    }
-
-    my ($result,$resultmsg,$test_output) = call_prog($component,query_filename($component,$components->{$component}->{type})." $opt_set $arg"." 2>&1",1,1,1);
+    &write_config_file;
 }
 
 # This does a web lookup rather than reading the official 
