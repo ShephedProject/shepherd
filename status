@@ -15,7 +15,7 @@ grabber         southerncross_website   0.16
 grabber         ten_website         1.04
 grabber         selectv_website     0.02
 grabber         citysearch          2.0.3
-grabber         acctv_website       0.02
+grabber         acctv_website       0.03
 reconciler      reconciler_mk2      0.35
 postprocessor   imdb_augment_data   0.35
 postprocessor   tvdb_augment_data   0.11

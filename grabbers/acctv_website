@@ -22,7 +22,7 @@ my $baseurl = "http://www.acctv.com.au/";
 
 my %stats;
 my $o;
-Shepherd::Common::program_begin(\$o, "acctv_website", "0.02", \%stats);
+Shepherd::Common::program_begin(\$o, "acctv_website", "0.03", \%stats);
 
 my ($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, ("ACC"));
 
@@ -231,10 +231,7 @@ sub get_details
 			Shepherd::Common::log(" cache use $_ \t: $details_cache->{$cache_key}->{$_}") if ($o->{debug});
 			$prog->{$_} = $details_cache->{$cache_key}->{$_};
 		}
-		if (defined $prog->{length}) {
-			$prog->{stop} = $prog->{start} + $prog->{length};
-			delete $prog->{length};
-		}
+		$prog->{stop} = $prog->{start} + $prog->{length} if (defined $prog->{length});
 		$stats{cached_used}++;
 		return $prog;
 	}	
@@ -288,13 +285,15 @@ sub get_details
 
 		if ($header eq 'Length') {
 			if ($content !~ /^(\d+) /) { # length
-				Shepherd::Common::log("skipped detail length : " . $td->as_HTML()) if $o->{debug};
+				Shepherd::Common::log("skipped detail length : " . $td->as_HTML());
 				$td = shift @tds || last;
 				$header = $td->as_trimmed_text();
+				$header =~ s/[^\x20-\x7f\x0a]//g; # remove &nbsp;
 				next;
 			}
 			my $length = ($1 < 3 ? ($1*60*60) : ($1*60));
 			$prog->{length} = $length;
+			$prog->{stop} = $prog->{start} + $length;
 			Shepherd::Common::log("set length     : $length") if ($o->{debug});
 		} elsif ($header eq 'Genre') {
 			push(@categories, [$content, $o->{lang}]); # category
@@ -325,11 +324,6 @@ sub get_details
 	{
 		&write_cache unless (defined $o->{no_cache});
 		Shepherd::Common::log(" cache write");
-	}
-
-	if (defined $prog->{length}) {
-		$prog->{stop} = $prog->{start} + $prog->{length};
-		delete $prog->{length};
 	}
 
 	return $prog;
