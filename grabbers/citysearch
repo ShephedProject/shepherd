@@ -3,7 +3,7 @@
 # citysearch TV guide grabber
 #
 
-my $version = '2.0.2';
+my $version = '2.0.3';
 
 use strict;
 use Getopt::Long;
@@ -335,18 +335,22 @@ sub parse_details
     }
 
     $div = $tree->look_down(_tag => 'div', class => 'contentDetails');
-    my %video;
+    my (%video, $category, %type);
     foreach my $tr ($div->look_down(_tag => 'tr'))
     {
 	if ($tr->as_text =~ /(.*?):(.*)/)
 	{
 	    if ($1 eq 'Type')
 	    {
-		push (@{$show->{category}}, $2) unless ($2 eq 'N/A');
+		$category = &strip_whitespace($2);
 	    }
 	    elsif ($1 eq 'Country')
 	    {
 		$show->{country} = $2;
+	    }
+	    elsif ($1 eq 'Language')
+	    {
+		$show->{language} = $2;
 	    }
 	    elsif ($1 eq 'Cast')
 	    {
@@ -355,12 +359,29 @@ sub parse_details
 		    push @{$show->{credits}{actor}}, &strip_whitespace($_);
 		}
 	    }
+	    elsif ($1 eq 'Director')
+	    {
+		foreach (split /, /, $2)
+		{
+		    push @{$show->{credits}{director}}, &strip_whitespace($_);
+		}
+	    }
+	    elsif ($1 eq 'Writer') # unseen
+	    {
+		foreach (split /, /, $2)
+		{
+		    push @{$show->{credits}{writer}}, &strip_whitespace($_);
+		}
+	    }
 	    elsif ($1 eq 'Duration')
 	    {
-		if (!$show->{stop} and $2 =~ /(\d+) minutes/)
+		if ($2 =~ /(\d+) min/)
 		{
-		    $show->{stop} = $show->{start} + ($1 * 60);
-		    &log("Filled in stop time! $1 minutes.") if ($debug);
+		    $show->{length} = $1 * 60;
+		    if (!$show->{stop}) {
+			$show->{stop} = $show->{start} + ($1 * 60);
+			&log("Filled in stop time! $1 minutes.") if ($debug);
+		    }
 		}
 	    }
 	    elsif ($1 eq 'Format')
@@ -387,10 +408,19 @@ sub parse_details
 		    elsif ($info eq 'Premiere')
 		    {
 			$show->{'premiere'} = [ $info ];
+			$type{premiere} = 1;
 		    }
 		    elsif ($info eq 'Live')
 		    {
-			push @{$show->{category}}, $info;
+			$type{live} = 1;
+		    }
+		    elsif ($info eq 'Final' || $info eq 'Finale') # unseen
+		    {
+			$type{final} = 1;
+		    }
+		    elsif ($info eq 'Return') # unseen
+		    {
+			$type{return} = 1;
 		    }
 		    elsif ($info eq 'Repeat')
 		    {
@@ -398,7 +428,7 @@ sub parse_details
 		    }
 		    elsif ($info eq 'Movie')
 		    {
-			push @{$show->{category}}, 'movie';
+			$type{movie} = 1;
 		    }
 		    else
 		    {
@@ -429,6 +459,8 @@ sub parse_details
 	}
     }
     $show->{video} = { %video } if (%video);
+    $show->{category} = [ &Shepherd::Common::generate_category(
+        $show->{title}, $category, %type) ];
 
     $tree->delete;
 
@@ -488,10 +520,12 @@ sub write_xml
 	    {
 		$p{$field} = [[ $p{$field}, $lang ]] if ($p{$field});
 	    }
+	    $p{language} = [ $p{language}, $lang ] if ($p{language});
 	    $p{start} = &POSIX::strftime("%Y%m%d%H%M", localtime($p{start}));
 	    $p{stop} = &POSIX::strftime("%Y%m%d%H%M", localtime($p{stop}));
 	    $p{rating} = [[ $p{rating}, 'ABA', undef ]] if ($p{rating});
-	    if ($p{category})
+	    if ($p{category} && ref($p{category}) eq "ARRAY"
+		    && $p{category}[0] && ref($p{category}[0]) ne "ARRAY") # obsolete 14/10/2007
 	    {
 		foreach (@{$p{category}})
 		{

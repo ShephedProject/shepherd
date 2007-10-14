@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.1';
+my $version  = '3.6.2';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -95,6 +95,11 @@ my $version  = '3.6.1';
 #           Feature: cache guide pages for 3 hours, add subratings,
 #           Feature: capture director, writer, country, language
 #           Bugfix : fix previously-shown, aspect, subtitles, premiere, quality
+# 3.6.1   : Feature: don't split category, still add 'sport' and 'movie',
+#                    support 'LIVE' by appending to beginning of category,
+#                    use Shepherd::Common::translate_category
+# 3.6.2   : Feature: use new Common::generate_category, don't add 'advisory',
+#                    add 'length', add 'final' and 'return' (unseen)
 
 use strict;
 use Getopt::Long;
@@ -826,41 +831,27 @@ sub parse_details
   {
     $block = $block->right();
   }
-  my $live = 0;
+  my ($category, %type);
   foreach my $tag ($block->look_down('_tag' => 'tr'))
   {
     $str = $tag->as_text();
     if ($str =~ /Genre:(.+)/)
     {
-      $str = strip_whitespace($1);
-      $show->{'category'} = [[ &Shepherd::Common::translate_category($str), $lang ]];
-      if ($str =~ /Sport/i)
-      {
-        push (@{$show->{'category'}}, [ 'sports' ]);
-      }
+      $category = strip_whitespace($1);
       $str = $tree->find('h5');
-      if ($str and $str->as_text() =~ /movie/i)
-      {
-        push (@{$show->{'category'}}, [ 'movie' ]);
-      }
+      $type{movie} = 1 if ($str and $str->as_text() =~ /movie/i);
     }
     elsif ($str =~ /Rating:(.+)/)
     {
       $str = strip_whitespace($1);
-      if ($str =~ /(.*?)\s*\[(.+)\]/)
-      {
-        @extra = split(/, /, $2);
-	foreach (@extra)
-	{
-	  $_ = [ $_, 'advisory', undef ];
-	}
-	my $sr = &Shepherd::Common::subrating($2);
-	$show->{'rating'} = [[ $sr ? "$1 $sr" : $1, 'ABA', undef],  @extra ];
+      $str =~ /(.*?)\s*\[(.+)\]/;
+      $str = $1;
+      my $sr = $2;
+      if ($sr) {
+        $sr =~ s/or medical procedures//ig;
+        $sr = &Shepherd::Common::subrating($sr);
       }
-      else
-      {
-        $show->{'rating'} = [[ $1, "ABA", undef]];
-      }
+      $show->{'rating'} = [[ $sr ? "$str $sr" : $str, 'ABA', undef]];
     }
     elsif ($str =~ /Cast: (.+)/)
     {
@@ -870,7 +861,7 @@ sub parse_details
     {
       $show->{'credits'}{'director'} = [ split(/, /, strip_whitespace($1)) ];
     }
-    elsif ($str =~ /Writer: (.+)/)
+    elsif ($str =~ /Writer: (.+)/) # unseen
     {
       $show->{'credits'}{'writer'} = [ split(/, /, strip_whitespace($1)) ];
     }
@@ -885,6 +876,10 @@ sub parse_details
     elsif ($str =~ /Language: (.+)/)
     {
       $show->{'language'} = [ strip_whitespace($1) ];
+    }
+    elsif ($str =~ /Duration:\s(\d+)/)
+    {
+      $show->{'length'} = $1 * 60;
     }
     elsif ($str =~ /Other:(.+)/)
     {
@@ -905,35 +900,41 @@ sub parse_details
 	{
 	    $video{'aspect'} = '16:9';
 	}
-	elsif ($bit eq 'Closed Captions')
-	{
-	    $show->{'subtitles'} = [ { 'type' => 'teletext' } ];
-	}
-	elsif ($bit eq 'Premiere' || $bit eq 'New Episode')
-	{
-	    $show->{'premiere'} = [ $bit ];
-	}
 	elsif ($bit eq 'High Definition')
 	{
 	    $video{'quality'} = 'HDTV';
 	}
-	elsif ($bit eq 'LIVE')
+	elsif ($bit eq 'Closed Captions')
 	{
-	    $live = 1;
+	    $show->{'subtitles'} = [ { 'type' => 'teletext' } ];
+	}
+	elsif ($bit eq 'New Episode')
+	{
+	    $show->{'premiere'} = [ $bit ];
+	}
+	elsif ($bit eq 'Premiere')
+	{
+	    $show->{'premiere'} = [ $bit ];
+	    $type{premiere} = 1;
+	}
+	elsif ($bit eq 'LIVE' || $bit eq 'Live')
+	{
+	    $type{live} = 1;
+	}
+	elsif ($bit eq 'Final' || $bit eq 'Finale')
+	{
+	    $type{final} = 1;
+	}
+	elsif ($bit eq 'Return') # unseen
+	{
+	    $type{return} = 1;
 	}
 	$show->{'video'} = \%video if (%video);
       }
     }
   }
-  if ($live == 1) {
-    if ($show->{'category'} &&
-        $show->{'category'}[0][0] ne 'sports' &&
-        $show->{'category'}[0][0] ne 'movie') {
-      $show->{'category'}[0][0] = 'Live ' . $show->{'category'}[0][0];
-    } else {
-      unshift (@{$show->{'category'}}, [ 'Live' ]);
-    }
-  }
+  $show->{'category'} = [ &Shepherd::Common::generate_category(
+      $show->{'title'}[0][0], $category, %type) ];
 
   $tree->delete();
   print Dumper($show) if ($debug);

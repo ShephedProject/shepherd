@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.28';
+my $version = '0.29';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -769,6 +769,77 @@ sub translate_category
 
 ##########################################################################
 
+# if no category then guess from title for Sport, News, Infomercial
+# translates the words in category
+# types (final,premiere,return,live) are prepend to category
+# types (movie,sports,series,tvshow) are appended to category list
+sub generate_category
+{
+    my ($title, $category, %type) = @_;
+
+    $type{sports} = 1 if ($title && $title=~/(^|\W)Sports?(\W|$)/i);
+    $type{sports} = 1 if ($category && $category=~/(^|\W)Sports?(\W|$)/i);
+
+    if ($category) {
+        if ($category eq "movie") {
+            $category = "Movie";
+            $type{movie} = 1;
+        } elsif ($category eq "sports") {
+            $category = "Sports";
+            $type{sports} = 1;
+        } elsif ($category eq "series") {
+            $category = "Series";
+            $type{series} = 1;
+        } elsif ($category eq "tvshow") {
+            $category = "TVShow";
+            $type{tvshow} = 1;
+        }
+        $category =~ s/Soap Opera/Soap/ig;
+        $category =~ s/Science and Technology/Science\/Nature/ig;
+        $category =~ s/Real Life/Reality/ig;
+        $category =~ s/Cartoon/Animation/ig;
+        $category =~ s/Family/Children/ig;
+        $category =~ s/Murder/Crime/ig;
+    } else { # !$category
+        if ($title) {
+            if ($title=~/(^|\W)News(\W|$)/i) {
+                $category = "News";
+            } elsif ($title=~/(^|\W)Infomercials?(\W|$)/i) {
+                $category = "Infotainment";
+            }
+        }
+        if (!$category) {
+            if ($type{movie}) {
+                $category = "Movie";
+            } elsif ($type{sports}) {
+                $category = "Sports";
+            } elsif ($type{series}) {
+                $category = "Series";
+            } elsif ($type{tvshow}) {
+               $category = "TVShow";
+            }
+        }
+    }
+
+    $category = "" if (!$category);
+    $category = "Live $category" if ($type{live});
+    $category = "Return $category" if ($type{return});
+    $category = "Premiere $category" if ($type{premiere});
+    $category = "Final $category" if ($type{final});
+    $category =~ s/^\s*(.*?)\s*$/$1/;
+
+    my @result;
+    @result = [ $category, "en"] if $category;
+    push(@result, [ "movie"  ]) if $type{movie};
+    push(@result, [ "sports" ]) if $type{sports};
+    push(@result, [ "series" ]) if $type{series};
+    push(@result, [ "tvshow" ]) if $type{tvshow};
+
+    return @result;
+}
+
+##########################################################################
+
 # (Adult Themes)
 # (Some Violence, Adult Themes, Supernatural Themes)
 # (Drug References, Adult Themes)
@@ -780,12 +851,13 @@ sub translate_category
 # (Sexual References)
 # (Mild Coarse Language, Sexual References)
 # (Sex Scenes, Adult Themes, Supernatural Themes)
+# (Adult Themes, Medical Procedures)
 ## (Qualifying - Sat)
 sub subrating
 {
-  my $string = shift;
-  my @subrating;
+  my $string = shift || "";
 
+  my @subrating;
   push(@subrating, "v") if $string =~ /Violence/i;
   push(@subrating, "l") if $string =~ /Language/i;
   push(@subrating, "s") if $string =~ /Sex/i;
@@ -793,6 +865,7 @@ sub subrating
   push(@subrating, "a") if $string =~ /Adult/i;
   push(@subrating, "n") if $string =~ /Nudity/i;
   push(@subrating, "h") if $string =~ /Horror|Supernatural/i;
+  push(@subrating, "m") if $string =~ /Medical/i;
 
   return join(",",@subrating);
 }

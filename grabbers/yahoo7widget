@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.92";
+my $version = "1.93";
 
 use XMLTV;
 use XML::DOM;
@@ -511,18 +511,12 @@ sub parse_xml_data
 			my %e;
 			foreach my $field ('title', 'subtitle', 'description_1', 'main_cast', 'year_released', 'rating',
 			  'genre', 'running_time', 'repeat', 'country', 'movie', 'premiere', 'final', 'captions', 'warnings', 
-			  'color', 'language', 'director', 'live') {
+			  'color', 'language', 'director', 'live', 'return') {
 				eval { $e{$field} = $event->getElementsByTagName("$field")->item(0)->getFirstChild->getNodeValue; };
 			}
 			# other fields we dont pick up but exist in source xml data include:
 			#  other_title, description_2, genre_id, highlight, ext_url, y7_url
-
-			my @categories;
-
-			push(@categories, [ "movie",$opt->{lang} ] ) if (($e{movie}) && ($e{movie} == 1));
-			push(@categories, [ "final",$opt->{lang} ] ) if (($e{final}) && ($e{final} == 1));
-			push(@categories, [ "live",$opt->{lang} ] ) if (($e{live}) && ($e{live} == 1));
-			push(@categories, [ Shepherd::Common::translate_category($e{genre}),$opt->{lang} ] ) if (($e{genre}) && ($e{genre} ne ""));
+			# 'return' unseen
 
 			my %video_details;
 			$video_details{'colour'} = "yes" if $e{color};
@@ -541,12 +535,13 @@ sub parse_xml_data
 			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $e{title}, $opt->{lang} ]] if $e{title};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $e{subtitle}, $opt->{lang} ]] if $e{subtitle};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $e{description_1}, $opt->{lang} ]] if $e{description_1};
-			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ @categories ] if @categories;
+			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ &Shepherd::Common::generate_category($e{title}, $e{genre}, %e) ];
 			$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[[ $e{country}, $opt->{lang} ]] if $e{country};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'premiere'} = 	[ 'premiere', $opt->{lang} ] if $e{premiere};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]] if $rating ne "";
 			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $e{main_cast}) ] if $e{main_cast};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'director'} = [ split(/, /, $e{director}) ] if $e{director};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'writer'} = [ split(/, /, $e{writer}) ] if $e{writer}; # unseen
 			$tv_guide->{$channel}->{data}->{$event_id}->{'date'} = 	$e{year_released} if $e{year_released};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'previously-shown'} = { } if $e{repeat};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ] if $e{captions};

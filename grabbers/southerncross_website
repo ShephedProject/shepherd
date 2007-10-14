@@ -33,7 +33,7 @@
 use strict;
 
 my $progname = "southerncross_website";
-my $version = "0.15";
+my $version = "0.16";
 
 #use LWP::UserAgent;
 #use LWP::ConnCache;
@@ -598,11 +598,11 @@ sub parse_page
     # <b>Saturday Late Night Movie</b> - Run Lola Run
     # <b>Sunday Afternoon Premiere Movie</b> - Rat
     # <b>Sunday Afternoon Movie</b> - Evolution
-    my ($rating, $movie, $premiere, $final, $return, $series, $live);
+    my ($rating, %type);
     my $post_desc="";
     if ($subtitle and $title =~ /^(Friday|Saturday|Sunday) .* Movie$/i) {
-      $movie = 1;
-      $premiere = 1 if ($title =~ /Premiere/i);
+      $type{movie} = 1;
+      $type{premiere} = 1 if ($title =~ /Premiere/i);
       &log("parse_page debug: Changing title $title to $subtitle") 
           if $opt->{debug};
       $post_desc .= "($title)";
@@ -615,18 +615,22 @@ sub parse_page
     # (Series Finale)
     # (Series Final)
     # (Series Return)
+    # (Replay)
     ## (New Time)
     ## (Qualifying)
+    ## (Special Presentation)
     # $subtitle =~ , live from Aurora
     if ($title =~ s/(\((.*)\))//) {
         $post_desc .= $1;
         my $tag = $2;
-        $series = 1 if ($tag =~ /(^| )Series( |$)/i);
-        $premiere = 1 if ($tag =~ /(^| )Premiere( |$)/i);
-        $final = 1 if ($tag =~ /(^| )Finale?( |$)/i);
-        $return = 1 if ($tag =~ /(^| )Return( |$)/i);
+        $type{series} = 1 if ($tag =~ /(^|\W)Series(\W|$)/i);
+        $type{premiere} = 1 if ($tag =~ /(^|\W)Premiere(\W|$)/i);
+        $type{final} = 1 if ($tag =~ /(^|\W)Finale?(\W|$)/i);
+        $type{return} = 1 if ($tag =~ /(^|\W)Return(\W|$)/i);
+        $type{repeat} = 1 if ($tag =~ /(^|\W)Repeat(\W|$)/i); # unseen
+        $type{repeat} = 1 if ($tag =~ /(^|\W)Replay(\W|$)/i);
     }
-    $live = 1 if ($subtitle and $subtitle =~ /live from/i);
+    $type{live} = 1 if ($subtitle and $subtitle =~ /live from/i);
     $prog->{title} = [[$title, $opt->{lang}]];
     &log("parse_page debug: title     : $title $post_desc") if ($opt->{debug});
     if ($subtitle) {
@@ -648,21 +652,23 @@ sub parse_page
       $text = $td->as_trimmed_text();
 
       if ($text) {
+        # - Live from Aurora 
         # Hosted by Mike Goldman & Bree Amer, this ... # how to parse all
         # Hosted by Mike Goldman, Ryan Fitzgerald and Bree Amer.
         # ^Guest Stars: Mel Gibson Studio ... # how to parse all
+        # Guests include: Damien Leith, Young Divas and Darren Hayes.
         # Starring: $
         ## Insert Cast: Damon Wayans, Adam Sandler, Kristen Wilson, James Caan,
         ## James Farentino (Cons Adv: Some Coarse Language, Some Violence, Sexual References)
-        # - Live from Aurora 
         ## Featuring cartoons: Yu Gi Oh! Gx (Final), All Grown Up (Repeat),
         ## Teenage Mutant Ninja Turtules (repeat)
+        $type{live} = 1 if ($text =~ /Live from/i);
         my $cast = "";
-        $cast .= "$1, " if ($text =~ /Hosted by (\w+ \w+)( |\.|,|$)/i);
-        $cast .= "$1, " if ($text =~ /Guest Stars: (\w+ \w+)( |\.|,|$)/i);
-        $cast .= $1 if ($text =~ /Starring: (.+)$/i);
-        $prog->{'credits'}{'actor'} = [ split(/, /, $cast) ] if ($cast);
-        $live = 1 if ($text =~ /Live from/i);
+        $cast .= "$1," if ($text =~ /Hosted by (\w+ \w+)( |\.|,|$)/i);
+        $cast .= "$1," if ($text =~ /Guest Stars: (\w+ \w+)( |\.|,|$)/i);
+        $cast .= "$1," if ($text =~ /Guests Include: (.+?)\./i);
+        $cast .= $1 if ($text =~ s/Starring: (.+)$//i);
+        $prog->{'credits'}{'actor'} = [ split(/,|&amp;|&|\Wand\W/i, $cast) ] if $cast;
         $prog->{desc} = [[$text, $opt->{lang}]]; # desc
         &log("parse_page debug: desc      : $text") if $opt->{debug};
       }
@@ -695,29 +701,21 @@ sub parse_page
       $text = $td->as_trimmed_text();
     }
   PART:
-    my @categories;
-    my $cft = category_from_title($title);
-    push(@categories, [$cft, $opt->{lang}]) if $cft;
-    push(@categories, ["Children", $opt->{lang}])
-        if $rating and $rating =~ /^(C|P)$/i;
-    push(@categories, ["movie", $opt->{lang}]) if $movie;
-    push(@categories, ["series", $opt->{lang}]) if $series;
-    @categories = prepend_category("Live", @categories) if $live;
-    @categories = prepend_category("Premiere", @categories) if $premiere;
-    @categories = prepend_category("Return", @categories) if $return;
-    @categories = prepend_category("Final", @categories) if $final;
-    $prog->{'category'} = [@categories] if @categories;
-    $prog->{'premiere'} = ['premiere', $opt->{lang}] if $premiere;
-    $prog->{'last-chance'} = ['final', $opt->{lang}] if $final;
-    #$prog->{'previously-shown'} = { } if $repeat; # can't detect
+    my $category = category_from_title($title);
+    $category = "Children" if !$category && $rating && $rating =~ /^(C|P)$/i;
+    $prog->{'category'} = [ &Shepherd::Common::generate_category(
+        $title, $category, %type) ];
+    $prog->{'premiere'} = ['premiere', $opt->{lang}] if $type{premiere};
+    $prog->{'last-chance'} = ['final', $opt->{lang}] if $type{final};
+    $prog->{'previously-shown'} = { } if $type{repeat};
     $prog->{rating}  = [[$rating, "ABA", undef]] if $rating;
-    if ($post_desc) {
-      if (not $prog->{desc}) {
-        $prog->{desc} = [[$post_desc, $opt->{lang}]];
-      } else {
-        $prog->{desc}->[0]->[0] .= "\n" . $post_desc;
-      }
-    }
+#     if ($post_desc) {
+#       if (not $prog->{desc}) {
+#         $prog->{desc} = [[$post_desc, $opt->{lang}]];
+#       } else {
+#         $prog->{desc}->[0]->[0] .= "\n" . $post_desc;
+#       }
+#     }
 
     $progs->{$prog->{start}} = $prog;
     $progs_in_day++;
@@ -736,27 +734,14 @@ sub parse_page
 sub category_from_title
 {
   my $title = shift;
-  return "News" if $title=~/(^| )News( |$)/i;
-  return "sports" if $title=~/(^| )Sports Tonight( |$)/i;
-  return "sports" if $title=~/(^| )AFL( |$)/i;
-  return "Infotainment" if $title=~/(^| )Infomercials?( |$)/i;
-  return "Reality" if $title=~/(^| )Big Brother( |$)/i;
-  return "Animation" if $title=~/(^| )The( All New)? Simpsons( |$)/i;
-  return "Music" if $title=~/(^| )Video Hits( |$)/i;
-}
-
-sub prepend_category
-{
-  my ($item, @categories) = @_;
-
-  if (@categories > 0 and $categories[0][0]) {
-    if ($categories[0][0] eq "movie") { unshift(@categories, ["Movie", $opt->{lang}]) }
-    elsif ($categories[0][0] eq "sports") { unshift(@categories, ["Sports", $opt->{lang}]) }
-    elsif ($categories[0][0] eq "series") { unshift(@categories, ["Series", $opt->{lang}]) }
-    elsif ($categories[0][0] eq "tvshow") { unshift(@categories, ["TVShow", $opt->{lang}]) }
-    $categories[0][0] = $item . " " . $categories[0][0];
-  } else {
-    push(@categories, [$item, $opt->{lang}]);
-  }
-  return @categories;
+  return "News" if $title=~/(^|\W)News(\W|$)/i;
+  return "sports" if $title=~/(^|\W)Sports Tonight(\W|$)/i;
+  return "sports" if $title=~/(^|\W)AFL(\W|$)/i;
+  return "Infotainment" if $title=~/(^|\W)Infomercials?(\W|$)/i;
+  return "Reality" if $title=~/(^|\W)Big Brother(\W|$)/i;
+  return "Animation" if $title=~/(^|\W)The( All New)? Simpsons(\W|$)/i;
+  return "Music" if $title=~/(^|\W)Video Hits(\W|$)/i;
+  return "Soap" if $title=~/(^|\W)The Bold (&amp;|&|and) The Beautiful(\W|$)/i;
+  return "Lifestyle/Cooking, Food & Wine" if $title=~/(^|\W)Hueys Cooking Adventures(\W|$)/i;
+  return "Variety" if $title=~/(^|\W)The Late Show With David Letterman(\W|$)/i;
 }
