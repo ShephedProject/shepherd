@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.25';
+my $version = '1.2.26';
 
 # tv_grab_au
 # "Shepherd"
@@ -4135,7 +4135,7 @@ sub soak_up_data
     my ($encoding, $credits, $chan, $progs) = @$xmltv;
 
     # explicitly track unparsable dates, excessive durations, etc
-    foreach ( qw( programmes total_duration progs_with_invalid_date progs_too_long progs_too_short progs_with_unknown channel progs_outside_window progs_optional ))
+    foreach ( qw( programmes total_duration progs_with_invalid_date progs_too_long progs_too_short progs_with_unknown channel progs_outside_window progs_optional progs_tba))
     {
 	$this_plugin->{$_} = 0;
     }
@@ -4201,6 +4201,16 @@ sub soak_up_data
 		next;
 	    }
 
+	    # Don't count shows that are simply 'To Be Advised'
+	    # These will be dropped by the reconciler
+	    if ($prog->{title}->[0]->[0] =~ /^to be advised$/i
+		    or
+		$prog->{title}->[0]->[0] =~ /^tba$/i)
+	    {
+		$this_plugin->{progs_tba}++;
+		next;
+	    }
+
 	    # store plugin-specific stats
 	    $this_plugin->{programmes}++;
 	    $this_plugin->{total_duration} += $this_duration;
@@ -4212,9 +4222,6 @@ sub soak_up_data
 
 	    # only analyze / check against policy if its a non optional channel
 	    if (defined $channels->{$ch}) {
-		# store channel-specific stats
-		$channel_data->{$ch}->{programmes}++;
-		$channel_data->{$ch}->{total_duration} += $this_duration;
 
 		# programme is outside the timeslots we are interested in.
 		if ($t1 > $policy{endtime} or $t2 < $policy{starttime})
@@ -4222,6 +4229,10 @@ sub soak_up_data
 		    $this_plugin->{progs_outside_window}++;
 		    next;
 		}
+
+		# store channel-specific stats
+		$channel_data->{$ch}->{programmes}++;
+		$channel_data->{$ch}->{total_duration} += $this_duration;
 
 		# store timeslot info
 		my $start_slotnum = 0;

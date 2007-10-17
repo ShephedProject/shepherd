@@ -95,7 +95,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.35";
+my $version = "0.36";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -171,6 +171,7 @@ $reclogic{warn_on_invalid_time_in_prog} = 1;		# do warn on programme with bad ti
 $reclogic{warn_on_overlapping_programmes_always} = 0;	# don't warn on all overlapping programmes from same source
 $reclogic{warn_on_overlapping_programmes_for_different_title} = 1; # do warn on overlapping programmes from same source with different names
 $reclogic{warn_on_invalid_time_in_prog} = 1;		# do warn on a programme with a duration that is too long
+$reclogic{warn_on_tba_prog} = 1;			# do warn on encountering To Be Advised shows
 
 #
 # debug messages
@@ -1060,6 +1061,17 @@ sub programme_cb( $ )
 		  ($prog->{start} ? $prog->{start} : "undef"), ($prog->{stop} ? $prog->{stop} : "undef")));
 		$stats{bad_programme_duration_too_long}++;
 		return;
+	}
+
+	# skip if 'To Be Advised' or 'TBA'
+	if ($prog_title =~ /^to be advised$/i or $prog_title =~ /^tba$/i)
+	{
+	    &log($reclogic{warn_on_tba_prog},
+		 (sprintf "WARNING: ignoring TBA programme '%s' on channel '%s' from %s: start '%s' stop '%s'; ignored.",
+                 $prog_title, $prog_chan, $datafile, 
+		 ($prog->{start} ? $prog->{start} : "undef"), 
+		 ($prog->{stop} ? $prog->{stop} : "undef")));
+	    return;
 	}
 
 	$prog->{start_epoch} = $t1;

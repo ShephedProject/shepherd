@@ -1,4 +1,4 @@
-application     shepherd            1.2.25
+application     shepherd            1.2.26
 reference       channel_list        6
 reference       Shepherd/Common.pm  0.29
 reference       Shepherd/MythTV.pm  0.6
@@ -16,7 +16,7 @@ grabber         ten_website         1.04
 grabber         selectv_website     0.02
 grabber         citysearch          2.0.3
 grabber         acctv_website       0.03
-reconciler      reconciler_mk2      0.35
+reconciler      reconciler_mk2      0.36
 postprocessor   imdb_augment_data   0.35
 postprocessor   tvdb_augment_data   0.11
 postprocessor   flag_aus_hdtv       0.21
