@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.93";
+my $version = "1.94";
 
 use XMLTV;
 use XML::DOM;
@@ -42,7 +42,6 @@ my $script_start_time = time;
 my %stats;
 my $channels, my $opt_channels;
 my $tv_guide;
-my $time_offset = 0;
 my $input_xml;
 my $d;
 $| = 1;
@@ -61,7 +60,6 @@ GetOptions(
 	'region=i'	=> \$opt->{region},
 	'days=i'	=> \$opt->{days},
 	'offset=i'	=> \$opt->{offset},
-	'timezone=s'	=> \$opt->{timezone},
 	'channels_file=s' => \$opt->{channels_file},
 	'cachefile=s' => \$opt->{obsolete},
 	'output=s'	=> \$opt->{outputfile},
@@ -99,6 +97,8 @@ Shepherd::Common::setup_ua('agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; 
 &scan_channels if (defined $opt->{scanchan});
 die "no channel file specified, see --help for instructions\n", unless (defined $opt->{channels_file});
 
+$ENV{TZ}="Australia/Melbourne"; # yahoo7widget times are always localtime on Eastern States ..
+
 $opt->{days} = 8 if $opt->{days} > 8;	# no data beyond 8 days
 
 #
@@ -106,18 +106,17 @@ $opt->{days} = 8 if $opt->{days} > 8;	# no data beyond 8 days
 #
 
 # normalize starttime to an hour..
-my $starttime = time - $time_offset;
+my $starttime = $script_start_time;
 my $endtime = $starttime + ($opt->{days} * 86400);
 $starttime += (86400 * $opt->{offset}) if (defined $opt->{offset});
-&calculate_time_offset;
 
-&log(sprintf "going to grab %d days%s of data into %s (%s%s) region %s, time offset %d",
+&log(sprintf "going to grab %d days%s of data into %s (%s%s) region %s",
 	$opt->{days},
 	($opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
 	$opt->{outputfile},
 	(defined $opt->{fast} ? "with haste" : "slowly"),
 	(defined $opt->{warper} ? ", anonymously" : ""),
-	$opt->{region}, $time_offset);
+	$opt->{region});
 
 if (-r $opt->{channels_file}) {
 	local (@ARGV, $/) = ($opt->{channels_file});
@@ -200,7 +199,6 @@ $0 [options]
 	--warper		fetch data using WebWarper web anonymizer service
 	--obfuscate		pretend to be a proxy servicing multiple clients
 	--lang=[s]		set language of xmltv output data (default $opt->{lang})
-	--timezone=HHMM		timezone for channel data (default: system-local timezone)
 
 	--scan-chan=(chanfile)	(debugging) check channel discrepancies
 	--rawin=(file), --rawout=(file) (debugging) feed raw XML in/out
@@ -209,37 +207,6 @@ EOF
 ;
 
 	exit(0);
-}
-
-######################################################################################################
-# yahoo7widget times are always localtime on Eastern States ..
-# we need to calculate the amount of time to offset the data to the user's local timezone.
-
-sub calculate_time_offset
-{
-	my $local_time_offset = POSIX::strftime("%z",localtime(time));
-
-	$ENV{TZ}="Australia/Melbourne";
-	my $melbourne_time_offset = POSIX::strftime("%z",localtime(time));
-
-	$time_offset =
-		((int(substr($melbourne_time_offset,1,2))-int(substr($local_time_offset,1,2)))*(60*60)) +
-		((int(substr($melbourne_time_offset,3,2))-int(substr($local_time_offset,3,2)))*(60));
-
-	# set TZ variable back to an appropriate setting
-	if ($opt->{region} =~ /^(74|108|81|107|82|83|85|86)$/) {
-		$ENV{TZ} = "Australia/Adelaide";	# NT/SA
-	} elsif ($opt->{region} =~ /^(101|102)$/) {
-		$ENV{TZ} = "Australia/Perth";		# WA
-	} elsif ($opt->{region} =~ /^(75|78|79|114)$/) {
-		$ENV{TZ} = "Australia/Brisbane";	# QLD
-	} elsif ($opt->{region} =~ /^(88)$/) {
-		$ENV{TZ} = "Australia/Hobart";		# TAS
-	} elsif ($opt->{region} =~ /^(63)$/) {
-		$ENV{TZ} = "Australia/Broken_Hill";	# NSW Broken Hill
-	} else {
-		$ENV{TZ} = "Australia/Melbourne";	# VIC/NSW
-	}
 }
 
 ######################################################################################################
@@ -530,8 +497,8 @@ sub parse_xml_data
 			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channels->{$channel} if (defined $channels->{$channel});
 			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $opt_channels->{$channel} if (defined $opt_channels->{$channel});
 
-			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = 	POSIX::strftime("%Y%m%d%H%M", localtime($event_start+$time_offset));
-			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 		POSIX::strftime("%Y%m%d%H%M", localtime($event_end+$time_offset));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = 	POSIX::strftime("%Y%m%d%H%M", localtime($event_start));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 		POSIX::strftime("%Y%m%d%H%M", localtime($event_end));
 			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $e{title}, $opt->{lang} ]] if $e{title};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $e{subtitle}, $opt->{lang} ]] if $e{subtitle};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $e{description_1}, $opt->{lang} ]] if $e{description_1};
