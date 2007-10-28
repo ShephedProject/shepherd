@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.94";
+my $version = "1.95";
 
 use XMLTV;
 use XML::DOM;
@@ -97,16 +97,23 @@ Shepherd::Common::setup_ua('agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; 
 &scan_channels if (defined $opt->{scanchan});
 die "no channel file specified, see --help for instructions\n", unless (defined $opt->{channels_file});
 
-$ENV{TZ}="Australia/Melbourne"; # yahoo7widget times are always localtime on Eastern States ..
-
 $opt->{days} = 8 if $opt->{days} > 8;	# no data beyond 8 days
 
 #
 # go go go!
 #
 
-# normalize starttime to an hour..
 my $starttime = $script_start_time;
+
+# correct $starttime to remove gap between local and Eastern States time
+my $local_time_offset = POSIX::strftime("%z",localtime(time));
+# yahoo7widget times are always localtime on Eastern States ..
+$ENV{TZ}="Australia/Melbourne";
+my $melbourne_time_offset = POSIX::strftime("%z",localtime(time));
+my $time_offset = ((int(substr($melbourne_time_offset,1,2))-int(substr($local_time_offset,1,2)))*(60*60)) +
+                ((int(substr($melbourne_time_offset,3,2))-int(substr($local_time_offset,3,2)))*(60));
+$starttime -= $time_offset;
+
 my $endtime = $starttime + ($opt->{days} * 86400);
 $starttime += (86400 * $opt->{offset}) if (defined $opt->{offset});
 
