@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "jrobbo";
-my $version = "0.16";
+my $version = "0.17";
 
 use Shepherd::Common;
 use Getopt::Long;
@@ -129,12 +129,16 @@ while (my ($name, $chanid) = each %$channels)
   # Seven (Rockhampton) and Seven (Cairns) -- this is not a great
   # solution and should be fixed.
   $name =~ s/ *\(.*?\)//g;
-  $shortchannels->{$name} = $chanid;
   # Ignore differences between rural stations like
   # Prime Tamworth/Taree/Port,Prime Lismore/Coffs Hbr -- this is not a great
   # solution and should be fixed.
-  # Matches "PrimN" and "PrimS" for http://www.jrobbo.com/dwxmltv/xmltvNorthernNSW.zip so first "Prime" gets all programs
-  $name = "Prim" if $name =~ /^Prime/; 
+  # For regions 69
+  $name = "PrimN" if $name eq "Prime Tamworth/Taree/Port";
+  $name = "PrimS" if $name eq "Prime Lismore/Coffs Hbr";
+  # Matches "PrimN" and "PrimS" so first "Prime" gets all programs
+  $name = "Prim" if $name =~ /^Prime/;
+  # For regions 82, 83, 85
+  $name = "Ten" if $name eq "WIN TEN";
   $shortchannels->{$name} = $chanid;
 }
 
@@ -349,6 +353,7 @@ sub sub_channel
 	elsif ($chan =~ /^ABC/i)		{ $channame = "ABC"; }
 	elsif ($chan =~ /^Seven/i)		{ $channame = "Seven"; }
 	elsif ($chan =~ /^Prime/i)		{ $channame = "Seven"; }
+	elsif ($chan =~ /^7C/i)			{ $channame = "Seven"; }
 	elsif ($chan =~ /^Nine/i)		{ $channame = "Nine"; }
 	elsif ($chan =~ /^WIN/i)		{ $channame = "Nine"; }
 	elsif ($chan =~ /^Ten/i)		{ $channame = "TEN"; }
