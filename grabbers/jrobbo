@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "jrobbo";
-my $version = "0.17";
+my $version = "0.18";
 
 use Shepherd::Common;
 use Getopt::Long;
@@ -361,6 +361,7 @@ sub sub_channel
 	elsif ($chan =~ /^SBS News/i)		{ $channame = "SBS News"; }
 	elsif ($chan =~ /^SBS Digital/i)	{ $channame = "SBS News"; }
 	elsif ($chan =~ /^SBS/i)		{ $channame = "SBS"; }
+	elsif ($chan =~ /^31-Syd/i)		{ $channame = "TVS"; }
 
 	return $shortchannels->{$channame} if (($channame ne "") && (defined $shortchannels->{$channame}));
 	return undef;
