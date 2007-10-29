@@ -3,7 +3,7 @@
 # citysearch TV guide grabber
 #
 
-my $version = '2.0.3';
+my $version = '2.0.4';
 
 use strict;
 use Getopt::Long;
@@ -117,7 +117,7 @@ sub get_guide_data
 	    my $daystr = &POSIX::strftime("%A, %d %B", localtime($runtime + ($day * 86400)));
 	    $daystr =~ s/, 0(\d)/, $1/;
 
-	    unless ($guidedata =~ /$daystr/)
+	    unless ($guidedata =~ /<p class="date">$daystr<\/p>/)
 	    {
 		&log("Exiting: couldn't locate daystring \"$daystr\" in guide page for $dow.");
 		exit 8;
