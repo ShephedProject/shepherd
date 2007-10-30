@@ -7,7 +7,7 @@
 74:ABC2,ABC,SBS News,Southern Cross,SBS,Nine
 75:ABC2,ABC,SBS News,SBS,Briz 31,TEN,Nine,Seven
 78:ABC2,ABC,SBS News,SBS,NBN,Sthn Cross TEN,TEN,Nine,Prime,Seven
-79:ABC,ABC2,WIN (QLD: Regional),WIN (Mackay/Wide Bay),SBS News,SBS,TEN,Seven (Cairns),Seven (Townsville/Mackay/Wide Bay/Sunshine Coast),Seven (Rockhampton/Toowoomba)
+79:ABC,ABC2,WIN (QLD: Regional),WIN (Mackay/Wide Bay),SBS News,SBS,TEN,Seven Cairns,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast),Seven (Rockhampton/Toowoomba)
 81:ABC2,ABC,SBS News,SBS,TEN,Nine,Seven,C31 Adelaide
 82:ABC2,ABC,SBS News,WIN,WIN TEN,SBS
 83:ABC2,ABC,SBS News,WIN,WIN TEN,SBS
@@ -35,3 +35,4 @@ SelecTV:AnimalPlanet,AntennaGreek,BBCWorld,CartoonNetwork,CNN,DiscoveryScience,D
 106:Prime->Prime Wagga Wagga
 126:Prime->Prime Canberra/Sth Coast
 Foxtel:A1->NatGeoAdventure,CNBCAustralia->CNBC,
+79:Seven (Cairns)->Seven Cairns

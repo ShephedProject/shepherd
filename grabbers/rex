@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.2';
+my $version  = '3.6.3';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -770,8 +770,7 @@ sub translate_channel_name
     my $rchans = {
 	71 => {	'TEN' => [ 'TEN (NSW: Southern NSW)', 'TEN (Mildura Digital)' ] },
 	79 => { 'WIN' => [ 'WIN (QLD: Regional)', 'WIN (Mackay/Wide Bay)' ],
-		'Seven' => [ 'Seven (Cairns)', # not sure which way the split is
-		'Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)', 'Seven (Rockhampton/Toowoomba)' ] },
+		'Seven' => [ 'Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)', 'Seven (Rockhampton/Toowoomba)' ] },
 	90 => { 'Prime' => [ 'Prime (Regional)', 'Prime (Albury)' ] }
 	};
 

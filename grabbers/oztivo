@@ -2,7 +2,7 @@
 
 # OzTivo grabber
 
-my $version = '1.15';
+my $version = '1.16';
 
 # Requires configuration!
 # 1. Register at http://www.tvguide.org.au/
@@ -332,7 +332,9 @@ sub setup_channel_mappings
     # unmaped SelecTV channels: AntennaGreek,ERTGreek
     my %map = (
 	"SBS-NEWS" => "SBS NEWS",
-	'31-Syd' => 'TVS',
+	"31-Syd" => "TVS",
+	"BRIZ" => "Briz 31",
+	"Seven-Qld" => "Seven Cairns", # no better match
 
 	"ACC" => "ACC",
 	"ADV1" => "NatGeoAdventure",

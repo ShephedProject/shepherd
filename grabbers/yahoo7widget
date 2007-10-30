@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.95";
+my $version = "1.96";
 
 use XMLTV;
 use XML::DOM;
@@ -227,7 +227,7 @@ sub region_channels
 	if ($r == 71) { # Region 71 (NSW: Southern NSW)
 		push (@{($chan_map{"TEN"})}, "TEN (NSW: Southern NSW)", "TEN (Mildura Digital)");
 	} elsif ($r == 79) { # Region 79 (QLD: Regional)
-		push (@{($chan_map{"Seven"})}, "Seven (Rockhampton/Toowoomba)", "Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)", "Seven (Cairns)");
+		push (@{($chan_map{"Seven"})}, "Seven (Rockhampton/Toowoomba)", "Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)");
 		push (@{($chan_map{"WIN"})}, "WIN (QLD: Regional)", "WIN (Mackay/Wide Bay)");
 	} elsif ($r == 90) { # Region 90 (VIC: Eastern Victoria)
 		push (@{($chan_map{"Prime"})}, "Prime (Regional)", "Prime (Albury)");
@@ -263,6 +263,7 @@ sub scan_channels
 	open(F,"<".$opt->{scanchan}) || die "could not open ".$opt->{scanchan}." for reading: $!\n";
 	while (<F>) {
 		chop;
+		last if $_ eq "---migrate---";
 		$all_channels{$1} = $2 if (/^(\d+):(.*)$/);
 	}
 	close(F);
