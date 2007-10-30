@@ -14,7 +14,7 @@
 use strict;
 
 my $progname = "sbsnews_website";
-my $version = "0.18";
+my $version = "0.19";
 
 use XMLTV;
 use POSIX qw(strftime);
@@ -140,12 +140,24 @@ EOF
 
 sub get_sbsnews_data
 {
+	my $file = "WNC-Schedule.html";
+
 	# 7 days in one URL: http://www.sbs.com.au/whatson/WNC-Schedule.html
 	my $data = &Shepherd::Common::get_url( url => "http://www.sbs.com.au/whatson/WNC-Schedule.html",
 		    stats => \%stats,
 		    retries => 4,
 		    debug => $opt->{debug} ? 3 : 1,
-		    retry_delay => 20);
+		    retry_delay => 120,
+ 		    # the website doesn't support 'If-Modified-Since' headers but we can live in hope
+		    mirror => $file);
+
+	if (!$data && open(FILE, $file)) {
+		$data = join(' ',<FILE>);
+		close FILE;
+		$stats{used_mirror} = int((($script_start_time - (stat($file))[9]) / (24*60*60)) + 0.5); # days old
+		exit 22 if ($stats{used_mirror} > 14);
+	}
+
 	exit 22 unless ($data);
 
 	my %day_range_names = (sunday=>0,monday=>1,tuesday=>2,wednesday=>3,thursday=>4,friday=>5,saturday=>6);
