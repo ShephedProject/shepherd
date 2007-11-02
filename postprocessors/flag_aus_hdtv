@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.21";
+my $version = "0.22";
 
 $| = 1;
 print "$progname v$version\n";
@@ -54,7 +54,7 @@ $chan_name_translations->{"ABC Main"} = "ABC";
 #
 
 my %stats;
-my $channels, my $opt_channels;
+my $channels, my $opt_channels, my %channel_xmlid_to_opt_channel_xmlid;
 my $d;
 my $override_settings = { };
 my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
@@ -264,7 +264,7 @@ sub decode_region
 		$stats{no_hdtv_region}++;
 	}
 
-	my ($shortchannels, $shortoptchannels);
+	my $shortchannels;
 	while (my ($name, $chanid) = each %$channels)
 	{
 	    my $oldname = $name;
@@ -311,7 +311,7 @@ sub decode_region
 	    }
 
 	    push @{$shortchannels->{$name}}, $chanid;
-	    push @{$shortoptchannels->{$name."HD"}}, $opt_channels->{$oldname."HD"}
+	    $channel_xmlid_to_opt_channel_xmlid{$chanid} = $opt_channels->{$oldname."HD"}
 		    if defined $opt_channels->{$oldname."HD"};
 
 	    if ($name ne $oldname) {
@@ -321,7 +321,6 @@ sub decode_region
 	    }
 	}
 	$channels = $shortchannels;
-	$opt_channels = $shortoptchannels;
 }
 
 ######################################################################################################
@@ -561,7 +560,6 @@ sub programme_cb( $ )
 	my $prog=shift;
 	my $this_chan = $prog->{channel};
 	my $this_title;
-	my $hd_chan_base;
 
 	$this_title = $prog->{title}->[0]->[0]
 	  if (($prog->{title}) && ($prog->{title}->[0]) && ($prog->{title}->[0]->[0]));
@@ -569,7 +567,6 @@ sub programme_cb( $ )
 
 	goto NOMATCH if (!defined $this_chan);
 	goto NOMATCH if (!defined $this_title);
-	goto NOMATCH if (!defined $d->{prog}->{$this_chan});
 
 	# if programme is already marked as HDTV, just skip all of this
 	if ((defined $prog->{video}) && (defined $prog->{video}->{quality}) &&
@@ -585,7 +582,6 @@ sub programme_cb( $ )
 			# match!
 			printf "  matched '$t' to '$this_title' (canonical match)\n" if (!defined $d->{seenprog}->{$this_title});
 			$stats{matched_prog}++;
-			$hd_chan_base = $d->{prog}->{$this_chan}->{$t}->{chan}."HD";
 			goto MATCH;
 		}
 	}
@@ -605,7 +601,6 @@ sub programme_cb( $ )
 				# match!
 				printf "  matched '$t' to '$this_title' (hd override)\n" if (!defined $d->{seenprog}->{$this_title});
 				$stats{override_matched_prog}++;
-				$hd_chan_base = $ch."HD";
 				goto MATCH;
 			}
 		}
@@ -619,25 +614,24 @@ MATCH:
 	$d->{seenprog}->{$this_title}++;
 	$prog->{video}->{aspect} = "16:9"; # widescreen
 
-	if (!defined $opt_channels->{$hd_chan_base}) {
+	if (!defined $channel_xmlid_to_opt_channel_xmlid{$this_chan}) {
 		# no HD variant
 		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
-
 		$writer->write_programme($prog);
 		$stats{rewrote_prog_as_hdtv_inplace}++;
 	} else {
 		if ($opt->{action} =~ /copy/) {
+			# SD channel
+			delete $prog->{video}->{quality};
 			$writer->write_programme($prog);
 			$stats{rewrote_prog_as_hdtv_inplace}++;
 		}
 
 		# populate this programme in HD channel
 		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
-		foreach (@{$opt_channels->{$hd_chan_base}}) {
-			$prog->{channel} = $_;
-			$writer->write_programme($prog);
-			$stats{wrote_prog_into_hdtv_channel}++
-		}
+		$prog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$this_chan};
+		$writer->write_programme($prog);
+		$stats{wrote_prog_into_hdtv_channel}++
 	}
 	return;
 }

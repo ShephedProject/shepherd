@@ -19,5 +19,5 @@ grabber         acctv_website       0.03
 reconciler      reconciler_mk2      0.36
 postprocessor   imdb_augment_data   0.35
 postprocessor   tvdb_augment_data   0.11
-postprocessor   flag_aus_hdtv       0.21
+postprocessor   flag_aus_hdtv       0.22
 postprocessor   augment_timezone    0.17
