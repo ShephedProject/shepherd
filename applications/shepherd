@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.26';
+my $version = '1.2.27';
 
 # tv_grab_au
 # "Shepherd"
@@ -1482,7 +1482,7 @@ sub fetch_file
 	if ($store)
 	{
 	    open (FILE, ">$store") 
-		or (&log("ERROR: Unable to open $store for writing.\n") and return undef);
+		or (&log("ERROR: Unable to open $store for writing: $!.\n") and return undef);
 	    print FILE $response->content();
 	    close FILE;
 	    return 1;
