@@ -428,6 +428,14 @@ sub parse_feedback
 			} elsif ($_ =~ /^(\S+)\tstats\t(.*)$/) {
 				# component statistics line
 
+				# November 11 2007: skipping STATS line because
+				# our data file (stats.config) is frigging huge
+				# and causing timeouts. Could turn this
+				# back on if we're more selective about the data
+				# we retain, or if we hunt down some of the more
+				# bloated areas.
+				next;
+
 				# parse stats from line if in the form of:
 				#   (delim1) (space) (number) (space) (varname) (delim)
 				#
@@ -1229,6 +1237,10 @@ sub generate_reports
 
 		# iterate across every component statistic seen from this component
 		my @statistics;
+
+# Nov 11 2007: removed individual stats to reduce load
+if (0) {
+    
 		foreach my $s (sort keys %{($store->{total})}) {
 			next if ($s !~ /^cs\.(.*)\.(.*)_duration$/);
 			next if ($1 ne $c);
@@ -1250,6 +1262,9 @@ sub generate_reports
 			}
 			push @statistics, { STATNAME => $sname, TIMESLICES => [ @timeslices ], GRAPHS_STATISTICS => &graph_count_data(undef, undef, "72hour 12week", 0, 0, 0, $svar."_duration", $svar."_duration_min", $svar."_duration_max")};
 		}
+
+}
+
 		$template->param(STATISTICS => \@statistics);
 
 		open(F,">$graph_dir/$c.html") || die "couldn't open $graph_dir/$c for writing: $!\n";
