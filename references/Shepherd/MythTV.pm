@@ -2,7 +2,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.6';
+my $version = '0.7';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -84,7 +84,7 @@ sub setup
     while (<F>) 
     {
 	chomp;
-	$db->{$1} = $2 if ($_ =~ /^(DB.*)=(.*)/);
+	$db->{$1} = $2 if ($_ =~ /^(DB.*?)=(.*)/);
     }
     close(F);
     return 1;
