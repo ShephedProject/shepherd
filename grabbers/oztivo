@@ -2,7 +2,7 @@
 
 # OzTivo grabber
 
-my $version = '1.16';
+my $version = '1.17';
 
 # Requires configuration!
 # 1. Register at http://www.tvguide.org.au/
@@ -338,6 +338,7 @@ sub setup_channel_mappings
 
 	"ACC" => "ACC",
 	"ADV1" => "NatGeoAdventure",
+	"AIRACT" => "AIR",
 	"ANIMAL" => "AnimalPlanet",
 	"ANT" => "AntennaPacific",
 	"ARNA" => "ARENATV",
@@ -387,12 +388,14 @@ sub setup_channel_mappings
 	"NGEO" => "NationalGeographic",
 	"NICK" => "Nickelodeon",
 	"NICKJR" => "NickJr",
+	"NITV" => "NITV",
 	"OVAT" => "Ovation",
 	"PHDISN" => "PlayhouseDisney",
 	"RAI" => "RAIInternational",
 	"SCIENCE" => "DiscoveryScience",
 	"SHOW" => "SHOWTIME",
 	"SHW2" => "SHOWTIME2",
+	"SHWC" => "showcase",
 	"SHWGRTS" => "SHOWTIMEGreats",
 	"SKYN" => "SkyNewsAustralia",
 	"SKYR" => "SkyRacing",

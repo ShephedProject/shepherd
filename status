@@ -1,14 +1,14 @@
 application     shepherd            1.2.27
-reference       channel_list        7
+reference       channel_list        8
 reference       Shepherd/Common.pm  0.29
 reference       Shepherd/MythTV.pm  0.7
 grabber         yahoo7widget        1.96
 grabber         rex                 3.6.3
 grabber         abc_website         3.14-r1
 grabber         sbsnews_website     0.19-r1
-grabber         oztivo              1.16
+grabber         oztivo              1.17
 grabber         yahoo7web           0.29
-grabber         foxtel_swf          0.24
+grabber         foxtel_swf          0.24-r1
 grabber         channelnsw_gov      0.8
 grabber         southerncross_website   0.16
 grabber         ten_website         1.04
