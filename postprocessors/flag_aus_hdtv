@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.23";
+my $version = "0.24";
 
 $| = 1;
 print "$progname v$version\n";
@@ -69,7 +69,7 @@ foreach my $hdchannel (keys %$hd_to_sds) {
 
 my %stats;
 my $channels, my $reverse_channels, my $detailed_reverse_channels, my $opt_channels, my %channel_xmlid_to_opt_channel_xmlid;
-my $d, my $o, my $hd;
+my $d, my $ar, my $sd, my $hd;
 my $override_settings = { };
 my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
 my $ua = LWP::UserAgent->new('timeout' => 30, 'keep_alive' => 1, 'agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)' );
@@ -285,12 +285,12 @@ sub decode_region
 	}
 
 	foreach my $hdchannel (keys %$hd_to_sds) {
-		if (exists $channels->{$hdchannel}) {
+		if (defined $channels->{$hdchannel}) {
 			foreach my $sdchannel (@{$hd_to_sds->{$hdchannel}}) {
-				if (exists $channels->{$sdchannel}) {
+				if (defined $channels->{$sdchannel}) {
 					# there can be only one SD channel for the 7HD channel
 					$channel_xmlid_to_opt_channel_xmlid{$channels->{$sdchannel}} =
-							 $channels->{$hdchannel};
+							$channels->{$hdchannel};
 					print "  '$hdchannel' with xmlid '$channels->{$hdchannel}'" .
 							" populated with programs provided by " .
 							"'$sdchannel' with xmlid '$channels->{$sdchannel}'\n";
@@ -353,7 +353,7 @@ sub decode_region
 	    print "  '$oldname' treated as '$name' with xmlid '$chanid'\n" if ($name ne $oldname);
 
 	    if (defined $opt_channels->{$oldname."HD"}) {
-		if (exists $channel_xmlid_to_opt_channel_xmlid{$chanid}) {
+		if (defined $channel_xmlid_to_opt_channel_xmlid{$chanid}) {
 		    print " - Skipping '${oldname}HD' treated as '${name}HD' with xmlid '" .
 			    $opt_channels->{$oldname."HD"} . "' " .
 			    "because channel already populated to channel '" .
@@ -628,8 +628,15 @@ sub programme_cb( $ )
 		return if $this_title eq "See main channel's listings for programming details";
 #print "process later high definition channel programmes - $this_title - $reverse_channels->{$this_chan}\n";
 		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
-		$o->{$reverse_channels->{$this_chan}}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
+		$ar->{$reverse_channels->{$this_chan}}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
 		return;
+	}
+
+	# keep a copy of standard definition related to high definition channel programmes for program removal later
+	if (defined $channel_xmlid_to_opt_channel_xmlid{$this_chan} &&
+			defined $detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$this_chan}}) {
+		$sd->{$detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$this_chan}}}->
+				{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
 	}
 
 	# if programme is already marked as HDTV, just skip all of this
@@ -696,10 +703,51 @@ MATCH:
 
 sub write_hd	# currently doesn't fill any gaps between programs
 {
+	# remove from argument channel identical (time, title, sub-title) programs found on sd channel
+	foreach my $hdchannel (keys %$ar) {
+#print "removal for hdchannel $hdchannel\n";
+
+		my @aprogs = sort {$a <=> $b} keys %{$ar->{$hdchannel}};
+		my $aprog = $ar->{$hdchannel}->{shift @aprogs};
+
+		my @progs = sort {$a <=> $b} keys %{$sd->{$hdchannel}};
+		my $prog = $sd->{$hdchannel}->{shift @progs};
+		last if !defined $prog;
+		my $start = Shepherd::Common::parse_xmltv_date($prog->{start});
+		my $stop = Shepherd::Common::parse_xmltv_date($prog->{stop});
+#print "found programs\n";
+
+		while (defined $aprog) {
+			my $astart = Shepherd::Common::parse_xmltv_date($aprog->{start});
+			my $astop = Shepherd::Common::parse_xmltv_date($aprog->{stop});
+
+			# skip any sd programs before this argument programs time
+			while (defined $prog && $start < $astart) {
+#print "skip prog\n";
+				$prog = $sd->{$hdchannel}->{shift @progs};
+				last if !defined $prog;
+				$start = Shepherd::Common::parse_xmltv_date($prog->{start});
+				$stop = Shepherd::Common::parse_xmltv_date($prog->{stop});
+			}
+			last if !defined $prog;
+
+			if ($astart == $start && $astop == $stop &&
+					(!defined $aprog->{title} || !defined $prog->{title} ||
+						$aprog->{title}->[0]->[0] eq $prog->{title}->[0]->[0]) &&
+					(!defined $aprog->{'sub-title'} || !defined $prog->{'sub-title'} ||
+						$aprog->{'sub-title'}->[0]->[0] eq $prog->{'sub-title'}->[0]->[0])) {
+#print "delete aprog\n";
+				delete $ar->{$hdchannel}->{$astart};
+			}
+
+			$aprog = $ar->{$hdchannel}->{shift @aprogs};
+		}
+	}
+
 	foreach my $xmlid (keys %$hd) {
 #print "processing channel xmlid $xmlid\n";
 
-		my ($argument, @arguments, $aprog);
+		my ($argument, @aprogs, $aprog);
 
 		# if an argument channel exists, sort the programs ready for inserting
 		if (defined $detailed_reverse_channels->{$xmlid} &&
@@ -707,7 +755,7 @@ sub write_hd	# currently doesn't fill any gaps between programs
 			$argument = $sd_to_hd->{$detailed_reverse_channels->{$xmlid}};
 
 			print "  channel '";
-			if (exists $detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$xmlid}}) {
+			if (defined $detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$xmlid}}) {
 				print $detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$xmlid}};
 			} else {
 				print $detailed_reverse_channels->{$xmlid} . "HD";
@@ -715,9 +763,9 @@ sub write_hd	# currently doesn't fill any gaps between programs
 			print "' with xmlid '$channel_xmlid_to_opt_channel_xmlid{$xmlid}'" .
 					" augmented with programs from channel '$argument'\n";
 
-			if (defined $o->{$argument}) {
-				@arguments = sort {$a <=> $b} keys %{$o->{$argument}};
-				$aprog = $o->{$argument}->{shift @arguments};
+			if (defined $ar->{$argument}) {
+				@aprogs = sort {$a <=> $b} keys %{$ar->{$argument}};
+				$aprog = $ar->{$argument}->{shift @aprogs};
 			}
 #print "first argument program at $aprog->{start}\n";
 		}
@@ -743,7 +791,7 @@ sub write_hd	# currently doesn't fill any gaps between programs
 					$prog = $hd->{$xmlid}->{shift @progs};
 				}
 
-				$aprog = $o->{$argument}->{shift @arguments};
+				$aprog = $ar->{$argument}->{shift @aprogs};
 			}
 
 			$writer->write_programme($prog);
@@ -760,7 +808,7 @@ sub write_hd	# currently doesn't fill any gaps between programs
 
 #print "wrote left over argument program $aprog->{title}->[0]->[0]\n";
 
-			$aprog = $o->{$argument}->{shift @arguments};
+			$aprog = $ar->{$argument}->{shift @aprogs};
 		}
 	}
 }
