@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.24";
+my $version = "0.25";
 
 $| = 1;
 print "$progname v$version\n";
@@ -94,6 +94,12 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 
 &read_config_file($progname.".config",0);
 &apply_setting_overrides;
+
+# 5/12/2007 set everyones action to "copy", so in a few days can change default to "copysd"
+if (!defined $override_settings->{action}) { 
+	$override_settings->{action} = "copy";
+	&write_config;
+}
 
 &read_config_file($opt->{channels_file},1);
 
@@ -181,6 +187,7 @@ options:
   --action=(policy)    policy can be one of:
                         move - move prog to HD channel (remove it from SD channel)
                         copy - copy prog to HD channel (keep it in SD channel also) (default)
+                        copysd - copy all progs to HD channel, flaging HD ones
   --notag              don't tag with HD flags (default: do)
 
   --output=(f)         output XMLTV filename (default: $opt->{output})
@@ -189,7 +196,7 @@ options:
   --set=(setting):(value) save setting override: (value)
         nodbalookup:1/0   (disable / enable) DBA website lookup
 	notag:1/0         (don't / do) tag with HD flags
-	action:move/copy  set policy (as per above)
+	action:move/copy/copysd  set policy (as per above)
 
 EOF
 ;
@@ -202,7 +209,7 @@ EOF
 	}
 
 	die "'--channels_file {file}' must be specified. see --help for details.\n" if (!$opt->{channels_file});
-	die "unknown --action policy, see --help for details.\n" if ($opt->{action} !~ /^(copy|move)$/);
+	die "unknown --action policy, see --help for details.\n" if ($opt->{action} !~ /^(copysd|copy|move)$/);
 }
 
 ######################################################################################################
@@ -219,7 +226,8 @@ sub set_overrides
 		$override_settings->{$setting} = $val;
 		printf "%s: override parameter %s: %s\n", $progname, $setting, ($val eq "0" ? "disabled" : "enabled");
 	} elsif ($setting eq "action") {
-		die "--set value must be copy/move for setting '$setting'.\n" if (($val ne "copy") && ($val ne "move"));
+		die "--set value must be copy/move for setting '$setting'.\n"
+				if (($val ne "copysd") && ($val ne "copy") && ($val ne "move"));
 		$override_settings->{$setting} = $val;
 		printf "%s: override parameter %s: %s\n", $progname, $setting, $val;
 	} else {
@@ -672,6 +680,14 @@ sub programme_cb( $ )
 
 NOMATCH:
 	$writer->write_programme($prog);
+
+	if ($opt->{action} =~ /copysd/ && defined $channel_xmlid_to_opt_channel_xmlid{$this_chan}) {
+		delete $prog->{video}->{quality};
+		$prog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$this_chan};
+		# but don't write HD channel until all programs read
+		$hd->{$this_chan}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
+	}
+
 	return;
 
 MATCH:
