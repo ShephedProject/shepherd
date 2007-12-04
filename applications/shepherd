@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.27';
+my $version = '1.2.28';
 
 # tv_grab_au
 # "Shepherd"
@@ -96,6 +96,13 @@ my %REGIONS = (
     88 => "Tasmania", 		94 => "VIC: Melbourne", 	93 => "VIC: Geelong", 
     90 => "VIC: Eastern Victoria", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Western Victoria", 
     101 => "WA: Perth", 	102 => "WA: Regional");
+
+my $hd_to_sds;
+@{$hd_to_sds->{"7HD"}} = ("Seven","Seven Cairns","Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)",
+	"Seven (Rockhampton/Toowoomba)","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
+	"Prime Canberra/Sth Coast","Prime Wagga Wagga","Prime Wollongong","Prime Orange",
+	"Prime (Regional)","Prime (Albury)","Southern Cross","Central GTS/BKN","Golden West");
+
 
 my $invoked = get_full_path($0);
 
@@ -1046,6 +1053,8 @@ sub check_channels
 	}
     }
 
+    &migrate_hd_channels;
+
     &check_channel_xmltvids;
 }
 
@@ -1147,6 +1156,32 @@ sub migrate_paytv_channels
     }
     if ($mflag == 2)
     {
+	&log("Updating channels file.\n");
+	&write_channels_file;
+    }
+}
+
+sub migrate_hd_channels
+{
+    my $write = 0;
+
+    # migrate to high definition channels
+    foreach my $hdchannel (keys %$hd_to_sds) {
+	if (!exists $channels->{$hdchannel}) { # annoyingly if they don't want 7HD this loops everytime
+		foreach my $sdchannel (@{$hd_to_sds->{$hdchannel}}) {
+			if (exists $opt_channels->{$sdchannel.'HD'}) {
+				# there can be only one 7HD channel
+				$channels->{$hdchannel} = $opt_channels->{$sdchannel.'HD'};
+				delete $opt_channels->{$sdchannel.'HD'};
+				&log("Migrating channel \"${sdchannel}HD\" to \"$hdchannel\".\n");
+				$write = 1;
+				last;
+			}
+		}
+	}
+    }
+
+    if ($write == 1) {
 	&log("Updating channels file.\n");
 	&write_channels_file;
     }
@@ -2240,8 +2275,18 @@ sub configure_channels_guided
        
     print "\n* Guided Channel Selection *\n\n";
 
+    print "\nHigh Definition TV (HDTV)\n".
+          "Most Australian TV networks broadcast at least some\n".
+          "programmes in HDTV each week, but for the most part\n".
+          "either upsample SD to HD or play a rolling demonstration\n".
+          "HD clip when they don't have the programme in HD format.\n\n".
+          "If you have a HDTV capable system and are interested in\n".
+          "having Shepherd's postprocessors populate HDTV content\n".
+          "then Shepherd will need to know the XMLTV IDs for the HD\n".
+          "channels also.  HD related SD channels are required.\n",
+          "The new 7HD channel is populated with programs from the first related SD channel.\n",
+          "http://svn.whuffy.com/index.fcgi/wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
     my $want_hdtv = &XMLTV::Ask::ask_boolean("Do you have High-Definition (HDTV)?");
-    my $want_paytv = &XMLTV::Ask::ask_boolean("\nDo you have PayTV?");
 
     my (@channellist, @hd_channellist, @paytv_channellist);
 
@@ -2256,6 +2301,20 @@ sub configure_channels_guided
     if ($want_hdtv)
     {
 	@hd_channellist = grep(!/ABC2|SBS News|31/i, @channellist);
+
+	#limit to ones in $channels (don't know so can't) and if 7HD remove 7HD and first 7 (don't know so do anyway)
+	foreach my $hdchannel (keys %$hd_to_sds) {
+		@hd_channellist = grep(!/^$hdchannel$/i, @hd_channellist);
+		my $oldlength = scalar @hd_channellist;
+		foreach my $sdchannel (@{$hd_to_sds->{$hdchannel}}) {
+			@hd_channellist = grep(!/^$sdchannel$/i, @hd_channellist);
+			if ($oldlength != scalar @hd_channellist) { # removed first
+				print "'$hdchannel' is going to be populated from '$sdchannel'\n";
+				last;
+			}
+		}
+	}
+
 	foreach (@hd_channellist)
 	{
 	    $_.='HD';
@@ -2263,6 +2322,7 @@ sub configure_channels_guided
 	}
     }
 
+    my $want_paytv = &XMLTV::Ask::ask_boolean("\nDo you have PayTV?");
     if ($want_paytv)
     {
 	$want_paytv = &XMLTV::Ask::ask_choice("Which PayTV provider do you have?", 
@@ -2447,10 +2507,28 @@ sub configure_channels_advanced
           "If you have a HDTV capable system and are interested in\n".
           "having Shepherd's postprocessors populate HDTV content\n".
           "then Shepherd will need to know the XMLTV IDs for the HD\n".
-          "channels also.\n";
+          "channels also.  HD related SD channels are required.\n",
+          "The new 7HD channel is populated with programs from the first related SD channel.\n",
+          "http://svn.whuffy.com/index.fcgi/wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
     if (&XMLTV::Ask::ask_boolean("\nDo you wish to include HDTV channels?")) 
     {
-        my @hd_channellist = grep(!/ABC2|SBS News|31/i, @channellist);
+        #limit to ones in $channels and if 7HD remove 7HD and first 7
+        my @hd_channellist = grep(!/ABC2|SBS News|31/i, keys %$channels);
+
+	foreach my $hdchannel (keys %$hd_to_sds) {
+		my $oldlength = scalar @hd_channellist;
+		@hd_channellist = grep(!/^$hdchannel$/i, @hd_channellist);
+		next if ($oldlength == scalar @hd_channellist); # didn't remove
+		$oldlength = scalar @hd_channellist;
+		foreach my $sdchannel (@{$hd_to_sds->{$hdchannel}}) {
+			@hd_channellist = grep(!/^$sdchannel$/i, @hd_channellist);
+			if ($oldlength != scalar @hd_channellist) { # removed first
+				print "'$hdchannel' is going to be populated from '$sdchannel'\n";
+				last;
+			}
+		}
+	}
+
         foreach (@hd_channellist)
         {
             $_ .= "HD";
@@ -4340,6 +4418,9 @@ sub analyze_plugin_data
 
     # iterate across each channel
     foreach my $ch (sort keys %{$channels}) {
+
+	# don't process high definition channels due to there high unreliablity
+	next if exists $hd_to_sds->{$ch};
 
 	# if we're analyzing data for a grabber and it doesn't support this channel, skip it
 	if (($proggy ne $progname) &&

@@ -12,13 +12,14 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.22";
+my $version = "0.23";
 
 $| = 1;
 print "$progname v$version\n";
 
 use strict;
 use Getopt::Long;
+use Shepherd::Common;
 use LWP::UserAgent;
 use HTML::TreeBuilder;
 use IO::File;
@@ -49,13 +50,26 @@ my $chan_name_translations;
 $chan_name_translations->{"Ten"} = "TEN";
 $chan_name_translations->{"ABC Main"} = "ABC";
 
+my $hd_to_sds;
+@{$hd_to_sds->{"7HD"}} = ("Seven","Seven Cairns","Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)",
+		"Seven (Rockhampton/Toowoomba)","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
+		"Prime Canberra/Sth Coast","Prime Wagga Wagga","Prime Wollongong","Prime Orange",
+		"Prime (Regional)","Prime (Albury)","Southern Cross","Central GTS/BKN","Golden West");
+
+my $sd_to_hd;
+foreach my $hdchannel (keys %$hd_to_sds) {
+	foreach my $channel (@{$hd_to_sds->{$hdchannel}}) {
+		$sd_to_hd->{$channel} = $hdchannel;
+	}
+}
+
 #
 # options
 #
 
 my %stats;
-my $channels, my $opt_channels, my %channel_xmlid_to_opt_channel_xmlid;
-my $d;
+my $channels, my $reverse_channels, my $detailed_reverse_channels, my $opt_channels, my %channel_xmlid_to_opt_channel_xmlid;
+my $d, my $o, my $hd;
 my $override_settings = { };
 my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
 my $ua = LWP::UserAgent->new('timeout' => 30, 'keep_alive' => 1, 'agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)' );
@@ -103,6 +117,8 @@ foreach my $file (@ARGV) {
 	printf "Parsing: %s\n",($file eq "-" ? "(from-stdin, hit control-D to finish)" : $file);
 	XMLTV::parsefiles_callback(undef, undef, \&channel_cb,\&programme_cb, $file);
 }
+
+&write_hd();
 
 $writer->end();
 printf "Finished parsing, output in $opt->{output_file}\n";
@@ -264,6 +280,26 @@ sub decode_region
 		$stats{no_hdtv_region}++;
 	}
 
+	while (my ($name, $chanid) = each %$channels) {
+		$detailed_reverse_channels->{$chanid} = $name;
+	}
+
+	foreach my $hdchannel (keys %$hd_to_sds) {
+		if (exists $channels->{$hdchannel}) {
+			foreach my $sdchannel (@{$hd_to_sds->{$hdchannel}}) {
+				if (exists $channels->{$sdchannel}) {
+					# there can be only one SD channel for the 7HD channel
+					$channel_xmlid_to_opt_channel_xmlid{$channels->{$sdchannel}} =
+							 $channels->{$hdchannel};
+					print "  '$hdchannel' with xmlid '$channels->{$hdchannel}'" .
+							" populated with programs provided by " .
+							"'$sdchannel' with xmlid '$channels->{$sdchannel}'\n";
+					last;
+				}
+			}
+		}
+	}
+
 	my $shortchannels;
 	while (my ($name, $chanid) = each %$channels)
 	{
@@ -284,6 +320,9 @@ sub decode_region
 	    }
 	    if ($name eq "WIN TEN") {
 		$name = "TEN";
+	    }
+	    if ($name eq "Seven Cairns") {
+		$name = "Seven";
 	    }
 	    if ($name =~ /^Prime/) {
 		$name = "Seven";
@@ -311,16 +350,31 @@ sub decode_region
 	    }
 
 	    push @{$shortchannels->{$name}}, $chanid;
-	    $channel_xmlid_to_opt_channel_xmlid{$chanid} = $opt_channels->{$oldname."HD"}
-		    if defined $opt_channels->{$oldname."HD"};
+	    print "  '$oldname' treated as '$name' with xmlid '$chanid'\n" if ($name ne $oldname);
 
-	    if ($name ne $oldname) {
-		print "  '$oldname' treated as '$name' with xmlid '$chanid'\n";
-		print "  '${oldname}HD' treated as '${name}HD' with xmlid '" . $opt_channels->{$oldname."HD"} . "'\n"
-			if defined $opt_channels->{$oldname."HD"};
+	    if (defined $opt_channels->{$oldname."HD"}) {
+		if (exists $channel_xmlid_to_opt_channel_xmlid{$chanid}) {
+		    print " - Skipping '${oldname}HD' treated as '${name}HD' with xmlid '" .
+			    $opt_channels->{$oldname."HD"} . "' " .
+			    "because channel already populated to channel '" .
+			    $detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$chanid}} .
+			    "' with xmlid '" .
+			    $channel_xmlid_to_opt_channel_xmlid{$chanid} .
+			    "', see previous messages.  Please reconfigure.\n";
+		} else {
+		    $channel_xmlid_to_opt_channel_xmlid{$chanid} = $opt_channels->{$oldname."HD"};
+		    print "  '${oldname}HD' treated as '${name}HD' with xmlid '" . $opt_channels->{$oldname."HD"} . "'\n"
+			    if ($name ne $oldname);
+		}
 	    }
 	}
 	$channels = $shortchannels;
+
+	foreach my $channel (keys %$channels) {
+		foreach my $chanid (@{$channels->{$channel}}) {
+			$reverse_channels->{$chanid} = $channel;
+		}
+	}
 }
 
 ######################################################################################################
@@ -568,6 +622,16 @@ sub programme_cb( $ )
 	goto NOMATCH if (!defined $this_chan);
 	goto NOMATCH if (!defined $this_title);
 
+	# process later high definition channel programmes
+	if (defined $reverse_channels->{$this_chan} &&
+			defined $hd_to_sds->{$reverse_channels->{$this_chan}}) {
+		return if $this_title eq "See main channel's listings for programming details";
+#print "process later high definition channel programmes - $this_title - $reverse_channels->{$this_chan}\n";
+		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
+		$o->{$reverse_channels->{$this_chan}}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
+		return;
+	}
+
 	# if programme is already marked as HDTV, just skip all of this
 	if ((defined $prog->{video}) && (defined $prog->{video}->{quality}) &&
 	    ($prog->{video}->{quality} =~ /hdtv/i)) {
@@ -588,14 +652,7 @@ sub programme_cb( $ )
 
 	# see if title matches something in our override table
 	foreach my $ch (keys %{($hdoverride)}) {
-		my $found = 0;
-		foreach my $xmlid (@{$channels->{$ch}}) {
-			if ($xmlid eq $this_chan) {
-				$found = 1;
-				last;
-			}
-		}
-		next if !$found;
+		next if $ch ne $reverse_channels->{$this_chan};
 		foreach my $t (@{($hdoverride->{$ch})}) {
 			if (canonicalizeTitles_match($t,$this_title)) {
 				# match!
@@ -624,16 +681,88 @@ MATCH:
 			# SD channel
 			delete $prog->{video}->{quality};
 			$writer->write_programme($prog);
-			$stats{rewrote_prog_as_hdtv_inplace}++;
+			$stats{rewrote_prog_as_sdtv_inplace}++;
 		}
 
 		# populate this programme in HD channel
 		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
 		$prog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$this_chan};
-		$writer->write_programme($prog);
-		$stats{wrote_prog_into_hdtv_channel}++
+		# but don't write HD channel until all programs read
+#print "but don't write HD channel until all programs read - $this_title - $hd_chan\n";
+		$hd->{$this_chan}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
 	}
 	return;
+}
+
+sub write_hd	# currently doesn't fill any gaps between programs
+{
+	foreach my $xmlid (keys %$hd) {
+#print "processing channel xmlid $xmlid\n";
+
+		my ($argument, @arguments, $aprog);
+
+		# if an argument channel exists, sort the programs ready for inserting
+		if (defined $detailed_reverse_channels->{$xmlid} &&
+				defined $sd_to_hd->{$detailed_reverse_channels->{$xmlid}}) {
+			$argument = $sd_to_hd->{$detailed_reverse_channels->{$xmlid}};
+
+			print "  channel '";
+			if (exists $detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$xmlid}}) {
+				print $detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$xmlid}};
+			} else {
+				print $detailed_reverse_channels->{$xmlid} . "HD";
+			}
+			print "' with xmlid '$channel_xmlid_to_opt_channel_xmlid{$xmlid}'" .
+					" augmented with programs from channel '$argument'\n";
+
+			if (defined $o->{$argument}) {
+				@arguments = sort {$a <=> $b} keys %{$o->{$argument}};
+				$aprog = $o->{$argument}->{shift @arguments};
+			}
+#print "first argument program at $aprog->{start}\n";
+		}
+
+		# loop over this channels programs, inserting argument programs as needed
+		my @progs = sort {$a <=> $b} keys %{$hd->{$xmlid}};
+		my $prog = $hd->{$xmlid}->{shift @progs};
+		while (defined $prog) {
+
+			# insert argument programs if they start before other programs stop
+			while (defined $aprog && Shepherd::Common::parse_xmltv_date($aprog->{start}) <
+					 	Shepherd::Common::parse_xmltv_date($prog->{stop})) {
+				$aprog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$xmlid};
+				$writer->write_programme($aprog);
+				$stats{wrote_prog_into_hdtv_channel}++;
+
+#print "wrote argument program $aprog->{title}->[0]->[0]\n";
+
+				# drop programs that conflict with argument program
+				while (Shepherd::Common::parse_xmltv_date($prog->{start}) <
+						Shepherd::Common::parse_xmltv_date($aprog->{stop})) {
+#print "dropping conflicting program $prog->{title}->[0]->[0]\n";
+					$prog = $hd->{$xmlid}->{shift @progs};
+				}
+
+				$aprog = $o->{$argument}->{shift @arguments};
+			}
+
+			$writer->write_programme($prog);
+			$stats{wrote_prog_into_hdtv_channel}++;
+
+			$prog = $hd->{$xmlid}->{shift @progs};
+		}
+
+		# write any left over argument programs
+		while (defined $aprog) {
+			$aprog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$xmlid};
+			$writer->write_programme($aprog);
+			$stats{wrote_prog_into_hdtv_channel}++;
+
+#print "wrote left over argument program $aprog->{title}->[0]->[0]\n";
+
+			$aprog = $o->{$argument}->{shift @arguments};
+		}
+	}
 }
 
 ######################################################################################################

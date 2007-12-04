@@ -2,7 +2,7 @@
 
 # OzTivo grabber
 
-my $version = '1.17';
+my $version = '1.18';
 
 # Requires configuration!
 # 1. Register at http://www.tvguide.org.au/
@@ -180,7 +180,7 @@ $data =~ s/\&#39;/'/g;
 
 # Adjust ABC2 times if we're in a non-DST zone but Sydney is in DST.
 # Apparently ABC2 times are set off Sydney's clock.
-adjust_abc2();
+adjust_times();
 
 print "Transforming XMLTVIDs.\n";
 &setup_channel_mappings;
@@ -331,6 +331,8 @@ sub setup_channel_mappings
     # unmaped Foxtel channels: AdultsOnly960,FOXTELBoxOffice,FOXTELGamesworld,MainEvent
     # unmaped SelecTV channels: AntennaGreek,ERTGreek
     my %map = (
+	"SevenHD" => "7HD",
+	"SevenHD-Mel" => "7HD",
 	"SBS-NEWS" => "SBS NEWS",
 	"31-Syd" => "TVS",
 	"BRIZ" => "Briz 31",
@@ -427,13 +429,13 @@ sub setup_channel_mappings
 }
 
 # Wrapper sub to ensure TZ gets reset properly
-sub adjust_abc2
+sub adjust_times
 {
-    adjust_abc2_times();
+    adjust_times2();
     POSIX::tzset();
 }
 
-sub adjust_abc2_times
+sub adjust_times2
 {
     my $local_tz = POSIX::strftime("%z",localtime);
 
@@ -466,6 +468,9 @@ sub adjust_abc2_times
 	}
     }
     $data =~ s/(?!=")(\d+)(?=".* channel="ABC2")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
+    $data =~ s/(?!=")(\d+)(?=".* channel="SBS-NEWS")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
+    $data =~ s/(?!=")(\d+)(?=".* channel="SevenHD")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
+    $data =~ s/(?!=")(\d+)(?=".* channel="SevenHD-Mel")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
 }
 
 # Return '+0100' for any times that are in a period when Sydney's in DST

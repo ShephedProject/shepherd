@@ -1,32 +1,32 @@
-63:ABC2,ABC,SBS News,SBS,Sthn Cross TEN,Central GTS/BKN
-66:ABC2,ABC,SBS News,SBS,NBN,TEN,Sthn Cross TEN,Nine,Prime,Seven
-67:ABC2,ABC,SBS News,WIN,SBS,TEN,Prime
-69:ABC2,ABC,SBS News,SBS,NBN,Sthn Cross TEN,Prime Tamworth/Taree/Port,Prime Lismore/Coffs Hbr
-71:ABC2,ABC,SBS News,WIN,SBS,TEN (NSW: Southern NSW),TEN (Mildura Digital),Prime Canberra/Sth Coast,Prime Wagga Wagga,Prime Wollongong,Prime Orange
-73:Channel NSW,ABC,TVS,ABC2,SBS News,SBS,Nine,TEN,Seven
-74:ABC2,ABC,SBS News,Southern Cross,SBS,Nine
-75:ABC2,ABC,SBS News,SBS,Briz 31,TEN,Nine,Seven
-78:ABC2,ABC,SBS News,SBS,NBN,Sthn Cross TEN,TEN,Nine,Prime,Seven
-79:ABC,ABC2,WIN (QLD: Regional),WIN (Mackay/Wide Bay),SBS News,SBS,TEN,Seven Cairns,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast),Seven (Rockhampton/Toowoomba)
-81:ABC2,ABC,SBS News,SBS,TEN,Nine,Seven,C31 Adelaide
-82:ABC2,ABC,SBS News,WIN,WIN TEN,SBS
-83:ABC2,ABC,SBS News,WIN,WIN TEN,SBS
-85:ABC2,ABC,SBS News,WIN,WIN TEN,SBS
-86:ABC2,ABC,SBS News,SBS,Sthn Cross TEN,Nine,Central GTS/BKN
-88:ABC2,ABC,SBS News,WIN,Southern Cross,SBS,TDT
-90:ABC2,ABC,SBS News,WIN,SBS,TEN,Prime (Regional),Prime (Albury)
-93:ABC2,ABC,SBS News,SBS,TEN,Nine,Channel 31,Seven
-94:ABC2,ABC,SBS News,SBS,TEN,Nine,Channel 31,Seven
-95:ABC2,ABC,SBS News,WIN,SBS,TEN,Prime
-98:ABC,Imparja,ABC2,SBS News,WIN,SBS,Prime,TEN,Seven
-101:ABC2,ABC,SBS News,Access 31,SBS,TEN,Nine,Seven
-102:ABC,ABC2,Golden West,SBS News,WIN,SBS,Access 31,Nine,TEN,Seven
-106:ABC2,Imparja,ABC,SBS News,SBS,Prime Wagga Wagga,Seven
-107:ABC2,Imparja,ABC,SBS News,SBS,Seven
-108:ABC2,Imparja,ABC,SBS News,SBS,Seven
-114:ABC2,Imparja,ABC,SBS News,SBS,Seven
-126:ABC2,ABC,SBS News,WIN,SBS,TEN,Prime Canberra/Sth Coast
-184:ABC2,ABC,SBS News,SBS,NBN,Sthn Cross TEN,Prime
+63:ABC2,ABC,SBS News,SBS,Sthn Cross TEN,Central GTS/BKN,7HD
+66:ABC2,ABC,SBS News,SBS,NBN,TEN,Sthn Cross TEN,Nine,Prime,Seven,7HD
+67:ABC2,ABC,SBS News,WIN,SBS,TEN,Prime,7HD
+69:ABC2,ABC,SBS News,SBS,NBN,Sthn Cross TEN,Prime Tamworth/Taree/Port,Prime Lismore/Coffs Hbr,7HD
+71:ABC2,ABC,SBS News,WIN,SBS,TEN (NSW: Southern NSW),TEN (Mildura Digital),Prime Canberra/Sth Coast,Prime Wagga Wagga,Prime Wollongong,Prime Orange,7HD
+73:Channel NSW,ABC,TVS,ABC2,SBS News,SBS,Nine,TEN,Seven,7HD
+74:ABC2,ABC,SBS News,Southern Cross,SBS,Nine,7HD
+75:ABC2,ABC,SBS News,SBS,Briz 31,TEN,Nine,Seven,7HD
+78:ABC2,ABC,SBS News,SBS,NBN,Sthn Cross TEN,TEN,Nine,Prime,Seven,7HD
+79:ABC,ABC2,WIN (QLD: Regional),WIN (Mackay/Wide Bay),SBS News,SBS,TEN,Seven Cairns,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast),Seven (Rockhampton/Toowoomba),7HD
+81:ABC2,ABC,SBS News,SBS,TEN,Nine,Seven,C31 Adelaide,7HD
+82:ABC2,ABC,SBS News,WIN,WIN TEN,SBS,7HD
+83:ABC2,ABC,SBS News,WIN,WIN TEN,SBS,7HD
+85:ABC2,ABC,SBS News,WIN,WIN TEN,SBS,7HD
+86:ABC2,ABC,SBS News,SBS,Sthn Cross TEN,Nine,Central GTS/BKN,7HD
+88:ABC2,ABC,SBS News,WIN,Southern Cross,SBS,TDT,7HD
+90:ABC2,ABC,SBS News,WIN,SBS,TEN,Prime (Regional),Prime (Albury),7HD
+93:ABC2,ABC,SBS News,SBS,TEN,Nine,Channel 31,Seven,7HD
+94:ABC2,ABC,SBS News,SBS,TEN,Nine,Channel 31,Seven,7HD
+95:ABC2,ABC,SBS News,WIN,SBS,TEN,Prime,7HD
+98:ABC,Imparja,ABC2,SBS News,WIN,SBS,Prime,TEN,Seven,7HD
+101:ABC2,ABC,SBS News,Access 31,SBS,TEN,Nine,Seven,7HD
+102:ABC,ABC2,Golden West,SBS News,WIN,SBS,Access 31,Nine,TEN,Seven,7HD
+106:ABC2,Imparja,ABC,SBS News,SBS,Prime Wagga Wagga,Seven,7HD
+107:ABC2,Imparja,ABC,SBS News,SBS,Seven,7HD
+108:ABC2,Imparja,ABC,SBS News,SBS,Seven,7HD
+114:ABC2,Imparja,ABC,SBS News,SBS,Seven,7HD
+126:ABC2,ABC,SBS News,WIN,SBS,TEN,Prime Canberra/Sth Coast,7HD
+184:ABC2,ABC,SBS News,SBS,NBN,Sthn Cross TEN,Prime,7HD
 Foxtel:ACC,AdultsOnly960,AIR,AnimalPlanet,AntennaPacific,ARENATV,ARENATV2,Aurora,BBCWorld,Bio,BloombergTelevision,Boomerang,CartoonNetwork,ChannelV,ChannelV2,CNBC,CNN,CountryMusicChannel,CrimeandInvestigation,DiscoveryChannel,DiscoveryHealth,DiscoveryScience,DiscoveryTravel,DisneyChannel,E!Entertainment,ESPN,Eurosportnews,EXPO,FashionTV,FOXClassics,FOXClassics2,FOXNews,FOXSPORTS1,FOXSPORTS2,FOXSPORTS3,FOXSPORTSNews,FOX8,FOX82,FOXTELBoxOffice,FOXTELGamesworld,FUELTV,Hallmark,HOWTOChannel,LifestyleChannel2,LifeStyleFOOD,MainEvent,MAX,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,NickJr,Nickelodeon,NITV,Ovation,PlayhouseDisney,RAIInternational,SCIFI,showcase,SHOWTIME,SHOWTIMEGreats,SHOWTIME2,SkyNewsAustralia,SkyRacing,TCM,THECOMEDYCHANNEL,THECOMEDYCHANNEL2,TheHistoryChannel,TheLifeStyleChannel,TheWeatherChannel,TV1,TV12,TVN,TVSN,UKTV,UKTV2,VH1,W,W2,WORLDMOVIES
 SelecTV:AnimalPlanet,AntennaGreek,BBCWorld,CartoonNetwork,CNN,DiscoveryScience,DiscoveryHealth,DiscoveryTravel,DiscoveryRealTime,E!Entertainment,ERTGreek,Eurosportnews,FashionTV,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,Ovation,SkyRacing,TCM,TVChileSpanish,TVE,VH1
 ---migrate---
