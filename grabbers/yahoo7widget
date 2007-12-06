@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.96";
+my $version = "1.97";
 
 use XMLTV;
 use XML::DOM;
@@ -224,13 +224,22 @@ sub region_channels
 	my $r = shift;
 	my %chan_map;
 
-	if ($r == 71) { # Region 71 (NSW: Southern NSW)
+	if ($r == 69) { # NSW: Northern NSW
+		push (@{($chan_map{"Prime"})}, "Prime Tamworth/Taree/Port", "Prime Lismore/Coffs Hbr");
+	} elsif ($r == 71) { # NSW: Southern NSW
 		push (@{($chan_map{"TEN"})}, "TEN (NSW: Southern NSW)", "TEN (Mildura Digital)");
-	} elsif ($r == 79) { # Region 79 (QLD: Regional)
-		push (@{($chan_map{"Seven"})}, "Seven (Rockhampton/Toowoomba)", "Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)");
+		push (@{($chan_map{"Prime"})}, "Prime Canberra/Sth Coast", "Prime Wagga Wagga",
+				"Prime Wollongong", "Prime Orange");
+	} elsif ($r == 79) { # QLD: Regional
+		push (@{($chan_map{"Seven"})}, 	"Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)",
+			"Seven (Rockhampton/Toowoomba)", "Seven Cairns");
 		push (@{($chan_map{"WIN"})}, "WIN (QLD: Regional)", "WIN (Mackay/Wide Bay)");
-	} elsif ($r == 90) { # Region 90 (VIC: Eastern Victoria)
+	} elsif ($r == 90) { # VIC: Eastern Victoria
 		push (@{($chan_map{"Prime"})}, "Prime (Regional)", "Prime (Albury)");
+	} elsif ($r == 106) { # NSW: Remote and Central
+		push (@{($chan_map{"Prime"})}, "Prime Wagga Wagga");
+	} elsif ($r == 126) { # ACT
+		push (@{($chan_map{"Prime"})}, "Prime Canberra/Sth Coast");
 	}
 
 	return %chan_map;
