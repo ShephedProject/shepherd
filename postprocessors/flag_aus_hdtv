@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.25";
+my $version = "0.26";
 
 $| = 1;
 print "$progname v$version\n";
@@ -70,6 +70,7 @@ foreach my $hdchannel (keys %$hd_to_sds) {
 my %stats;
 my $channels, my $reverse_channels, my $detailed_reverse_channels, my $opt_channels, my %channel_xmlid_to_opt_channel_xmlid;
 my $d, my $ar, my $sd, my $hd;
+my $gapchannel, my $gaplaststop;
 my $override_settings = { };
 my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
 my $ua = LWP::UserAgent->new('timeout' => 30, 'keep_alive' => 1, 'agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)' );
@@ -80,7 +81,7 @@ $opt->{dbaurl} = "http://www.dba.org.au/dtvprograms"; # This URL seems to work f
 $opt->{output_file} = "output.xmltv";
 $opt->{region} = 94;
 $opt->{debug} = 1;
-$opt->{action} = "copy";
+$opt->{action} = "copysd";
 
 &parse_command_line;
 
@@ -94,12 +95,6 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 
 &read_config_file($progname.".config",0);
 &apply_setting_overrides;
-
-# 5/12/2007 set everyones action to "copy", so in a few days can change default to "copysd"
-if (!defined $override_settings->{action}) { 
-	$override_settings->{action} = "copy";
-	&write_config;
-}
 
 &read_config_file($opt->{channels_file},1);
 
@@ -185,9 +180,9 @@ options:
   --dbaurl=(url)       URL where dba lists HDTV programming (default: $opt->{dbaurl})
 
   --action=(policy)    policy can be one of:
-                        move - move prog to HD channel (remove it from SD channel)
-                        copy - copy prog to HD channel (keep it in SD channel also) (default)
-                        copysd - copy all progs to HD channel, flaging HD ones
+                        move - move HD progs to HD channel (remove it from SD channel)
+                        copy - copy HD progs to HD channel (keep it in SD channel also)
+                        copysd - copy all progs to HD channel, flagging HD ones (default)
   --notag              don't tag with HD flags (default: do)
 
   --output=(f)         output XMLTV filename (default: $opt->{output})
@@ -209,7 +204,8 @@ EOF
 	}
 
 	die "'--channels_file {file}' must be specified. see --help for details.\n" if (!$opt->{channels_file});
-	die "unknown --action policy, see --help for details.\n" if ($opt->{action} !~ /^(copysd|copy|move)$/);
+	die "unknown --action policy, see --help for details.\n"
+			if (($opt->{action} ne "move") && ($opt->{action} ne "copy") && ($opt->{action} ne "copysd"))
 }
 
 ######################################################################################################
@@ -227,7 +223,7 @@ sub set_overrides
 		printf "%s: override parameter %s: %s\n", $progname, $setting, ($val eq "0" ? "disabled" : "enabled");
 	} elsif ($setting eq "action") {
 		die "--set value must be copy/move for setting '$setting'.\n"
-				if (($val ne "copysd") && ($val ne "copy") && ($val ne "move"));
+				if (($val ne "move") && ($val ne "copy") && ($val ne "copysd"));
 		$override_settings->{$setting} = $val;
 		printf "%s: override parameter %s: %s\n", $progname, $setting, $val;
 	} else {
@@ -621,31 +617,20 @@ sub programme_cb( $ )
 {
 	my $prog=shift;
 	my $this_chan = $prog->{channel};
-	my $this_title;
+	return if (!defined $this_chan);
 
-	$this_title = $prog->{title}->[0]->[0]
-	  if (($prog->{title}) && ($prog->{title}->[0]) && ($prog->{title}->[0]->[0]));
-	# print "got programme ".Dumper($prog);
-
-	goto NOMATCH if (!defined $this_chan);
-	goto NOMATCH if (!defined $this_title);
-
-	# process later high definition channel programmes
-	if (defined $reverse_channels->{$this_chan} &&
-			defined $hd_to_sds->{$reverse_channels->{$this_chan}}) {
-		return if $this_title eq "See main channel's listings for programming details";
-#print "process later high definition channel programmes - $this_title - $reverse_channels->{$this_chan}\n";
-		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
-		$ar->{$reverse_channels->{$this_chan}}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
-		return;
-	}
-
-	# keep a copy of standard definition related to high definition channel programmes for program removal later
+	# keep a copy of standard definition related to argumenting high definition channel programmes for program removal later
 	if (defined $channel_xmlid_to_opt_channel_xmlid{$this_chan} &&
 			defined $detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$this_chan}}) {
 		$sd->{$detailed_reverse_channels->{$channel_xmlid_to_opt_channel_xmlid{$this_chan}}}->
 				{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
 	}
+
+	my $this_title;
+	$this_title = $prog->{title}->[0]->[0]
+	  if (($prog->{title}) && ($prog->{title}->[0]) && ($prog->{title}->[0]->[0]));
+	# print "got programme ".Dumper($prog);
+	goto NOMATCH if (!defined $this_title);
 
 	# if programme is already marked as HDTV, just skip all of this
 	if ((defined $prog->{video}) && (defined $prog->{video}->{quality}) &&
@@ -679,10 +664,19 @@ sub programme_cb( $ )
 	}
 
 NOMATCH:
+	# process later argumenting high definition channel programmes
+	if (defined $reverse_channels->{$this_chan} &&
+			defined $hd_to_sds->{$reverse_channels->{$this_chan}}) {
+		return if defined $this_title && $this_title eq "See main channel's listings for programming details";
+		# just because its on 7HD doesn't make it high definition
+		$ar->{$reverse_channels->{$this_chan}}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
+		return;
+	}
+
 	$writer->write_programme($prog);
 
-	if ($opt->{action} =~ /copysd/ && defined $channel_xmlid_to_opt_channel_xmlid{$this_chan}) {
-		delete $prog->{video}->{quality};
+	# copy to high definition channel
+	if ($opt->{action} eq "copysd" && defined $channel_xmlid_to_opt_channel_xmlid{$this_chan}) {
 		$prog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$this_chan};
 		# but don't write HD channel until all programs read
 		$hd->{$this_chan}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
@@ -694,13 +688,22 @@ MATCH:
 	$d->{seenprog}->{$this_title}++;
 	$prog->{video}->{aspect} = "16:9"; # widescreen
 
+	# process later argumenting high definition channel programmes
+	if (defined $reverse_channels->{$this_chan} &&
+			defined $hd_to_sds->{$reverse_channels->{$this_chan}}) {
+		return if defined $this_title && $this_title eq "See main channel's listings for programming details";
+		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
+		$ar->{$reverse_channels->{$this_chan}}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
+		return;
+	}
+
 	if (!defined $channel_xmlid_to_opt_channel_xmlid{$this_chan}) {
 		# no HD variant
 		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
 		$writer->write_programme($prog);
 		$stats{rewrote_prog_as_hdtv_inplace}++;
 	} else {
-		if ($opt->{action} =~ /copy/) {
+		if ($opt->{action} eq "copy" || $opt->{action} eq "copysd") {
 			# SD channel
 			delete $prog->{video}->{quality};
 			$writer->write_programme($prog);
@@ -711,58 +714,35 @@ MATCH:
 		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
 		$prog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$this_chan};
 		# but don't write HD channel until all programs read
-#print "but don't write HD channel until all programs read - $this_title - $hd_chan\n";
 		$hd->{$this_chan}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
 	}
 	return;
 }
 
-sub write_hd	# currently doesn't fill any gaps between programs
+sub write_hd
 {
 	# remove from argument channel identical (time, title, sub-title) programs found on sd channel
-	foreach my $hdchannel (keys %$ar) {
-#print "removal for hdchannel $hdchannel\n";
+	foreach my $channel (keys %$ar) {
+		next if !defined $sd->{$channel};
+		foreach my $start (keys %{$ar->{$channel}}) {
+			if (defined $sd->{$channel}->{$start}) {
+				my $aprog = $ar->{$channel}->{$start};
+				my $prog = $sd->{$channel}->{$start};
 
-		my @aprogs = sort {$a <=> $b} keys %{$ar->{$hdchannel}};
-		my $aprog = $ar->{$hdchannel}->{shift @aprogs};
-
-		my @progs = sort {$a <=> $b} keys %{$sd->{$hdchannel}};
-		my $prog = $sd->{$hdchannel}->{shift @progs};
-		last if !defined $prog;
-		my $start = Shepherd::Common::parse_xmltv_date($prog->{start});
-		my $stop = Shepherd::Common::parse_xmltv_date($prog->{stop});
-#print "found programs\n";
-
-		while (defined $aprog) {
-			my $astart = Shepherd::Common::parse_xmltv_date($aprog->{start});
-			my $astop = Shepherd::Common::parse_xmltv_date($aprog->{stop});
-
-			# skip any sd programs before this argument programs time
-			while (defined $prog && $start < $astart) {
-#print "skip prog\n";
-				$prog = $sd->{$hdchannel}->{shift @progs};
-				last if !defined $prog;
-				$start = Shepherd::Common::parse_xmltv_date($prog->{start});
-				$stop = Shepherd::Common::parse_xmltv_date($prog->{stop});
+				if (Shepherd::Common::parse_xmltv_date($aprog->{stop}) ==
+						Shepherd::Common::parse_xmltv_date($prog->{stop}) &&
+						(!defined $aprog->{title} || !defined $prog->{title} ||
+							$aprog->{title}->[0]->[0] eq $prog->{title}->[0]->[0]) &&
+						(!defined $aprog->{'sub-title'} || !defined $prog->{'sub-title'} ||
+							$aprog->{'sub-title'}->[0]->[0] eq $prog->{'sub-title'}->[0]->[0])){
+					delete $ar->{$channel}->{$start};
+				}
 			}
-			last if !defined $prog;
-
-			if ($astart == $start && $astop == $stop &&
-					(!defined $aprog->{title} || !defined $prog->{title} ||
-						$aprog->{title}->[0]->[0] eq $prog->{title}->[0]->[0]) &&
-					(!defined $aprog->{'sub-title'} || !defined $prog->{'sub-title'} ||
-						$aprog->{'sub-title'}->[0]->[0] eq $prog->{'sub-title'}->[0]->[0])) {
-#print "delete aprog\n";
-				delete $ar->{$hdchannel}->{$astart};
-			}
-
-			$aprog = $ar->{$hdchannel}->{shift @aprogs};
 		}
 	}
 
+	# write high definition channel programs argumenting as needed
 	foreach my $xmlid (keys %$hd) {
-#print "processing channel xmlid $xmlid\n";
-
 		my ($argument, @aprogs, $aprog);
 
 		# if an argument channel exists, sort the programs ready for inserting
@@ -783,7 +763,6 @@ sub write_hd	# currently doesn't fill any gaps between programs
 				@aprogs = sort {$a <=> $b} keys %{$ar->{$argument}};
 				$aprog = $ar->{$argument}->{shift @aprogs};
 			}
-#print "first argument program at $aprog->{start}\n";
 		}
 
 		# loop over this channels programs, inserting argument programs as needed
@@ -795,21 +774,20 @@ sub write_hd	# currently doesn't fill any gaps between programs
 			while (defined $aprog && Shepherd::Common::parse_xmltv_date($aprog->{start}) <
 					 	Shepherd::Common::parse_xmltv_date($prog->{stop})) {
 				$aprog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$xmlid};
+				&gapfill($aprog->{channel}, $aprog->{start}, $aprog->{stop});
 				$writer->write_programme($aprog);
 				$stats{wrote_prog_into_hdtv_channel}++;
-
-#print "wrote argument program $aprog->{title}->[0]->[0]\n";
 
 				# drop programs that conflict with argument program
 				while (Shepherd::Common::parse_xmltv_date($prog->{start}) <
 						Shepherd::Common::parse_xmltv_date($aprog->{stop})) {
-#print "dropping conflicting program $prog->{title}->[0]->[0]\n";
 					$prog = $hd->{$xmlid}->{shift @progs};
 				}
 
 				$aprog = $ar->{$argument}->{shift @aprogs};
 			}
 
+			&gapfill($prog->{channel}, $prog->{start}, $prog->{stop});
 			$writer->write_programme($prog);
 			$stats{wrote_prog_into_hdtv_channel}++;
 
@@ -819,13 +797,38 @@ sub write_hd	# currently doesn't fill any gaps between programs
 		# write any left over argument programs
 		while (defined $aprog) {
 			$aprog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$xmlid};
+			&gapfill($prog->{channel}, $prog->{start}, $prog->{stop});
 			$writer->write_programme($aprog);
 			$stats{wrote_prog_into_hdtv_channel}++;
 
-#print "wrote left over argument program $aprog->{title}->[0]->[0]\n";
-
 			$aprog = $ar->{$argument}->{shift @aprogs};
 		}
+	}
+}
+
+sub gapfill
+{
+	my $prog;
+	$prog->{channel} = shift;
+	$prog->{start} = $gaplaststop;
+	$prog->{stop} = shift;
+	$gaplaststop = shift;
+
+	if (defined $prog->{start} && defined $gapchannel && $gapchannel eq $prog->{channel}) {
+		if (Shepherd::Common::parse_xmltv_date($prog->{start}) !=
+				Shepherd::Common::parse_xmltv_date($prog->{stop})) {
+			if ($opt->{action} eq "copysd") {
+				$prog->{title}->[0]->[0] = "Gap";
+			} else {
+				$prog->{title}->[0]->[0] = "Upscaled SD or Loop";
+				$prog->{desc}->[0]->[0] =
+						"This can be populated with programs by changing your Shepherd settings.";
+			}
+			$writer->write_programme($prog);
+			$stats{wrote_gapfill_into_hdtv_channel}++;
+		}
+	} else {
+		$gapchannel = $prog->{channel};
 	}
 }
 
