@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.28';
+my $version = '1.2.29';
 
 # tv_grab_au
 # "Shepherd"
@@ -2422,6 +2422,18 @@ sub configure_channels_guided
 	{
 	    print "Unknown selection. Please try again.\n";
 	    redo;
+	}
+    }
+
+    foreach (keys %$opt_channels)
+    {
+	if (defined $opt_channels->{$_} && $_ =~ /HD$/) {
+	    my $sd = $_;
+	    $sd =~ s/HD$//;
+	    if (!defined $channels->{$sd}) {
+		print "No corresponding SD channel for a HD channel.  '$_' needs '$sd'.  Please try again.\n";
+		exit;
+	    }
 	}
     }
 
