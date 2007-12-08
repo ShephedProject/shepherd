@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.97";
+my $version = "1.98";
 
 use XMLTV;
 use XML::DOM;
@@ -494,16 +494,16 @@ sub parse_xml_data
 			# wrap these non-mandatory fields in an eval so if they don't exist the script doesn't barf out
 			my %e;
 			foreach my $field ('title', 'subtitle', 'description_1', 'main_cast', 'year_released', 'rating',
-			  'genre', 'running_time', 'repeat', 'country', 'movie', 'premiere', 'final', 'captions', 'warnings', 
-			  'color', 'language', 'director', 'live', 'return') {
+			  'genre', 'running_time', 'repeat', 'country', 'movie', 'premiere', 'final', 'captions',
+			  'warnings', 'colour', 'language', 'director', 'live', 'return') {
 				eval { $e{$field} = $event->getElementsByTagName("$field")->item(0)->getFirstChild->getNodeValue; };
 			}
 			# other fields we dont pick up but exist in source xml data include:
-			#  other_title, description_2, genre_id, highlight, ext_url, y7_url
+			#  other_title, description_2, genre_id, sub_category, highlight, ext_url, y7_url
 			# 'return' unseen
 
 			my %video_details;
-			$video_details{'colour'} = "yes" if $e{color};
+			$video_details{'colour'} = "yes" if $e{colour};
 
 			my $rating = "";
 			$rating .= $e{rating} if $e{rating};
