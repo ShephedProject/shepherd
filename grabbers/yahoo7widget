@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.98";
+my $version = "1.99";
 
 use XMLTV;
 use XML::DOM;
@@ -503,7 +503,7 @@ sub parse_xml_data
 			# 'return' unseen
 
 			my %video_details;
-			$video_details{'colour'} = "yes" if $e{colour};
+			$video_details{'colour'} = 1 if $e{colour};
 
 			my $rating = "";
 			$rating .= $e{rating} if $e{rating};
