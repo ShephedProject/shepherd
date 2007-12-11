@@ -3,7 +3,7 @@
 # citysearch TV guide grabber
 #
 
-my $version = '2.0.4';
+my $version = '3.0.0';
 
 use strict;
 use Getopt::Long;
@@ -54,7 +54,7 @@ exit 0 if ($opt->{version});
 unless ($channels)
 {
     print "ERROR: No channels requested. Please use --channels_file.\n";
-    exit 2;
+    exit 33;
 }
 
 &read_gaps_file;
@@ -111,7 +111,7 @@ sub get_guide_data
 
 	    my $url = "$DATASOURCE/tvguide/$day/$hr:00";
 	    my $guidedata = &Shepherd::Common::get_url($url);
-	    exit 5 unless ($guidedata);
+	    exit 11 unless ($guidedata);
 
 	    # Verify that the guide page really is for the day we want.
 	    my $daystr = &POSIX::strftime("%A, %d %B", localtime($runtime + ($day * 86400)));
@@ -120,7 +120,7 @@ sub get_guide_data
 	    unless ($guidedata =~ /<p class="date">$daystr<\/p>/)
 	    {
 		&log("Exiting: couldn't locate daystring \"$daystr\" in guide page for $dow.");
-		exit 8;
+		exit 21;
 	    }
 
 	    &parse_guide($guidedata, $day, $hr);
@@ -324,17 +324,21 @@ sub parse_details
     &log("Parsing \"$show->{title}\"") if ($debug);
     my $tree = HTML::TreeBuilder->new_from_content($html);
 
-    my $div = $tree->look_down(_tag => 'div', id => 'contentHeader');
-    die "Can't read page!\n$html" unless ($div);
+    my $desc = $tree->look_down(_tag => 'p', class => 'teaser');
+    unless (defined $desc)
+    {
+	print "Dumping bad HTML:\n$html\n" if ($debug);
+	print "Can't parse details page! Title: $show->{title}\n";
+	exit 22;
+    }
 
-    my $desc = $div->look_down(_tag => 'p');
     if ($desc)
     {
 	$desc = &strip_whitespace($desc->as_text);
 	$show->{desc} = $desc if ($desc);
     }
 
-    $div = $tree->look_down(_tag => 'div', class => 'contentDetails');
+    my $div = $tree->look_down(_tag => 'div', class => 'contentDetails');
     my (%video, $category, %type);
     foreach my $tr ($div->look_down(_tag => 'tr'))
     {
@@ -649,7 +653,7 @@ sub set_region
     unless ($regions{$opt->{region}})
     {
 	&log("ERROR: unsupported region \"$opt->{region}\".");
-	exit 3;
+	exit 32;
     }
     $opt->{rname} = $regions{$opt->{region}};
     $DATASOURCE = "http://$opt->{rname}.$DATASOURCE";
