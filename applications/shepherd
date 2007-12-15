@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.29';
+my $version = '1.2.30';
 
 # tv_grab_au
 # "Shepherd"
@@ -102,6 +102,8 @@ my $hd_to_sds;
 	"Seven (Rockhampton/Toowoomba)","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
 	"Prime Canberra/Sth Coast","Prime Wagga Wagga","Prime Wollongong","Prime Orange",
 	"Prime (Regional)","Prime (Albury)","Southern Cross","Central GTS/BKN","Golden West");
+@{$hd_to_sds->{"TEN HD"}} = ("TEN","TEN (NSW: Southern NSW)","TEN (Mildura Digital)",
+	"Sthn Cross TEN","WIN TEN","TDT");
 
 
 my $invoked = get_full_path($0);

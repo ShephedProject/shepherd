@@ -2,7 +2,7 @@
 
 # OzTivo grabber
 
-my $version = '1.18';
+my $version = '1.19';
 
 # Requires configuration!
 # 1. Register at http://www.tvguide.org.au/
@@ -333,9 +333,12 @@ sub setup_channel_mappings
     my %map = (
 	"SevenHD" => "7HD",
 	"SevenHD-Mel" => "7HD",
+	"TenHD" => "TEN HD",
+	"TenHD-Vic" => "TEN HD",
 	"SBS-NEWS" => "SBS NEWS",
 	"31-Syd" => "TVS",
 	"BRIZ" => "Briz 31",
+	"TDT-Tas" => "TDT",
 	"Seven-Qld" => "Seven Cairns", # no better match
 
 	"ACC" => "ACC",
@@ -471,6 +474,8 @@ sub adjust_times2
     $data =~ s/(?!=")(\d+)(?=".* channel="SBS-NEWS")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
     $data =~ s/(?!=")(\d+)(?=".* channel="SevenHD")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
     $data =~ s/(?!=")(\d+)(?=".* channel="SevenHD-Mel")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
+    $data =~ s/(?!=")(\d+)(?=".* channel="TenHD")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
+    $data =~ s/(?!=")(\d+)(?=".* channel="TenHD-Vic")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
 }
 
 # Return '+0100' for any times that are in a period when Sydney's in DST
