@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.26";
+my $version = "0.27";
 
 $| = 1;
 print "$progname v$version\n";
@@ -732,9 +732,10 @@ sub write_hd
 				if (Shepherd::Common::parse_xmltv_date($aprog->{stop}) ==
 						Shepherd::Common::parse_xmltv_date($prog->{stop}) &&
 						(!defined $aprog->{title} || !defined $prog->{title} ||
-							$aprog->{title}->[0]->[0] eq $prog->{title}->[0]->[0]) &&
+							$aprog->{title}->[0]->[0] =~ /$prog->{title}->[0]->[0]/i) &&
 						(!defined $aprog->{'sub-title'} || !defined $prog->{'sub-title'} ||
-							$aprog->{'sub-title'}->[0]->[0] eq $prog->{'sub-title'}->[0]->[0])){
+							$aprog->{'sub-title'}->[0]->[0] =~
+									/$prog->{'sub-title'}->[0]->[0]/i)){
 					delete $ar->{$channel}->{$start};
 				}
 			}
@@ -771,7 +772,8 @@ sub write_hd
 		while (defined $prog) {
 
 			# insert argument programs if they start before other programs stop
-			while (defined $aprog && Shepherd::Common::parse_xmltv_date($aprog->{start}) <
+			while (defined $aprog && defined $prog &&
+						Shepherd::Common::parse_xmltv_date($aprog->{start}) <
 					 	Shepherd::Common::parse_xmltv_date($prog->{stop})) {
 				$aprog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$xmlid};
 				&gapfill($aprog->{channel}, $aprog->{start}, $aprog->{stop});
@@ -779,13 +781,14 @@ sub write_hd
 				$stats{wrote_prog_into_hdtv_channel}++;
 
 				# drop programs that conflict with argument program
-				while (Shepherd::Common::parse_xmltv_date($prog->{start}) <
+				while (defined $prog && Shepherd::Common::parse_xmltv_date($prog->{start}) <
 						Shepherd::Common::parse_xmltv_date($aprog->{stop})) {
 					$prog = $hd->{$xmlid}->{shift @progs};
 				}
 
 				$aprog = $ar->{$argument}->{shift @aprogs};
 			}
+			last if !defined $prog;
 
 			&gapfill($prog->{channel}, $prog->{start}, $prog->{stop});
 			$writer->write_programme($prog);
