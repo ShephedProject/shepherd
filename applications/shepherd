@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.30';
+my $version = '1.2.31';
 
 # tv_grab_au
 # "Shepherd"
@@ -3490,6 +3490,10 @@ sub choose_grabber
 
 	$missing = detect_missing_data();
 	$timeslice = find_best_timeslice();
+	if ($timeslice->{chandays} == 0) {
+	    &log("SHEPHERD: No fillable timeslices!\n");
+	    return undef;
+	}
 
 	&log(1, "SHEPHERD: Best timeslice: " . display_best_timeslice());
     } else {
