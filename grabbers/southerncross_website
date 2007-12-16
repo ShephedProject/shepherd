@@ -33,7 +33,7 @@
 use strict;
 
 my $progname = "southerncross_website";
-my $version = "0.16";
+my $version = "0.17";
 
 #use LWP::UserAgent;
 #use LWP::ConnCache;
@@ -669,7 +669,7 @@ sub parse_page
         $cast .= "$1," if ($text =~ /Guests Include: (.+?)\./i);
         $cast .= $1 if ($text =~ s/Starring: (.+)$//i);
         $prog->{'credits'}{'actor'} = [ split(/,|&amp;|&|\Wand\W/i, $cast) ] if $cast;
-        $prog->{desc} = [[$text, $opt->{lang}]]; # desc
+        $prog->{desc} = [[$text, $opt->{lang}]] if $text; # desc
         &log("parse_page debug: desc      : $text") if $opt->{debug};
       }
       $td = shift @tds || goto PART;
