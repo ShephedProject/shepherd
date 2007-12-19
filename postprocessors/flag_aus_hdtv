@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.28";
+my $version = "0.29";
 
 $| = 1;
 print "$progname v$version\n";
@@ -730,10 +730,10 @@ sub write_hd
 				if (Shepherd::Common::parse_xmltv_date($aprog->{stop}) ==
 						Shepherd::Common::parse_xmltv_date($prog->{stop}) &&
 						(!defined $aprog->{title} || !defined $prog->{title} ||
-							$aprog->{title}->[0]->[0] =~ /$prog->{title}->[0]->[0]/i) &&
+							lc($aprog->{title}->[0]->[0]) eq lc($prog->{title}->[0]->[0])) &&
 						(!defined $aprog->{'sub-title'} || !defined $prog->{'sub-title'} ||
-							$aprog->{'sub-title'}->[0]->[0] =~
-									/$prog->{'sub-title'}->[0]->[0]/i)){
+							lc($aprog->{'sub-title'}->[0]->[0]) eq
+									lc($prog->{'sub-title'}->[0]->[0]))){
 					delete $ar->{$channel}->{$start};
 				}
 			}
