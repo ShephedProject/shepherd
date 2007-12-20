@@ -112,6 +112,7 @@ my $invoked = get_full_path($0);
 my $gscore;
 my $days = 7;
 my $missing;
+my $missing_unfillable;
 my $timeslice;
 my $grabbed;
 my $gmt_offset;
@@ -3463,6 +3464,11 @@ sub choose_grabber
 {
     my $grabber_policy = shift;
 
+    $missing = detect_missing_data() if ($grabber_policy ne "paytv");
+    my $total;
+
+    do {
+
     if (defined $gscore)	# Reset score hash
     {
 	foreach (keys %$gscore)
@@ -3488,14 +3494,14 @@ sub choose_grabber
     if ($grabber_policy ne "paytv") {
 	# no point calling these on paytv channels - paytv channels are always $opt_channels ..
 
-	$missing = detect_missing_data();
+	remove_missing_unfillable();
 	$timeslice = find_best_timeslice();
 	if ($timeslice->{chandays} == 0) {
 	    &log("SHEPHERD: No fillable timeslices!\n");
 	    return undef;
 	}
 
-	&log(1, "SHEPHERD: Best timeslice: " . display_best_timeslice());
+	&log("SHEPHERD: Best timeslice: " . display_best_timeslice());
     } else {
 	# if we are grabbing paytv, remove grabbers that can't provide paytv data
 	foreach my $grabber (keys %$gscore) {
@@ -3540,7 +3546,7 @@ sub choose_grabber
 	}
     }
 
-    my $total = score_grabbers($grabber_policy);
+    $total = score_grabbers($grabber_policy);
  
     &log("SHEPHERD: Scoring grabbers on ability to efficiently provide needed data:\n");
     &log("Only considering micro-grabbers.\n") if ($find_microgaps);
@@ -3593,7 +3599,14 @@ sub choose_grabber
 	}
     }
 
-    return undef unless ($total);
+    return undef if $grabber_policy eq "paytv" && !$total;
+
+    if (!$total) { # $grabber_policy ne "paytv"
+	&log("Unfillable timeslice\n\n");
+	add_timeslice_to_missing_unfillable();
+    }
+
+    } while (!$total); # $grabber_policy ne "paytv"
 
     # If the user has specified a pref_title_source -- i.e. he is
     # transitioning from a known grabber -- then we make sure it
@@ -3992,18 +4005,6 @@ sub find_best_timeslice
     return $slice;
 }
 
-sub display_best_timeslice
-{
-    return sprintf "day%s of channel%s %s (%d channel-day%s).\n",
-	           ($timeslice->{start} == $timeslice->{stop} ?
-		       " $timeslice->{start}" :
-		       "s $timeslice->{start} - $timeslice->{stop}"),
-		   (@{$timeslice->{chans}} > 1 ? 's' : ''),
-		   join(', ', @{$timeslice->{chans}}),
-		   $timeslice->{chandays},
-		   $timeslice->{chandays} == 1 ? '' : 's';
-}
-
 sub consider_slice
 {
     my ($slice, $startday, $stopday, @chans) = @_;
@@ -4016,6 +4017,38 @@ sub consider_slice
     $slice->{stop} = $stopday;
     $slice->{chans} = [ @chans ];
     $slice->{chandays} = $challenger;
+}
+
+sub remove_missing_unfillable
+{
+    foreach my $day (keys %{$missing_unfillable}) {
+	next if !defined $missing->{$day};
+	foreach my $ch (@{$missing_unfillable->{$day}}) {
+		@{$missing->{$day}} = grep($_ ne $ch, @{$missing->{$day}});
+	}
+    }
+}
+
+sub add_timeslice_to_missing_unfillable
+{
+    foreach my $day ($timeslice->{start} .. $timeslice->{stop}) {
+	foreach my $ch (@{$timeslice->{chans}}) {
+		push(@{$missing_unfillable->{$day}}, $ch)
+				unless grep($_ eq $ch, @{$missing_unfillable->{$day}});
+	}
+    }
+}
+
+sub display_best_timeslice
+{
+    return sprintf "day%s of channel%s %s (%d channel-day%s).\n",
+	           ($timeslice->{start} == $timeslice->{stop} ?
+		       " $timeslice->{start}" :
+		       "s $timeslice->{start} - $timeslice->{stop}"),
+		   (@{$timeslice->{chans}} > 1 ? 's' : ''),
+		   join(', ', @{$timeslice->{chans}}),
+		   $timeslice->{chandays},
+		   $timeslice->{chandays} == 1 ? '' : 's';
 }
 
 # Creates temporary gaps file suitable for passing to grabbers with

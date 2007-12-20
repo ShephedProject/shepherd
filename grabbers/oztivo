@@ -2,7 +2,7 @@
 
 # OzTivo grabber
 
-my $version = '1.19';
+my $version = '1.20';
 
 # Requires configuration!
 # 1. Register at http://www.tvguide.org.au/
@@ -207,9 +207,10 @@ my $cur_field = "";
 foreach my $line (split/\n/,$data) {
 
     # oztivo generates blank data for these fields - skip if blank
-    next if ($line =~ /<director><\/director>/);
-    next if ($line =~ /<desc><\/desc>/);
     next if ($line =~ /^\s*$/);
+    next if ($line =~ /<desc>\s*<\/desc>/);
+    next if ($line =~ /<actor>\s*<\/actor>/);
+    next if ($line =~ /<director>\s*<\/director>/);
 
     # more oztivo weirdness. filter out 0/10 star-ratings
     next if ($line =~ /<star-rating><value>0\/10</);
