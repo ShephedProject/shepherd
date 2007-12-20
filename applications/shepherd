@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.32';
+my $version = '1.2.33';
 
 # tv_grab_au
 # "Shepherd"
@@ -3467,144 +3467,144 @@ sub choose_grabber
     $missing = detect_missing_data() if ($grabber_policy ne "paytv");
     my $total;
 
-    do {
+    do { # while (!$total);
 
-    if (defined $gscore)	# Reset score hash
-    {
-	foreach (keys %$gscore)
+	if (defined $gscore)	# Reset score hash
 	{
-	    $gscore->{$_} = 0;
-	}
-    }
-    else			# Create score hash
-    {
-	foreach (query_grabbers())
-	{
-	    unless (($components->{$_}->{disabled}) || (defined $plugin_data->{$_}->{failed_test}))
+	    foreach (keys %$gscore)
 	    {
 		$gscore->{$_} = 0;
-		if (query_config($_, 'category') == 1 and query_config($_, 'cache'))
-		{
-		    $gscore->{$_ . ' [cache]'} = 0;
+	    }
+	}
+	else			# Create score hash
+	{
+	    foreach (query_grabbers())
+	    {
+		unless (($components->{$_}->{disabled}) || (defined $plugin_data->{$_}->{failed_test}))
+	        {
+		    $gscore->{$_} = 0;
+		    if (query_config($_, 'category') == 1 and query_config($_, 'cache'))
+		    {
+			$gscore->{$_ . ' [cache]'} = 0;
+		    }
 		}
 	    }
 	}
-    }
 
-    if ($grabber_policy ne "paytv") {
-	# no point calling these on paytv channels - paytv channels are always $opt_channels ..
+	if ($grabber_policy ne "paytv") {
+	    # no point calling these on paytv channels - paytv channels are always $opt_channels ..
 
-	remove_missing_unfillable();
-	$timeslice = find_best_timeslice();
-	if ($timeslice->{chandays} == 0) {
-	    &log("SHEPHERD: No fillable timeslices!\n");
-	    return undef;
-	}
+	    remove_missing_unfillable();
+	    $timeslice = find_best_timeslice();
+	    if ($timeslice->{chandays} == 0) {
+		&log("SHEPHERD: No fillable timeslices!\n");
+		return undef;
+	    }
 
-	&log("SHEPHERD: Best timeslice: " . display_best_timeslice());
-    } else {
-	# if we are grabbing paytv, remove grabbers that can't provide paytv data
-	foreach my $grabber (keys %$gscore) {
-	    # Only want grabbers of type 'paytv' or 'both' (undef == FTA)
-	    if (!query_config($grabber, 'type')) {
-		delete $gscore->{$grabber};
-	    } else {
-		# can this grabber provide any channels we are interested in?
-		my $channels_supported = query_config($grabber, 'channels');
-		unless (defined $channels_supported)
-		{
-		    &log("WARNING: Grabber $grabber has no channel support " .
-		    "specified in config.\n");
-		    $channels_supported = '';
-		}
+	    &log("SHEPHERD: Best timeslice: " . display_best_timeslice());
+	} else {
+	    # if we are grabbing paytv, remove grabbers that can't provide paytv data
+	    foreach my $grabber (keys %$gscore) {
+		# Only want grabbers of type 'paytv' or 'both' (undef == FTA)
+		if (!query_config($grabber, 'type')) {
+		    delete $gscore->{$grabber};
+		} else {
+		    # can this grabber provide any channels we are interested in?
+		    my $channels_supported = query_config($grabber, 'channels');
+		    unless (defined $channels_supported)
+		    {
+			&log("WARNING: Grabber $grabber has no channel support " .
+			"specified in config.\n");
+			$channels_supported = '';
+		    }
 
-		my $matching_channels = 0;
-		if ($channels_supported) {
-		    if (($channels_supported =~/^-/)) {
-			# find a non-matching channel
-			foreach my $ch (keys %$opt_channels) {
-			    if ($channels_supported !~ /\b$ch\b/) {
-				$matching_channels = 1;
-				last;
+		    my $matching_channels = 0;
+		    if ($channels_supported) {
+			if (($channels_supported =~/^-/)) {
+			    # find a non-matching channel
+			    foreach my $ch (keys %$opt_channels) {
+				if ($channels_supported !~ /\b$ch\b/) {
+				    $matching_channels = 1;
+				    last;
+			        }
+			    }
+			} else {
+			    # find a matching channel
+			    foreach my $ch (keys %$opt_channels) {
+				if ($channels_supported =~ /\b$ch\b/) {
+				    $matching_channels = 1;
+				    last;
+			        }
 			    }
 			}
 		    } else {
-			# find a matching channel
-			foreach my $ch (keys %$opt_channels) {
-			    if ($channels_supported =~ /\b$ch\b/) {
-				$matching_channels = 1;
-				last;
-			    }
-			}
+			# Empty string means we support all
+			$matching_channels = 1;
 		    }
-		} else {
-		    # Empty string means we support all
-		    $matching_channels = 1;
+		    delete $gscore->{$grabber} if ($matching_channels == 0);
 		}
-		delete $gscore->{$grabber} if ($matching_channels == 0);
 	    }
 	}
-    }
 
-    $total = score_grabbers($grabber_policy);
+	$total = score_grabbers($grabber_policy);
  
-    &log("SHEPHERD: Scoring grabbers on ability to efficiently provide needed data:\n");
-    &log("Only considering micro-grabbers.\n") if ($find_microgaps);
-    foreach (sort { $gscore->{$b} <=> $gscore->{$a} } keys %$gscore)
-    {
-	next if ($_ =~ /\[cache\]/);
-
-	my $score  = $gscore->{$_};
-	my $cscore = $gscore->{"$_ [cache]"};
-	my $cstr   = $cscore ? "(inc. $cscore cache pts) " : "";
-	$cstr .= "(already called)" if (($score == 0) && ($grabber_policy eq "paytv"));
-
-	if ($opt->{randomize})
+	&log("SHEPHERD: Scoring grabbers on ability to efficiently provide needed data:\n");
+	&log("Only considering micro-grabbers.\n") if ($find_microgaps);
+	foreach (sort { $gscore->{$b} <=> $gscore->{$a} } keys %$gscore)
 	{
-	    &log(sprintf "%22s %6.1f%% %9s %s\n", 
+	    next if ($_ =~ /\[cache\]/);
+
+	    my $score  = $gscore->{$_};
+	    my $cscore = $gscore->{"$_ [cache]"};
+	    my $cstr   = $cscore ? "(inc. $cscore cache pts) " : "";
+	    $cstr .= "(already called)" if (($score == 0) && ($grabber_policy eq "paytv"));
+
+	    if ($opt->{randomize})
+	    {
+		&log(sprintf "%22s %6.1f%% %9s %s\n",
 			    $_, 
 			    ($total ? 100* $score / $total : 0), 
 			    "$score pts",
 			    $cstr);
-	}
-	else
-	{
-	    &log(sprintf "%22s %4s pts %s\n", 
+	    }
+	    else
+	    {
+		&log(sprintf "%22s %4s pts %s\n",
 			    $_, 
 			    $score,
 			    $cstr);
+	    }
 	}
-    }
 
-    if ($opt->{grabwith})
-    {
-	my @a = split(/,/, $opt->{grabwith});
-	my $g;
-	while ($g = shift @a)
+	if ($opt->{grabwith})
 	{
-	    $opt->{grabwith} = (@a ? join(',', @a) : undef);
-
-	    if ($components->{$g}->{disabled})
+	    my @a = split(/,/, $opt->{grabwith});
+	    my $g;
+	    while ($g = shift @a)
 	    {
-		&log("\nSkipping --grabwith grabber \"$g\": it is disabled.\n");
-		next;
-	    }
+		$opt->{grabwith} = (@a ? join(',', @a) : undef);
 
-	    &log("\nObeying --grabwith option: selecting grabber \"$g\".\n");
-	    if ($components->{$g} and $components->{$g}->{type} eq 'grabber')
-	    {
-		return(select_grabber($g, $gscore), "--grabwith policy");
+		if ($components->{$g}->{disabled})
+		{
+		    &log("\nSkipping --grabwith grabber \"$g\": it is disabled.\n");
+		    next;
+		}
+
+		&log("\nObeying --grabwith option: selecting grabber \"$g\".\n");
+		if ($components->{$g} and $components->{$g}->{type} eq 'grabber')
+		{
+		    return(select_grabber($g, $gscore), "--grabwith policy");
+		}
+		&log("Not a grabber: \"$g\".\n");
 	    }
-	    &log("Not a grabber: \"$g\".\n");
 	}
-    }
 
-    return undef if $grabber_policy eq "paytv" && !$total;
+	return undef if $grabber_policy eq "paytv" && !$total;
 
-    if (!$total) { # $grabber_policy ne "paytv"
-	&log("Unfillable timeslice\n\n");
-	add_timeslice_to_missing_unfillable();
-    }
+	if (!$total) { # $grabber_policy ne "paytv"
+	    &log("Unfillable timeslice\n\n");
+	    add_timeslice_to_missing_unfillable();
+	}
 
     } while (!$total); # $grabber_policy ne "paytv"
 
