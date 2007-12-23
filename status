@@ -12,7 +12,6 @@ grabber         foxtel_swf          0.24-r1
 grabber         channelnsw_gov      0.8
 grabber         southerncross_website   0.17
 grabber         ten_website         1.04
-grabber         selectv_website     0.02
 grabber         citysearch          3.0.0
 grabber         acctv_website       0.03
 reconciler      reconciler_mk2      0.36
