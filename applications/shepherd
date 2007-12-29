@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.34';
+my $version = '1.2.35';
 
 # tv_grab_au
 # "Shepherd"
@@ -2713,7 +2713,7 @@ sub fetch_channels_selectv
 		"DiscoveryRealTime" => "DiscoveryRealTime",	# SelecTV and OzTivo
 		"E!Entertainment" => "E!Entertainment",
 		"ERTGreek" => "ERTGreek",			# SelecTV only
-		"Eurosport" => "Eurosportnews",			# rename
+		"Eurosport" => "Eurosport",			# SelecTV and OzTivo
 		"FashionTV" => "FashionTV",
 		"MovieExtra" => "MOVIEEXTRA",			# rename
 		"MovieGreats" => "MOVIEGREATS",			# rename

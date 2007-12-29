@@ -18,7 +18,7 @@
 use strict;
 
 my $progname = "selectv_website";
-my $version = "0.02";
+my $version = "0.03";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -201,7 +201,7 @@ sub choose_channel_lineup
 		"DiscoveryRealTime" => "DiscoveryRealTime",	# SelecTV and OzTivo
 		"E!Entertainment" => "E!Entertainment",
 		"ERTGreek" => "ERTGreek",			# SelecTV only
-		"Eurosport" => "Eurosportnews",			# rename
+		"Eurosport" => "Eurosport",			# SelecTV and OzTivo
 		"FashionTV" => "FashionTV",
 		"MovieExtra" => "MOVIEEXTRA",			# rename
 		"MovieGreats" => "MOVIEGREATS",			# rename
