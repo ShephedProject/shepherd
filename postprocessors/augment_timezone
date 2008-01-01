@@ -39,13 +39,12 @@
 
 use strict;
 my $progname = "augment_timezone";
-my $version = "0.17";
+my $version = "0.18";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
 use Getopt::Long;
 use IO::File;
-use Shepherd::MythTV;
 
 $| = 1;
 my %stats;
@@ -77,6 +76,22 @@ GetOptions(
 
 printf "%s v%s\n",$progname,$version;
 
+# Check if Shepherd::MythTV is working
+my $mythtv_access;
+unless ($opt->{timeoffset})
+{
+    eval { require Shepherd::MythTV; };
+    if ($@)
+    {
+	print "\nWARNING: No support for Shepherd::MythTV!\n".
+	      "Continuing without MythTV access. Target timeoffset will be \"None\".\n".
+	      "(You may override this with --timeoffset <offset>)\n".
+	      "Reason: $@\n";
+    } else {
+	$mythtv_access = 1;
+    }
+}
+
 if ($opt->{version} || $opt->{desc} || $opt->{help} || $opt->{ready} ||
     $opt->{output_file} eq "") {
 	printf "Automatically adjust the XMLTV start/stop timezone based on MythTV's\n".
@@ -87,7 +102,7 @@ if ($opt->{version} || $opt->{desc} || $opt->{help} || $opt->{ready} ||
 	printf "No --output file specified.\n" if ($opt->{output_file} eq "");
 
 	if ($opt->{help} || $opt->{output_file} eq "") {
-	        my $default_loc = &Shepherd::MythTV::standard_mysql_locations;
+	        my $default_loc = ($mythtv_access ? &Shepherd::MythTV::standard_mysql_locations : 'none');
 		print<<EOF
 
 usage: $0 [options] {FILE(s)}
@@ -104,26 +119,28 @@ EOF
 	exit(0);
 }
 
-unless ($opt->{timeoffset}) {
+if (!$opt->{timeoffset} and $mythtv_access) {
 	# Specify a non-standard location for mysql.txt
 	Shepherd::MythTV::setup($opt->{mysql_file}) if ($opt->{mysql_file});
 
 	my $sql = "SELECT data FROM settings WHERE value LIKE 'TimeOffset'";
 	($opt->{timeoffset}) = Shepherd::MythTV::query($sql);
-	unless ($opt->{timeoffset}) {
-		print "         Won't augment any timezones!\n" .
-                      "         Assuming MythTV's timezone is \"None\".\n".
-		      "         *** If this is wrong, guide data may be in wrong timezone! ***\n\n";
+	if ($opt->{timeoffset})
+	{
+		printf "         MythTV's TimeOffset is \"%s\".\n", $opt->{timeoffset};
+	} else {
+		print  "         No valid response from MythTV.\n".
+		       "         Assuming MythTV's timezone is \"None\".\n".
+		       "         *** If this is wrong, guide data may be in wrong timezone! ***\n\n";
 	}
 }
 
 $opt->{timeoffset} = "None" if (!defined $opt->{timeoffset});
 if ($opt->{timeoffset} eq "None") {
-	print " - MythTV's TimeOffset setting is set to \"None\". No need to do anything.\n";
+	print " - Target timezone is \"None\". No need to do anything.\n";
 } else {
-	printf " - MythTV's TimeOffset setting is set to \"%s\". Adding timezones.\n",$opt->{timeoffset};
+	printf " - Target timezone is \"%s\". Adding timezones.\n",$opt->{timeoffset};
 }
-
 
 # ABC fixup for Broken Hill
 if ((defined $opt->{region}) && ($opt->{region} == 63)) {
