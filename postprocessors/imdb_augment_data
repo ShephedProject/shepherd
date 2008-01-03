@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.35";
+my $version = "0.36";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -1034,12 +1034,13 @@ sub programme_cb( $ )
 
 	if ($imdb->{rating}) {
 		my ($rating,$votes) = split(/ /,$imdb->{rating});
-
-		# If there's already a star-rating, average the scores
-		if (ref $prog->{'star-rating'}) {
-		    $rating = sprintf "%.1f/10", (eval($rating) + eval($prog->{'star-rating'}[0])) * 5;
+		if ($rating =~ /[\d\.\s]+\/[\d\.\s]+/) {
+			# If there's already a star-rating, average the scores
+			if (ref $prog->{'star-rating'} && $prog->{'star-rating'}->[0] =~ /[\d\.\s]+\/[\d\.\s]+/) {
+				$rating = sprintf "%.1f/10", (eval($rating) + eval($prog->{'star-rating'}->[0])) * 5;
+			}
+			$prog->{'star-rating'} = [ $rating, [] ];
 		}
-		$prog->{'star-rating'} = [ $rating, [] ];
 	}
 
 	if ($imdb->{languages}) {
