@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.29";
+my $version = "0.30";
 
 $| = 1;
 print "$progname v$version\n";
@@ -20,7 +20,6 @@ print "$progname v$version\n";
 use strict;
 use Getopt::Long;
 use Shepherd::Common;
-use LWP::UserAgent;
 use HTML::TreeBuilder;
 use IO::File;
 use XMLTV;
@@ -69,23 +68,27 @@ foreach my $hdchannel (keys %$hd_to_sds) {
 # options
 #
 
+my $script_start_time = time;
 my %stats;
 my $channels, my $reverse_channels, my $detailed_reverse_channels, my $opt_channels, my %channel_xmlid_to_opt_channel_xmlid;
 my $d, my $ar, my $sd, my $hd;
 my $gapchannel, my $gaplaststop;
 my $override_settings = { };
 my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
-my $ua = LWP::UserAgent->new('timeout' => 30, 'keep_alive' => 1, 'agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)' );
-$ua->env_proxy;
 
 my $opt;
-$opt->{dbaurl} = "http://www.dba.org.au/dtvprograms"; # This URL seems to work fine Sep 2006
+$opt->{dbaurl} = "http://www.dba.org.au/index.asp?sectionID=126";
 $opt->{output_file} = "output.xmltv";
 $opt->{region} = 94;
-$opt->{debug} = 1;
+$opt->{debug} = 0;
 $opt->{action} = "copysd";
 
 &parse_command_line;
+
+# set defaults
+Shepherd::Common::set_default("debug", (($opt->{debug} > 0) ? 2 : 0));
+Shepherd::Common::set_default("stats" => \%stats);
+Shepherd::Common::set_default("retry_delay" => "15-45");
 
 # check XMLTV version for HDTV compatability
 my @xmltv_version = split(/\./,$XMLTV::VERSION);
@@ -126,7 +129,7 @@ foreach my $file (@ARGV) {
 $writer->end();
 printf "Finished parsing, output in $opt->{output_file}\n";
 
-&print_stats;
+Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
 exit(0);   
 
 ######################################################################################################
@@ -383,221 +386,92 @@ sub decode_region
 
 sub lookup_dba
 {
-	my $data = &get_url($opt->{dbaurl},"Obtaining DBA data",0);
+	print "Obtaining DBA data from ".$opt->{dbaurl}."\n";
+	my $data = Shepherd::Common::get_url($opt->{dbaurl});
 	return if (!$data);
 
-	my $tree = HTML::TreeBuilder->new_from_content($data); 
+	my $tree = HTML::TreeBuilder->new_from_content(Encode::decode_utf8($data)); 
 	return if (!$tree);
 
 	# each daily section starts with:
 	# <TABLE class=tv... 
 	# so we'll search for that and populate an array
-	my @chan_map;
-	for ($tree->look_down('_tag' => 'table', 'class' => 'tv')) {
-		my $firstrowdone=0;
-		my $dayname = "";
 
-		foreach my $row ($_->look_down('_tag' => 'tr')) {
-			if ($firstrowdone == 0) { # Channel list is the first row
-				$firstrowdone = 1;
-				my $colnum = 0;
-				for my $channel ($row->look_down('_tag' => 'td')) {
-					my $this_chan = $channel->as_text;
-					$colnum++;
-					$this_chan =~ s/[^\x20-\x7f]/ /g;
-					$this_chan =~ s/(^\s+|\s+$)//g;
-					next if ($this_chan eq "");
-
-					$this_chan = $chan_name_translations->{$this_chan}
-					  if (defined $chan_name_translations->{$this_chan});
-
-					if (!defined $channels->{$this_chan}) {
-						printf "DBA listed unknown channel '$this_chan'! Ignored.\n";
-						$stats{unknown_channels}++;
-						next;
-					}
-
-					$chan_map[$colnum] = $this_chan;
-					#printf "got channel '$this_chan' in column $colnum\n";
-				}
-				next;
-			}
-
-			# These must be the program details
+	$tree->warn(1);
+	my $tablenum = 0;
+	foreach my $tv_table ($tree->look_down('_tag' => 'table', 'class' => 'tv')) {
+		$tablenum++;
+		my $rownum = 0;
+		my @chan_map;
+		foreach my $row ($tv_table->look_down('_tag' => 'tr')) {
+			$rownum++;
 			my $colnum = 0;
-			foreach my $session ($row->look_down('_tag' => 'td')) {
+
+			foreach my $col ($row->look_down('_tag' => 'td')) {
 				$colnum++;
-				if ($colnum == 1) {
-					# This session has the day name in it
-					my $newdayname = $session->as_text();
-					$newdayname =~ s/Night//;
-					$newdayname =~ s/Day//;
-					$newdayname =~ s/Sat/Saturday/;
-					$newdayname = "" if ($dayname =~ m/Subject to avail/i);
 
-					$dayname = $newdayname if ($newdayname =~ m/day$/);
-					next;
-				}
-                 
-				my $this_chan = $chan_map[$colnum]; 
+				if ($rownum == 1) {
+					#
+					# populate channel list
+					#
 
-				my $sessionshows = $session->as_HTML();
-				$sessionshows =~ s/<p>/<br \/>/g; # Convert new paragraphs to newlines because they're not always consistent
-				$sessionshows =~ s/<\/p>//g;
-				$sessionshows =~ s/<u>//g;
-				$sessionshows =~ s/<\/u>//g;
-				$sessionshows =~ s/<\/td>//g;
-				$sessionshows =~ s/<\/font>//g;
-				$sessionshows =~ s/<font.*?>//g;
-				$sessionshows =~ s/<td.*?>//g;
-				#print "\nFound " . $session->as_HTML() . "\n\n";
-				my @shows = split(/<br[\s\/]*>/,$sessionshows);
-				foreach my $show (@shows) {
-					# Bodgy stuff to fix html markup
-					$show =~ s/\&amp;/\&/g; $show =~ s/\&apos;/\'/g; $show =~ s/\&quot;/\"/g; 
-					$show =~ s/\&#184;/\,/g; 
-					$show =~ s/\&#39;/\'/g; 
-					$show =~ s/\&nbsp;/\ /g; 
+					my $channame = $col->as_text();
+					$channame =~ s/[^\x20-\x7f]//g;
+					$channame =~ s/(^\s+|\s+$)//g;
+					if ($channame ne "") {
+						$channame = $chan_name_translations->{$channame}
+						  if (defined $chan_name_translations->{$channame});
 
-					# Remove trailing asterisk - just means could be widescreen if content is in widescreen - duh!
-					$show =~ s/\*$//;
-
-					# High Definition and locality
-					my $hd = 0;
-					if ($show =~ m/\(HD\)\s*? \(([SMAPB])\)/) {
-						$hd = 1 if ($1 eq $opt->{locality});
-						$show =~ s/\(HD\)\s*? \([SMAPB]\)//;
-					}
-
-
-					# High Definition
-					if ($show =~ m/\(HD\)/ || $show =~ m/\(JHD\)/ ) {
-						$hd = 1;
-						$show =~ s/\(HD\)//;
-						$show =~ s/\(JHD\)//; # JHD was probably a typo but we've included it here because they'll probably have fat fingers again
-					}
-
-					# Dolby Digital 5.1
-					my $dd51 = 0;
-					if ($show =~ m/DD 5.1/ || $show =~ m/DD5.1/) {
-						$dd51 = 1;
-						$show =~ s/\[\+ DD 5.1 sound\]//;
-						$show =~ s/\[\+ DD 5.1 Audio\]//;
-						$show =~ s/\[\+ DD 5.1 audio\]//;
-						$show =~ s/\[\+DD 5.1 audio\]//;
-						$show =~ s/\[\+DD 5.1 Audio\]//;
-						$show =~ s/\[\+DD 5.1 sound\]//;
-						$show =~ s/\[\+DD 5.1 sound\]//;
-						$show =~ s/\[\+DD5.1 sound\]//;
-						$show =~ s/\[\+DD5.1\]//;
-						$show =~ s/\[\+ DD 5.1\]//;
-						$show =~ s/\[\DD5.1\]//;
-						$show =~ s/\[\DD 5.1\]//;
-					}
-					$show =~ s/\s+$//;
-					$show =~ s/^\s+//;
-
-					if (defined($translation->{$show})) {
-						$show = $translation->{$show};
-						$stats{manual_translations}++;
-					}
-    
-					next if (length($show) == 0);
-
-					# Widescreen handling 
-					# Now we're here, this show must be in widescreen - we don't (yet) do anything with widescreen in mythtv 
-
-					# DD5.1
-					if ($dd51 == 1) {
-						# This show is is in DD5.1 - we don't (yet) do anything wiht DD5.1 in mythtv
-						;
-					}
- 
-					# High Definition Handling
-					if ($hd == 1) {
-						#print "HD Channel $this_chan $dayname \"$show\"\n" if $opt->{debug};
-						foreach my $xmlid (@{$channels->{$this_chan}}) {
-							$d->{prog}->{$xmlid}->{$show}->{chan} = $this_chan;
-							$d->{prog}->{$xmlid}->{$show}->{days}->{$dayname} = 1;
-
+						if (!defined $channels->{$channame}) {
+							printf "DBA listed unknown channel '$channame'! Ignored.\n";
+							$stats{unknown_channels}++;
+						} else {
+							$chan_map[$colnum] = $channame;
+							printf "got channel '$channame' in table $tablenum row $rownum column $colnum\n" if ($opt->{debug});
 						}
-						$stats{parsed_hd_progs}++;
+					}
+				} else {
+					#
+					# programmes
+					#
+
+					if ($colnum == 1) {
+						printf "ignoring column 1\n" if ($opt->{debug});
 					} else {
-						#print "SD Widescreen Channel $channels[$channelnumber]: $dayname $show \n" if $opt->{debug};
-						$stats{parsed_sd_widescreen_progs}++;
+						# since we're only interested in HD programs, just look for
+						# titles in <u> tags
+
+						foreach my $hdprog ($col->look_down('_tag' => 'u')) {
+							my $progname = $hdprog->as_text();
+							$progname =~ s/[^\x20-\x7f]/ /g;
+
+							$progname =~ s/^(.*)\(HD\).*/$1/; # strip
+							$progname =~ s/(^\s+|\s+$)//g;
+							if (($progname ne "") && (length($progname) > 2)) {
+
+								if (!defined $chan_map[$colnum]) {
+									printf "ignoring HD prog '$progname' on unknown channel (table $tablenum row $rownum column $colnum)\n";
+								} else {
+									printf "got prog '$progname' on channel ".$chan_map[$colnum]."\n" if ($opt->{debug});
+
+									if (defined($translation->{$progname})) {
+										$progname = $translation->{$progname};
+										$stats{manual_translations}++;
+									}
+
+									foreach my $xmlid (@{$channels->{$chan_map[$colnum]}}) {
+										$d->{prog}->{$xmlid}->{$progname} = $chan_map[$colnum];
+									}
+									$stats{parsed_hd_progs}++;
+								}
+							}
+						}
 					}
 				}
 			}
 		}
 	}
 	$tree->delete;
-}
-
-######################################################################################################
-# logic to fetch a page via http
-#  retries up to 3 times to get a page with 5 second pauses inbetween
-
-sub get_url
-{
-        my($url,$status,$dontretry) = (@_);
-        my $response;
-        my $attempts = 0;
-        my ($raw, $page, $base);
-
-        my $request = HTTP::Request->new(GET => $url);
-        $request->header('Accept-Encoding' => 'gzip');
-
-        print "$status $url\n";
-
-        my $max_tries = 3;
-	$max_tries = 1 if ($dontretry);
-
-        for (1..$max_tries) {
-                $response = $ua->request($request);
-                last if ($response->is_success || $dontretry);
-
-                $stats{http_failed_requests}++;
-                $attempts++;
-                print "Failed attempt # $attempts to retrieve $url\n";
-		unless ($attempts == $max_tries) {
-		    print "Sleeping for 10 seconds.\n";
-		    sleep 10;
-		}
-        }
-        if (!($response->is_success)) {
-                if ($dontretry == 0) {
-                        printf "ERROR: could not open url %s in %d attempts\n",$url,$attempts;
-                }
-                return undef;
-        }
-
-        $stats{bytes_fetched} += do {use bytes; length($response->content)};
-        $stats{http_successful_requests}++;
-
-        if ($response->header('Content-Encoding') &&
-            $response->header('Content-Encoding') eq 'gzip') {
-                $stats{compressed_pages} += do {use bytes; length($response->content)};
-                $response->content(Compress::Zlib::memGunzip($response->content));
-        }
-
-        if ($response->header('Content-type') eq 'xapplication/ywe-octet-stream') {
-                $stats{transformed_pages}++;
-                $base = &transform_output(length($response->content), $response->content);
-        } else {
-                $base = $response->content;
-        }
-        return $base;
-}
-
-######################################################################################################
-
-sub print_stats
-{
-	printf "%s v%s completed", $progname, $version;
-        foreach my $key (sort keys %stats) {
-                printf ", %d %s",$stats{$key},$key;
-        }
-        printf "\n";
 }
 
 ######################################################################################################
