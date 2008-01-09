@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.30";
+my $version = "0.31";
 
 $| = 1;
 print "$progname v$version\n";
@@ -406,6 +406,7 @@ sub lookup_dba
 		foreach my $row ($tv_table->look_down('_tag' => 'tr')) {
 			$rownum++;
 			my $colnum = 0;
+			my $colname = "";
 
 			foreach my $col ($row->look_down('_tag' => 'td')) {
 				$colnum++;
@@ -427,7 +428,7 @@ sub lookup_dba
 							$stats{unknown_channels}++;
 						} else {
 							$chan_map[$colnum] = $channame;
-							printf "got channel '$channame' in table $tablenum row $rownum column $colnum\n" if ($opt->{debug});
+							printf "got channel '$channame' in table $tablenum row $rownum column $colnum\n" if ($opt->{debug} > 1);
 						}
 					}
 				} else {
@@ -436,7 +437,11 @@ sub lookup_dba
 					#
 
 					if ($colnum == 1) {
-						printf "ignoring column 1\n" if ($opt->{debug});
+						my $field = $col->as_text();
+						if ($field !~ /Subject to availability/i) {
+							$colname = $field;
+							printf "table %d row %d: parsing '%s'\n",$tablenum,$rownum,$colname; # if ($opt->{debug});
+						}
 					} else {
 						# since we're only interested in HD programs, just look for
 						# titles in <u> tags
@@ -450,9 +455,9 @@ sub lookup_dba
 							if (($progname ne "") && (length($progname) > 2)) {
 
 								if (!defined $chan_map[$colnum]) {
-									printf "ignoring HD prog '$progname' on unknown channel (table $tablenum row $rownum column $colnum)\n";
+									printf "ignoring HD prog '$progname' on unknown channel (table $tablenum row $rownum column $colnum $colname)\n";
 								} else {
-									printf "got prog '$progname' on channel ".$chan_map[$colnum]."\n" if ($opt->{debug});
+									printf "HD prog table %d row %d column %d: '%s' [%s %s]\n",$tablenum,$rownum,$colnum,$progname,$chan_map[$colnum],$colname; # if ($opt->{debug});
 
 									if (defined($translation->{$progname})) {
 										$progname = $translation->{$progname};
