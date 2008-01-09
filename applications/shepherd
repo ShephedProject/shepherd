@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.35';
+my $version = '1.2.36';
 
 # tv_grab_au
 # "Shepherd"
@@ -2260,6 +2260,13 @@ sub configure
 	  "doing this (as root):\n" .
 	  "  \"ln -s $CWD/$progname /usr/bin/tv_grab_au\".\n\n";
 
+    if (&XMLTV::Ask::ask_boolean("\n\nShepherd can (optionally) install channel icons.\nDo you wish to do this now?")) {
+	&set_icons;
+    }
+
+    print "\nIf you wish to add/change channel icons in future, you can call Shepherd with:\n".
+	  "    $CWD/$progname --set-icons\n\n";
+
     unless (&XMLTV::Ask::ask_boolean("\nGrab data now?"))
     {
 	exit 0;
@@ -3211,6 +3218,7 @@ Configuration options:
     --setpreftitle <s>    Set preferred 'title' source as grabber <s>
     --clearpreftitle      Clear preferred 'title' source
     --reset               Remove all previous title translation data
+
 };
     exit 0;
 }
