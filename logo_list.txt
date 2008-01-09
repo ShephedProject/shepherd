@@ -7,6 +7,7 @@
 #
 
 THEME	standard	Standard Free-to-air logos	http://svn.whuffy.com/index.fcgi/wiki/channel_icons
+THEME	lyngsat	Logos from lyngsat-logo.com	http://www.lyngsat-logo.com/tvcountry/au_1.html
 THEME	tatey_blue	Blue themed logos (Tatey)	http://tatey.com/mythtv.php
 THEME	frogman_blue	Blue themed logos (Frogman)	http://techtoucian.net/regulars/channels/logos/frogman/blue
 THEME	frogman_green	Green themed logos (Frogman)	http://techtoucian.net/regulars/channels/logos/frogman/green
@@ -20,6 +21,7 @@ THEME	foxtel	Standard Foxtel logos	http://www.foxtel.com.au/channel/lineup.html
 #
 
 ICON	ABC	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
+ICON	ABC	lyngsat	http://www.lyngsat-logo.com/logo/tv/aa/abc_tv_au.jpg
 ICON	ABC	tatey_blue	http://tatey.com/images/au_network_logos/abc.png
 ICON	ABC	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/abc.png
 ICON	ABC	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/abc.png
@@ -28,6 +30,7 @@ ICON	ABC	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue
 ICON	ABC	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/abc.png
 
 ICON	ABC2	standard	http://imagestore.ugbox.net/thumb/abc2_5c10eb48094ce03b5e46e8c0ec2.jpg
+ICON	ABC2	lyngsat	http://www.lyngsat-logo.com/logo/tv/aa/abc2_au.jpg
 ICON	ABC2	tatey_blue	http://tatey.com/images/au_network_logos/abc2.png
 ICON	ABC2	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/abc2.png
 ICON	ABC2	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/abc2.png
@@ -44,6 +47,7 @@ ICON	ABCHD	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-bl
 ICON	ABCHD	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/abc-hd.png
 
 ICON	Seven	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
+ICON	Seven	lyngsat	http://www.lyngsat-logo.com/logo/tv/num/7network_aus.jpg
 ICON	Seven	tatey_blue	http://tatey.com/images/au_network_logos/seven.png
 ICON	Seven	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/seven.png
 ICON	Seven	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/seven.png
@@ -52,6 +56,7 @@ ICON	Seven	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-bl
 ICON	Seven	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/seven.png
 
 ICON	7HD	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
+ICON	7HD	lyngsat	http://www.lyngsat-logo.com/logo/tv/num/7network_hd.jpg
 ICON	7HD	tatey_blue	http://tatey.com/images/au_network_logos/seven-hd.png
 ICON	7HD	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/seven-hd.png
 ICON	7HD	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/seven-hd.png
@@ -60,6 +65,7 @@ ICON	7HD	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue
 ICON	7HD	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/seven-hd.png
 
 ICON	Nine	standard	http://imagestore.ugbox.net/thumb/nine_53151871dd779ac2304e05ce9b2.jpg
+ICON	Nine	lyngsat	http://www.lyngsat-logo.com/logo/tv/num/9network.jpg
 ICON	Nine	tatey_blue	http://tatey.com/images/au_network_logos/nine.png
 ICON	Nine	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/nine.png
 ICON	Nine	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/nine.png
@@ -76,6 +82,7 @@ ICON	NineHD	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-b
 ICON	NineHD	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/nine-hd.png
 
 ICON	TEN	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
+ICON	TEN	lyngsat	http://www.lyngsat-logo.com/logo/tv/tt/ten_network.jpg
 ICON	TEN	tatey_blue	http://tatey.com/images/au_network_logos/ten.png
 ICON	TEN	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/ten.png
 ICON	TEN	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/ten.png
@@ -84,6 +91,7 @@ ICON	TEN	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue
 ICON	TEN	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/ten.png
 
 ICON	TEN HD	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
+ICON	TEN HD	lyngsat	http://www.lyngsat-logo.com/logo/tv/tt/ten_network_hd.jpg
 ICON	TEN HD	tatey_blue	http://tatey.com/images/au_network_logos/ten-hd.png
 ICON	TEN HD	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/ten-hd.png
 ICON	TEN HD	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/ten-hd.png
@@ -92,6 +100,7 @@ ICON	TEN HD	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-b
 ICON	TEN HD	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/ten-hd.png
 
 ICON	SBS	standard	http://imagestore.ugbox.net/thumb/sbs_861c4b17d8fc1856b8142446ddf6.jpg
+ICON	SBS	lyngsat	http://www.lyngsat-logo.com/logo/tv/ss/sbs.jpg
 ICON	SBS	tatey_blue	http://tatey.com/images/au_network_logos/sbs.png
 ICON	SBS	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/sbs.png
 ICON	SBS	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/sbs.png
@@ -114,6 +123,18 @@ ICON	SBS News	frogman_green	http://techtoucian.net/regulars/channels/download/ic
 ICON	SBS News	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons-frogman-hybrid/png/sbs.png
 ICON	SBS News	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/sbs.png
 ICON	SBS News	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/sbs.png
+
+
+# miscellaneous regional logos
+
+ICON	WIN	lyngsat	http://www.lyngsat-logo.com/logo/tv/ww/win_tv_au.jpg
+ICON	Sthn Cross TEN	lyngsat	http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_ten.jpg
+ICON	Central GTS/BKN	lyngsat	http://www.lyngsat-logo.com/logo/tv/cc/central_gts_bkn.jpg
+ICON	Southern Cross	lyngsat	http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_tv.jpg
+ICON	NBN	lyngsat	http://www.lyngsat-logo.com/logo/tv/nn/nbn_au.jpg
+ICON	Imparja	lyngsat	http://www.lyngsat-logo.com/logo/tv/ii/imparja.jpg
+ICON	Channel 31	lyngsat	http://www.lyngsat-logo.com/logo/tv/cc/channel31_melbourne.jpg
+ICON	Access 31	lyngsat	http://www.lyngsat-logo.com/logo/tv/aa/access_tv31_perth.jpg
 
 
 # standard foxtel logos
