@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.31";
+my $version = "0.32";
 
 $| = 1;
 print "$progname v$version\n";
@@ -389,6 +389,9 @@ sub lookup_dba
 	print "Obtaining DBA data from ".$opt->{dbaurl}."\n";
 	my $data = Shepherd::Common::get_url($opt->{dbaurl});
 	return if (!$data);
+
+	# Brute force hack to remove closing FONT tags because these misplaced tags screws up HTMLTreeBuilder
+	$data =~ s/<\/font>//ig;
 
 	my $tree = HTML::TreeBuilder->new_from_content(Encode::decode_utf8($data)); 
 	return if (!$tree);
