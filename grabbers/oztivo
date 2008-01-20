@@ -2,7 +2,7 @@
 
 # OzTivo grabber
 
-my $version = '1.21';
+my $version = '1.22';
 
 # Requires configuration!
 # 1. Register at http://www.tvguide.org.au/
@@ -362,7 +362,7 @@ sub setup_channel_mappings
 	"CMDY+2" => "THECOMEDYCHANNEL2",
 	"CNBC" => "CNBC",
 	"CNNI" => "CNN",
-	"CRIME" => "CrimeandInvestigation",
+	"CRIME" => "CrimeandInvestigationNetwork",
 	"DISC" => "DiscoveryChannel",
 	"DISCRT" => "DiscoveryRealTime",	# SelecTV and OzTivo
 	"DISN" => "DisneyChannel",
@@ -404,6 +404,7 @@ sub setup_channel_mappings
 	"SHW2" => "SHOWTIME2",
 	"SHWC" => "showcase",
 	"SHWGRTS" => "SHOWTIMEGreats",
+	"SKYB" => "SkyNewsBusiness",
 	"SKYN" => "SkyNewsAustralia",
 	"SKYR" => "SkyRacing",
 	"Sci-Fi" => "SCIFI",
