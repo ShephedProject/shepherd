@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.36';
+my $version = '1.2.37';
 
 # tv_grab_au
 # "Shepherd"
@@ -176,7 +176,7 @@ $policy{max_programme_length_opt_channels} = (18 * 60 * 60); # 18 hours
 &description if ($opt->{description});
 
 $| = 1; 
-print "$progname v$version ($^O)\n\n";
+print "$progname v$version ($^O)\n\n" unless ($opt->{quiet});
 
 exit if ($opt->{version});
 &help if ($opt->{help});
@@ -384,7 +384,7 @@ sub update_component
 	}
     }
 
-    &log(2,sprintf  "* %-54s%17s\n",
+    &log(sprintf  "* %-54s%17s\n",
 		    ucfirst($progtype) . " $proggy" .
 			($ver ? " v$ver" : '') . "...",
 		    $action);
@@ -1614,7 +1614,7 @@ sub read_file
     my $fn = shift;
     my $name = shift;
 
-    print "Reading $name file: $fn\n";
+    print "Reading $name file: $fn\n" unless ($opt->{quiet});
     unless (-r $fn)
     {
 	unless ($opt->{configure})
