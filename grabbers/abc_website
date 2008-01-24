@@ -22,7 +22,7 @@
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.14";
+my $version = "3.15";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -717,7 +717,7 @@ sub get_station_close
 	);
 
 	if (@elements == 0) {
-		&log("failed weekly parse because date layout changed.");
+		&log("failed weekly parse because data layout changed.");
 	}
 
 	my %month_names = (january=>0,february=>1,march=>2,april=>3,may=>4,june=>5,
@@ -774,6 +774,14 @@ sub get_station_close
 
 			printf "station close time for %s on $timeattr[3]/$timeattr[4] is %s\n",
 					$chan_id, POSIX::strftime("%Y%m%d%H%M", localtime($found_time)) if $debug;
+
+			# remove repeated time elements found on 2008/01/27
+			while (@elements > 0 and lc($elements[0]->tag) ne 'h2') {
+				&log("repeated station close time for $chan_id on $timeattr[3]/$timeattr[4] found, skipping it.");
+				&log("time ".$t->left->as_text()." ".$t->as_text()) if $debug;
+				shift @elements;
+			}
+
 		} else {
 			&log("skipping time because layout changed.");
 		}
