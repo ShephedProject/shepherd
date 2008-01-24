@@ -39,7 +39,7 @@
 
 use strict;
 my $progname = "augment_timezone";
-my $version = "0.19";
+my $version = "0.20";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -114,7 +114,7 @@ Supported options include:
   --timeoffset={s}     Specify MythTV's setting, rather than try to look it up
                        in MythTV's database. (E.g. "Auto", "None", "+1000")
   --chanadjust={s}     Specify a specific channel to be time-adjusted 
-                       (e.g. "SBS:30" will add 30 minutes to all SBS programs)
+                       (e.g. "SBS,30" will add 30 minutes to all SBS programs)
 EOF
 ;
 	}
@@ -161,7 +161,7 @@ if ($opt->{chanadjust} or (defined $opt->{region}) && ($opt->{region} == 63)) {
 	}
 }
 
-if ($opt->{chanadjust} and $opt->{chanadjust} =~ /(.*):(\d+)/)
+if ($opt->{chanadjust} and $opt->{chanadjust} =~ /(.*),(\d+)/)
 {
     $opt->{'chanadjust-channel'} = $channels->{$1};
     $opt->{'chanadjust-time'} = $2;
