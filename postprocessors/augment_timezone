@@ -39,7 +39,7 @@
 
 use strict;
 my $progname = "augment_timezone";
-my $version = "0.18";
+my $version = "0.19";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -59,6 +59,7 @@ GetOptions(
 	'output=s'		=> \$opt->{output_file},
 	'mysql_file=s'		=> \$opt->{mysql_file},
 	'timeoffset=s'		=> \$opt->{timeoffset},
+	'chanadjust=s'		=> \$opt->{chanadjust},
 
 	'region=i'		=> \$opt->{region},
 	'days=i'		=> \$opt->{days},		# ignored
@@ -112,7 +113,8 @@ Supported options include:
   --mysql_file={file}  File where we look for mythtv database user/pass/dbi (default: $default_loc)
   --timeoffset={s}     Specify MythTV's setting, rather than try to look it up
                        in MythTV's database. (E.g. "Auto", "None", "+1000")
-
+  --chanadjust={s}     Specify a specific channel to be time-adjusted 
+                       (e.g. "SBS:30" will add 30 minutes to all SBS programs)
 EOF
 ;
 	}
@@ -142,8 +144,8 @@ if ($opt->{timeoffset} eq "None") {
 	printf " - Target timezone is \"%s\". Adding timezones.\n",$opt->{timeoffset};
 }
 
-# ABC fixup for Broken Hill
-if ((defined $opt->{region}) && ($opt->{region} == 63)) {
+# ABC fixup for Broken Hill; also chanadjust
+if ($opt->{chanadjust} or (defined $opt->{region}) && ($opt->{region} == 63)) {
 	die "no channel file specified\n", if (!$opt->{channels_file});
 
 	# read channels file
@@ -154,9 +156,18 @@ if ((defined $opt->{region}) && ($opt->{region} == 63)) {
 		die "WARNING: channels file $opt->{channels_file} could not be read\n";
 	}
 
-	print " - System is in Broken Hill. Adjusting ABC guide data by 30 minutes!\n" if (defined $channels->{ABC});
+	if ($opt->{region} and $opt->{region} == 63 and $channels->{ABC}) {
+	    print " - System is in Broken Hill. Adjusting ABC guide data by 30 minutes!\n";
+	}
 }
 
+if ($opt->{chanadjust} and $opt->{chanadjust} =~ /(.*):(\d+)/)
+{
+    $opt->{'chanadjust-channel'} = $channels->{$1};
+    $opt->{'chanadjust-time'} = $2;
+    printf " - Manual channel adjustment: will add %d minutes to shows on %s.\n",
+	    $opt->{'chanadjust-time'}, $opt->{'chanadjust-channel'};
+}
 
 my %writer_args = ( encoding => 'ISO-8859-1' );
 my $fh = new IO::File(">".$opt->{output_file}) || die "can't open $opt->{output_file} for writing: $!";
@@ -203,6 +214,12 @@ sub programme_cb( $ )
 	    (defined $channels->{ABC}) && ($prog->{channel} eq $channels->{ABC})) {
 		$prog->{start} = POSIX::strftime("%Y%m%d%H%M00",localtime(parse_xmltv_date($prog->{start})-(30*60)));
 		$prog->{stop} = POSIX::strftime("%Y%m%d%H%M00",localtime(parse_xmltv_date($prog->{stop})-(30*60)));
+	}
+
+	if ($opt->{'chanadjust-channel'} and $prog->{channel} eq $opt->{'chanadjust-channel'})
+	{
+	    $prog->{start} = POSIX::strftime("%Y%m%d%H%M00",localtime(parse_xmltv_date($prog->{start})+(60 * $opt->{'chanadjust-time'})));
+	    $prog->{stop}  = POSIX::strftime("%Y%m%d%H%M00",localtime(parse_xmltv_date($prog->{stop})+(60 * $opt->{'chanadjust-time'})));
 	}
 
 	if ($opt->{timeoffset} ne "None") {
