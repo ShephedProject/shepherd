@@ -15,12 +15,13 @@ THEME	frogman_hybrid	Hybrid themed logos (Frogman)	http://techtoucian.net/regula
 THEME	t8_blue	Blue themed logos (T8)	http://techtoucian.net/regulars/channels/logos/t8/blue
 THEME	t8_hybrid	Hybrid themed logos (T8)	http://techtoucian.net/regulars/channels/logos/t8/hybrid
 THEME	foxtel	Standard Foxtel logos	http://www.foxtel.com.au/channel/lineup.html
-
+THEME	wikipedia	Station logos from wikipedia	http://en.wikipedia.org/
 #
 # ICON : channel : theme name : [base_url]+url 
 #
 
 ICON	ABC	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
+ICON	ABC	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/8/8e/ABC1.svg/180px-ABC1.svg.png
 ICON	ABC	lyngsat	http://www.lyngsat-logo.com/logo/tv/aa/abc_tv_au.jpg
 ICON	ABC	tatey_blue	http://tatey.com/images/au_network_logos/abc.png
 ICON	ABC	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/abc.png
@@ -30,6 +31,7 @@ ICON	ABC	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue
 ICON	ABC	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/abc.png
 
 ICON	ABC2	standard	http://imagestore.ugbox.net/thumb/abc2_5c10eb48094ce03b5e46e8c0ec2.jpg
+ICON	ABC2	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/3/38/ABC2.svg/180px-ABC2.svg.png
 ICON	ABC2	lyngsat	http://www.lyngsat-logo.com/logo/tv/aa/abc2_au.jpg
 ICON	ABC2	tatey_blue	http://tatey.com/images/au_network_logos/abc2.png
 ICON	ABC2	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/abc2.png
@@ -135,7 +137,7 @@ ICON	NBN	lyngsat	http://www.lyngsat-logo.com/logo/tv/nn/nbn_au.jpg
 ICON	Imparja	lyngsat	http://www.lyngsat-logo.com/logo/tv/ii/imparja.jpg
 ICON	Channel 31	lyngsat	http://www.lyngsat-logo.com/logo/tv/cc/channel31_melbourne.jpg
 ICON	Access 31	lyngsat	http://www.lyngsat-logo.com/logo/tv/aa/access_tv31_perth.jpg
-
+ICON	Prime	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
 
 # standard foxtel logos
 
@@ -159,6 +161,7 @@ ICON	TheHistoryChannel	foxtel	http://www.foxtel.com.au/EPG/logos/logo_14.jpg
 ICON	FOXSPORTSNews	foxtel	http://www.foxtel.com.au/EPG/logos/logo_126.jpg
 ICON	MOVIETWO	foxtel	http://www.foxtel.com.au/EPG/logos/logo_89.jpg
 ICON	TheWeatherChannel	foxtel	http://www.foxtel.com.au/EPG/logos/logo_35.jpg
+ICON	TheWeatherChannel	lyngsat	http://www.lyngsat-logo.com/logo/tv/ww/weatherzone.jpg
 ICON	FOXSPORTS2	foxtel	http://www.foxtel.com.au/EPG/logos/logo_10.jpg
 ICON	TV12	foxtel	http://www.foxtel.com.au/EPG/logos/logo_51.jpg
 ICON	MOVIEONE	foxtel	http://www.foxtel.com.au/EPG/logos/logo_26.jpg
@@ -187,6 +190,8 @@ ICON	W	foxtel	http://www.foxtel.com.au/EPG/logos/logo_20.jpg
 ICON	ChannelV2	foxtel	http://www.foxtel.com.au/EPG/logos/logo_101.jpg
 ICON	MOVIEGREATS	foxtel	http://www.foxtel.com.au/EPG/logos/logo_28.jpg
 ICON	NationalGeographic	foxtel	http://www.foxtel.com.au/EPG/logos/logo_15.jpg
+ICON	NationalGeographic	lyngsat	http://www.lyngsat-logo.com/logo/tv/nn/nat_geo_channel.jpg
+ICON	NatGeoAdventure	lyngsat	http://www.lyngsat-logo.com/logo/tv/nn/nat_geo_adventure.jpg
 ICON	MTV	foxtel	http://www.foxtel.com.au/EPG/logos/logo_39.jpg
 ICON	Boomerang	foxtel	http://www.foxtel.com.au/EPG/logos/logo_85.jpg
 ICON	FOX82	foxtel	http://www.foxtel.com.au/EPG/logos/logo_110.jpg
