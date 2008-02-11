@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.37';
+my $version = '1.2.38';
 
 # tv_grab_au
 # "Shepherd"
@@ -1098,7 +1098,7 @@ sub migrate_channels
     {
 	$mflag = 1 if ($line =~ /---migrate---/);
 	next unless ($mflag);
-	next unless ($line =~ /^$region:(.*)/);
+	next unless ($line =~ /^$region:(.*)/ or $line =~ /^\*:(.*)/);
 	my @migrations = split(/,/, $1);
 	foreach (@migrations)
 	{

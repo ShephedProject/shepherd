@@ -2,7 +2,7 @@
 
 # OzTivo grabber
 
-my $version = '1.22';
+my $version = '1.23';
 
 # Requires configuration!
 # 1. Register at http://www.tvguide.org.au/
@@ -304,6 +304,7 @@ sub subme
 {
     my $station = shift;
 
+    $station =~ s/ABC-(.*)/ABC1-$1/g;
     $station = $d->{chan_map}->{$station} if (defined $d->{chan_map}->{$station});
     $station =~ s/SC10/Sthn Cross TEN/g; # clashes with TEN but @clist is sorted longest to shortest
 
