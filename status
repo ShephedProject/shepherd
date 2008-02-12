@@ -4,7 +4,7 @@ reference       Shepherd/Common.pm  0.29
 reference       Shepherd/MythTV.pm  0.7
 grabber         yahoo7widget        1.99
 grabber         rex                 3.6.4
-grabber         abc_website         3.15
+grabber         abc_website         3.15-r1
 grabber         sbsnews_website     0.19-r1
 grabber         oztivo              1.23
 grabber         yahoo7web           0.30
@@ -12,7 +12,7 @@ grabber         foxtel_swf          0.24-r2
 grabber         channelnsw_gov      0.8
 grabber         southerncross_website   0.17
 grabber         ten_website         1.04
-grabber         citysearch          3.0.0
+grabber         citysearch          3.0.0-r1
 grabber         acctv_website       0.03
 reconciler      reconciler_mk2      0.36
 postprocessor   imdb_augment_data   0.36
