@@ -20,15 +20,15 @@ THEME	wikipedia	Station logos from wikipedia	http://en.wikipedia.org/
 # ICON : channel : theme name : [base_url]+url 
 #
 
-ICON	ABC	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
-ICON	ABC	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/8/8e/ABC1.svg/180px-ABC1.svg.png
-ICON	ABC	lyngsat	http://www.lyngsat-logo.com/logo/tv/aa/abc_tv_au.jpg
-ICON	ABC	tatey_blue	http://tatey.com/images/au_network_logos/abc.png
-ICON	ABC	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/abc.png
-ICON	ABC	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/abc.png
-ICON	ABC	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons-frogman-hybrid/png/abc.png
-ICON	ABC	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/abc.png
-ICON	ABC	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/abc.png
+ICON	ABC1	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
+ICON	ABC1	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/8/8e/ABC1.svg/180px-ABC1.svg.png
+ICON	ABC1	lyngsat	http://www.lyngsat-logo.com/logo/tv/aa/abc_tv_au.jpg
+ICON	ABC1	tatey_blue	http://tatey.com/images/au_network_logos/abc.png
+ICON	ABC1	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/abc.png
+ICON	ABC1	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/abc.png
+ICON	ABC1	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons-frogman-hybrid/png/abc.png
+ICON	ABC1	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/abc.png
+ICON	ABC1	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/abc.png
 
 ICON	ABC2	standard	http://imagestore.ugbox.net/thumb/abc2_5c10eb48094ce03b5e46e8c0ec2.jpg
 ICON	ABC2	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/3/38/ABC2.svg/180px-ABC2.svg.png
