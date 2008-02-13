@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.32";
+my $version = "0.33";
 
 $| = 1;
 print "$progname v$version\n";
@@ -47,7 +47,7 @@ $translation->{'CSI-Miami'} = 'CSI: Miami';
 # translations between DBA website and what we know channels as
 my $chan_name_translations;
 $chan_name_translations->{"Ten"} = "TEN";
-$chan_name_translations->{"ABC Main"} = "ABC";
+$chan_name_translations->{"ABC Main"} = "ABC1";
 
 my $hd_to_sds;
 @{$hd_to_sds->{"7HD"}} = ("Seven","Seven Cairns","Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)",

@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 
-# ABC/ABC2 au_tv guide grabber - runs from "Shepherd" master grabber
+# ABC1/ABC2 au_tv guide grabber - runs from "Shepherd" master grabber
 #  * written by ltd
-#  * uses ABC website for ABC and ABC2 data
+#  * uses ABC website for ABC1 and ABC2 data
 #  * when used in conjunction with Shepherd, shepherd can collect other channels
 #    using other grabbers
 #  * this does NOT use any config file - all settings are passed in from shepherd
@@ -16,13 +16,13 @@
 #    1.60  11nov06	fix midday time calculation
 #    1.70  16nov06	also use "printable" TV guide to determine 'station close'
 #    2.00  23nov06	simplified
-#    3.00  23may07      merged abc/abc2 together again, abc_website now does both!
+#    3.00  23may07      merged abc1/abc2 together again, abc_website now does both!
 #    3.04  12jun07	abc website format change
 
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.15";
+my $version = "3.16";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -34,9 +34,9 @@ use Shepherd::Common;
 # constants
 #
 my $urls;
-$urls->{station_close}->{ABC} = "http://www.abc.net.au/tv/guide/abctvweekguide.htm";
+$urls->{station_close}->{ABC1} = "http://www.abc.net.au/tv/guide/abctvweekguide.htm";
 $urls->{station_close}->{ABC2} = "http://www.abc.net.au/tv/guide/abc2weekguide.htm";
-$urls->{guide}->{ABC} = "http://www.abc.net.au/tv/guide/";
+$urls->{guide}->{ABC1} = "http://www.abc.net.au/tv/guide/";
 $urls->{guide}->{ABC2} = "http://www.abc.net.au/tv/guide/abc2";
 
 #
@@ -108,7 +108,7 @@ GetOptions(
 
 if ($opt_version || $opt_desc) {
 	printf "%s %s\n",$progname,$version;
-	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for ABC/ABC2 only.",$progname if $opt_desc;
+	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for ABC1 and ABC2.",$progname if $opt_desc;
 	exit(0);
 }
 
@@ -136,23 +136,23 @@ $abc_region = "sa"	if ($region =~ /^(81|82|83|85|86|107)$/);
 $abc_region = "tas"	if ($region =~ /^(88)$/);
 $abc_region = "vic"	if ($region =~ /^(94|93|90|95|98)$/);
 $abc_region = "wa"	if ($region =~ /^(101|102)$/);
-$urls->{guide}->{ABC} .= $abc_region;
+$urls->{guide}->{ABC1} .= $abc_region;
 
 # read channels file
 die "WARNING: channels file $opt_channels_file could not be read: $!\n" if (!-r $opt_channels_file);
 local (@ARGV, $/) = ($opt_channels_file);
 no warnings 'all'; eval <>; die "$@" if $@;
 
-die "nothing to do; neither ABC nor ABC2 in channels lineup!\n" if ((!defined $channels->{ABC}) && (!defined $channels->{ABC2}));
+die "nothing to do; neither ABC1 nor ABC2 in channels lineup!\n" if ((!defined $channels->{ABC1}) && (!defined $channels->{ABC2}));
 
-&log(sprintf "Going to %s%s %s%d%s days%s of data for ABC(%s), ABC2(%s) into %s (%s)",
+&log(sprintf "Going to %s%s %s%d%s days%s of data for ABC1(%s), ABC2(%s) into %s (%s)",
 	($opt_gaps_file ne "" ? "micro-gap " : ""),
 	($opt_cheap ? "verify (cache-validate)" : "grab"),
 	($opt_do_extra_days ? "somewhere between " : ""),
 	$opt_days,
 	($opt_do_extra_days ? " to 28" : ""),
 	($opt_offset ? " (skipping first $opt_offset days)" : ""),
-	(defined $channels->{ABC} ? "yes:$abc_region" : "no"),
+	(defined $channels->{ABC1} ? "yes:$abc_region" : "no"),
 	(defined $channels->{ABC2} ? "yes" : "no"),
 	$opt_outputfile,
 	($opt_no_cache ? "without caching" : "with caching"));
@@ -170,14 +170,14 @@ $writer_args{OUTPUT} = $fh;
 
 $writer = new XMLTV::Writer(%writer_args);
 $writer->start( { 'source-info-name'   => "$progname $version", 'generator-info-name' => "$progname $version"} );
-$writer->write_channel( { 'display-name' => [[ "ABC", $lang ]], 'id' => $channels->{ABC} } ) if (defined $channels->{ABC});
+$writer->write_channel( { 'display-name' => [[ "ABC1", $lang ]], 'id' => $channels->{ABC1} } ) if (defined $channels->{ABC1});
 $writer->write_channel( { 'display-name' => [[ "ABC2", $lang ]], 'id' => $channels->{ABC2} } ) if (defined $channels->{ABC2});
 
-&get_station_close('ABC', $urls->{station_close}->{ABC});
+&get_station_close('ABC1', $urls->{station_close}->{ABC1});
 &get_station_close('ABC2', $urls->{station_close}->{ABC2});
 
-if (defined $channels->{ABC}) {
-	&get_abc_data($channels->{ABC}, $urls->{guide}->{ABC},'ABC');
+if (defined $channels->{ABC1}) {
+	&get_abc_data($channels->{ABC1}, $urls->{guide}->{ABC1},'ABC1');
 }
 
 if (defined $channels->{ABC2}) {

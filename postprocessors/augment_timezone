@@ -30,16 +30,16 @@
 #  'All' or 'None', or something inbetween, the data will be right regardless.
 
 # Specific enhancement for Broken Hill:
-#  it seems ABC broadcasts to Broken Hill with incorrect times. They're using
+#  it seems ABC1 broadcasts to Broken Hill with incorrect times. They're using
 #  a satellite feed from NSW so Broken Hill is always out by 30 minutes _just_
-#  for ABC (not ABC2 or any other stations).
-#  Since this seems to happen across all ABC data from all grabbers (i.e. all
+#  for ABC1 (not ABC2 or any other stations).
+#  Since this seems to happen across all ABC1 data from all grabbers (i.e. all
 #  data sources get this wrong), fix it up in this postprocessor
 
 
 use strict;
 my $progname = "augment_timezone";
-my $version = "0.20";
+my $version = "0.21";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -144,7 +144,7 @@ if ($opt->{timeoffset} eq "None") {
 	printf " - Target timezone is \"%s\". Adding timezones.\n",$opt->{timeoffset};
 }
 
-# ABC fixup for Broken Hill; also chanadjust
+# ABC1 fixup for Broken Hill; also chanadjust
 if ($opt->{chanadjust} or (defined $opt->{region}) && ($opt->{region} == 63)) {
 	die "no channel file specified\n", if (!$opt->{channels_file});
 
@@ -156,8 +156,8 @@ if ($opt->{chanadjust} or (defined $opt->{region}) && ($opt->{region} == 63)) {
 		die "WARNING: channels file $opt->{channels_file} could not be read\n";
 	}
 
-	if ($opt->{region} and $opt->{region} == 63 and $channels->{ABC}) {
-	    print " - System is in Broken Hill. Adjusting ABC guide data by 30 minutes!\n";
+	if ($opt->{region} and $opt->{region} == 63 and $channels->{ABC1}) {
+	    print " - System is in Broken Hill. Adjusting ABC1 guide data by 30 minutes!\n";
 	}
 }
 
@@ -209,9 +209,9 @@ sub programme_cb( $ )
 {
 	my $prog=shift;
 
-	# ABC fixup for Broken Hill
+	# ABC1 fixup for Broken Hill
 	if ((defined $opt->{region}) && ($opt->{region} == 63) &&
-	    (defined $channels->{ABC}) && ($prog->{channel} eq $channels->{ABC})) {
+	    (defined $channels->{ABC1}) && ($prog->{channel} eq $channels->{ABC1})) {
 		$prog->{start} = POSIX::strftime("%Y%m%d%H%M00",localtime(parse_xmltv_date($prog->{start})-(30*60)));
 		$prog->{stop} = POSIX::strftime("%Y%m%d%H%M00",localtime(parse_xmltv_date($prog->{stop})-(30*60)));
 	}
