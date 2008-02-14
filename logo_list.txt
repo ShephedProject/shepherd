@@ -40,13 +40,13 @@ ICON	ABC2	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons
 ICON	ABC2	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/abc2.png
 ICON	ABC2	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/abc2.png
 
-ICON	ABCHD	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
-ICON	ABCHD	tatey_blue	http://tatey.com/images/au_network_logos/abc-hd.png
-ICON	ABCHD	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/abc-hd.png
-ICON	ABCHD	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/abc-hd.png
-ICON	ABCHD	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons-frogman-hybrid/png/abc-hd.png
-ICON	ABCHD	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/abc-hd.png
-ICON	ABCHD	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/abc-hd.png
+ICON	ABC1HD	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
+ICON	ABC1HD	tatey_blue	http://tatey.com/images/au_network_logos/abc-hd.png
+ICON	ABC1HD	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/abc-hd.png
+ICON	ABC1HD	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/abc-hd.png
+ICON	ABC1HD	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons-frogman-hybrid/png/abc-hd.png
+ICON	ABC1HD	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/abc-hd.png
+ICON	ABC1HD	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/abc-hd.png
 
 ICON	Seven	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
 ICON	Seven	lyngsat	http://www.lyngsat-logo.com/logo/tv/num/7network_aus.jpg
