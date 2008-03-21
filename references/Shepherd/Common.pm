@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.29';
+my $version = '0.30';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -583,6 +583,8 @@ sub setup_ua
     print "User Agent string set to \"" . $ua->agent() . "\".\n" if ($cnf{debug} > 3); 
 
     $ua->cookie_jar({}) if (defined $cnf{cookie_jar});
+
+    push @{ $ua->requests_redirectable }, 'POST';
 
     return $ua;
 }

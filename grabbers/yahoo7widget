@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.99";
+my $version = "1.100";
 
 use XMLTV;
 use XML::DOM;
@@ -325,6 +325,8 @@ sub scan_channels
 				$shepherd_channels{$channel} = 2;	# both shepherd & widget know about channel
 			} elsif ($shepherd_channels{$channel} == 2) {
 				$shepherd_channels{$channel} = 3;	# shepherd/widget knew about channel but was duplicated!
+			} elsif ($shepherd_channels{$channel} == 3) {
+				$shepherd_channels{$channel} = 3;	# shepherd/widget knew about channel but was duplicated again!
 			} elsif ($shepherd_channels{$channel} == 0) {
 				;					# aiee. a duplicate of a channel that shepherd doesn't know about!
 			} else {
