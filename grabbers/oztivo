@@ -15,6 +15,182 @@ use HTML::Entities;
 use POSIX;
 use Shepherd::Common;
 
+# shepherd to oztivo
+my $s_to_o = {
+    #'ABC2'
+    'SBS NEWS'=>'SBS-NEWS',
+    '7HD'=>'SevenHD',
+    #'7HD'=>'SevenHD-Mel',
+    'TEN HD'=>'TenHD',
+    #'TEN HD'=>'TenHD-Vic',
+}
+
+# state to regions
+my $s_to_r = {
+    'Qld'=>[75,78,79,114],
+    'Vic'=>[90,93,94,95,98],
+    'NSW'=>[63,66,67,69,71,73,106,184],
+    'SA'=>[81,82,83,85,86,107],
+    'WA'=>[101,102],
+    'NT'=>[74,108],
+    'Tas'=>[88],
+    'Can'=>[126]
+}
+
+# region to state
+my $r_to_s;
+foreach my $state (keys %$s_to_r) {
+    foreach my $region (@{$s_to_r->{$state}}) {
+        $r_to_s->{$region} = $state;
+    }
+}
+
+# shepherd state to oztivo
+my $ss_to_o = {
+    'ABC1'=>'ABC-',
+    'SBS'=>'SBS-'
+}
+
+# http://www.primetv.com.au/ Prime all guesses
+# todo -> WIN and Nine http://www.wintv.com.au/
+    126 => "ACT",		73 => "NSW: Sydney",		184 => "NSW: Newcastle",
+    66 => "NSW: Central Coast",	67 => "NSW: Griffith",		63 => "NSW: Broken Hill",
+    69 => "NSW: Northern NSW", 	71 => "NSW: Southern NSW", 	106 => "NSW: Remote and Central",
+    74 => "NT: Darwin", 	108 => "NT: Remote & Central", 	75 => "QLD: Brisbane",
+    78 => "QLD: Gold Coast", 	79 => "QLD: Regional", 		114 => "QLD: Remote & Central",
+    81 => "SA: Adelaide", 	82 => "SA: Renmark", 		83 => "SA: Riverland",
+    85 => "SA: South East SA", 	86 => "SA: Spencer Gulf", 	107 => "SA: Remote & Central",
+    88 => "Tasmania", 		94 => "VIC: Melbourne", 	93 => "VIC: Geelong", 
+    90 => "VIC: Eastern Victoria", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Western Victoria", 
+    101 => "WA: Perth", 	102 => "WA: Regional");
+
+# shepherd region to channels to oztivo (some oztivo channels repeated in a region)
+my $sr_to_c_to_o = {
+'63'=>{'Sthn Cross TEN'=>'SC10-NSW','Central GTS/BKN'=>'GTS-BKN'},
+'66'=>{'NBN'=>'NBN','TEN'=>'Ten-NSW','Sthn Cross TEN'=>'SC10-NSW','Nine'=>'','Prime'=>'PrimeS'/*?*/,'Seven'=>'Seven-Syd'},
+'67'=>{'WIN'=>'','TEN'=>'Ten-NSW','Prime'=>'PrimeS'/*?*/},
+'69'=>{'NBN'=>'NBN','Sthn Cross TEN'=>'SC10-NSW','Prime Tamworth/Taree/Port'=>'PrimeS'/*?*/,'Prime Lismore/Coffs Hbr'=>'PrimeN'/*?*/},
+'71'=>{'WIN'=>'','TEN (NSW: Southern NSW)'=>'Ten-NSW','TEN (Mildura Digital)'=>'Ten-NSW','Prime Canberra/Sth Coast'=>'Prime-Can','Prime Wagga Wagga'=>'PrimeS'/*?*/,'Prime Wollongong'=>'PrimeS'/*?*/,'Prime Orange'=>'PrimeS'/*?*/},
+'73'=>{'Channel NSW'=>'ServiceNSW'/*?*/,'TVS'=>'31-Syd','Nine'=>'','TEN'=>'Ten-NSW','Seven'=>'Seven-Syd'},
+'74'=>{'Southern Cross'=>''/*?*/,'Nine'=>''},
+'75'=>{'Briz 31'=>'BRIZ','TEN'=>'Ten-Qld','Nine'=>'','Seven'=>'Seven-Bris'},
+'78'=>{'NBN'=>'NBN-GC','Sthn Cross TEN'=>'SC10-GC','TEN'=>'','Nine'=>'','Prime'=>'','Seven'=>'Seven-Bris'/*?*/},
+'79'=>{'WIN (QLD: Regional)'=>'','WIN (Mackay/Wide Bay)'=>'','TEN'=>'SC10-Qld','Seven Cairns'=>'Seven-Qld'/*?*/,'Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)'=>'Seven-Qld'/*?*/,'Seven (Rockhampton/Toowoomba)'=>'Seven-Qld'/*?*/},
+'81'=>{'TEN'=>'Ten-SA','Nine'=>'','Seven'=>'Seven-SA','C31 Adelaide'=>'31-Adl'},
+'82'=>{'WIN'=>'','WIN TEN'=>''/*?*/},
+'83'=>{'WIN'=>'','WIN TEN'=>''/*?*/},
+'85'=>{'WIN'=>'','WIN TEN'=>''/*?*/},
+'86'=>{'Sthn Cross TEN'=>'SC10-NSW'/*?*/,'Nine'=>'','Central GTS/BKN'=>'GTS-BKN'},
+'88'=>{'WIN'=>'','Southern Cross'=>'SC-Tas','TDT'=>'TDT-Tas'},
+'90'=>{'WIN'=>'','TEN'=>'SC10-Vic','Prime (Regional)'=>'Prime-Vic'/*?*/,'Prime (Albury)'=>'Prime-Vic'/*?*/},
+'93'=>{'TEN'=>'Ten-Vic','Nine'=>'','Channel 31'=>'31-Mel','Seven'=>'Seven-Mel'/*?*/},
+'94'=>{'TEN'=>'Ten-Vic','Nine'=>'','Channel 31'=>'31-Mel','Seven'=>'Seven-Mel'},
+'95'=>{'WIN'=>'','TEN'=>'Ten-Vic','Prime'=>'Prime-Vic'/*?*/},
+'98'=>{'Imparja'=>'IMP','WIN'=>'','Prime'=>'Prime-Vic'/*?*/,'TEN'=>'SC10-Vic','Seven'=>'Seven-Mel'/*?*/},
+'101'=>{'Access 31'=>'31-Per','TEN'=>'Ten-WA','Nine'=>'','Seven'=>'Seven-WA'},
+'102'=>{'Golden West'=>'','WIN'=>'','Access 31'=>'','Nine'=>'','TEN'=>'Ten-WA','Seven'=>'Seven-WA'},
+'106'=>{'Seven'=>'Seven-Syd','Imparja'=>'IMP','Prime Wagga Wagga'=>'PrimeS'/*?*/},
+'107'=>{'Seven'=>'Seven-SA','Imparja'=>'IMP'},
+'108'=>{'Seven'=>'Seven-Dar','Imparja'=>'IMP'},
+'114'=>{'Seven'=>'Seven-Qld','Imparja'=>'IMP'},
+'126'=>{'WIN'=>'','TEN'=>'SC10-NSW'/*?*/,'Prime Canberra/Sth Coast'=>'Prime-Can'},
+'184'=>{'NBN'=>'NBN','Sthn Cross TEN'=>'SC10-NSW','Prime'=>'PrimeN'/*?*/},
+}
+
+# paytv (Foxtel) to oztivo channels
+my $p_to_o = {
+    'ACC'=>'ACC',
+    # 'AdultsOnly960'=>'',
+    'AIR'=>'AIRACT',
+    'AnimalPlanet'=>'ANIMAL',       # also SelecTV
+    # 'AntennaGreek'=>'',           # only SelecTV
+    'AntennaPacific'=>'ANT',
+    'ARENATV'=>'ARNA',
+    'ARENATV2'=>'ARNA+2',
+    'Aurora'=>'AUR',
+    'BBCWorld'=>'BBC',              # also SelecTV
+    'Bio'=>'BIOG',
+    'BloombergTelevision'=>'BLM',
+    'Boomerang'=>'BOOM',
+    'CartoonNetwork'=>'CART',       # also SelecTV
+    'ChannelV'=>'V',
+    'ChannelV2'=>'V2',
+    'CNBC'=>'CNBC',
+    'CNN'=>'CNNI',                  # also SelecTV
+    'CountryMusicChannel'=>'CMC',
+    'CrimeandInvestigationNetwork'=>'CRIME',
+    'DiscoveryChannel'=>'DISC',
+    'DiscoveryHealth'=>'HEALTH',    # also SelecTV
+    'DiscoveryRealTime'=>'DISCRT',  # only SelecTV and OzTivo
+    'DiscoveryScience'=>'SCIENCE',  # also SelecTV
+    'DiscoveryTravel'=>'TRAVEL',    # also SelecTV
+    'DisneyChannel'=>'DISN',
+    'E!Entertainment'=>'E!',        # also SelecTV
+    # 'ERTGreek'=>'',               # only SelecTV
+    'ESPN'=>'ESPN',
+    'Eurosport'=>'EUROSPORT2',      # only SelecTV and OzTivo
+    'Eurosportnews'=>'EUROSPORT',
+    'EXPO'=>'EXPO',
+    'FashionTV'=>'FASH',            # also SelecTV
+    'FOXClassics'=>'CLAS',
+    'FOXClassics2'=>'CLAS+2',
+    'FOXNews'=>'FOXN',
+    'FOXSPORTS1'=>'FS1',
+    'FOXSPORTS2'=>'FS2',
+    'FOXSPORTS3'=>'FS3',
+    'FOXSPORTSNews'=>'FSN',
+    'FOX8'=>'FOX8',
+    'FOX82'=>'FOX8+2',
+    # 'FOXTELBoxOffice'=>'',
+    # 'FOXTELGamesworld'=>'',
+    'FUELTV'=>'FUEL',
+    'Hallmark'=>'HALL',
+    'HOWTOChannel'=>'HOWTO',
+    'LifestyleChannel2'=>'LIFE+2',
+    'LifeStyleFOOD'=>'FOOD',
+    # 'MainEvent'=>'',
+    'MAX'=>'max',
+    'MOVIEEXTRA'=>'MOVX',           # also SelecTV
+    'MOVIEGREATS'=>'MOVG',          # also SelecTV
+    'MOVIEONE'=>'MOV1',             # also SelecTV
+    'MOVIETWO'=>'MOV1+2',           # also SelecTV
+    'MTV'=>'MTV',                   # also SelecTV
+    'NatGeoAdventure'=>'ADV1',      # also SelecTV
+    'NationalGeographic'=>'NGEO',   # also SelecTV
+    'NickJr'=>'NICKJR',
+    'Nickelodeon'=>'NICK',
+    'NITV'=>'NITV',
+    'Ovation'=>'OVAT',              # also SelecTV
+    'PlayhouseDisney'=>'PHDISN',
+    'RAIInternational'=>'RAI',
+    'SCIFI'=>'Sci-Fi',
+    'showcase'=>'SHWC',
+    'SHOWTIME'=>'SHOW',
+    'SHOWTIMEGreats'=>'SHWGRTS',
+    'SHOWTIME2'=>'SHW2',
+    'SkyNewsAustralia'=>'SKYN',
+    'SkyNewsBusiness'=>'SKYB',
+    'SkyRacing'=>'SKYR',            # also SelecTV
+    'TCM'=>'TCM',                   # also SelecTV
+    'THECOMEDYCHANNEL'=>'CMDY',
+    'THECOMEDYCHANNEL2'=>'CMDY+2',
+    'TheHistoryChannel'=>'HIST',
+    'TheLifeStyleChannel'=>'LIFE',
+    'TheWeatherChannel'=>'TWC',
+    'TV1'=>'TV1',
+    'TV12'=>'TV1+2',
+    'TVChileSpanish'=>'TVCHILE',    # only SelecTV and OzTivo
+    'TVE'=>'TVE',                   # only SelecTV and OzTivo
+    'TVN'=>'TVN',
+    'TVSN'=>'TVSN',
+    'UKTV'=>'UKTV',
+    'UKTV2'=>'UKTV+2',
+    'VH1'=>'VH1',                   # also SelecTV
+    'W'=>'W',
+    'W2'=>'W+2',
+    'WORLDMOVIES'=>'WMOV',
+};
+
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
 my $config_file = "$progname.pw";

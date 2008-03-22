@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.33";
+my $version = "0.34";
 
 $| = 1;
 print "$progname v$version\n";
@@ -78,6 +78,8 @@ my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
 
 my $opt;
 $opt->{dbaurl} = "http://www.dba.org.au/index.asp?sectionID=126";
+$opt->{alternate_dbaurl} = "http://web.archive.org/web/20070821190807/http://www.dba.org.au/index.asp?sectionID=126";
+
 $opt->{output_file} = "output.xmltv";
 $opt->{region} = 94;
 $opt->{debug} = 0;
@@ -104,7 +106,14 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 &read_config_file($opt->{channels_file},1);
 
 &decode_region($opt->{region});
-&lookup_dba unless ((defined $opt->{nodbalookup}) || (!defined $opt->{locality}));
+
+if ((!defined $opt->{nodbalookup}) || (defined $opt->{locality})) {
+	&lookup_dba($opt->{dbaurl});
+	if (!defined $stats{parsed_hd_progs}) {
+		print " - WARNING: no programs matched from ".$opt->{dbaurl}.", trying alternate.\n";
+		&lookup_dba($opt->{alternate_dbaurl});
+	}
+}
 
 #
 # now eat up the XMLTV inputs we were given!
@@ -386,8 +395,10 @@ sub decode_region
 
 sub lookup_dba
 {
-	print "Obtaining DBA data from ".$opt->{dbaurl}."\n";
-	my $data = Shepherd::Common::get_url($opt->{dbaurl});
+	my $url = shift;
+
+	print "Obtaining DBA data from ".$url."\n";
+	my $data = Shepherd::Common::get_url($url);
 	return if (!$data);
 
 	# Brute force hack to remove closing FONT tags because these misplaced tags screws up HTMLTreeBuilder
