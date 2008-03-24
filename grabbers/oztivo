@@ -1,532 +1,922 @@
 #!/usr/bin/perl -w
-
-# OzTivo grabber
-
-my $version = '1.23';
-
-# Requires configuration!
-# 1. Register at http://www.tvguide.org.au/
-# 2. Run "./oztivo --configure" to create "oztivo.pw" file.
-
+# vi: ts=4 sw=4
+#
+# OzTivo Programme Guide Grabber for Shepherd
+# Chris Williams <shepherd@psychogeeks.com>
+# Copyright Chris Williams, 2008.
+#
 use strict;
 
 use Getopt::Long;
-use HTML::Entities;
-use POSIX;
 use Shepherd::Common;
+use XML::LibXML;
+use URI::Escape;
+use POSIX;
+use Time::Local;
 
+# ensure 'cache' directory exists (or is created) before the 'use HTTP::Cache'
+# below or it'll fail
+BEGIN {
+	-d "cache" or mkdir "cache" or die "Cannot create directory cache: $!";
+}
+
+# Setup caching so we are good Netizens
+# This works transparently under the LWP::* modules
+#
+use HTTP::Cache::Transparent (
+	BasePath  => "cache",
+	MaxAge	  => 8*24, # hours
+	Verbose   => 0,
+	NoUpdate  => 15*60,
+	ApproveContent => sub { return $_[0]->is_success },
+);
+
+
+################################################################################
+# Global variables
+#
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
+my $version = '2.00';
 my $config_file = "$progname.pw";
-my $output_file = "output.xmltv";
+my $output_file = undef;
 my $channels_file;
-my $channels, my $opt_channels;
-my @clist;
 my $ver;
-my $ready;
 my $configure;
-my $raw_input;
-my $raw_output;
-my $d;
+my $region = undef;
+my $days = 7;
 
-print "$nicename Grabber v$version\n";
+# Channel to XMLTvID map from channels file
+#
+my $channels, my $opt_channels;
 
-$| = 1;
+# User name and password from configuration file
+#
+my $user;
+my $pw;
 
-GetOptions( 
-	    'channels_file=s'   => \$channels_file,
-	    'output=s'		=> \$output_file,
-	    'rawoutput=s'	=> \$raw_output,
-	    'rawinput=s'	=> \$raw_input,
-	    'version'		=> \$ver,
-	    'ready'             => \$ready,
-	    'configure'		=> \$configure
-	  );
 
-exit 0 if ($ver);
-
-configure() if ($configure);
-
-unless (-r $config_file)
-{
-    print "Can't find $config_file!\n";
-    please_configure_me();
-    exit 1;
-}
-
-print "Reading configuration file $config_file.\n";
-
-unless (open(CONF, $config_file))
-{
-    print "Unable to read config file $config_file: $!\n";
-    please_configure_me();
-    exit 1;
-}
-my $line = <CONF>;
-close CONF;
-
-unless ($line =~ /^(.*):(.*)$/)
-{
-    print "Unable to parse config file!\n" .
-          "It should be in the format: username:password\n";
-    please_configure_me();
-    exit 1;
-}
-my ($user, $pw) = ($1, $2);
-
-unless ($user and $pw)
-{
-    print "Failed to extract a sensible username and password from config file.\n";
-    please_configure_me();
-    exit 1;
-}
-
-exit 0 if ($ready);
-
-unless ($channels_file)
-{
-    die "No --channels_file specified.\n";
-}
-
-unless( -r $channels_file)
-{
-    die "Unable to read channels file $channels_file: $!";
-}
-local (@ARGV, $/) = ($channels_file);
-eval <>;
-die "\nError in channels file!\nDetails:\n$@" if ($@);
-
-my $shortchannels;
-while (my ($name, $chanid) = each %$channels) 
-{
-  # Ignore differences between rural stations like
-  # Seven (Rockhampton) and Seven (Cairns) -- this is not a great
-  # solution and should be fixed.
-  $name =~ s/ *\(.*?\)//g;
-  # Ignore differences between rural stations like
-  # Prime Tamworth/Taree/Port,Prime Lismore/Coffs Hbr -- this is not a great
-  # solution and should be fixed.
-  $name = "Prime" if $name =~ /^Prime/;
-  $shortchannels->{$name} = $chanid;
-}
-
-# Create a list of channel names from longest to shortest
-@clist = sort { length $b <=> length $a } keys %$shortchannels;
-
-my $data;
-
-if (!defined $raw_input) {
-    my ($success, $status);
-
-    # Don't rely on Shepherd::Common::get_url()'s retry, because
-    # if we get a 401 (wrong password) there's no point in retrying.
-    my $max_tries = 3;
-    foreach my $tries (1 .. $max_tries) {
-        ($data, $success, $status) = Shepherd::Common::get_url(
-                url => "http://$user:$pw\@minnie.tuhs.org/tivo-bin/xmlguide.pl",
-                retries => 0);
-
-        unless ($success)
-        {
-            if ($status =~ /401/)
-            {
-                print "Your OzTivo username and/or password may be incorrect!\n".
-                        "The username and password you supplied when configuring the oztivo grabber\n" .
-                        "must match your registration details on the OzTivo.com site.\n".
-                        "If this error persists, try reconfiguring: ".
-                        "  tv_grab_au --configure $progname\n";
-		$tries = $max_tries;
-            }
-            print "Download failed: $status\n";
-        }
-
-	my $bytes = do { use bytes; length($data) };
-	my $sleep = 47;
-
-	# If we get a special message from the oztivo server, sleep
-	# a longer time before retrying.
-	if ($bytes < 1000 and defined $data and $data =~ /<message>(.*?)<\/message>/si)
-	{
-	    $success = 0;
-	    print "OzTivo message: $1\n";
-	    # Giveup unless message says to try again later
-	    # eg. OzTivo message: System load on minnie is too high right now to run your request. Please try again later.
-	    $tries = $max_tries unless $1 =~ /try\s+again\s+later/si;
-	    $sleep = 93 + int(rand(120));
+################################################################################
+# Setup a mapping file to go from a Shepherd channel name to an OzTivo name
+# Taking into consideration the region.
+#
+my %s_to_o_map = (
+	'67' => {	# NSW: Griffith
+		'ABC1' => 'ABC-NSW',
+		'ABC2' => 'ABC2',
+		'Prime' => undef,
+		#? 'Prime' => 'PrimeN',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NSW',
+		'TEN' => 'Ten-NSW',
+		'WIN' => 'WIN-NSW',
+	},
+	'90' => {	# VIC: Eastern Victoria
+		'ABC1' => 'ABC-Vic',
+		'ABC2' => 'ABC2',
+		'Prime (Albury)' => undef,
+		#? 'Prime (Albury)' => 'Prime-Vic',
+		'Prime (Regional)' => undef,
+		#? 'Prime (Regional)' => 'PrimeS',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Vic',
+		'TEN' => 'Ten-Vic',
+		'WIN' => 'WIN-Vic',
+	},
+	'63' => {	# NSW: Broken Hill
+		'ABC1' => 'ABC-NSW',
+		'ABC2' => 'ABC2',
+		'Central GTS/BKN' => 'GTS-BKN',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NSW',
+		'Sthn Cross TEN' => 'SC10-NSW',
+	},
+	'71' => {	# NSW: Southern NSW
+		'ABC1' => 'ABC-NSW',
+		'ABC2' => 'ABC2',
+		'Prime (Canberra/South Coast)' => 'Prime-Can',
+		'Prime (Orange)' => undef,
+		#? 'Prime (Orange)' => 'PrimeS',
+		'Prime (Wagga Wagga)' => undef,
+		#? 'Prime (Wagga Wagga)' => 'PrimeS',
+		'Prime (Wollongong)' => undef,
+		#? 'Prime (Wollongong)' => 'PrimeS',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NSW',
+		'TEN (Mildura Digital)' => 'Ten-Vic',
+		'TEN (NSW: Southern NSW)' => undef,
+		#? 'TEN (NSW: Southern NSW)' => 'Ten-Can',
+		#? 'TEN (NSW: Southern NSW)' => 'Ten-NSW',
+		'WIN' => 'WIN-NSW',
+	},
+	'102' => {	# WA: Regional
+		'ABC1' => 'ABC-WA',
+		'ABC2' => 'ABC2',
+		'Access 31' => '31-Per',
+		'Golden West' => 'GWN-WA',
+		'Nine' => 'Nine-WA',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-WA',
+		'Seven' => 'Seven-WA',
+		'TEN' => 'Ten-WA',
+		'WIN' => 'WIN-WA',
+	},
+	'78' => {	# QLD: Gold Coast
+		'7HD' => 'SevenHD',
+		'ABC1' => 'ABC-Qld',
+		'ABC2' => 'ABC2',
+		'NBN' => 'NWN-GC',
+		'Nine' => 'Nine-Qld',
+		'Prime' => 'Prime-GC',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Bris',
+		'Sthn Cross TEN' => 'SC10-GC',
+		'TEN HD' => 'TenHD',
+		'TEN' => 'Ten-Qld',
+	},
+	'79' => {	# QLD: Regional
+		'7HD (Cairns)' => 'SevenHD',
+		'7HD (Rockhampton/Toowoomba)' => 'SevenHD',
+		'7HD (Townsville/Mackay/Wide Bay/Sunshine Coast)' => 'SevenHD',
+		'ABC1' => 'ABC-Qld',
+		'ABC2' => 'ABC2',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Qld',
+		'Seven (Cairns)' => 'Seven-Qld',
+		'Seven (Rockhampton/Toowoomba)' => 'Seven-Qld',
+		'Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)' => 'Seven-Qld',
+		'TEN' => 'Ten-Qld',
+		'WIN (Mackay/Wide Bay)' => 'Win-Qld',
+		'WIN (QLD: Regional)' => 'Win-Qld',
+	},
+	'107' => {	# SA: Remote & Central
+		'ABC1' => 'ABC-SA',
+		'ABC2' => 'ABC2',
+		'Imparja' => 'IMP',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-SA',
+		'Seven' => 'Seven-SA',
+	},
+	'88' => {	# Tasmania
+		'ABC1' => 'ABC-Tas',
+		'ABC2' => 'ABC2',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Tas',
+		'Southern Cross' => 'SC-Tas',
+		'TDT' => 'TDT-Tas',
+		'WIN' => 'Win-Tas',
+	},
+	'93' => {	# VIC: Geelong
+		'ABC1' => 'ABC-Vic',
+		'ABC2' => 'ABC2',
+		'Channel 31' => '31-Mel',
+		'Nine' => 'Nine-Mel',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Vic',
+		'Seven' => 'Seven-Mel',
+		'TEN' => 'Ten-Vic',
+	},
+	'106' => {	# NSW: Remote and Central
+		'ABC1' => 'ABC-NSW',
+		'ABC2' => 'ABC2',
+		'Imparja' => 'IMP',
+		'Prime' => undef,
+		#? 'Prime' => 'PrimeN',
+		#? 'Prime' => 'PrimeS',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NSW',
+		'Seven' => 'Seven-Syd',
+	},
+	'126' => {	# ACT
+		'ABC1' => 'ABC-Can',
+		'ABC2' => 'ABC2',
+		'Prime' => 'Prime-Can',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Can',
+		'TEN' => 'Ten-Can',
+		'WIN' => 'Win-Can',
+	},
+	'82' => {	# SA: Renmark
+		'ABC1' => 'ABC-SA',
+		'ABC2' => 'ABC2',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-SA',
+		'WIN TEN' => undef,
+		#? 'WIN TEN' => 'TEN-SA',
+		'WIN' => undef,
+		#? 'WIN' => 'Win-Vic',
+	},
+	'74' => {	# NT: Darwin
+		'ABC1' => 'ABC-NT',
+		'ABC2' => 'ABC2',
+		'Nine' => undef,
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NT',
+		'Southern Cross' => undef,
+		#? 'Seven' => 'Seven-Dar',
+	},
+	'85' => {	# SA: South East SA
+		'ABC1' => 'ABC-SA',
+		'ABC2' => 'ABC2',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-SA',
+		'WIN TEN' => undef,
+		#? 'WIN TEN' => 'TEN-SA',
+		#? 'WIN TEN' => 'TEN-Vic',
+		'WIN' => undef,
+		#? 'WIN' => 'Win-Vic',
+	},
+	'83' => {	# SA: Riverland
+		'ABC1' => 'ABC-SA',
+		'ABC2' => 'ABC2',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-SA',
+		'WIN TEN' => undef,
+		#? 'WIN TEN' => 'TEN-SA',
+		'WIN' => undef,
+		#? 'WIN' => 'Win-Vic',
+	},
+	'95' => {	# VIC: Mildura/Sunraysia
+		'ABC1' => 'ABC-Vic',
+		'ABC2' => 'ABC2',
+		'Prime' => 'Prime-Vic',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Vic',
+		'TEN' => 'Ten-Vic',
+		'WIN' => 'WIN-Vic',
+	},
+	'75' => {	# QLD: Brisbane
+		'7HD' => 'SevenHD',
+		'ABC1' => 'ABC-Qld',
+		'ABC2' => 'ABC2',
+		'Briz 31' => 'BRIZ',
+		'Nine' => 'Nine-Qld',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Bris',
+		'TEN HD' => 'TenHD',
+		'TEN' => 'Ten-Qld',
+	},
+	'94' => {	# VIC: Melbourne
+		'7HD' => 'SevenHD',
+		'ABC1' => 'ABC-Vic',
+		'ABC2' => 'ABC2',
+		'Channel 31' => '31-Mel',
+		'Nine' => 'Nine-Mel',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Vic',
+		'Seven' => 'Seven-Mel',
+		'TEN HD' => 'TenHD',
+		'TEN' => 'Ten-Vic',
+	},
+	'108' => {	# NT: Remote & Central
+		'ABC1' => 'ABC-NT',
+		'ABC2' => 'ABC2',
+		'Imparja' => 'IMP',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NT',
+		'Seven' => 'Seven-Dar',
+	},
+	'114' => {	# QLD: Remote & Central
+		'ABC1' => 'ABC-Qld',
+		'ABC2' => 'ABC2',
+		'Imparja' => 'IMP',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Qld',
+	},
+	'184' => {	# NSW: Newcastle
+		'7HD' => 'SevenHD',
+		'ABC1' => 'ABC-NSW',
+		'ABC2' => 'ABC2',
+		'NBN' => 'NBN',
+		'Prime' => undef,
+		#? 'Prime' => 'PrimeN',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NSW',
+		'Sthn Cross TEN' => 'SC10-NSW',
+	},
+	'69' => {	# NSW: Northern NSW
+		'ABC1' => 'ABC-NSW',
+		'ABC2' => 'ABC2',
+		'NBN' => undef,
+		#? 'NBN' => 'NBN',
+		#? 'NBN' => 'NBN-GC',
+		'Prime (NSW: Northern NSW)' => undef,
+		#? 'Prime (NSW: Northern NSW)' => 'PrimeN',
+		'Prime NSW: Northern NSW' => undef,
+		#? 'Prime NSW: Northern NSW' => 'PrimeN',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NSW',
+		'Sthn Cross TEN' => 'SC10-NSW',
+		#? 'Sthn Cross TEN' => 'SC10-GC',
+	},
+	'81' => {	# SA: Adelaide
+		'7HD' => 'SevenHD',
+		'ABC1' => 'ABC-SA',
+		'ABC2' => 'ABC2',
+		'C31 Adelaide' => '31-Adl',
+		'Nine' => 'Nine-SA',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-SA',
+		'Seven' => 'Seven-SA',
+		'TEN HD' => 'TenHD',
+		'TEN' => 'Ten-SA',
+	},
+	'98' => {	# VIC: Western Victoria
+		'ABC1' => 'ABC-Vic',
+		'ABC2' => 'ABC2',
+		'Imparja' => 'IMP',
+		'Prime' => 'Prime-Vic',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-Vic',
+		'Seven' => 'Seven-Mel',
+		'TEN' => 'Ten-Vic',
+		'WIN' => 'WIN-Vic',
+	},
+	'66' => {	# NSW: Central Coast
+		'7HD' => 'SevenHD',
+		'ABC1' => 'ABC-NSW',
+		'ABC2' => 'ABC2',
+		'NBN' => 'NBN',
+		'Nine' => 'Nine-Syd',
+		'Prime' => undef,
+		#? 'Prime' => 'PrimeN',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NSW',
+		'Seven' => 'Seven-Syd',
+		'Sthn Cross TEN' => 'SC10-NSW',
+		'TEN' => 'Ten-NSW',
+	},
+	'73' => {	# NSW: Sydney
+		'7HD' => 'SevenHD',
+		'ABC1' => 'ABC-NSW',
+		'ABC2' => 'ABC2',
+		'Channel NSW' => undef,
+		'Nine' => 'Nine-Syd',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-NSW',
+		'Seven' => 'Seven-Syd',
+		'TEN HD' => 'TenHD',
+		'TEN' => 'Ten-NSW',
+		'TVS' => undef,
+		#? 'TVS' => '31-Syd',
+		#? 'TVS' => 'TVSN',
+	},
+	'101' => {	# WA: Perth
+		'7HD' => 'SevenHD',
+		'ABC1' => 'ABC-WA',
+		'ABC2' => 'ABC2',
+		'Access 31' => '31-Per',
+		'Nine' => 'Nine-WA',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-WA',
+		'Seven' => 'Seven-WA',
+		'TEN HD' => 'TenHD',
+		'TEN' => 'Ten-WA',
+	},
+	'86' => {	# SA: Spencer Gulf
+		'ABC1' => 'ABC-SA',
+		'ABC2' => 'ABC2',
+		'Central GTS/BKN' => 'GTS-BKN',
+		'Nine' => 'Nine-SA',
+		'SBS News' => 'SBS-NEWS',
+		'SBS' => 'SBS-SA',
+		'Sthn Cross TEN' => undef,
+	},
+	'PAY' => {	# Pay channels
+		'ACC' => 'ACC',
+		# '????' => 'ADULT',
+		# '????' => 'ADULT1',
+		# '????' => 'ADULT2',
+		# '????' => 'AdultsOnly960',
+		'AIR' => 'AIRACT',
+		# '????' => 'ALJA',
+		'AnimalPlanet' => 'ANIMAL',
+		# '????' => 'AntennaGreek',
+		'AntennaPacific' => 'ANT',
+		# '????' => 'ARCADE',
+		'ARENATV2' => 'ARNA+2',
+		'ARENATV' => 'ARNA',
+		# '????' => 'ART',
+		'Aurora' => 'AUR',
+		# '????' => 'AV',
+		'BBCWorld' => 'BBC',
+		# '????' => 'BETHTV',
+		'Bio' => 'BIOG',
+		'BloombergTelevision' => 'BLM',
+		# '????' => 'BNTV',
+		'Boomerang' => 'BOOM',
+		# '????' => 'CANALSUR',
+		'CartoonNetwork' => 'CART',
+		'ChannelV2' => 'V2',
+		'ChannelV' => 'V',
+		# '????' => 'Cinemax',
+		# '????' => 'CLUBV',
+		# '????' => 'CMTE',
+		# '????' => 'CMTER1',
+		# '????' => 'CMTER2',
+		# '????' => 'CMTER3',
+		# '????' => 'CMTER4',
+		'CNBC' => 'CNBC',
+		'CNN' => 'CNNI',
+		# '????' => 'CNNfn',
+		'CountryMusicChannel' => 'CMC',
+		'CrimeandInvestigationNetwork' => 'CRIME',
+		# '????' => 'D4NEWS',
+		# '????' => 'DAAI',
+		# '????' => 'DIG',
+		# '????' => 'Digital4',
+		# '????' => 'DIG-jazz',
+		'DiscoveryChannel' => 'DISC',
+		'DiscoveryHealth' => 'HEALTH',
+		'DiscoveryRealTime' => 'DISCRT',
+		'DiscoveryScience' => 'SCIENCE',
+		'DiscoveryTravel' => 'TRAVEL',
+		'DisneyChannel' => 'DISN',
+		# '????' => 'DWTV',
+		'E!Entertainment' => 'E!',
+		# '????' => 'ENEWS-GE',
+		# '????' => 'ENEWS-IT',
+		# '????' => 'ENEWS-SP',
+		# '????' => 'ERITV',
+		# '????' => 'ERTGreek',
+		'ESPN' => 'ESPN',
+		# '????' => 'EURONEWS',
+		'Eurosport' => 'EUROSPORT2',
+		'Eurosportnews' => 'EUROSPORT',
+		# '????' => 'EWTN',
+		'EXPO' => 'EXPO',
+		'FashionTV' => 'FASH',
+		# '????' => 'FB01',
+		# '????' => 'FB02',
+		# '????' => 'FB03',
+		# '????' => 'FB04',
+		# '????' => 'FB05',
+		# '????' => 'FB06',
+		# '????' => 'FB07',
+		# '????' => 'FB08',
+		# '????' => 'FB09',
+		# '????' => 'FB10',
+		# '????' => 'FB11',
+		# '????' => 'FB12',
+		# '????' => 'FB13',
+		# '????' => 'FB14',
+		# '????' => 'FB15',
+		# '????' => 'FB16',
+		# '????' => 'FB17',
+		# '????' => 'FB18',
+		# '????' => 'FB19',
+		# '????' => 'FB20',
+		# '????' => 'FB21',
+		# '????' => 'FB22',
+		# '????' => 'FB23',
+		# '????' => 'FB24',
+		# '????' => 'FB25',
+		# '????' => 'FB26',
+		# '????' => 'FB27',
+		# '????' => 'FFC',
+		# '????' => 'FFC-NSW',
+		# '????' => 'FFC-Qld',
+		# '????' => 'FFC-SA',
+		# '????' => 'FFC-Vic',
+		# '????' => 'FFC-WA',
+		'FOX82' => 'FOX8+2',
+		'FOX8' => 'FOX8',
+		'FOXClassics2' => 'CLAS+2',
+		'FOXClassics' => 'CLAS',
+		'FOXNews' => 'FOXN',
+		'FOXSPORTS1' => 'FS1',
+		'FOXSPORTS2' => 'FS2',
+		'FOXSPORTS3' => 'FS3',
+		'FOXSPORTSNews' => 'FSN',
+		# '????' => 'FOXTELBoxOffice',
+		# '????' => 'FOXTELGamesworld',
+		'FUELTV' => 'FUEL',
+		# '????' => 'GUIDE',
+		# '????' => 'GWORLD',
+		'Hallmark' => 'HALL',
+		# '????' => 'HBOMovie',
+		# '????' => 'HIST+2',
+		# '????' => 'H&L',
+		# '????' => 'HOUSE',
+		'HOWTOChannel' => 'HOWTO',
+		# '????' => 'ISHTAR',
+		# '????' => 'JJJ',
+		# '????' => 'LBC',
+		# '????' => 'LEONARDO',
+		'LifestyleChannel2' => 'LIFE+2',
+		'LifeStyleFOOD' => 'FOOD',
+		# '????' => 'LNTV',
+		# '????' => 'MACQD',
+		# '????' => 'MAIN',
+		# '????' => 'MainEvent',
+		'MAX' => 'max',
+		# '????' => 'MCMTop',
+		# '????' => 'MINDGAMES',
+		'MOVIEEXTRA' => 'MOVX',
+		'MOVIEGREATS' => 'MOVG',
+		'MOVIEONE' => 'MOV1',
+		'MOVIETWO' => 'MOV1+2',
+		'MTV' => 'MTV',
+		'NatGeoAdventure' => 'ADV1',
+		'NationalGeographic' => 'NGEO',
+		'Nickelodeon' => 'NICK',
+		'NickJr' => 'NICKJR',
+		'NITV' => 'NITV',
+		# '????' => 'NoNag',
+		# '????' => 'ODY',
+		# '????' => 'OUT-TV',
+		'Ovation' => 'OVAT',
+		'PlayhouseDisney' => 'PHDISN',
+		# '????' => 'PREVIEW',
+		'RAIInternational' => 'RAI',
+		# '????' => 'RMTV',
+		# '????' => 'Sci-Fi',
+		# '????' => 'SC-Tas',
+		# '????' => 'SENATE',
+		# '????' => 'ServiceNSW',
+		'showcase' => 'SHWC',
+		'SHOWTIME2' => 'SHW2',
+		'SHOWTIMEGreats' => 'SHWGRTS',
+		'SHOWTIME' => 'SHOW',
+		'SkyNewsAustralia' => 'SKYN',
+		'SkyNewsBusiness' => 'SKYB',
+		'SkyRacing' => 'SKYR',
+		# '????' => 'SPORTSEL',
+		# '????' => 'StarMovies',
+		# '????' => 'StarWorld',
+		# '????' => 'STC',
+		# '????' => 'STV1',
+		# '????' => 'SYRIATV',
+		# '????' => 'TABNSW',
+		'TCM' => 'TCM',
+		# '????' => 'Test',
+		'THECOMEDYCHANNEL2' => 'CMDY+2',
+		'THECOMEDYCHANNEL' => 'CMDY',
+		'TheHistoryChannel' => 'HIST',
+		'TheLifeStyleChannel' => 'LIFE',
+		'TheWeatherChannel' => 'TWC',
+		# '????' => 'TMF',
+		'TV12' => 'TV1+2',
+		'TV1' => 'TV1',
+		# '????' => 'TV5',
+		'TVChileSpanish' => 'TVCHILE',
+		'TVE' => 'TVE',
+		'TVN' => 'TVN',
+		'UKTV2' => 'UKTV+2',
+		'UKTV' => 'UKTV',
+		'VH1' => 'VH1',
+		# '????' => 'VTV',
+		'W2' => 'W+2',
+		# '????' => 'WEIN',
+		# '????' => 'WINE',
+		'WORLDMOVIES' => 'WMOV',
+		'W' => 'W',
+		# '????' => 'WZONE',
 	}
-	last if ($success);
-	exit 6 if $tries == $max_tries; 
-	print "Sleeping for $sleep seconds...\n";
-	sleep($sleep);
-    }
+);
 
-    if (defined $raw_output) {
-        open(F,">$raw_output") || die "could not write raw output to $raw_output: $!\n";
-        print F $data;
-        close(F);
-        print "Raw output saved in $raw_output.\n";
-    }
-} else {
-    open(F,"<$raw_input") || die "could not read raw input from $raw_input: $!\n";
-    while(<F>) {
-        $data .= $_;
-    }
-    close(F);
-    print "Raw input read from $raw_input.\n";
+
+################################################################################
+# Routine for forcing the timezone of a listing to the local time zone.
+# This has the effect of mimicing the time-shifting of national programmes
+# such as ABC2 for which there is a single programme in, say, Sydney time, but
+# where the programmes are broadcast at the same wall clock time everywhere in
+# Australia.  
+# Care is taken to use the local time zone at the time of the programme.
+#
+# Also defines a list of OzTivo channels names this kludge should be applied to.
+#
+sub force_local_timezone($) {
+	my $oztivoTime = shift;
+
+	# Split the given time into components ignoring the specified TZ
+	# Our input looks like "20080324183000 +1100"
+	#
+	my ($year, $mon, $mday, $hr, $min, $sec) = $oztivoTime =~ m/^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)/;
+
+	# Treat the time as being local and calculate the UNIX time
+	# This will account for DST in our time zone.
+	#
+	my $unixTime = timelocal($sec, $min, $hr, $mday, $mon-1, $year); # expects months 0..11
+
+	# Return a correctly formatted string
+	#
+	return strftime('%Y%m%d%H%M%S %z', localtime($unixTime));
 }
 
-print "Converting apostrophes.\n";
-$data =~ s/\&#39;/'/g;
+my %force_timezone_set = map { $_ => 1 } ( qw{ ABC2 SBS-NEWS SevenHD SevenHD-Mel TenHD TenHD-Vic } );
 
-# Adjust ABC2 times if we're in a non-DST zone but Sydney is in DST.
-# Apparently ABC2 times are set off Sydney's clock.
-adjust_times();
 
-print "Transforming XMLTVIDs.\n";
-&setup_channel_mappings;
-$data =~ s/channel="(.*)"/'channel="'.subme($1).'"'/ge;
-
-print "Writing output.\n";
-open (OUT, ">$output_file") || die "could not write to $output_file: $!\n";
-
+################################################################################
+# Routines for configuring this grabber
 #
-# oztivo generates invalid XMLTV with fields out of order and
-# some blank fields.
-# the standard XMLTV.pm perl module gets very unhappy about these
-# write output in a manner which addresses the bad input
-#
-
-my @xmltv_tag_order = qw [ title sub-title desc credits date category language
-        orig-language length icon url country episode-num video audio
-        previously-shown permiere last-chance new subtitles rating
-        star-rating ];
-my %xmltv_tags = map { $_ => "" } @xmltv_tag_order;
-$xmltv_tags{"programme"}=""; $xmltv_tags{"/programme"}="";
-my $cur_field = "";
-
-foreach my $line (split/\n/,$data) {
-
-    # oztivo generates blank data for these fields - skip if blank
-    next if ($line =~ /^\s*$/);
-    next if ($line =~ /<desc>\s*<\/desc>/);
-    next if ($line =~ /<actor>\s*<\/actor>/);
-    next if ($line =~ /<director>\s*<\/director>/);
-
-    # more oztivo weirdness. filter out 0/10 star-ratings
-    next if ($line =~ /<star-rating><value>0\/10</);
-
-    if ($line =~ /\s*<([\/a-zA-Z\-]+)/) {
-        my $field = lc($1);
-        # do we know about this tag?
-        $cur_field = $field if (defined $xmltv_tags{$field});
-    }
-
-    if ($cur_field eq "programme") {
-        # if we have a start="(time)" and/or stop="(time)" make sure they
-        # have a timezone on them.
-        $line = $1."start=\"".$2." +0000\"".$3 if ($line =~ /^(.*)start="([0-9]+)"(.*)/);
-        $line = $1."stop=\"".$2." +0000\"".$3 if ($line =~ /^(.*)stop="([0-9]+)"(.*)/);
-
-        print OUT $line."\n"; # programme tag
-        $cur_field = "";
-    } elsif ($cur_field eq "/programme") {
-        print "Program with no title!\n" 
-                if (($xmltv_tags{title} eq "") or ($xmltv_tags{title} =~ />\s*</));
-        # print all previously seen tags in xmltv_tag_order
-        foreach my $xmltag (@xmltv_tag_order) {
-            if ($xmltv_tags{$xmltag} ne "") {
-                print OUT $xmltv_tags{$xmltag};
-                $xmltv_tags{$xmltag} = "";
-            }
-        }
-        print OUT $line."\n"; # /programme tag
-        $cur_field = "";
-    } else {
-        if ($cur_field eq "") {
-            print OUT $line."\n"; # ?xml, tv and /tv tags
-        } else {
-            $xmltv_tags{$cur_field} .= $line."\n"; # xmltv_tags tags
-        }
-    }
-}
-
-close OUT;
-
-print "Done.\n";
-
-
-
 sub please_configure_me
 {
-    print "If you wish to use $nicename, please run \"" .
-          "tv_grab_au --configure $progname\".\n" .
-	  "Configuration of $progname is required.\n";
+	print <<__EOM;
+If you wish to use $nicename, please run
+	tv_grab_au --configure $progname
+Configuration of $progname is required
+__EOM
 }
 
 sub configure
 {
-    print "Configuring...\n\n" .
-	  "Before you can use the $nicename grabber, you must create an\n" .
-	  "OzTivo account here:\n\n" .
-	  '  http://minnie.tuhs.org/twiki/bin/view/TWiki/TWikiRegistration' .
-	  "\n\n" .
-	  "... and select some channels here:\n\n" .
-	  '  http://minnie.tuhs.org/tivo-bin/tvguide.pl' . "\n\n" .
-	  "When you're done, enter your username and password here, to\n" .
-	  "enable this grabber to retrieve your guide data automatically:\n\n" .
-	  "Username?\n";
-    my $username = <>;
-    chomp $username;
-    unless ($username)
-    {
-	print "No username supplied. Exiting configuration.\n";
-	exit 3;
-    }
-    print "Password?\n";
-    my $pw = <>;
-    chomp $pw;
-    unless ($pw)
-    {
-	print "No password supplied. Exiting configuration.\n";
-	exit 3;
-    }
-    print "Creating config file $config_file...\n";
-    open (CONF, ">$config_file")
-	or die "Unable to create $config_file: $!";
-    print CONF "$username:$pw";
-    close CONF;
+	print <<__EOM;
+Configuring...
+Before you can use the $nicename grabber, you must create a
+OzTivo account here:
+  http://minnie.tuhs.org/twiki/bin/view/TWiki/TWikiRegistration
+... and select some channels here:
+  http://minnie.tuhs.org/tivo-bin/tvguide.pl
+When you're done, enter your username and password here, to
+enable this grabber to retrieve your guide data automatically:
+Username?
+__EOM
 
-    print "Done.\n";
-    exit 0;
-}
-
-sub subme
-{
-    my $station = shift;
-
-    $station =~ s/ABC-(.*)/ABC1-$1/g;
-    $station = $d->{chan_map}->{$station} if (defined $d->{chan_map}->{$station});
-    $station =~ s/SC10/Sthn Cross TEN/g; # clashes with TEN but @clist is sorted longest to shortest
-
-    my $num = $1 if ($station =~ /(\d{2,})/);
-    foreach my $ch (@clist)
-    {
-	if ($station =~ /$ch/i
-		or
-	    ($num and $ch =~ /$num/))
-	{
-	    return $shortchannels->{$ch};
+	my $username = <>;
+	chomp $username;
+	unless ($username) {
+		print "No username supplied. Exiting configuration.\n";
+		exit 3;
 	}
-    }
-
-    return $opt_channels->{$station} if ((defined $opt_channels) && (defined $opt_channels->{$station}));
-    
-    if (!defined $d->{ignored_channels}->{$station}) {
-	$d->{ignored_channels}->{$station} = 1;
-	print "Warning: station \"$station\" unknown.\n";
-    }
-    return $station;
-}
-
-sub setup_channel_mappings
-{
-    # unmaped Foxtel channels: AdultsOnly960,FOXTELBoxOffice,FOXTELGamesworld,MainEvent
-    # unmaped SelecTV channels: AntennaGreek,ERTGreek
-    my %map = (
-	"SevenHD" => "7HD",
-	"SevenHD-Mel" => "7HD",
-	"TenHD" => "TEN HD",
-	"TenHD-Vic" => "TEN HD",
-	"SBS-NEWS" => "SBS NEWS",
-	"31-Syd" => "TVS",
-	"BRIZ" => "Briz 31",
-	"TDT-Tas" => "TDT",
-	"Seven-Qld" => "Seven Cairns", # no better match
-
-	"ACC" => "ACC",
-	"ADV1" => "NatGeoAdventure",
-	"AIRACT" => "AIR",
-	"ANIMAL" => "AnimalPlanet",
-	"ANT" => "AntennaPacific",
-	"ARNA" => "ARENATV",
-	"ARNA+2" => "ARENATV2",
-	"AUR" => "Aurora",
-	"BBC" => "BBCWorld",
-	"BIOG" => "Bio",
-	"BLM" => "BloombergTelevision",
-	"BOOM" => "Boomerang",
-	"CART" => "CartoonNetwork",
-	"CLAS" => "FOXClassics",
-	"CLAS+2" => "FOXClassics2",
-	"CMC" => "CountryMusicChannel",
-	"CMDY" => "THECOMEDYCHANNEL",
-	"CMDY+2" => "THECOMEDYCHANNEL2",
-	"CNBC" => "CNBC",
-	"CNNI" => "CNN",
-	"CRIME" => "CrimeandInvestigationNetwork",
-	"DISC" => "DiscoveryChannel",
-	"DISCRT" => "DiscoveryRealTime",	# SelecTV and OzTivo
-	"DISN" => "DisneyChannel",
-	"E!" => "E!Entertainment",
-	"ESPN" => "ESPN",
-	"EUROSPORT" => "Eurosportnews",		# Foxtel and OzTivo
-	"EUROSPORT2" => "Eurosport",		# SelecTV and OzTivo
-	"EXPO" => "EXPO",
-	"FASH" => "FashionTV",
-	"FOOD" => "LifeStyleFOOD",
-	"FOX8" => "FOX8",
-	"FOX8+2" => "FOX82",
-	"FOXN" => "FOXNews",
-	"FS1" => "FOXSPORTS1",
-	"FS2" => "FOXSPORTS2",
-	"FS3" => "FOXSPORTS3",
-	"FSN" => "FOXSPORTSNews",
-	"FUEL" => "FUELTV",
-	"HALL" => "Hallmark",
-	"HEALTH" => "DiscoveryHealth",
-	"HIST" => "TheHistoryChannel",
-	"HOWTO" => "HOWTOChannel",
-	"LIFE" => "TheLifeStyleChannel",
-	"LIFE+2" => "LifestyleChannel2",
-	"MOV1" => "MOVIEONE",
-	"MOV1+2" => "MOVIETWO",
-	"MOVG" => "MOVIEGREATS",
-	"MOVX" => "MOVIEEXTRA",
-	"MTV" => "MTV",
-	"NGEO" => "NationalGeographic",
-	"NICK" => "Nickelodeon",
-	"NICKJR" => "NickJr",
-	"NITV" => "NITV",
-	"OVAT" => "Ovation",
-	"PHDISN" => "PlayhouseDisney",
-	"RAI" => "RAIInternational",
-	"SCIENCE" => "DiscoveryScience",
-	"SHOW" => "SHOWTIME",
-	"SHW2" => "SHOWTIME2",
-	"SHWC" => "showcase",
-	"SHWGRTS" => "SHOWTIMEGreats",
-	"SKYB" => "SkyNewsBusiness",
-	"SKYN" => "SkyNewsAustralia",
-	"SKYR" => "SkyRacing",
-	"Sci-Fi" => "SCIFI",
-	"TCM" => "TCM",
-	"TRAVEL" => "DiscoveryTravel",
-	"TV1" => "TV1",
-	"TV1+2" => "TV12",
-	"TVCHILE" => "TVChileSpanish",		# SelecTV and OzTivo
-	"TVE" => "TVE",				# SelecTV and OzTivo
-	"TVN" => "TVN",
-	"TVSN" => "TVSN",
-	"TWC" => "TheWeatherChannel",
-	"UKTV" => "UKTV",
-	"UKTV+2" => "UKTV2",
-	"V" => "ChannelV",
-	"V2" => "ChannelV2",
-	"VH1" => "VH1",
-	"W" => "W",
-	"W+2" => "W2",
-	"WMOV" => "WORLDMOVIES",
-	"max" => "MAX"
-    );
-
-    foreach (keys %map)
-    {
-	$d->{chan_map}->{$_} = $map{$_};
-    }
-}
-
-# Wrapper sub to ensure TZ gets reset properly
-sub adjust_times
-{
-    adjust_times2();
-    POSIX::tzset();
-}
-
-sub adjust_times2
-{
-    my $local_tz = POSIX::strftime("%z",localtime);
-
-    local %ENV;
-    $ENV{TZ} = 'Australia/Sydney';
-    my $sydney_tz = POSIX::strftime("%z",localtime);
-
-    # Okay, I can't believe how hard this is... compute difference
-    # between two TZ strings.
-    my $l_min = int($local_tz / 100) * 60 + $local_tz % 100 % 60; 
-    my $s_min = int($sydney_tz / 100) * 60 + $sydney_tz % 100 % 60; 
-    # can't use %60 because it always returns a positive number
-    my $tz_diff = int(($l_min - $s_min) / 60) * 100 + (($l_min - $s_min) - (int(($l_min - $s_min)/60)*60));
-
-    # Are we in DST?
-    my $local_dst = (localtime)[8];
-    my $sydney_dst = 0;
-    if (!$local_dst)
-    {
-	# Is Sydney in DST?
-	$sydney_dst = compare_sydney_dst();
-
-	if ($sydney_dst)
-	{
-	    print "DST in Sydney but not here: adding 1hr to ABC2 times" .
-		  ($sydney_dst != 1 ? ($sydney_dst > 1 ? 
-			  " from $sydney_dst GMT" : 
-			  " until " . ($sydney_dst*-1) . ' GMT') : '') .
-		  ".\n";
+	print "Password?\n";
+	my $pw = <>;
+	chomp $pw;
+	unless ($pw) {
+		print "No password supplied. Exiting configuration.\n";
+		exit 3;
 	}
-    }
-    $data =~ s/(?!=")(\d+)(?=".* channel="ABC2")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
-    $data =~ s/(?!=")(\d+)(?=".* channel="SBS-NEWS")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
-    $data =~ s/(?!=")(\d+)(?=".* channel="SevenHD")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
-    $data =~ s/(?!=")(\d+)(?=".* channel="SevenHD-Mel")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
-    $data =~ s/(?!=")(\d+)(?=".* channel="TenHD")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
-    $data =~ s/(?!=")(\d+)(?=".* channel="TenHD-Vic")/$1.add_offset($1,$tz_diff,$sydney_dst)/ge;
+	print "Creating config file $config_file...\n";
+	open (CONF, ">$config_file")
+		or die "Unable to create $config_file: $!";
+	print CONF "$username:$pw";
+	close CONF;
+
+	print "Done.\n";
+	exit 0;
 }
 
-# Return '+0100' for any times that are in a period when Sydney's in DST
-# but we're not.
-sub add_offset
-{
-    my ($timestamp, $tz_diff, $sydney_dst) = @_;
-
-    if ($sydney_dst == 1
-	    or
-	($sydney_dst > 1 and $timestamp >= $sydney_dst)
-	    or
-	($sydney_dst < 0 and $timestamp <= ($sydney_dst*-1)))
-    {
-	$tz_diff += 0100;
-    }
-    return sprintf " %+0.4d", $tz_diff;
-}
-
-# Returns:
-# 0         : Sydney is not in DST in the next 7 days
-# 1         : Sydney is in DST for the next 7 days
-# <n>       : Sydney is in DST from <n> GMT, where n is (eg) 20070321030000
-# <-n>      : Sydney is in DST until <n> GMT, where n is (eg) -20070321030000
-# This func assumes that TZ has been set to Sydney by the caller (adjust_abc2_times)
-sub compare_sydney_dst
-{
-    my $sydney_dst = (localtime)[8];
-
-    # Normalize $start to 3AM Sydney time, or 2AM if it's in DST
-    my $start = time - (time % (60*60*24)) - (($sydney_dst ? 11 : 10) * 60*60) + (3*60*60);
-
-    # Check Sydney's DST status each day for 7 days
-    for (my $day = 0; $day < 8; $day++)
-    {
-	my $t = $start + ($day * 24*60*60);
-	my $sydney_dst_thisday = (localtime($t))[8];
-
-	# Any changeover?
-	if ($sydney_dst_thisday != $sydney_dst)
-	{
-	    # Convert $t to GMT
-	    $t -= (($sydney_dst ? 11 : 10) * 60*60);
-	    my $changeoverday = POSIX::strftime("%Y%m%d%H%M%S", localtime($t));
-	    $changeoverday *= -1 if ($sydney_dst);
-	    return $changeoverday;
+sub load_config() {
+	unless (-r $config_file) {
+		print "Can't find $config_file!\n";
+		please_configure_me();
+		exit 1;
 	}
-    }
-    return $sydney_dst;
+
+	print "Reading configuration file $config_file.\n";
+
+	unless (open(CONF, $config_file)) {
+		print "Unable to read config file $config_file: $!\n";
+		please_configure_me();
+		exit 1;
+	}
+	my $line = <CONF>;
+	close CONF;
+
+	unless ($line =~ /^(.*):(.*)$/) {
+		print "Unable to parse config file!\n" .
+			  "It should be in the format: username:password\n";
+		please_configure_me();
+		exit 1;
+	}
+	($user, $pw) = ($1, $2);
+
+	unless ($user and $pw) {
+		print "Failed to extract a sensible username and password from config file.\n";
+		please_configure_me();
+		exit 1;
+	}
 }
+
+################################################################################
+# Local extension of the shared get_url() to cater for password authentication 
+# failure
+#
+# Returns the data as a string, or undef if data couild not be retrieved
+#
+sub get_url($) {
+	my ($data, $success, $status, $bytes);
+
+	my $url = shift;
+
+	# Don't rely on Shepherd::Common::get_url()'s retry, because
+	# if we get a 401 (wrong password) there's no point in retrying.
+	my $max_tries = 3;
+	foreach my $tries (1 .. $max_tries) {
+		($data, $success, $status, $bytes) = Shepherd::Common::get_url(
+				url => $url,
+				referer => "Shepherd ".$nicename." grabber, version ".$version,
+				delay => 1,
+				retries => 0);
+
+		last if ($success);
+
+		print "Download failed: $status\n";
+		if ($status =~ /401/)
+		{
+			print <<__EOM;
+Your OzTivo username and/or password may be incorrect
+The username and password you supplied when configuring the oztivo grabber
+must match your registration details on the OzTivo.com site.
+If this error persists, try reconfiguring:
+	tv_grab_au --configure $progname
+__EOM
+			last;	# bail out of the retry loop
+		}
+
+		my $sleep = 47 + int(rand(120));
+		print "Sleeping for $sleep seconds before retrying...\n";
+		sleep($sleep);
+	}
+
+	# hack: if we don't get back something that looks like xml then try to
+	# ungzip it
+	$data = Compress::Zlib::memGunzip($data) if (substr($data,0,1) ne '<');
+
+	return $data;
+} 
+
+
+
+################################################################################
+#
+$| = 1;
+
+GetOptions(
+	'config=s'			=> \$config_file,
+	'channels_file=s'	=> \$channels_file,
+	'output=s'			=> \$output_file,
+	'version'			=> \$ver,
+	'configure'			=> \$configure,
+	'region=s'			=> \$region,
+	'days:i'			=> \$days,			# Optional
+);
+
+print "$nicename Grabber v$version\n";
+exit 0 if ($ver);	# Just print the version and leave
+
+# Do the configuration if requested
+# Load the configuration otherwise
+#
+configure() if ($configure);
+load_config();
+
+# Idiot checks on mandatory options
+#
+unless (defined($output_file)) {
+	die "No --output file specified.\n";
+}
+unless (defined($region)) {
+	die "No --region specified.\n";
+}
+
+# Import the Shepherd channels configuration
+#
+unless ($channels_file) { 
+	die "No --channels_file specified.\n";
+}
+unless( -r $channels_file) { 
+	die "Unable to read channels file $channels_file: $!";
+}
+{	# Block localises the variables
+	local (@ARGV, $/) = ($channels_file);
+	eval <>;
+	die "\nError in channels file!\nDetails:\n$@" if ($@);
+}
+
+
+# Create the in-memory form of the output file
+#
+my $outdom = XML::LibXML::Document->new( '1.0', 'iso-8859-1' );
+my $root = $outdom->createElement('tv');
+$root->setAttribute('generator-info-name', $progname);
+$outdom->setDocumentElement($root);
+
+# Calculate the start and end date for the days requested
+# #
+my ($mday, $mon, $year) = (localtime)[3..5];
+my $startdate = sprintf('%04d-%02d-%02d', $year+1900, $mon+1, $mday);
+($mday, $mon, $year) = (localtime(time + ($days-1)*86400) )[3..5];
+my $enddate = sprintf('%04d-%02d-%02d', $year+1900, $mon+1, $mday);
+
+# Get the OzTivo datalist.xml file and interrogate it for;
+# The base URL for each channel
+# The data files available for today onward including their 
+#	last modified date.
+#
+
+my $datalist = get_url("http://$user:$pw\@minnie.tuhs.org/xmltv/datalist.xml.gz");
+unless (defined($datalist)) {
+	die "\nError fetching data list xml file!\n";
+}
+
+# Make the user credentials safe
+my $credentials = uri_escape($user) .':' . uri_escape($pw);
+
+my $dlparser = XML::LibXML->new();		# For the datalist.xml file
+my $progparser = XML::LibXML->new();	# For the programme data files
+
+my $dlxml = $dlparser->parse_string($datalist);
+foreach my $sname ( keys(%$channels), keys(%$opt_channels) ) {
+	# Work out which OzTivo channel this Shepherd channel is
+	# 
+	my $oname = $s_to_o_map{$region}->{$sname};
+	if (! defined($oname)) {	# Try a PAY channel
+		$oname = $s_to_o_map{'PAY'}->{$sname};
+	}
+	unless (defined($oname)) {
+		print "\nNo region $region mapping from " .
+			"Shepherd channel $sname to OzTivo channel\n\n";
+		next;
+	}
+	
+	# Construct a clone of select parts of the channel element in the output document.
+	# Ignores non-XMLTV elements present in the datalist.xml file.
+	#
+	my ($channelnode) = $dlxml->findnodes('/tv/channel[@id="' . $oname . '"]');
+	unless (defined($channelnode)) {
+		print "\nCannot find the $oname channel element in the datalist.xml file\n";
+		next;
+	}
+	my $newnode = $channelnode->cloneNode(0);
+	$newnode->setAttribute('id', $channels->{$sname});
+	foreach my $node ($channelnode->findnodes('display-name|url|icon')) {
+		$newnode->appendChild($node->cloneNode(1));
+	}
+	$root->insertBefore($newnode, $root->firstChild);
+
+	
+	# Get the first base URL for the channel
+	# and mangle our user name and password into it
+	#
+	my $baseurl = $dlxml->findvalue('/tv/channel[@id="' . $oname . '"]/base-url[1]');
+	unless (defined($baseurl)) {
+		print "\nCannot find the $oname baseurl in the datalist.xml file\n";
+		next;
+	}
+	$baseurl =~ s!^(https?://)!$1$credentials\@!;
+
+	# Process the list of data files for today or later
+	#
+	my @datafornodes = $dlxml->findnodes('/tv/channel[@id="' . $oname . '"]/datafor');
+	unless (@datafornodes) {
+		print "\nCannot find the $oname datafor records in the datalist.xml file\n";
+		next;
+	}
+	foreach my $datafornode (@datafornodes) {
+		my $filedate = $datafornode->findvalue('child::text()');
+
+		if ($filedate ge $startdate && $filedate le $enddate ) {	# Today or future data
+			# Build the source file name and fetch it
+			# 
+			my $url = $baseurl . uri_escape( $oname . '_' . $filedate . '.xml.gz' );
+			my $progdata = get_url($url);
+			unless ($progdata) {
+				print "\nCannot retrieve the $oname programme data for $filedate\n";
+				next;
+			}
+
+			# We have the data we need to actually build the output file
+			#
+			my $progxml = $progparser->parse_string($progdata);
+			my @prognodes = $progxml->findnodes('/tv/programme');
+			unless (@prognodes) {
+				print "\nCannot find the $oname programme records in the $filedate file\n";
+				next;
+			}
+			foreach my $prognode (@prognodes) {
+				# Remove the node from the source document and make it part of
+				# our output document.
+				#
+				$outdom->adoptNode($prognode);
+				$root->appendChild($prognode);
+
+				# Correct the channel attribute to use our desired XMLTV id
+				# as specified in the channels.conf file.
+				#
+				my $xmltvid = $channels->{$sname};
+				$prognode->setAttribute('channel', $xmltvid);
+
+				# If necessary force the local time zone onto the start and end times
+				#
+				if ($force_timezone_set{$oname}) {
+					my $starttime = force_local_timezone($prognode->getAttribute('start'));
+					my $stoptime = force_local_timezone($prognode->getAttribute('stop'));
+					$prognode->setAttribute('start', $starttime);
+					$prognode->setAttribute('stop', $stoptime);
+				}
+			}
+			$progxml = undef;
+		}
+	}
+}
+$dlxml = undef;
+
+# Write the output
+#
+$outdom->toFile($output_file, 1)
+	or die "\nCould not create output file $output_file\n";
+
