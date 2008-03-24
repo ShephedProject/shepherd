@@ -37,11 +37,12 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.00';
+my $version = '2.01';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
 my $ver;
+my $ready_check;
 my $configure;
 my $region = undef;
 my $days = 7;
@@ -750,6 +751,7 @@ GetOptions(
 	'channels_file=s'	=> \$channels_file,
 	'output=s'			=> \$output_file,
 	'version'			=> \$ver,
+	'ready'				=> \$ready_check,
 	'configure'			=> \$configure,
 	'region=s'			=> \$region,
 	'days:i'			=> \$days,			# Optional
@@ -763,6 +765,8 @@ exit 0 if ($ver);	# Just print the version and leave
 #
 configure() if ($configure);
 load_config();
+
+exit 0 if ($ready_check);	# Just print the version and leave
 
 # Idiot checks on mandatory options
 #
