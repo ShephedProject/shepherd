@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.36";
+my $version = "0.37";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -1039,7 +1039,7 @@ sub programme_cb( $ )
 			if (ref $prog->{'star-rating'} && $prog->{'star-rating'}->[0] =~ /[\d\.\s]+\/[\d\.\s]+/) {
 				$rating = sprintf "%.1f/10", (eval($rating) + eval($prog->{'star-rating'}->[0])) * 5;
 			}
-			$prog->{'star-rating'} = [ $rating, [] ];
+			$prog->{'star-rating'} = [ $rating ];
 		}
 	}
 
