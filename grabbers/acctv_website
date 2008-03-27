@@ -22,9 +22,10 @@ my $baseurl = "http://www.acctv.com.au/";
 
 my %stats;
 my $o;
-Shepherd::Common::program_begin(\$o, "acctv_website", "0.03", \%stats);
+Shepherd::Common::program_begin(\$o, "acctv_website", "0.04", \%stats);
 
 my ($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, ("ACC"));
+my $channel_xmlid = $channels->{ACC} || $opt_channels->{ACC};
 
 &read_cache unless (defined $o->{no_cache});
 &start_writing_xmltv;
@@ -82,7 +83,7 @@ sub start_writing_xmltv
 	  ( { 'source-info-name' => "$o->{program_name} v$o->{version_number}",
 	      'generator-info-name' => "$o->{program_name} v$o->{version_number}"} );
 
-	$writer->write_channel( {'display-name' => [[ "ACC", $o->{lang} ]], 'id' => $opt_channels->{ACC} } );
+	$writer->write_channel( {'display-name' => [[ "ACC", $o->{lang} ]], 'id' => $channel_xmlid } );
 }
 
 ##############################################################################
@@ -197,7 +198,7 @@ sub get_day
 
 		$prog->{start} = POSIX::strftime("%Y%m%d%H%M",localtime($prog->{start}));
 		$prog->{stop} = POSIX::strftime("%Y%m%d%H%M",localtime($prog->{stop})) if defined $prog->{stop};
-		$prog->{channel} = $opt_channels->{ACC};
+		$prog->{channel} = $channel_xmlid;
 		push(@{$prog->{'category'}}, ["Religion", $o->{lang}])
 				if !grep($_->[0] eq "Religion", @{$prog->{'category'}});
 
