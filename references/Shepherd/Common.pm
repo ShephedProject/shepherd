@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.30';
+my $version = '0.31';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -184,8 +184,6 @@ sub read_channels
 					join(",", keys %$gaps).")\n"
 					if ($found != 1);
 		}
-
-
 	}
 
 	return ($channels, $opt_channels, $gaps);
@@ -502,10 +500,13 @@ sub mirror
     }
 
     if (!$response->is_error) {
+	my $data;
 	open(FILE, $file) || die "Can't read $file: $!";
-	my @lines = <FILE>;
+	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+			$atime,$mtime,$ctime,$blksize,$blocks) = stat($file);
+	read FILE, $data, $size;
 	close FILE;
-	$response->content(join(' ',@lines));
+	$response->content($data);
     }
 
     return $response;
