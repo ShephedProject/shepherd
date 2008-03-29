@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.31';
+my $version = '0.32';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -97,6 +97,8 @@ sub program_begin
 	Shepherd::Common::set_default("referer", "last");
 	Shepherd::Common::set_default("delay" => "0-4") if (!defined $o->{fast} && !defined $o->{debug});
 	Shepherd::Common::set_default("retry_delay", 10);
+	Shepherd::Common::set_default("cookie_jar" => 1);
+	Shepherd::Common::set_default("referer" => "last");
 	Shepherd::Common::set_default(stats => $stats);
 	Shepherd::Common::setup_socks($o->{anon_socks}) if (defined $o->{anon_socks});
 
