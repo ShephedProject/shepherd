@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.100";
+my $version = "1.101";
 
 use XMLTV;
 use XML::DOM;
@@ -476,6 +476,12 @@ sub parse_xml_data
 			# mandatory fields
 			my $event_start = 	$event->getElementsByTagName("event_date")->item(0)->getFirstChild->getNodeValue;
 			my $event_end =   	$event->getElementsByTagName("end_date")->item(0)->getFirstChild->getNodeValue;
+
+			# TEMPORARY HACK UNTIL YAHOO FIX UP TIMEZONE FILE ON THEIR SERVER!
+			if ($event_start < 1207414800) {  # real daylight savings end
+				$event_start -= 3600;
+				$event_end -= 3600;
+			}
 
 			if ($event_start < 10) {
 				$stats{progs_with_invalid_start}++;
