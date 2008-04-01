@@ -22,7 +22,7 @@
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.16";
+my $version = "3.17";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -67,6 +67,7 @@ my $opt_no_cache =	0;
 my $opt_cheap =		0;
 my $opt_fast =          0;
 my $opt_do_extra_days =	0;
+my $opt_no_hdtv_flag =	0;
 my $opt_set = "";
 my $opt_help =          0;
 my $opt_version =       0;
@@ -97,6 +98,7 @@ GetOptions(
 	'obfuscate'	=> \$ignored_setting,
 	'no-retry'	=> \$ignored_setting,
 	'set=s'		=> \$opt_set,
+	'no_hdtv_flag'	=> \$opt_no_hdtv_flag,
 	'help'		=> \$opt_help,
 	'verbose'	=> \$opt_help,
 	'version'	=> \$opt_version,
@@ -144,6 +146,14 @@ local (@ARGV, $/) = ($opt_channels_file);
 no warnings 'all'; eval <>; die "$@" if $@;
 
 die "nothing to do; neither ABC1 nor ABC2 in channels lineup!\n" if ((!defined $channels->{ABC1}) && (!defined $channels->{ABC2}));
+
+# check XMLTV version for HDTV compatability
+my @xmltv_version = split(/\./,$XMLTV::VERSION);
+if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2] <= "43")) {
+	&log("XMLTV version ".$XMLTV::VERSION." too old to support HDTV flags. Disabling HDTV flags.");
+	$opt_no_hdtv_flag = 1;
+	$stats{disabled_hdtv_flag}++;
+}
 
 &log(sprintf "Going to %s%s %s%d%s days%s of data for ABC1(%s), ABC2(%s) into %s (%s)",
 	($opt_gaps_file ne "" ? "micro-gap " : ""),
@@ -211,6 +221,7 @@ options are as follows:
 	--debug			increase debug level
 	--do-extra-days		fetch extra (21 days) from ABC website
 	--lang=[s]		set language of xmltv output data (default $lang)
+	--no_hdtv_flag		don't flag HDTV programmes
 
 	--region=N		set region for where to collect data from (default: $region)
 	--channels_file=file	where to get channel data from (if not set manually)
@@ -565,6 +576,11 @@ DAYS:	while ($days_left > 0) {
 			$prog->{'subtitles'} = [ { 'type' => 'teletext' } ] if (defined $data_cache->{$cache_key}->{cc});
 			$prog->{'rating'} = [ [ $data_cache->{$cache_key}->{rating}, 'ABA', undef] ]
 			  if (defined $data_cache->{$cache_key}->{rating});
+
+			if (defined $data_cache->{$cache_key}->{hdtv}) {
+				$prog->{video}->{aspect} = "16:9";      # widescreen
+				$prog->{video}->{quality} = "HDTV" if ($opt_no_hdtv_flag == 0);
+			}
 		}
 
 		Shepherd::Common::cleanup($prog);
@@ -629,6 +645,12 @@ sub get_one_abc_event
 				$data_cache->{$cache_key}->{cc} = 1;
 				Shepherd::Common::log(" - decoded CC from '$other_text'") if ($debug);
 				$other_text = $1.$2; # strip CC
+			}
+
+			if ($other_text =~ /^(.*)High(.*)$/) {
+				$data_cache->{$cache_key}->{hdtv} = 1;
+				Shepherd::Common::log(" - decoded HDTV from '$other_text'") if ($debug);
+				$other_text = $1.$2;
 			}
 
 			if ($other_text =~ /^(.*)Repeat(.*)$/) {
