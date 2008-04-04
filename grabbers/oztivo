@@ -37,7 +37,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.01';
+my $version = '2.10';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -61,79 +61,70 @@ my $pw;
 # Setup a mapping file to go from a Shepherd channel name to an OzTivo name
 # Taking into consideration the region.
 #
+# The order of search for a mapping is;
+# 	Region specific mapping (under numeric region code keys)
+#	National mapping (under hash key 'National')
+#	Pay TV mapping (under hash key 'PAY')
+# First mapping found wins.
+#
 my %s_to_o_map = (
+	'National' => {	# National channel mappings, all timeshifted
+		'ABC2' => 'ABC2',
+		'SBS News' => 'SBS-NEWS',
+		'7HD' => 'SevenHD',
+		'NineHD' => 'NineHD',
+		'TEN HD' => 'TenHD',
+	},
 	'67' => {	# NSW: Griffith
 		'ABC1' => 'ABC-NSW',
-		'ABC2' => 'ABC2',
-		'Prime' => undef,
-		#? 'Prime' => 'PrimeN',
-		'SBS News' => 'SBS-NEWS',
+		'Prime' => 'PrimeS',
 		'SBS' => 'SBS-NSW',
 		'TEN' => 'Ten-NSW',
 		'WIN' => 'WIN-NSW',
 	},
 	'90' => {	# VIC: Eastern Victoria
 		'ABC1' => 'ABC-Vic',
-		'ABC2' => 'ABC2',
-		'Prime (Albury)' => undef,
-		#? 'Prime (Albury)' => 'Prime-Vic',
-		'Prime (Regional)' => undef,
-		#? 'Prime (Regional)' => 'PrimeS',
-		'SBS News' => 'SBS-NEWS',
+		'Prime (Albury)' => 'Prime-Vic',
+		'Prime (Regional)' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
-		'TEN' => 'Ten-Vic',
+		'TEN' => 'SC10-Vic',
 		'WIN' => 'WIN-Vic',
 	},
 	'63' => {	# NSW: Broken Hill
 		'ABC1' => 'ABC-NSW',
-		'ABC2' => 'ABC2',
 		'Central GTS/BKN' => 'GTS-BKN',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-NSW',
 		'Sthn Cross TEN' => 'SC10-NSW',
 	},
 	'71' => {	# NSW: Southern NSW
 		'ABC1' => 'ABC-NSW',
-		'ABC2' => 'ABC2',
 		'Prime (Canberra/South Coast)' => 'Prime-Can',
-		'Prime (Orange)' => undef,
-		#? 'Prime (Orange)' => 'PrimeS',
-		'Prime (Wagga Wagga)' => undef,
-		#? 'Prime (Wagga Wagga)' => 'PrimeS',
-		'Prime (Wollongong)' => undef,
-		#? 'Prime (Wollongong)' => 'PrimeS',
-		'SBS News' => 'SBS-NEWS',
+		'Prime (Orange)' => 'PrimeS',
+		'Prime (Wagga Wagga)' => 'PrimeS',
+		'Prime (Wollongong)' => 'PrimeS',
 		'SBS' => 'SBS-NSW',
-		'TEN (Mildura Digital)' => 'Ten-Vic',
-		'TEN (NSW: Southern NSW)' => undef,
-		#? 'TEN (NSW: Southern NSW)' => 'Ten-Can',
-		#? 'TEN (NSW: Southern NSW)' => 'Ten-NSW',
+		'TEN (Mildura Digital)' => 'Ten-NSW',
+		'TEN (NSW: Southern NSW)' => 'Ten-NSW',
 		'WIN' => 'WIN-NSW',
 	},
 	'102' => {	# WA: Regional
 		'ABC1' => 'ABC-WA',
-		'ABC2' => 'ABC2',
 		'Access 31' => '31-Per',
 		'Golden West' => 'GWN-WA',
 		'Nine' => 'Nine-WA',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-WA',
 		'Seven' => 'Seven-WA',
 		'TEN' => 'Ten-WA',
 		'WIN' => 'WIN-WA',
 	},
 	'78' => {	# QLD: Gold Coast
-		'7HD' => 'SevenHD',
 		'ABC1' => 'ABC-Qld',
-		'ABC2' => 'ABC2',
 		'NBN' => 'NWN-GC',
 		'Nine' => 'Nine-Qld',
 		'Prime' => 'Prime-GC',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Bris',
 		'Sthn Cross TEN' => 'SC10-GC',
-		'TEN HD' => 'TenHD',
 		'TEN' => 'Ten-Qld',
 	},
 	'79' => {	# QLD: Regional
@@ -141,8 +132,6 @@ my %s_to_o_map = (
 		'7HD (Rockhampton/Toowoomba)' => 'SevenHD',
 		'7HD (Townsville/Mackay/Wide Bay/Sunshine Coast)' => 'SevenHD',
 		'ABC1' => 'ABC-Qld',
-		'ABC2' => 'ABC2',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Qld',
 		'Seven (Cairns)' => 'Seven-Qld',
 		'Seven (Rockhampton/Toowoomba)' => 'Seven-Qld',
@@ -153,16 +142,12 @@ my %s_to_o_map = (
 	},
 	'107' => {	# SA: Remote & Central
 		'ABC1' => 'ABC-SA',
-		'ABC2' => 'ABC2',
 		'Imparja' => 'IMP',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-SA',
 		'Seven' => 'Seven-SA',
 	},
 	'88' => {	# Tasmania
 		'ABC1' => 'ABC-Tas',
-		'ABC2' => 'ABC2',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Tas',
 		'Southern Cross' => 'SC-Tas',
 		'TDT' => 'TDT-Tas',
@@ -170,221 +155,151 @@ my %s_to_o_map = (
 	},
 	'93' => {	# VIC: Geelong
 		'ABC1' => 'ABC-Vic',
-		'ABC2' => 'ABC2',
 		'Channel 31' => '31-Mel',
 		'Nine' => 'Nine-Mel',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Vic',
 		'Seven' => 'Seven-Mel',
 		'TEN' => 'Ten-Vic',
 	},
 	'106' => {	# NSW: Remote and Central
 		'ABC1' => 'ABC-NSW',
-		'ABC2' => 'ABC2',
 		'Imparja' => 'IMP',
-		'Prime' => undef,
-		#? 'Prime' => 'PrimeN',
-		#? 'Prime' => 'PrimeS',
-		'SBS News' => 'SBS-NEWS',
+		'Prime' => 'PrimeS',
 		'SBS' => 'SBS-NSW',
 		'Seven' => 'Seven-Syd',
 	},
 	'126' => {	# ACT
 		'ABC1' => 'ABC-Can',
-		'ABC2' => 'ABC2',
 		'Prime' => 'Prime-Can',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Can',
 		'TEN' => 'Ten-Can',
 		'WIN' => 'Win-Can',
 	},
 	'82' => {	# SA: Renmark
 		'ABC1' => 'ABC-SA',
-		'ABC2' => 'ABC2',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-SA',
-		'WIN TEN' => undef,
-		#? 'WIN TEN' => 'TEN-SA',
-		'WIN' => undef,
-		#? 'WIN' => 'Win-Vic',
+		'WIN TEN' => 'TEN-SA',
+		'WIN' => 'Win-Vic',
 	},
 	'74' => {	# NT: Darwin
 		'ABC1' => 'ABC-NT',
-		'ABC2' => 'ABC2',
 		'Nine' => undef,
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-NT',
-		'Southern Cross' => undef,
+		'Southern Cross' => 'SC10-Qld',
 		#? 'Seven' => 'Seven-Dar',
 	},
 	'85' => {	# SA: South East SA
 		'ABC1' => 'ABC-SA',
-		'ABC2' => 'ABC2',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-SA',
-		'WIN TEN' => undef,
-		#? 'WIN TEN' => 'TEN-SA',
-		#? 'WIN TEN' => 'TEN-Vic',
-		'WIN' => undef,
-		#? 'WIN' => 'Win-Vic',
+		'WIN TEN' => 'TEN-SA',
+		'WIN' => 'Win-Vic',
 	},
 	'83' => {	# SA: Riverland
 		'ABC1' => 'ABC-SA',
-		'ABC2' => 'ABC2',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-SA',
-		'WIN TEN' => undef,
-		#? 'WIN TEN' => 'TEN-SA',
-		'WIN' => undef,
-		#? 'WIN' => 'Win-Vic',
+		'WIN TEN' => 'TEN-SA',
+		'WIN' => 'Win-Vic',
 	},
 	'95' => {	# VIC: Mildura/Sunraysia
 		'ABC1' => 'ABC-Vic',
-		'ABC2' => 'ABC2',
 		'Prime' => 'Prime-Vic',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Vic',
 		'TEN' => 'Ten-Vic',
 		'WIN' => 'WIN-Vic',
 	},
 	'75' => {	# QLD: Brisbane
-		'7HD' => 'SevenHD',
 		'ABC1' => 'ABC-Qld',
-		'ABC2' => 'ABC2',
 		'Briz 31' => 'BRIZ',
 		'Nine' => 'Nine-Qld',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Bris',
-		'TEN HD' => 'TenHD',
 		'TEN' => 'Ten-Qld',
 	},
 	'94' => {	# VIC: Melbourne
-		'7HD' => 'SevenHD',
 		'ABC1' => 'ABC-Vic',
-		'ABC2' => 'ABC2',
 		'Channel 31' => '31-Mel',
 		'Nine' => 'Nine-Mel',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Vic',
 		'Seven' => 'Seven-Mel',
-		'TEN HD' => 'TenHD',
 		'TEN' => 'Ten-Vic',
 	},
 	'108' => {	# NT: Remote & Central
 		'ABC1' => 'ABC-NT',
-		'ABC2' => 'ABC2',
 		'Imparja' => 'IMP',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-NT',
 		'Seven' => 'Seven-Dar',
 	},
 	'114' => {	# QLD: Remote & Central
 		'ABC1' => 'ABC-Qld',
-		'ABC2' => 'ABC2',
 		'Imparja' => 'IMP',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Qld',
 	},
 	'184' => {	# NSW: Newcastle
-		'7HD' => 'SevenHD',
 		'ABC1' => 'ABC-NSW',
-		'ABC2' => 'ABC2',
 		'NBN' => 'NBN',
-		'Prime' => undef,
-		#? 'Prime' => 'PrimeN',
-		'SBS News' => 'SBS-NEWS',
+		'Prime' => 'PrimeN',
 		'SBS' => 'SBS-NSW',
 		'Sthn Cross TEN' => 'SC10-NSW',
 	},
 	'69' => {	# NSW: Northern NSW
 		'ABC1' => 'ABC-NSW',
-		'ABC2' => 'ABC2',
-		'NBN' => undef,
-		#? 'NBN' => 'NBN',
-		#? 'NBN' => 'NBN-GC',
-		'Prime (NSW: Northern NSW)' => undef,
-		#? 'Prime (NSW: Northern NSW)' => 'PrimeN',
-		'Prime NSW: Northern NSW' => undef,
-		#? 'Prime NSW: Northern NSW' => 'PrimeN',
-		'SBS News' => 'SBS-NEWS',
+		'NBN' => 'NBN',
+		'Prime (NSW: Northern NSW)' => 'PrimeN',
+		'Prime NSW: Northern NSW' => 'PrimeN',
 		'SBS' => 'SBS-NSW',
 		'Sthn Cross TEN' => 'SC10-NSW',
-		#? 'Sthn Cross TEN' => 'SC10-GC',
 	},
 	'81' => {	# SA: Adelaide
-		'7HD' => 'SevenHD',
 		'ABC1' => 'ABC-SA',
-		'ABC2' => 'ABC2',
 		'C31 Adelaide' => '31-Adl',
 		'Nine' => 'Nine-SA',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-SA',
 		'Seven' => 'Seven-SA',
-		'TEN HD' => 'TenHD',
 		'TEN' => 'Ten-SA',
 	},
 	'98' => {	# VIC: Western Victoria
 		'ABC1' => 'ABC-Vic',
-		'ABC2' => 'ABC2',
 		'Imparja' => 'IMP',
 		'Prime' => 'Prime-Vic',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-Vic',
 		'Seven' => 'Seven-Mel',
 		'TEN' => 'Ten-Vic',
 		'WIN' => 'WIN-Vic',
 	},
 	'66' => {	# NSW: Central Coast
-		'7HD' => 'SevenHD',
 		'ABC1' => 'ABC-NSW',
-		'ABC2' => 'ABC2',
 		'NBN' => 'NBN',
 		'Nine' => 'Nine-Syd',
-		'Prime' => undef,
-		#? 'Prime' => 'PrimeN',
-		'SBS News' => 'SBS-NEWS',
+		'Prime' => 'PrimeN',
 		'SBS' => 'SBS-NSW',
 		'Seven' => 'Seven-Syd',
 		'Sthn Cross TEN' => 'SC10-NSW',
 		'TEN' => 'Ten-NSW',
 	},
 	'73' => {	# NSW: Sydney
-		'7HD' => 'SevenHD',
 		'ABC1' => 'ABC-NSW',
-		'ABC2' => 'ABC2',
 		'Channel NSW' => undef,
 		'Nine' => 'Nine-Syd',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-NSW',
 		'Seven' => 'Seven-Syd',
-		'TEN HD' => 'TenHD',
 		'TEN' => 'Ten-NSW',
-		'TVS' => undef,
-		#? 'TVS' => '31-Syd',
-		#? 'TVS' => 'TVSN',
+		'TVS' => '31-Syd',
 	},
 	'101' => {	# WA: Perth
-		'7HD' => 'SevenHD',
 		'ABC1' => 'ABC-WA',
-		'ABC2' => 'ABC2',
 		'Access 31' => '31-Per',
 		'Nine' => 'Nine-WA',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-WA',
 		'Seven' => 'Seven-WA',
-		'TEN HD' => 'TenHD',
 		'TEN' => 'Ten-WA',
 	},
 	'86' => {	# SA: Spencer Gulf
 		'ABC1' => 'ABC-SA',
-		'ABC2' => 'ABC2',
 		'Central GTS/BKN' => 'GTS-BKN',
 		'Nine' => 'Nine-SA',
-		'SBS News' => 'SBS-NEWS',
 		'SBS' => 'SBS-SA',
-		'Sthn Cross TEN' => undef,
+		'Sthn Cross TEN' => 'SC10-NSW',
 	},
 	'PAY' => {	# Pay channels
 		'ACC' => 'ACC',
@@ -608,7 +523,7 @@ sub force_local_timezone($) {
 	return strftime('%Y%m%d%H%M%S %z', localtime($unixTime));
 }
 
-my %force_timezone_set = map { $_ => 1 } ( qw{ ABC2 SBS-NEWS SevenHD SevenHD-Mel TenHD TenHD-Vic } );
+my %force_timezone_set = map { $_ => 1 } ( values %{$s_to_o_map{'National'}} );
 
 
 ################################################################################
@@ -827,7 +742,16 @@ my $dlxml = $dlparser->parse_string($datalist);
 foreach my $sname ( keys(%$channels), keys(%$opt_channels) ) {
 	# Work out which OzTivo channel this Shepherd channel is
 	# 
+	# The order of search for a mapping is;
+	# 	Region specific mapping (under numeric region code keys)
+	#	National mapping (under hash key 'National')
+	#	Pay TV mapping (under hash key 'PAY')
+	# First mapping found wins.
+	#
 	my $oname = $s_to_o_map{$region}->{$sname};
+	if (! defined($oname)) {	# Try a National channel
+		$oname = $s_to_o_map{'National'}->{$sname};
+	}
 	if (! defined($oname)) {	# Try a PAY channel
 		$oname = $s_to_o_map{'PAY'}->{$sname};
 	}
@@ -836,7 +760,16 @@ foreach my $sname ( keys(%$channels), keys(%$opt_channels) ) {
 			"Shepherd channel $sname to OzTivo channel\n\n";
 		next;
 	}
-	
+
+	# What XMLTV id is this channel. May be in either channels hash
+	#
+	my $xmltvid = defined($channels->{$sname}) ?  
+		$channels->{$sname}: $opt_channels->{$sname};
+	unless (defined($xmltvid)) {
+		print "\nNo XMLTV id for Shepherd channel $sname\n\n";
+		next;
+	}
+
 	# Construct a clone of select parts of the channel element in the output document.
 	# Ignores non-XMLTV elements present in the datalist.xml file.
 	#
@@ -846,7 +779,7 @@ foreach my $sname ( keys(%$channels), keys(%$opt_channels) ) {
 		next;
 	}
 	my $newnode = $channelnode->cloneNode(0);
-	$newnode->setAttribute('id', $channels->{$sname});
+	$newnode->setAttribute('id', $xmltvid);
 	foreach my $node ($channelnode->findnodes('display-name|url|icon')) {
 		$newnode->appendChild($node->cloneNode(1));
 	}
@@ -901,7 +834,6 @@ foreach my $sname ( keys(%$channels), keys(%$opt_channels) ) {
 				# Correct the channel attribute to use our desired XMLTV id
 				# as specified in the channels.conf file.
 				#
-				my $xmltvid = $channels->{$sname};
 				$prognode->setAttribute('channel', $xmltvid);
 
 				# If necessary force the local time zone onto the start and end times
