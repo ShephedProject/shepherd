@@ -95,7 +95,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.36";
+my $version = "0.37";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -146,6 +146,10 @@ $reclogic{min_title_for_colon_title_split} = 5;
 # sanity check: don't accept insanely long programmes
 $reclogic{max_programme_length} = (12 * 60 * 60); # 12 hours
 $reclogic{max_programme_length_opt_channels} = (18 * 60 * 60); # 18 hours
+
+# skip title translation for these categories and at least this long
+@{$reclogic{title_xlate_skip_categories}} = ("sport");
+$reclogic{title_xlate_skip_categories_min_programme_length} = (70 * 60); # 70 minutes
 
 # store a preferred title only if we have at least 1 alternative
 $reclogic{title_xlate_table_min_alt_progs} = 1;
@@ -1266,6 +1270,26 @@ sub choose_title
 		  $opt->{lang}, $title, (defined $lang ? $lang : "(undef)")));
 		return ($title, $lang);
 	}
+
+    # if 70 minutes or longer and category sport return best title
+    if ($title_duration >= $reclogic{title_xlate_skip_categories_min_programme_length}) {
+        for my $i (0..($num_matching-1)) {
+            if (defined $m->[$i]->{title} && defined $m->[$i]->{category}) {
+                foreach my $found_c (@{($m->[$i]->{category})}) {
+                    my $c = $found_c->[0];
+                    next if ($c eq '');
+
+                    foreach my $skip_c (@{$reclogic{title_xlate_skip_categories}}) {
+                        if (lc($c) eq lc($skip_c)) {
+                            &log($reclogic{debug_choose_title},(sprintf
+                            "choose_title: not using xlate table; using best title \"%s\" because category \"%s\" and length %d minutes", $titles[0], $skip_c, $title_duration/60));
+                            return ($titles[0], $opt->{lang});
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 	# 3. do we already have any titles in our list here in our 'preferred title' list?
 	my $found_index = -1;
