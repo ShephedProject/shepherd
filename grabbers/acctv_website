@@ -15,6 +15,7 @@ $| = 1;
 my $details_cache;
 my $writer;
 my $baseurl = "http://www.acctv.com.au/";
+my $prev_stop = undef;
 
 #
 # go go go!
@@ -22,7 +23,7 @@ my $baseurl = "http://www.acctv.com.au/";
 
 my %stats;
 my $o;
-Shepherd::Common::program_begin(\$o, "acctv_website", "0.04", \%stats);
+Shepherd::Common::program_begin(\$o, "acctv_website", "0.05", \%stats);
 
 my ($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, ("ACC"));
 my $channel_xmlid = $channels->{ACC} || $opt_channels->{ACC};
@@ -196,6 +197,8 @@ sub get_day
 		# don't return anything before first day
 		next if (defined $prog->{stop} && $prog->{stop} <= $first_day);
 
+		gapfill($prog->{start},(defined($prog->{stop}) ? $prog->{stop} : undef));
+
 		$prog->{start} = POSIX::strftime("%Y%m%d%H%M",localtime($prog->{start}));
 		$prog->{stop} = POSIX::strftime("%Y%m%d%H%M",localtime($prog->{stop})) if defined $prog->{stop};
 		$prog->{channel} = $channel_xmlid;
@@ -219,6 +222,28 @@ sub get_day
 			if ($progs_in_day < 5);
 
 	return $progs_in_day;
+}
+
+sub gapfill
+{
+	my ($next_start, $next_stop) = @_;
+
+    if (defined($prev_stop) && ($prev_stop != $next_start)) {
+		my $prog;
+		$prog->{title} = [["Gap", $o->{lang}]];
+		$prog->{start} = POSIX::strftime("%Y%m%d%H%M",localtime($prev_stop));
+		$prog->{stop} = POSIX::strftime("%Y%m%d%H%M",localtime($next_start));
+		$prog->{channel} = $channel_xmlid;
+
+		Shepherd::Common::cleanup($prog);
+
+		Shepherd::Common::log("DEBUG: xmltv: ".Dumper($prog))
+				if ((defined $o->{debug}) && ($o->{debug} > 1));
+
+		$writer->write_programme($prog);
+
+	}
+	$prev_stop = $next_stop;
 }
 
 sub get_details

@@ -13,7 +13,7 @@ grabber         channelnsw_gov      0.8
 grabber         southerncross_website   0.17
 grabber         ten_website         1.04
 grabber         citysearch          3.0.0-r1
-grabber         acctv_website       0.04
+grabber         acctv_website       0.05
 reconciler      reconciler_mk2      0.37
 postprocessor   imdb_augment_data   0.37
 postprocessor   tvdb_augment_data   0.11
