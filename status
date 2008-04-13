@@ -15,7 +15,7 @@ grabber         ten_website         1.04
 grabber         citysearch          3.0.0-r1
 grabber         acctv_website       0.05
 reconciler      reconciler_mk2      0.38
-postprocessor   imdb_augment_data   0.37
+postprocessor   imdb_augment_data   0.38
 postprocessor   tvdb_augment_data   0.11
 postprocessor   flag_aus_hdtv       0.35
 postprocessor   augment_timezone    0.21
