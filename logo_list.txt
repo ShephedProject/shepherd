@@ -75,13 +75,13 @@ ICON	Nine	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons
 ICON	Nine	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/nine.png
 ICON	Nine	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/nine.png
 
-ICON	NineHD	standard	http://imagestore.ugbox.net/thumb/nine_53151871dd779ac2304e05ce9b2.jpg
-ICON	NineHD	tatey_blue	http://tatey.com/images/au_network_logos/nine-hd.png
-ICON	NineHD	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/nine-hd.png
-ICON	NineHD	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/nine-hd.png
-ICON	NineHD	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons-frogman-hybrid/png/nine-hd.png
-ICON	NineHD	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/nine-hd.png
-ICON	NineHD	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/nine-hd.png
+ICON	Nine HD	standard	http://imagestore.ugbox.net/thumb/nine_53151871dd779ac2304e05ce9b2.jpg
+ICON	Nine HD	tatey_blue	http://tatey.com/images/au_network_logos/nine-hd.png
+ICON	Nine HD	frogman_blue	http://techtoucian.net/regulars/channels/download/icons-frogman-blue/png/nine-hd.png
+ICON	Nine HD	frogman_green	http://techtoucian.net/regulars/channels/download/icons-frogman-green/png/nine-hd.png
+ICON	Nine HD	frogman_hybrid	http://techtoucian.net/regulars/channels/download/icons-frogman-hybrid/png/nine-hd.png
+ICON	Nine HD	t8_blue	http://techtoucian.net/regulars/channels/download/icons-t8-blue/png/nine-hd.png
+ICON	Nine HD	t8_hybrid	http://techtoucian.net/regulars/channels/download/icons-t8-hybrid/png/nine-hd.png
 
 ICON	TEN	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
 ICON	TEN	lyngsat	http://www.lyngsat-logo.com/logo/tv/tt/ten_network.jpg

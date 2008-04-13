@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.34";
+my $version = "0.35";
 
 $| = 1;
 print "$progname v$version\n";
@@ -54,6 +54,7 @@ my $hd_to_sds;
 		"Seven (Rockhampton/Toowoomba)","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
 		"Prime Canberra/Sth Coast","Prime Wagga Wagga","Prime Wollongong","Prime Orange",
 		"Prime (Regional)","Prime (Albury)","Southern Cross","Central GTS/BKN","Golden West");
+@{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","WIN (QLD: Regional)","WIN (Mackay/Wide Bay)","NBN","Imparja");
 @{$hd_to_sds->{"TEN HD"}} = ("TEN","TEN (NSW: Southern NSW)","TEN (Mildura Digital)",
 		"Sthn Cross TEN","WIN TEN","TDT");
 
