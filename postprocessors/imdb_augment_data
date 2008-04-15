@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.38";
+my $version = "0.39";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -61,6 +61,7 @@ $opt->{max_duration} =		240;	# 4 hours
 $opt->{skip_categories} = 	"Infotainment,Shopping,Business and Finance,Game Show,News,Parliament,Current Affairs,sports,Sport,Weather,Reality,live";
 $opt->{cache_details_for} =	120;	# cache movie details for 4 months
 $opt->{cache_title_for} = 	120;	# cache title lookups for 4 months
+$opt->{dont_augment_desc} =	1;	# from 2008/04/15
 
 GetOptions(
 	'region=i'		=> \$opt->{region},		# ignored
@@ -76,7 +77,7 @@ GetOptions(
 	'cache_details_for=i' 	=> \$opt->{cache_details_for},
 	'cache_title_for=i' 	=> \$opt->{cache_title_for},
 	'long-info'             => \$opt->{long_info},
-	'dont-augment-desc' 	=> \$opt->{dont_augment_desc},
+	'dont-augment-desc=i' 	=> \$opt->{dont_augment_desc},
 
 	'output=s'		=> \$opt->{output_file},
 	'cache-file=s'		=> \$opt->{cache_file},
@@ -116,9 +117,10 @@ Supported options include:
   --max_duration={min} ignore programs over {min} duration (default: $opt->{max_duration} min)
   --skip_categories={list} don't try to look up programmes in these categories (default: $opt->{skip_categories})
 
-  --dont-augment-desc  don't add any IMDb data to programme description,
-                       only update the data fields (default: do)
-  --long-info          add lots of IMDb data to description
+  --dont-augment-desc=1/0 (don't / do)
+                       don't add any IMDb data to programme description,
+                       only update the data fields (default: 1 or don't)
+  --long-info          add lots of IMDb data to description (default: don't)
 
   --cache_details_for={days}  cache programme details for {days} (def: $opt->{cache_details_for} days)
   --cache_title_for={days}    cache IMDb URLs for {days} (def: $opt->{cache_title_for} days)
@@ -224,11 +226,12 @@ sub read_cache
 		$data_cache = $store->{data_cache};
 		$settings_override = $store->{settings_override};
 
-		$settings_override->{dont_augment_desc} = 0
-				if (!defined $settings_override->{dont_augment_desc}); # 2008/04/13
-
 		foreach my $setting (keys %$settings_override) {
-			$opt->{$setting} = 1 if ($settings_override->{$setting} != 0);
+			if ($settings_override->{$setting} eq "0") {
+				printf "using override parameter %s: %s\n", $setting,
+						($settings_override->{$setting} eq "0" ? "disabled" : "enabled");
+				$opt->{$setting} = 0;
+			}
 		}
 	
 		#
