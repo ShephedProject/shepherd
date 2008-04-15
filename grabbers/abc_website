@@ -22,7 +22,7 @@
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.17";
+my $version = "3.18";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -624,9 +624,12 @@ sub get_one_abc_event
 
 			if ($event_subtitle) {
 				$event_subtitle =~ s/(<[\/a-zA-Z0-9]+\>)//g;	# remove html tags
-				$event_subtitle =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
-				$data_cache->{$cache_key}->{subtitle} = $event_subtitle;
-				Shepherd::Common::log(" - decoded subtitle '".$event_subtitle."'") if ($debug);
+				$event_subtitle =~ s/(^\n+|\n+$)//g;		# strip trailing/leading blank lines
+				$event_subtitle =~ s/(^\s+|\s+$)//g;		# strip trailing/leading blanks
+				if ($event_subtitle) {
+					$data_cache->{$cache_key}->{subtitle} = $event_subtitle;
+					Shepherd::Common::log(" - decoded subtitle '".$event_subtitle."'") if ($debug);
+				}
 			}
 		}
 
