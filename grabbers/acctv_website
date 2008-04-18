@@ -23,7 +23,7 @@ my $prev_stop = undef;
 
 my %stats;
 my $o;
-Shepherd::Common::program_begin(\$o, "acctv_website", "0.05", \%stats);
+Shepherd::Common::program_begin(\$o, "acctv_website", "0.06", \%stats);
 
 my ($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, ("ACC"));
 my $channel_xmlid = $channels->{ACC} || $opt_channels->{ACC};
@@ -96,7 +96,7 @@ sub get_days
 	$intnewtzstate = 7 if ($o->{region} =~ /^(126)$/);
 	$intnewtzstate = 0 if ($o->{region} =~ /^(73|184|66|67|63|69|71|106)$/);
 	$intnewtzstate = 6 if ($o->{region} =~ /^(74|108)$/);
-	$intnewtzstate = 2 if ($o->{region} =~ /^(75|78|79|114)$/);
+	$intnewtzstate = 2 if ($o->{region} =~ /^(75|78|255|256|258|254|253|257|79|114)$/);
 	$intnewtzstate = 3 if ($o->{region} =~ /^(81|82|83|85|86|107)$/);
 	$intnewtzstate = 5 if ($o->{region} =~ /^(88)$/);
 	$intnewtzstate = 1 if ($o->{region} =~ /^(94|93|90|95|98)$/);

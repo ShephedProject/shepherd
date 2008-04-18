@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.39';
+my $version = '1.2.40';
 
 # tv_grab_au
 # "Shepherd"
@@ -90,7 +90,9 @@ my %REGIONS = (
     66 => "NSW: Central Coast",	67 => "NSW: Griffith",		63 => "NSW: Broken Hill",
     69 => "NSW: Northern NSW", 	71 => "NSW: Southern NSW", 	106 => "NSW: Remote and Central",
     74 => "NT: Darwin", 	108 => "NT: Remote & Central", 	75 => "QLD: Brisbane",
-    78 => "QLD: Gold Coast", 	79 => "QLD: Regional", 		114 => "QLD: Remote & Central",
+    78 => "QLD: Gold Coast",	255 => "QLD: Sunshine Coast",	256 => "QLD: Toowoomba",
+    258 => "QLD: Wide Bay",		254 => "QLD: Rockhampton",	253 => "QLD: Mackay",
+    257 => "QLD: Townsville", 	79 => "QLD: Cairns", 		114 => "QLD: Remote & Central",
     81 => "SA: Adelaide", 	82 => "SA: Renmark", 		83 => "SA: Riverland",
     85 => "SA: South East SA", 	86 => "SA: Spencer Gulf", 	107 => "SA: Remote & Central",
     88 => "Tasmania", 		94 => "VIC: Melbourne", 	93 => "VIC: Geelong", 
@@ -98,11 +100,10 @@ my %REGIONS = (
     101 => "WA: Perth", 	102 => "WA: Regional");
 
 my $hd_to_sds;
-@{$hd_to_sds->{"7HD"}} = ("Seven","Seven Cairns","Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)",
-	"Seven (Rockhampton/Toowoomba)","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
+@{$hd_to_sds->{"7HD"}} = ("Seven","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
 	"Prime Canberra/Sth Coast","Prime Wagga Wagga","Prime Wollongong","Prime Orange",
 	"Prime (Regional)","Prime (Albury)","Southern Cross","Central GTS/BKN","Golden West");
-@{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","WIN (QLD: Regional)","WIN (Mackay/Wide Bay)","NBN","Imparja");
+@{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
 @{$hd_to_sds->{"TEN HD"}} = ("TEN","TEN (NSW: Southern NSW)","TEN (Mildura Digital)",
 	"Sthn Cross TEN","WIN TEN","TDT");
 
@@ -1094,13 +1095,29 @@ sub migrate_channels
 	return;
     }
 
+    my $write_config = 0;
     my $mflag = 0;
     while (my $line = <FN>)
     {
 	$mflag = 1 if ($line =~ /---migrate---/);
 	next unless ($mflag);
 	next unless ($line =~ /^$region:(.*)/ or $line =~ /^\*:(.*)/);
-	my @migrations = split(/,/, $1);
+	my $migrations = $1;
+	if ($migrations =~ /(.*?):(.*?):(.*)/) {
+		my $to_region = $1;
+		my $need_channel = $2;
+		$migrations = $3;
+
+		if (($need_channel =~ /^!(.*)$/ && !defined($channels->{$1})) ||
+				defined $channels->{$need_channel}) {
+			&log("Migrating region \"$region\" to \"$to_region\".\n");
+			$region = $to_region;
+			$write_config = 1;
+		} else {
+			next;
+		}
+	}
+	my @migrations = split(/,/, $migrations);
 	foreach (@migrations)
 	{
 	    my ($from, $to) = split /->/;
@@ -1126,6 +1143,10 @@ sub migrate_channels
 	&log("Updating channels file.\n");
 	&write_channels_file;
     }
+	if ($write_config) {
+		&log("Updating config file.\n");
+		&write_config_file;
+	}
 }
 
 sub migrate_paytv_channels
@@ -2646,7 +2667,6 @@ sub fetch_channels
     {
 	if (@{$clist->{$cn}} == 1)
 	{
-	    next if (($reg == 79) && ($cn eq "Prime"));	# ignore Prime in Regional QLD
 	    push @channellist, $cn;
 	}
 	else

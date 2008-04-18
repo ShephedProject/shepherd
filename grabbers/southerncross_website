@@ -33,7 +33,7 @@
 use strict;
 
 my $progname = "southerncross_website";
-my $version = "0.17";
+my $version = "0.18";
 
 #use LWP::UserAgent;
 #use LWP::ConnCache;
@@ -71,7 +71,7 @@ $opt->{days} =          7;      # default
 $opt->{offset} =        0;      # default
 $opt->{outputfile} =    "output.xmltv";    # default
 $opt->{lang} =          "en";
-$opt->{region} =        79;
+$opt->{region} =        253;
 
 GetOptions(
 #  'log-http'  => \$opt->{log_http},
@@ -336,10 +336,40 @@ sub set_region
     $channel = "Sthn Cross TEN";
     $url .= "GOL:Southern%20Cross%20TEN%20-%20Gold%20Coast";
   }
-  elsif ($region == 79) # QLD - Regional QLD
+  elsif ($region == 255) # QLD - Sunshine Coast
+  { # simple
+    $channel = "TEN";
+    $url .= "SUN:Southern%20Cross%20TEN%20-%20Sunshine%20Coast";
+  }
+  elsif ($region == 256) # QLD - Toowoomba
+  { # simple
+    $channel = "TEN";
+    $url .= "TOO:Southern%20Cross%20TEN%20-%20Toowoomba";
+  }
+  elsif ($region == 258) # QLD - Wide Bay (Bundaberg)
+  { # simple
+    $channel = "TEN";
+    $url .= "BUN:Southern%20Cross%20TEN%20-%20Bundaberg";
+  }
+  elsif ($region == 254) # QLD - Rockhampton
+  { # simple
+    $channel = "TEN";
+    $url .= "ROC:Southern%20Cross%20TEN%20-%20Rockhampton";
+  }
+  elsif ($region == 253) # QLD - Mackay
   { # simple
     $channel = "TEN";
     $url .= "MAC:Southern%20Cross%20TEN%20-%20Mackay";
+  }
+  elsif ($region == 257) # QLD - Townsville
+  { # simple
+    $channel = "TEN";
+    $url .= "TOW:Southern%20Cross%20TEN%20-%20Townsville";
+  }
+  elsif ($region == 79) # QLD - Cairns
+  { # simple
+    $channel = "TEN";
+    $url .= "CAI:Southern%20Cross%20TEN%20-%20Cairns";
   }
   elsif ($region == 126) # ACT - ACT
   { # simple
@@ -369,14 +399,14 @@ sub set_region
 # 			<p class="Heading1">Southern Cross TEN</p>
 # 			<select size="1" name="SCTEN" networkname="Southern Cross TEN" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
 # 			<option>Queensland...</option>
-# 			<option value="BUN">Bundaberg</option>
-# 			<option value="CAI">Cairns</option>        Regional
+# 			<option value="BUN">Bundaberg</option>     Wide Bay
+# 			<option value="CAI">Cairns</option>        Cairns
 # 			<option value="GOL">Gold Coast</option>    Gold Coast
-# 			<option value="MAC">Mackay</option>        Regional
-# 			<option value="ROC">Rockhampton</option>   Regional
-# 			<option value="SUN">Sunshine Coast</option>Regional
-# 			<option value="TOO">Toowoomba</option>     Regional
-# 			<option value="TOW">Townsville</option>    Regional
+# 			<option value="MAC">Mackay</option>        Mackay
+# 			<option value="ROC">Rockhampton</option>   Rockhampton
+# 			<option value="SUN">Sunshine Coast</option>Sunshine Coast
+# 			<option value="TOO">Toowoomba</option>     Toowoomba
+# 			<option value="TOW">Townsville</option>    Townsville
 # 			</select><select size="1" name="SCTEN" networkname="Southern Cross TEN" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
 # 			<option>New South Wales/ACT...</option>
 # 			<option value="CAN">Canberra</option>      ACT
@@ -408,8 +438,10 @@ sub set_region
 # "69">NSW - Northern NSW "71">NSW - Southern NSW   "73">NSW - Sydney
 # "106">NSW - Remote and Central  "184" >NSW - Newcastle
 # "74">NT - Darwin  "108">NT - Remote and Central
-# "75">QLD - Brisbane "78">QLD - Gold Coast "79">QLD - Regional QLD
-# "114">QLD - Remote and Central
+# "75">QLD - Brisbane "78">QLD - Gold Coast "78">QLD - Gold Coast
+# "255">QLD - Sunshine Coast "256">QLD - Toowoomba "258">QLD - Wide Bay
+# "254" >QLD - Rockhampton "253" >QLD - Mackay "257" >QLD - Townsville
+# "79" >QLD - Cairns "114">QLD - Remote and Central
 # "81">SA - Adelaide  "82">SA - Renmark "83">SA - Riverland
 # "85">SA - South East SA "86">SA - Spencer Gulf "107">SA - Remote and Central
 # "88">TAS - Tasmania

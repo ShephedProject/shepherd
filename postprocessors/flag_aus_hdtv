@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.35";
+my $version = "0.36";
 
 $| = 1;
 print "$progname v$version\n";
@@ -50,11 +50,10 @@ $chan_name_translations->{"Ten"} = "TEN";
 $chan_name_translations->{"ABC Main"} = "ABC1";
 
 my $hd_to_sds;
-@{$hd_to_sds->{"7HD"}} = ("Seven","Seven Cairns","Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)",
-		"Seven (Rockhampton/Toowoomba)","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
+@{$hd_to_sds->{"7HD"}} = ("Seven","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
 		"Prime Canberra/Sth Coast","Prime Wagga Wagga","Prime Wollongong","Prime Orange",
 		"Prime (Regional)","Prime (Albury)","Southern Cross","Central GTS/BKN","Golden West");
-@{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","WIN (QLD: Regional)","WIN (Mackay/Wide Bay)","NBN","Imparja");
+@{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
 @{$hd_to_sds->{"TEN HD"}} = ("TEN","TEN (NSW: Southern NSW)","TEN (Mildura Digital)",
 		"Sthn Cross TEN","WIN TEN","TDT");
 
@@ -106,9 +105,9 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 
 &read_config_file($opt->{channels_file},1);
 
-&decode_region($opt->{region});
+&setup_channels;
 
-if ((!defined $opt->{nodbalookup}) || (defined $opt->{locality})) {
+if (!defined $opt->{nodbalookup}) {
 	&lookup_dba($opt->{dbaurl});
 	if (!defined $stats{parsed_hd_progs}) {
 		print " - WARNING: no programs matched from ".$opt->{dbaurl}.", trying alternate.\n";
@@ -183,13 +182,6 @@ sub parse_command_line
 
 options:
   --channels_file=(f)  shepherd channels file (mandatory)
-  --region=(region)    region where we are (mandatory) (default: $opt->{region})
-                         (VIC)     90,93,94,95,98
-                         (NSW/ACT) 63,66,67,69,71,73,106,126,184
-                         (QLD)     75,78,79,114
-                         (SA)      81,82,83,85,86,107
-                         (WA)      101,102
-                         (TAS)     88
 
   --nodbalookup        don't look up programmes on DBA website (default: do)
   --dbaurl=(url)       URL where dba lists HDTV programming (default: $opt->{dbaurl})
@@ -272,37 +264,13 @@ sub apply_setting_overrides
 
 ######################################################################################################
 
-sub decode_region
+sub setup_channels
 {
-	my $r = shift;
-
-	if ($r =~ /^(90|93|94|95|98)$/) {
-		$opt->{locality} = "M";
-	} elsif ($r =~ /^(101|102)$/) {
-		$opt->{locality} = "W";
-	} elsif ($r =~ /^(63|66|67|69|71|73|76|106|184)$/) {
-		$opt->{locality} = "S";
-	} elsif ($r =~ /^(75|78|79|114)$/) {
-		$opt->{locality} = "B";
-	} elsif ($r =~ /^(81|82|83|85|86|107)$/) {
-		$opt->{locality} = "A";
-	} elsif ($r =~ /^(88)$/) {
-		# locality T doesnt actually exist on DBA website but it may one day
-		$opt->{locality} = "T";
-	} elsif ($r =~ /^(126)$/) {
-		# treat ACT to be the same as Sydney for now
-		$opt->{locality} = "S";
-	}
-
-	if (!defined $opt->{locality}) {
-		print " - region $r doesn't receive HDTV, not moving channels.\n";
-		$stats{no_hdtv_region}++;
-	}
-
 	while (my ($name, $chanid) = each %$channels) {
 		$detailed_reverse_channels->{$chanid} = $name;
 	}
 
+	# find the sd channel for each hd channel
 	foreach my $hdchannel (keys %$hd_to_sds) {
 		if (defined $channels->{$hdchannel}) {
 			foreach my $sdchannel (@{$hd_to_sds->{$hdchannel}}) {
@@ -319,50 +287,14 @@ sub decode_region
 		}
 	}
 
+	# convert all channel names to network names
 	my $shortchannels;
 	while (my ($name, $chanid) = each %$channels)
 	{
 	    my $oldname = $name;
 
-	    # Ignore differences between rural stations like
-	    # Seven (Rockhampton) and Seven (Cairns) -- this is not a great
-	    # solution and should be fixed.
-	    $name =~ s/ *\(.*?\)//g;
-
-	    # Translate station name to program provider
-	    if ($name eq "WIN") {
-		$name = "Nine";
-	    }
-	    if ($name eq "WIN TEN") {
-		$name = "TEN";
-	    }
-	    if ($name eq "Seven Cairns") {
-		$name = "Seven";
-	    }
-	    if ($name =~ /^Prime/) {
-		$name = "Seven";
-	    }
-	    if ($name eq "Sthn Cross TEN") {
-		$name = "TEN";
-	    }
-	    if ($name eq "Southern Cross") { # didn't test all regions
-		$name = "Seven";
-	    }
-	    if ($name eq "Central GTS/BKN") {
-		$name = "Seven";
-	    }
-	    if ($name eq "Golden West") { # didn't test all regions
-		$name = "Seven";
-	    }
-	    if ($name eq "TDT") { # didn't test all regions
-		$name = "TEN";
-	    }
-	    if ($name eq "NBN") { # didn't test all regions
-		$name = "Nine";
-	    }
-	    if ($name eq "Imparja") { # didn't test all regions
-		$name = "Nine";
-	    }
+		$name = @{$hd_to_sds->{$sd_to_hd->{$name}}}[0]
+				if (defined($sd_to_hd->{$name}));
 
 	    push @{$shortchannels->{$name}}, $chanid;
 	    print "  '$oldname' treated as '$name' with xmlid '$chanid'\n" if ($name ne $oldname);

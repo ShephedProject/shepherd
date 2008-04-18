@@ -8,7 +8,7 @@
 use strict;
 
 my $progname = "ten_website";
-my $version = "1.04";
+my $version = "1.05";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -271,7 +271,7 @@ sub get_summary_page
 {
 	my $reg = "sydney";							# sydney
 	$reg = "melbourne" if ($opt->{region} =~ /^9/);				# melbourne
-	$reg = "brisbane" if ($opt->{region} =~ /(75|78|79|114|74|108)/);	# brisbane
+	$reg = "brisbane" if ($opt->{region} =~ /(75|78|255|256|258|254|253|257|79|114|74|108)/);	# brisbane
 	$reg = "perth" if ($opt->{region} =~ /(101|102)/);			# perth
 	$reg = "adelaide" if ($opt->{region} =~ /(81|82|83|85|86|107)/);	# adelaide
 

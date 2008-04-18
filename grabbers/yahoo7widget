@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.102";
+my $version = "1.103";
 
 use XMLTV;
 use XML::DOM;
@@ -230,10 +230,6 @@ sub region_channels
 		push (@{($chan_map{"TEN"})}, "TEN (NSW: Southern NSW)", "TEN (Mildura Digital)");
 		push (@{($chan_map{"Prime"})}, "Prime Canberra/Sth Coast", "Prime Wagga Wagga",
 				"Prime Wollongong", "Prime Orange");
-	} elsif ($r == 79) { # QLD: Regional
-		push (@{($chan_map{"Seven"})}, 	"Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)",
-			"Seven (Rockhampton/Toowoomba)", "Seven Cairns");
-		push (@{($chan_map{"WIN"})}, "WIN (QLD: Regional)", "WIN (Mackay/Wide Bay)");
 	} elsif ($r == 90) { # VIC: Eastern Victoria
 		push (@{($chan_map{"Prime"})}, "Prime (Regional)", "Prime (Albury)");
 	} elsif ($r == 106) { # NSW: Remote and Central
@@ -250,16 +246,18 @@ sub region_channels
 sub scan_channels
 {
 	my %REGIONS = (
-		126 => "ACT",               73 => "NSW: Sydney",            184 => "NSW: Newcastle",
-		66 => "NSW: Central Coast", 67 => "NSW: Griffith",          63 => "NSW: Broken Hill",
-		69 => "NSW: Northern NSW",  71 => "NSW: Southern NSW",      106 => "NSW: Remote and Central",
-		74 => "NT: Darwin",         108 => "NT: Remote & Central",  75 => "QLD: Brisbane",
-		78 => "QLD: Gold Coast",    79 => "QLD: Regional",          114 => "QLD: Remote & Central",
-		81 => "SA: Adelaide",       82 => "SA: Renmark",            83 => "SA: Riverland",
-		85 => "SA: South East SA",  86 => "SA: Spencer Gulf",       107 => "SA: Remote & Central",
-		88 => "Tasmania",           94 => "VIC: Melbourne",         93 => "VIC: Geelong",
+		126 => "ACT",		73 => "NSW: Sydney",		184 => "NSW: Newcastle",
+		66 => "NSW: Central Coast",	67 => "NSW: Griffith",		63 => "NSW: Broken Hill",
+		69 => "NSW: Northern NSW", 	71 => "NSW: Southern NSW", 	106 => "NSW: Remote and Central",
+		74 => "NT: Darwin", 	108 => "NT: Remote & Central", 	75 => "QLD: Brisbane",
+		78 => "QLD: Gold Coast",	255 => "QLD: Sunshine Coast",	256 => "QLD: Toowoomba",
+		258 => "QLD: Wide Bay",		254 => "QLD: Rockhampton",	253 => "QLD: Mackay",
+		257 => "QLD: Townsville", 	79 => "QLD: Cairns", 		114 => "QLD: Remote & Central",
+		81 => "SA: Adelaide", 	82 => "SA: Renmark", 		83 => "SA: Riverland",
+		85 => "SA: South East SA", 	86 => "SA: Spencer Gulf", 	107 => "SA: Remote & Central",
+		88 => "Tasmania", 		94 => "VIC: Melbourne", 	93 => "VIC: Geelong",
 		90 => "VIC: Eastern Victoria", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Western Victoria",
-		101 => "WA: Perth",         102 => "WA: Regional");
+		101 => "WA: Perth", 	102 => "WA: Regional");
 
 	my $now = time;
 	my %all_channels;

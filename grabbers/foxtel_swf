@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "0.24";
+my $version = "0.25";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -364,7 +364,7 @@ sub get_region_data
 		$state = "VIC";
 	} elsif ($opt->{region} =~ /^(73|66|67|63|69|71|106|184)$/) {
 		$state = "NSW";
-	} elsif ($opt->{region} =~ /^(75|78|79|114)$/) {
+	} elsif ($opt->{region} =~ /^(75|78|255|256|258|254|253|257|79|114)$/) {
 		$state = "QLD";
 	} elsif ($opt->{region} =~ /^(101|102)$/) {
 		$state = "WA";

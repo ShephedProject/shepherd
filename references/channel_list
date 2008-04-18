@@ -7,7 +7,7 @@
 74:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,Southern Cross,Nine
 75:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Briz 31,TEN,Nine,Seven
 78:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,NBN,Sthn Cross TEN,TEN,Nine,Prime,Seven
-79:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN (QLD: Regional),WIN (Mackay/Wide Bay),TEN,Seven Cairns,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast),Seven (Rockhampton/Toowoomba)
+79:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
 81:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Seven,C31 Adelaide
 82:ABC1,ABC2,SBS,SBS News,Nine HD,TEN HD,WIN,WIN TEN
 83:ABC1,ABC2,SBS,SBS News,Nine HD,TEN HD,WIN,WIN TEN
@@ -27,6 +27,12 @@
 114:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,Seven,Imparja
 126:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Prime Canberra/Sth Coast
 184:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,NBN,Sthn Cross TEN,Prime
+253:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
+254:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
+255:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
+256:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
+257:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
+258:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
 Foxtel:ACC,AdultsOnly960,AIR,AnimalPlanet,AntennaPacific,ARENATV,ARENATV2,Aurora,BBCWorld,Bio,BloombergTelevision,Boomerang,CartoonNetwork,ChannelV,ChannelV2,CNBC,CNN,CountryMusicChannel,CrimeandInvestigationNetwork,DiscoveryChannel,DiscoveryHealth,DiscoveryScience,DiscoveryTravel,DisneyChannel,E!Entertainment,ESPN,Eurosportnews,EXPO,FashionTV,FOXClassics,FOXClassics2,FOXNews,FOXSPORTS1,FOXSPORTS2,FOXSPORTS3,FOXSPORTSNews,FOX8,FOX82,FOXTELBoxOffice,FOXTELGamesworld,FUELTV,Hallmark,HOWTOChannel,LifestyleChannel2,LifeStyleFOOD,MainEvent,MAX,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,NickJr,Nickelodeon,NITV,Ovation,PlayhouseDisney,RAIInternational,SCIFI,showcase,SHOWTIME,SHOWTIMEGreats,SHOWTIME2,SkyNewsAustralia,SkyNewsBusiness,SkyRacing,TCM,THECOMEDYCHANNEL,THECOMEDYCHANNEL2,TheHistoryChannel,TheLifeStyleChannel,TheWeatherChannel,TV1,TV12,TVN,TVSN,UKTV,UKTV2,VH1,W,W2,WORLDMOVIES
 SelecTV:AnimalPlanet,AntennaGreek,BBCWorld,CartoonNetwork,CNN,DiscoveryScience,DiscoveryHealth,DiscoveryTravel,DiscoveryRealTime,E!Entertainment,ERTGreek,Eurosport,FashionTV,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,Ovation,SkyRacing,TCM,TVChileSpanish,TVE,VH1
 ---migrate---
@@ -38,3 +44,7 @@ Foxtel:A1->NatGeoAdventure,CNBCAustralia->CNBC,CrimeandInvestigation->CrimeandIn
 79:Seven (Cairns)->Seven Cairns
 SelecTV:Eurosportnews->Eurosport
 *:ABC->ABC1
+79:253:WIN (Mackay/Wide Bay):WIN (QLD: Regional)->WIN,WIN (Mackay/Wide Bay)->WIN,Seven Cairns->Seven,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven
+79:254:Seven (Rockhampton/Toowoomba):WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven Cairns->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven,Seven (Rockhampton/Toowoomba)->Seven
+79:255:!Seven Cairns:WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven Cairns->Seven,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven
+79:WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven,Seven Cairns->Seven

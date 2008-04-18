@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.4';
+my $version  = '3.6.5';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -771,9 +771,6 @@ sub translate_channel_name
 	69 => {	'Prime' => [ 'Prime Tamworth/Taree/Port','Prime Lismore/Coffs Hbr' ] },
 	71 => {	'TEN' => [ 'TEN (NSW: Southern NSW)', 'TEN (Mildura Digital)' ],
 		'Prime' => [ 'Prime Canberra/Sth Coast','Prime Wagga Wagga','Prime Wollongong','Prime Orange' ] },
-	79 => { 'WIN' => [ 'WIN (QLD: Regional)', 'WIN (Mackay/Wide Bay)' ],
-		'Seven' => [ 'Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)', 'Seven (Rockhampton/Toowoomba)',
-			'Seven Cairns' ] },
 	90 => { 'Prime' => [ 'Prime (Regional)', 'Prime (Albury)' ] },
 	106 => { 'Prime' => [ 'Prime Wagga Wagga' ] },
 	126 => { 'Prime' => [ 'Prime Canberra/Sth Coast' ] }

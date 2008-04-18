@@ -37,7 +37,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.11';
+my $version = '2.12';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -127,18 +127,54 @@ my %s_to_o_map = (
 		'Sthn Cross TEN' => 'SC10-GC',
 		'TEN' => 'Ten-Qld',
 	},
-	'79' => {	# QLD: Regional
-		'7HD (Cairns)' => 'SevenHD',
-		'7HD (Rockhampton/Toowoomba)' => 'SevenHD',
-		'7HD (Townsville/Mackay/Wide Bay/Sunshine Coast)' => 'SevenHD',
+	'255' => {	# QLD: Sunshine Coast
 		'ABC1' => 'ABC-Qld',
 		'SBS' => 'SBS-Qld',
-		'Seven (Cairns)' => 'Seven-Qld',
-		'Seven (Rockhampton/Toowoomba)' => 'Seven-Qld',
-		'Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)' => 'Seven-Qld',
+		'Seven' => 'Seven-Qld',
 		'TEN' => 'Ten-Qld',
-		'WIN (Mackay/Wide Bay)' => 'Win-Qld',
-		'WIN (QLD: Regional)' => 'Win-Qld',
+		'WIN' => 'Win-Qld',
+	},
+	'256' => {	# QLD: Toowoomba
+		'ABC1' => 'ABC-Qld',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Qld',
+		'TEN' => 'Ten-Qld',
+		'WIN' => 'Win-Qld',
+	},
+	'258' => {	# QLD: Wide Bay
+		'ABC1' => 'ABC-Qld',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Qld',
+		'TEN' => 'Ten-Qld',
+		'WIN' => 'Win-Qld',
+	},
+	'254' => {	# QLD: Rockhampton
+		'ABC1' => 'ABC-Qld',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Qld',
+		'TEN' => 'Ten-Qld',
+		'WIN' => 'Win-Qld',
+	},
+	'253' => {	# QLD: Mackay
+		'ABC1' => 'ABC-Qld',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Qld',
+		'TEN' => 'Ten-Qld',
+		'WIN' => 'Win-Qld',
+	},
+	'257' => {	# QLD: Townsville
+		'ABC1' => 'ABC-Qld',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Qld',
+		'TEN' => 'Ten-Qld',
+		'WIN' => 'Win-Qld',
+	},
+	'79' => {	# QLD: Cairns
+		'ABC1' => 'ABC-Qld',
+		'SBS' => 'SBS-Qld',
+		'Seven' => 'Seven-Qld',
+		'TEN' => 'Ten-Qld',
+		'WIN' => 'Win-Qld',
 	},
 	'107' => {	# SA: Remote & Central
 		'ABC1' => 'ABC-SA',

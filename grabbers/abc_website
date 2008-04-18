@@ -22,7 +22,7 @@
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.18";
+my $version = "3.19";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -133,7 +133,7 @@ my $abc_region = "netw";	# national by default
 $abc_region = "act"	if ($region =~ /^(126)$/);
 $abc_region = "nsw"	if ($region =~ /^(73|184|66|67|63|69|71|106)$/);
 $abc_region = "nt"	if ($region =~ /^(74|108)$/);
-$abc_region = "qld"	if ($region =~ /^(75|78|79|114)$/);
+$abc_region = "qld"	if ($region =~ /^(75|78|255|256|258|254|253|257|79|114)$/);
 $abc_region = "sa"	if ($region =~ /^(81|82|83|85|86|107)$/);
 $abc_region = "tas"	if ($region =~ /^(88)$/);
 $abc_region = "vic"	if ($region =~ /^(94|93|90|95|98)$/);
