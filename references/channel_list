@@ -46,5 +46,5 @@ SelecTV:Eurosportnews->Eurosport
 *:ABC->ABC1
 79:253:WIN (Mackay/Wide Bay):WIN (QLD: Regional)->WIN,WIN (Mackay/Wide Bay)->WIN,Seven Cairns->Seven,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven
 79:254:Seven (Rockhampton/Toowoomba):WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven Cairns->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven,Seven (Rockhampton/Toowoomba)->Seven
-79:255:!Seven Cairns:WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven Cairns->Seven,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven
+79:255:Seven (Townsville/Mackay/Wide Bay/Sunshine Coast):WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven Cairns->Seven,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven
 79:WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven,Seven Cairns->Seven
