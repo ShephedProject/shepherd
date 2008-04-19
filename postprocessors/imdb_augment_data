@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.39";
+my $version = "0.40";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -303,7 +303,9 @@ sub search_imdb_online
 	while (my $token = $tp->get_tag("a")) {
 		my $url = $token->[1]{href}; # undefined when 200 results returned
 		if ($url && $url =~ /\/title\/tt[0-9]+\//) {
-			my ($found_year) = ($tp->get_trimmed_text() =~ /\(((19|20)\d\d)\)/);
+			my $text = $tp->get_trimmed_text();
+			next if ($text =~ /\(VG\)/); # skip video games "(VG)"
+			my ($found_year) = ($text =~ /\(((19|20)\d\d)\)/);
 			if (!$movie_year || !$found_year || (abs($movie_year - $found_year) <= 1) ) {
 				$urls{$url}++; # store as a hash since imdb sometimes gives dups
 				$urls_found++ if ($urls{$url} == 1);

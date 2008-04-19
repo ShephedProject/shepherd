@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.103";
+my $version = "1.104";
 
 use XMLTV;
 use XML::DOM;
@@ -526,7 +526,7 @@ sub parse_xml_data
 			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $e{subtitle}, $opt->{lang} ]] if $e{subtitle};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $e{description_1}, $opt->{lang} ]] if $e{description_1};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ &Shepherd::Common::generate_category($e{title}, $e{genre}, %e) ];
-			$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[[ $e{country}, $opt->{lang} ]] if $e{country};
+			$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[ map([$_,$opt->{lang}], split(/\//, $e{country})) ] if $e{country};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'premiere'} = 	[ 'premiere', $opt->{lang} ] if $e{premiere};
 			$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]] if $rating ne "";
 			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $e{main_cast}) ] if $e{main_cast};

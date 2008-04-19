@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "yahoo7web";
-my $version = "0.31";
+my $version = "0.32";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -386,6 +386,7 @@ sub parse_summary_page
 	my ($url, $day_num, $day_start) = @_;
 	my %chan_map = &build_channel_quirks_map;
 	my $data;
+	my $first_time = 1;
 
 	if ((defined $data_cache->{day}->{$url}) &&
 	    (defined $data_cache->{day}->{$url}->{data})) {
@@ -472,7 +473,14 @@ sub parse_summary_page
 					my $listing_text = $listing_data[$i]->as_text();
 					if ($listing_text =~ /^(.*)\((\d+)\)(\d+):(\d+)(.)m - (\d+):(\d+)(.)m$/i) {
 						my ($rating_text, $prog_length, $start_sec, $stop_sec) = ($1, $2, parse_time($3, $4, $5), parse_time($6, $7, $8));
-						$stop_sec += (60*60*24) if ($stop_sec < $start_sec); # program wrap around midnight
+						if ($stop_sec < $start_sec) { # program wrap around midnight
+							if ($first_time) {
+								$start_sec -= (60*60*24);
+							} else {
+								$stop_sec += (60*60*24);
+							}
+						}
+						$first_time = 0;
 						$prog->{rating} = [[ $rating_text, 'ABA', undef ]] if ((defined $rating_text) && ($rating_text ne ""));
 						$prog->{length} = ($prog_length * 60) if ((defined $prog_length) && ($prog_length > 0));
 						$prog->{starttime} = $day_start + $start_sec;
