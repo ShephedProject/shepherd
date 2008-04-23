@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.5';
+my $version  = '3.6.6';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -511,7 +511,7 @@ sub setup_javascript
 {
   print "Initializing JavaScript interpreter.\n" if ($debug);
   $jsc = new JavaScript::Runtime->create_context();
-  $jsc->set_error_handler( sub { } );
+  $jsc->set_error_handler( sub { } ) if (exists(&JavaScript::Context::set_error_handler));
   $jsc->eval(qq{
     var doc = '';
     function Location() { this.href  = '$DATASOURCE'; }
