@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.37";
+my $version = "0.38";
 
 $| = 1;
 print "$progname v$version\n";
@@ -107,13 +107,7 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 
 &setup_channels;
 
-if (!defined $opt->{nodbalookup}) {
-	&lookup_dba($opt->{dbaurl});
-	if (!defined $stats{parsed_hd_progs}) {
-		print " - WARNING: no programs matched from ".$opt->{dbaurl}.", trying alternate.\n";
-		&lookup_dba($opt->{alternate_dbaurl});
-	}
-}
+&lookup_dba() if (!defined $opt->{nodbalookup});
 
 #
 # now eat up the XMLTV inputs we were given!
@@ -278,6 +272,7 @@ sub setup_channels
 					# there can be only one SD channel for the 7HD channel
 					$channel_xmlid_to_opt_channel_xmlid{$channels->{$sdchannel}} =
 							$channels->{$hdchannel};
+					$hd->{$channels->{$sdchannel}} = undef;
 					print "  '$hdchannel' with xmlid '$channels->{$hdchannel}'" .
 							" populated with programs provided by " .
 							"'$sdchannel' with xmlid '$channels->{$sdchannel}'\n";
@@ -328,10 +323,26 @@ sub setup_channels
 
 sub lookup_dba
 {
-	my $url = shift;
+	my $file = "dba.html";
+	my $data = &Shepherd::Common::get_url( url => $opt->{dbaurl},
+		retries => 0,
+ 		# the website doesn't support 'If-Modified-Since' headers but we can live in hope
+		mirror => $file);
 
-	print "Obtaining DBA data from ".$url."\n";
-	my $data = Shepherd::Common::get_url($url);
+	if (!$data) {
+		$data = &Shepherd::Common::get_url( url => $opt->{alternate_dbaurl},
+		    retries => 4,
+ 		    # the website doesn't support 'If-Modified-Since' headers but we can live in hope
+		    mirror => $file);
+	}
+
+	if (!$data && open(FILE, $file)) {
+		read(FILE, $data, -s FILE);
+		close FILE;
+		$stats{used_mirror} = int((($script_start_time - (stat($file))[9]) / (24*60*60)) + 0.5); # days old
+		return if ($stats{used_mirror} > 14);
+	}
+
 	return if (!$data);
 
 	# Brute force hack to remove closing FONT tags because these misplaced tags screws up HTMLTreeBuilder
