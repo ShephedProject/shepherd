@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.40";
+my $version = "0.41";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -253,7 +253,9 @@ sub read_cache
 		my $prog = $data_cache->{movie_lookup};
 		$max_age = time - ($opt->{cache_details_for} * 86400);
 		foreach my $key (keys %{$prog}) {
-			if ($data_cache->{movie_lookup}->{$key}->{last_fetched} < $max_age) {
+			if (($data_cache->{movie_lookup}->{$key}->{last_fetched} < $max_age) ||
+				(($data_cache->{movie_lookup}->{$key}->{last_fetched} > 1208908800) && # 2008/04/23
+				($data_cache->{movie_lookup}->{$key}->{last_fetched} < 1209600000))){  # 2008/05/01
 			delete $data_cache->{movie_lookup}->{$key};
 			$stats{removed_programme_from_cache}++
 			}
@@ -449,7 +451,7 @@ sub imdb_scalar_parser
 	my $tp = HTML::TokeParser->new(\$html_data);
 
 	while (my $tag = $tp->get_tag($start_tag)) {
-		if ($tp->get_text =~ /^$target/i) {
+		if ($tp->get_trimmed_text =~ /^$target/i) {
 			$found = 1;
 			last;
 		}
@@ -481,7 +483,7 @@ sub imdb_list_parser
 	my $found = 0;
 
 	while (my $tag = $tp->get_tag('h5')) {
-		if ($tp->get_text =~ /^$target/i) {
+		if ($tp->get_trimmed_text =~ /^$target/i) {
 			$found = 1;
 			last;
 		}
@@ -489,7 +491,7 @@ sub imdb_list_parser
 	return undef if (!$found);
 
 	while (my $tag = $tp->get_tag()) {
-		push (@list, $tp->get_text())
+		push (@list, $tp->get_trimmed_text())
 		  if (($tag->[0] eq 'a') && (defined $tag->[1]{href}) && ($tag->[1]{href} =~ /$target2/i));
 		last if ($tag->[0] eq 'br');
 	}
@@ -533,7 +535,7 @@ sub get_imdb_movie_online
 	#
 	$tp = HTML::TokeParser->new(\$html_data);
 	my $title_token = $tp->get_tag('title');
-	my $title_text = $tp->get_text();
+	my $title_text = $tp->get_trimmed_text();
 	if ($title_text =~ /(.*?)\s+\((\d{4})?.*?\)/) {
 		$data_cache->{movie_lookup}->{$movie_url}->{title} = $1;
 		$data_cache->{movie_lookup}->{$movie_url}->{year} = $2;
@@ -566,10 +568,10 @@ sub get_imdb_movie_online
 	#
 	$tp = HTML::TokeParser->new(\$html_data);
 	while (my $tag = $tp->get_tag('h5')) {
-		last if ($tp->get_text =~ /^(directed|director)/i);
+		last if ($tp->get_trimmed_text =~ /^(directed|director)/i);
 	}
 	while (my $tag = $tp->get_tag) {
-		my $text = $tp->get_text();
+		my $text = $tp->get_trimmed_text();
 		last if (($text =~ /^(writing|writer)/i) || ($tag->[0] =~ /\/td/i));
 		if ($tag->[0] eq 'a') {
 			my $id = $tag->[1]{href};
@@ -584,10 +586,10 @@ sub get_imdb_movie_online
 	#
 	$tp = HTML::TokeParser->new(\$html_data);
 	while (my $tag = $tp->get_tag('h5')) {
-		last if ($tp->get_text =~ /^(writing|writer)/i);
+		last if ($tp->get_trimmed_text =~ /^(writing|writer)/i);
 	}
 	while (my $tag = $tp->get_tag) {
-		my $text = $tp->get_text();
+		my $text = $tp->get_trimmed_text();
 		last if ($tag->[0] =~ /div/i);
 		if (($tag->[0] eq 'a') && ($text !~ /\bmore\b/i)) {
 			my $id = $tag->[1]{href};
@@ -609,11 +611,11 @@ sub get_imdb_movie_online
 			last if ($tag->[0] =~ /^\/table/i);
 			if (($tag->[0] =~ /^td/i) && (defined $tag->[1]{class}) && ($tag->[1]{class} =~ /nm/)) {
 				$tag = $tp->get_tag;
-				$person = $tp->get_text();
+				$person = $tp->get_trimmed_text();
 				next;
 			}
 			if (($tag->[0] =~ /^td/i) && (defined $tag->[1]{class}) && ($tag->[1]{class} =~ /char/)) {
-				$role = $tp->get_text();
+				$role = $tp->get_trimmed_text();
 
 				if ((defined $person) && (defined $role)) {
 					push(@{$data_cache->{movie_lookup}->{$movie_url}->{cast}}, [$person, $role]);
@@ -664,11 +666,11 @@ sub get_imdb_movie_online
 	#
 	$tp = HTML::TokeParser->new(\$html_data);
 	while (my $tag = $tp->get_tag('h5')) {
-		last if ($tp->get_text =~ /^certification/i);
+		last if ($tp->get_trimmed_text =~ /^certification/i);
 	}
 	while (my $tag = $tp->get_tag()) {
 		if (($tag->[0] eq "a") && (defined $tag->[1]{href}) && ($tag->[1]{href} =~ /certificates/i)) {
-			my($country, $range) = split(/:/, $tp->get_text);
+			my($country, $range) = split(/:/, $tp->get_trimmed_text);
 			$data_cache->{movie_lookup}->{$movie_url}->{certifications}->{$country} = $range;
 			Shepherd::Common::log(" - parsed certification ".$range." (".$country.")") if ($opt->{debug});
 		}

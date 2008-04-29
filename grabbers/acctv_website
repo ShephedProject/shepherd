@@ -23,7 +23,7 @@ my $prev_stop = undef;
 
 my %stats;
 my $o;
-Shepherd::Common::program_begin(\$o, "acctv_website", "0.06", \%stats);
+Shepherd::Common::program_begin(\$o, "acctv_website", "0.07", \%stats);
 
 my ($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, ("ACC"));
 my $channel_xmlid = $channels->{ACC} || $opt_channels->{ACC};
@@ -314,7 +314,7 @@ sub get_details
 				Shepherd::Common::log("skipped detail length : " . $td->as_HTML());
 				$td = shift @tds || last;
 				$header = $td->as_trimmed_text();
-				$header =~ s/[^\x20-\x7f\x0a]//g; # remove &nbsp;
+				$header =~ s/[^\x20-\x7f]//g; # remove &nbsp;
 				next;
 			}
 			my $length = ($1 < 3 ? ($1*60*60) : ($1*60));
@@ -333,7 +333,7 @@ sub get_details
 
 		$td = shift @tds || last;
 		$header = $td->as_trimmed_text();
-		$header =~ s/[^\x20-\x7f\x0a]//g; # remove &nbsp;
+		$header =~ s/[^\x20-\x7f]//g; # remove &nbsp;
 	}
 
 	$prog->{category} = [@categories];

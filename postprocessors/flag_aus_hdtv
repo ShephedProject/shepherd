@@ -12,7 +12,7 @@
 #  September 2006
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.36";
+my $version = "0.37";
 
 $| = 1;
 print "$progname v$version\n";
@@ -394,8 +394,9 @@ sub lookup_dba
 						# titles in <u> tags
 
 						foreach my $hdprog ($col->look_down('_tag' => 'u')) {
-							my $progname = $hdprog->as_text();
-							$progname =~ s/[^\x20-\x7f]/ /g;
+							my $progname = $hdprog->as_trimmed_text();
+							#$progname =~ s/[^\x20-\x7f]/ /g;
+							$progname =~ s/\xA0/ /g; # &nbsp; can be &#160; == &#xA0;
 
 							$progname =~ s/^(.*)\(HD\).*/$1/; # strip
 							$progname =~ s/(^\s+|\s+$)//g;

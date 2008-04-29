@@ -22,7 +22,7 @@
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.19";
+my $version = "3.20";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -665,7 +665,7 @@ sub get_one_abc_event
 			# any remaining text should be rating
 			if ($other_text =~ /\s+(.*)$/) {
 				my $rating_text = $1;
-				$rating_text =~ s/[^\x20-\x7f\x0a]/ /g;
+				$rating_text =~ s/[^\x20-\x7f]/ /g;
 				if ($rating_text =~ /^\s*(\w+)\s*$/) {
 					$data_cache->{$cache_key}->{rating} = $1;
 					Shepherd::Common::log(" - decoded Rating '".$1."' from '$other_text'") if ($debug);

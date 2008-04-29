@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.32';
+my $version = '0.33';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -621,15 +621,25 @@ sub set_defaults
 
 sub cleanup {
     my $x = shift;
-    my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
+    my $desc = shift;
 
-    if    (ref $x eq "REF")   { cleanup($_) }
-    elsif (ref $x eq "HASH")  { cleanup(\$_) for values %$x }
-    elsif (ref $x eq "ARRAY") { cleanup(\$_) for @$x }
+    if    (ref $x eq "REF")   { cleanup($$x, $desc) }
+    elsif (ref $x eq "HASH")  {
+	while (my ($k, $v) = each %$x) {
+	   cleanup(\$v, $k eq "desc");
+	}
+    }
+    elsif (ref $x eq "ARRAY") { cleanup(\$_, $desc) for @$x }
     elsif (defined $$x) {
-	$$x =~ s/&(#(\d+)|(.*?));/ $2 ? chr($2) : $amp{$3}||' ' /eg;
-	$$x =~ s/[^\x20-\x7f\x0a]/ /g;
-	$$x =~ s/(^\s+|\s+$)//g;
+	my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
+
+	$$x =~ s/&(#((x?)\d+)|(.*?));/ $2 ? ($3 ? chr("0".$2) : chr($2)) : $amp{$4} || ' ' /eg;
+	$$x =~ s/\xA0/ /g; # &nbsp; can be &#160; == &#xA0;
+	$$x =~ s/^\s+//s;
+	$$x =~ s/\s+$//s;
+	if (!$desc) { # if desc leave in \n etc
+	    $$x =~ s/\s+/ /g;
+	}
     }
 }
 

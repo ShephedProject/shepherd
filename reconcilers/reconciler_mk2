@@ -95,7 +95,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.38";
+my $version = "0.39";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -1602,6 +1602,17 @@ sub add_one_programme
 							next;
 						} elsif (defined $lang_added{$lang} && grep($_ eq $val, @{$lang_added{$lang}})) {
 							&log($reclogic{debug_add_logic}," - stripped duplicate category");
+							next;
+						}
+					}
+
+					# special-case for country:
+					#   duplicate  - just strip
+					if ($field eq 'country') {
+						if ((defined($lang_added{$lang}) && grep($_ eq $val, @{$lang_added{$lang}})) ||
+						  ($lang eq $opt->{lang} && defined($lang_added{"BLANK"}) &&
+						    grep($_ eq $val, @{$lang_added{"BLANK"}}))) {
+							&log($reclogic{debug_add_logic}," - stripped duplicate country");
 							next;
 						}
 					}
