@@ -23,7 +23,7 @@ my $prev_stop = undef;
 
 my %stats;
 my $o;
-Shepherd::Common::program_begin(\$o, "acctv_website", "0.07", \%stats);
+Shepherd::Common::program_begin(\$o, "acctv_website", "0.08", \%stats);
 
 my ($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, ("ACC"));
 my $channel_xmlid = $channels->{ACC} || $opt_channels->{ACC};
@@ -92,15 +92,19 @@ sub start_writing_xmltv
 sub get_days
 {
 	Shepherd::Common::log("Setting region");
+
+	my $state = Shepherd::Common::which_state($o->{region});
+
 	my $intnewtzstate = 0;
-	$intnewtzstate = 7 if ($o->{region} =~ /^(126)$/);
-	$intnewtzstate = 0 if ($o->{region} =~ /^(73|184|66|67|63|69|71|106)$/);
-	$intnewtzstate = 6 if ($o->{region} =~ /^(74|108)$/);
-	$intnewtzstate = 2 if ($o->{region} =~ /^(75|78|255|256|258|254|253|257|79|114)$/);
-	$intnewtzstate = 3 if ($o->{region} =~ /^(81|82|83|85|86|107)$/);
-	$intnewtzstate = 5 if ($o->{region} =~ /^(88)$/);
-	$intnewtzstate = 1 if ($o->{region} =~ /^(94|93|90|95|98)$/);
-	$intnewtzstate = 4 if ($o->{region} =~ /^(101|102)$/);
+	$intnewtzstate = 0 if ($state eq "NSW");
+	$intnewtzstate = 1 if ($state eq "VIC");
+	$intnewtzstate = 2 if ($state eq "QLD");
+	$intnewtzstate = 3 if ($state eq "SA");
+	$intnewtzstate = 4 if ($state eq "WA");
+	$intnewtzstate = 5 if ($state eq "TAS");
+	$intnewtzstate = 6 if ($state eq "NT");
+	$intnewtzstate = 7 if ($state eq "ACT");
+
 	my $data = &Shepherd::Common::get_url(url => $baseurl."schedule.asp",
 			postvars => "intnewtzstate=" . $intnewtzstate);
 

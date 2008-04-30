@@ -37,7 +37,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.12';
+my $version = '2.13';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -72,6 +72,7 @@ my %s_to_o_map = (
 		'ABC2' => 'ABC2',
 		'SBS News' => 'SBS-NEWS',
 		'7HD' => 'SevenHD',
+		'Prime HD' => 'SevenHD', # no such thing yet
 		'Nine HD' => 'NineHD',
 		'TEN HD' => 'TenHD',
 	},
@@ -95,17 +96,6 @@ my %s_to_o_map = (
 		'Central GTS/BKN' => 'GTS-BKN',
 		'SBS' => 'SBS-NSW',
 		'Sthn Cross TEN' => 'SC10-NSW',
-	},
-	'71' => {	# NSW: Southern NSW
-		'ABC1' => 'ABC-NSW',
-		'Prime (Canberra/South Coast)' => 'Prime-Can',
-		'Prime (Orange)' => 'PrimeS',
-		'Prime (Wagga Wagga)' => 'PrimeS',
-		'Prime (Wollongong)' => 'PrimeS',
-		'SBS' => 'SBS-NSW',
-		'TEN (Mildura Digital)' => 'Ten-NSW',
-		'TEN (NSW: Southern NSW)' => 'Ten-NSW',
-		'WIN' => 'WIN-NSW',
 	},
 	'102' => {	# WA: Regional
 		'ABC1' => 'ABC-WA',
@@ -278,13 +268,54 @@ my %s_to_o_map = (
 		'SBS' => 'SBS-NSW',
 		'Sthn Cross TEN' => 'SC10-NSW',
 	},
-	'69' => {	# NSW: Northern NSW
+	'69' => {	# NSW: Tamworth
 		'ABC1' => 'ABC-NSW',
 		'NBN' => 'NBN',
-		'Prime (NSW: Northern NSW)' => 'PrimeN',
-		'Prime NSW: Northern NSW' => 'PrimeN',
+		'Prime' => 'PrimeN',
 		'SBS' => 'SBS-NSW',
 		'Sthn Cross TEN' => 'SC10-NSW',
+	},
+	'71' => {	# NSW: Wollongong
+		'ABC1' => 'ABC-NSW',
+		'Prime' => 'PrimeS',
+		'SBS' => 'SBS-NSW',
+		'TEN' => 'Ten-NSW',
+		'WIN' => 'WIN-NSW',
+	},
+	'259' => {	# NSW: Far South Coast
+		'ABC1' => 'ABC-NSW',
+		'Prime' => 'Prime-Can',
+		'SBS' => 'SBS-NSW',
+		'TEN' => 'Ten-NSW',
+		'WIN' => 'WIN-NSW',
+	},
+	'261' => {	# NSW: Lismore/Coffs Harbour
+		'ABC1' => 'ABC-NSW',
+		'NBN' => 'NBN',
+		'Prime' => 'PrimeN',
+		'SBS' => 'SBS-NSW',
+		'Sthn Cross TEN' => 'SC10-NSW',
+	},
+	'262' => {	# NSW: Orange/Dubbo
+		'ABC1' => 'ABC-NSW',
+		'Prime' => 'PrimeS',
+		'SBS' => 'SBS-NSW',
+		'TEN' => 'Ten-NSW',
+		'WIN' => 'WIN-NSW',
+	},
+	'263' => {	# NSW: Taree/Port Macquarie
+		'ABC1' => 'ABC-NSW',
+		'NBN' => 'NBN',
+		'Prime' => 'PrimeN',
+		'SBS' => 'SBS-NSW',
+		'Sthn Cross TEN' => 'SC10-NSW',
+	},
+	'264' => {	# NSW: Wagga Wagga
+		'ABC1' => 'ABC-NSW',
+		'Prime' => 'PrimeS',
+		'SBS' => 'SBS-NSW',
+		'TEN' => 'Ten-NSW',
+		'WIN' => 'WIN-NSW',
 	},
 	'81' => {	# SA: Adelaide
 		'ABC1' => 'ABC-SA',

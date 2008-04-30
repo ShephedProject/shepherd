@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "0.25";
+my $version = "0.26";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -359,24 +359,7 @@ sub get_region_data
 	Shepherd::Common::log(" - fetching region data...");
 
 	# map region to a subboquet ..
-	my $state;
-	if ($opt->{region} =~ /^(93|94|95|90|98)$/) {
-		$state = "VIC";
-	} elsif ($opt->{region} =~ /^(73|66|67|63|69|71|106|184)$/) {
-		$state = "NSW";
-	} elsif ($opt->{region} =~ /^(75|78|255|256|258|254|253|257|79|114)$/) {
-		$state = "QLD";
-	} elsif ($opt->{region} =~ /^(101|102)$/) {
-		$state = "WA";
-	} elsif ($opt->{region} =~ /^(81|82|83|85|86|107)$/) {
-		$state = "SA";
-	} elsif ($opt->{region} =~ /^(74|108)$/) {
-		$state = "NT";
-	} elsif ($opt->{region} =~ /^(126)$/) {
-		$state = "ACT";
-	} elsif ($opt->{region} =~ /^(88)$/) {
-		$state = "TAS";
-	}
+	my $state = Shepherd::Common::which_state($opt->{region});
 
 	die "could not map region ".$opt->{region}." to a state/boquet_id/subboquet_id, aborting!\n"
 	  if ((!defined $state) ||

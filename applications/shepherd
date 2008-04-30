@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.40';
+my $version = '1.2.41';
 
 # tv_grab_au
 # "Shepherd"
@@ -86,23 +86,24 @@ my $any_data;
 my $lock;
 my $MAX_DAYS_HISTORY = 30;
 my %REGIONS = (
-    126 => "ACT",		73 => "NSW: Sydney",		184 => "NSW: Newcastle",
-    66 => "NSW: Central Coast",	67 => "NSW: Griffith",		63 => "NSW: Broken Hill",
-    69 => "NSW: Northern NSW", 	71 => "NSW: Southern NSW", 	106 => "NSW: Remote and Central",
-    74 => "NT: Darwin", 	108 => "NT: Remote & Central", 	75 => "QLD: Brisbane",
-    78 => "QLD: Gold Coast",	255 => "QLD: Sunshine Coast",	256 => "QLD: Toowoomba",
-    258 => "QLD: Wide Bay",		254 => "QLD: Rockhampton",	253 => "QLD: Mackay",
-    257 => "QLD: Townsville", 	79 => "QLD: Cairns", 		114 => "QLD: Remote & Central",
-    81 => "SA: Adelaide", 	82 => "SA: Renmark", 		83 => "SA: Riverland",
-    85 => "SA: South East SA", 	86 => "SA: Spencer Gulf", 	107 => "SA: Remote & Central",
-    88 => "Tasmania", 		94 => "VIC: Melbourne", 	93 => "VIC: Geelong", 
-    90 => "VIC: Eastern Victoria", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Western Victoria", 
-    101 => "WA: Perth", 	102 => "WA: Regional");
+	63 => "NSW: Broken Hill",       66 => "NSW: Central Coast",     67 => "NSW: Griffith",
+	69 => "NSW: Tamworth",  71 => "NSW: Wollongong",        73 => "NSW: Sydney",
+	74 => "NT: Darwin",     75 => "QLD: Brisbane",  78 => "QLD: Gold Coast",
+	79 => "QLD: Cairns",    81 => "SA: Adelaide",   82 => "SA: Renmark",
+	83 => "SA: Riverland",  85 => "SA: South East SA",      86 => "SA: Spencer Gulf",
+	88 => "TAS: Tasmania",  90 => "VIC: Eastern Victoria",  93 => "VIC: Geelong",
+	94 => "VIC: Melbourne", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Western Victoria",
+	101 => "WA: Perth",     102 => "WA: Regional",  106 => "NSW: Remote and Central",
+	107 => "SA: Remote and Central",        108 => "NT: Remote and Central",        114 => "QLD: Remote and Central",
+	126 => "ACT: ACT",      184 => "NSW: Newcastle",        253 => "QLD: Mackay",
+	254 => "QLD: Rockhampton",      255 => "QLD: Sunshine Coast",   256 => "QLD: Toowoomba",
+	257 => "QLD: Townsville",       258 => "QLD: Wide Bay", 259 => "NSW: Far South Coast",
+	261 => "NSW: Lismore/Coffs Harbour",    262 => "NSW: Orange/Dubbo",     263 => "NSW: Taree/Port Macquarie",
+	264 => "NSW: Wagga Wagga",);
 
 my $hd_to_sds;
-@{$hd_to_sds->{"7HD"}} = ("Seven","Prime","Prime Tamworth/Taree/Port","Prime Lismore/Coffs Hbr",
-	"Prime Canberra/Sth Coast","Prime Wagga Wagga","Prime Wollongong","Prime Orange",
-	"Prime (Regional)","Prime (Albury)","Southern Cross","Central GTS/BKN","Golden West");
+@{$hd_to_sds->{"7HD"}} = ("Seven","Southern Cross","Central GTS/BKN","Golden West");
+@{$hd_to_sds->{"Prime HD"}} = ("Prime","Prime (Regional Victoria)","Prime (Albury)");
 @{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
 @{$hd_to_sds->{"TEN HD"}} = ("TEN","TEN (NSW: Southern NSW)","TEN (Mildura Digital)",
 	"Sthn Cross TEN","WIN TEN","TDT");
@@ -1897,7 +1898,7 @@ sub component_set
 sub list_chan_names
 {
     printf "Select your region:\n";
-    printf(" (%3d) %s\n", 0, 'All regions (including PayTV)');
+    printf(" (%3d) %s\n", 0, 'All regions (including PayTV and does regions check)');
 
     foreach (sort { $REGIONS{$a} cmp $REGIONS{$b} } keys %REGIONS) {
 	printf(" (%3d) %s\n", $_, $REGIONS{$_});
@@ -1907,6 +1908,8 @@ sub list_chan_names
 
     if (!$reg)
     {
+	fetch_regions();
+
 	print "\nListing channels for all regions:\n";
 
 	printf "\nFoxtel:%s\n", join (',', fetch_channels_foxtel());
@@ -2603,6 +2606,76 @@ sub configure_channels_advanced
     else
     {
         $want_paytv_channels = undef;
+    }
+}
+
+# Sourced from YourTV
+sub fetch_regions
+{
+    my ($reg, $shh) = @_;
+
+    &log("Fetching free-to-air region information...\n") unless ($shh);
+
+    # Download list
+    my $ua = LWP::UserAgent->new();
+    $ua->env_proxy;
+    $ua->agent('Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 1.1.4322');
+    $ua->cookie_jar({});
+    $ua->get('http://www.yourtv.com.au');
+    my $response = $ua->get('http://www.yourtv.com.au/?');
+
+    my $page = $response->content;
+    die "Unable to download region list page" if ($response->is_error());
+
+    die "Unable to parse region list" if (!($page =~ /<select[^>]*fta_region_id[^>]*>(.*?)<\/select>/is));
+    my $regions = $1;
+
+    my %regions;
+    while ($regions =~ /value.*?(\d+).*?>(.*?)(<|$)/sg) {
+	my ($num, $name) = ($1, $2);
+	$name =~ s/^\s+//s;
+	$name =~ s/\s+$//s;
+	$name =~ s/\s+/ /gs;
+	$name =~ s/ -/:/;
+
+	$regions{$num} = $name;
+	#printf "Downloaded %d %s\n", $num, $name;
+    }
+
+    my %REGIONSLOCAL = %REGIONS;
+    my %regionslocal = %regions;
+    foreach my $num (keys %regionslocal) {
+	#printf "Checking %d %s\n", $num, $regions{$num};
+	if (!defined($REGIONSLOCAL{$num}) || $REGIONS{$num} ne $regions{$num}) {
+		#printf "Missing %d %s\n", $num, $regions{$num};
+	} else {
+		delete $REGIONSLOCAL{$num};
+		delete $regionslocal{$num};
+	}
+    }
+
+    if ((scalar(keys %REGIONSLOCAL) != 0) || (scalar(keys %regionslocal) != 0)) {
+	print "old regions not matched:\n";
+	foreach (sort { $REGIONSLOCAL{$a} cmp $REGIONSLOCAL{$b} } keys %REGIONSLOCAL) {
+		printf(" %3d %s\n", $_, $REGIONSLOCAL{$_});
+	}
+	print "new regions not matched:\n";
+	foreach (sort { $regionslocal{$a} cmp $regionslocal{$b} } keys %regionslocal) {
+		printf(" %3d %s\n", $_, $regionslocal{$_});
+	}
+	print "new region list:\n";
+	my $count = 0;
+	print "\tmy %REGIONS = (";
+	foreach (sort { $a <=> $b } keys %regions) {
+		if ($count%3 == 0) {
+			print"\n\t\t";
+		} else {
+			print"\t";
+		}
+		printf('%d => "%s",', $_, $regions{$_});
+		$count+=1;
+	}
+	print ");\n";
     }
 }
 

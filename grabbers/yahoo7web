@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "yahoo7web";
-my $version = "0.32";
+my $version = "0.33";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -289,34 +289,11 @@ sub build_channel_quirks_map
 {
 	# set up channel name exceptions list
 	my %chan_map;
-	if ($opt->{region} == 69) {
-		# NSW: Northern NSW
-		push (@{($chan_map{"Prime"})},
-			"Prime Tamworth/Taree/Port",
-			"Prime Lismore/Coffs Hbr");
-	} elsif ($opt->{region} == 71) {
-		# NSW: Southern NSW
-		push (@{($chan_map{"TEN"})},
-			"TEN (NSW: Southern NSW)",
-			"TEN (Mildura Digital)");
-		push (@{($chan_map{"Prime"})},
-			"Prime Canberra/Sth Coast",
-			"Prime Wagga Wagga",
-			"Prime Wollongong",
-			"Prime Orange");
-	} elsif ($opt->{region} == 90) {
+	if ($opt->{region} == 90) {
 		# VIC: Eastern Victoria
 		push (@{($chan_map{"Prime"})},
-			"Prime (Regional)",
+			"Prime (Regional Victoria)",
 			"Prime (Albury)");
-	} elsif ($opt->{region} == 106) {
-		# NSW: Remote and Central
-		push (@{($chan_map{"Prime"})},
-			"Prime Wagga Wagga");
-	} elsif ($opt->{region} == 126) {
-		# ACT
-		push (@{($chan_map{"Prime"})},
-			"Prime Canberra/Sth Coast");
 	}
 
 	return %chan_map;

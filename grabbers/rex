@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.6';
+my $version  = '3.6.7';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -768,12 +768,7 @@ sub translate_channel_name
     my ($chan, $seen_before) = @_;
 
     my $rchans = {
-	69 => {	'Prime' => [ 'Prime Tamworth/Taree/Port','Prime Lismore/Coffs Hbr' ] },
-	71 => {	'TEN' => [ 'TEN (NSW: Southern NSW)', 'TEN (Mildura Digital)' ],
-		'Prime' => [ 'Prime Canberra/Sth Coast','Prime Wagga Wagga','Prime Wollongong','Prime Orange' ] },
-	90 => { 'Prime' => [ 'Prime (Regional)', 'Prime (Albury)' ] },
-	106 => { 'Prime' => [ 'Prime Wagga Wagga' ] },
-	126 => { 'Prime' => [ 'Prime Canberra/Sth Coast' ] }
+	90 => { 'Prime' => [ 'Prime (Regional Victoria)', 'Prime (Albury)' ] },
 	};
 
     my $region = $opt->{region};

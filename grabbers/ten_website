@@ -8,7 +8,7 @@
 use strict;
 
 my $progname = "ten_website";
-my $version = "1.05";
+my $version = "1.06";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -269,11 +269,13 @@ sub write_xmltv
 
 sub get_summary_page
 {
-	my $reg = "sydney";							# sydney
-	$reg = "melbourne" if ($opt->{region} =~ /^9/);				# melbourne
-	$reg = "brisbane" if ($opt->{region} =~ /(75|78|255|256|258|254|253|257|79|114|74|108)/);	# brisbane
-	$reg = "perth" if ($opt->{region} =~ /(101|102)/);			# perth
-	$reg = "adelaide" if ($opt->{region} =~ /(81|82|83|85|86|107)/);	# adelaide
+	my $state = Shepherd::Common::which_state($opt->{region});
+
+	my $reg = "sydney";				# sydney
+	$reg = "melbourne"	if ($state eq "VIC");	# melbourne
+	$reg = "brisbane"	if ($state eq "QLD");	# brisbane
+	$reg = "perth"		if ($state eq "WA");	# perth
+	$reg = "adelaide"	if ($state eq "SA");	# adelaide
 
 	&log("fetching summary page (".$reg.")");
 	$stats{programmes} = 0;

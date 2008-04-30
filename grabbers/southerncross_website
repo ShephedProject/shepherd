@@ -33,7 +33,7 @@
 use strict;
 
 my $progname = "southerncross_website";
-my $version = "0.18";
+my $version = "0.19";
 
 #use LWP::UserAgent;
 #use LWP::ConnCache;
@@ -307,10 +307,35 @@ sub set_region
     $channel = "Sthn Cross TEN";
     $url .= "WOL:Southern%20Cross%20TEN%20-%20Wollongong";
   }
-  elsif ($region == 69) # NSW - Northern NSW
+  elsif ($region == 69) # NSW - Tamworth
   { # http://www.atn.com.au/nsw/north/nth-map.htm
     $channel = "Sthn Cross TEN";
-    $url .= "COF:Southern%20Cross%20TEN%20-%20Coffs%20Harbour";
+    $url .= "TAM:Southern%20Cross%20TEN%20-%20Tamworth";
+  }
+  elsif ($region == 71 || $region == 259) # NSW - Wollongong & NSW - Far South Coast
+  { # http://www.atn.com.au/nsw/north/nth-map.htm
+    $channel = "TEN";
+    $url .= "WOL:Southern%20Cross%20TEN%20-%20Wollongong";
+  }
+  elsif ($region == 261) # NSW - Lismore/Coffs Harbour
+  { # http://www.atn.com.au/nsw/north/nth-map.htm
+    $channel = "Sthn Cross TEN";
+    $url .= "LIS:Southern%20Cross%20TEN%20-%20Lismore";
+  }
+  elsif ($region == 262) # NSW - Orange/Dubbo
+  { # http://www.atn.com.au/nsw/north/nth-map.htm
+    $channel = "TEN";
+    $url .= "ORA:Southern%20Cross%20TEN%20-%20Orange/Dubbo";
+  }
+  elsif ($region == 263) # NSW - Taree/Port Macquarie
+  { # http://www.atn.com.au/nsw/north/nth-map.htm
+    $channel = "Sthn Cross TEN";
+    $url .= "TAR:Southern%20Cross%20TEN%20-%20Taree";
+  }
+  elsif ($region == 264) # NSW - Wagga Wagga
+  { # http://www.atn.com.au/nsw/north/nth-map.htm
+    $channel = "TEN";
+    $url .= "WAG:Southern%20Cross%20TEN%20-%20Wagga";
   }
   elsif ($region == 184) # NSW - Newcastle
   { # simple
@@ -410,14 +435,14 @@ sub set_region
 # 			</select><select size="1" name="SCTEN" networkname="Southern Cross TEN" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
 # 			<option>New South Wales/ACT...</option>
 # 			<option value="CAN">Canberra</option>      ACT
-# 			<option value="COF">Coffs Harbour</option> Northern NSW
-# 			<option value="LIS">Lismore</option>       Northern NSW
+# 			<option value="COF">Coffs Harbour</option> 261 NSW: Lismore/Coffs Harbour
+# 			<option value="LIS">Lismore</option>       261 NSW: Lismore/Coffs Harbour
 # 			<option value="NEW">Newcastle</option>     Newcastle
-# 			<option value="ORA">Orange/Dubbo</option>  Central Coast
-# 			<option value="TAR">Taree</option>         Newcastle
-# 			<option value="TAM">Tamworth</option>      Northern NSW
-# 			<option value="WAG">Wagga</option>         Central Coast
-# 			<option value="WOL">Wollongong</option>    Central Coast
+# 			<option value="ORA">Orange/Dubbo</option>  262 NSW: Orange/Dubbo
+# 			<option value="TAR">Taree</option>         263 NSW: Taree/Port Macquarie
+# 			<option value="TAM">Tamworth</option>      69 NSW: Tamworth
+# 			<option value="WAG">Wagga</option>         264 NSW: Wagga Wagga
+# 			<option value="WOL">Wollongong</option>    71 NSW: Wollongong & 259 NSW: Far South Coast
 # 			</select><select size="1" name="SCTEN" networkname="Southern Cross TEN" onchange="OpenNewGuide(this);" style="font-family:Tahoma;font-size:11px;margin:10px">
 # 			<option>Victoria...</option>
 # 			<option value="ALB">Albury</option>        Eastern Victoria
@@ -432,55 +457,6 @@ sub set_region
 # 			<option value="PIR 10">Port Pirie</option>   SA - Spencer Gulf
 # 			</select>
 # 
-# applications/shepherd has a list
-# "126">ACT - ACT
-# "63">NSW - Broken Hill  "66">NSW - Central Coast  "67">NSW - Griffith
-# "69">NSW - Northern NSW "71">NSW - Southern NSW   "73">NSW - Sydney
-# "106">NSW - Remote and Central  "184" >NSW - Newcastle
-# "74">NT - Darwin  "108">NT - Remote and Central
-# "75">QLD - Brisbane "78">QLD - Gold Coast "78">QLD - Gold Coast
-# "255">QLD - Sunshine Coast "256">QLD - Toowoomba "258">QLD - Wide Bay
-# "254" >QLD - Rockhampton "253" >QLD - Mackay "257" >QLD - Townsville
-# "79" >QLD - Cairns "114">QLD - Remote and Central
-# "81">SA - Adelaide  "82">SA - Renmark "83">SA - Riverland
-# "85">SA - South East SA "86">SA - Spencer Gulf "107">SA - Remote and Central
-# "88">TAS - Tasmania
-# "90">VIC - Eastern Victoria "93">VIC - Geelong  "94">VIC - Melbourne
-# "95">VIC - Mildura/Sunraysia  "98">VIC - Western Victoria
-# "101">WA - Perth  "102">WA - Regional WA
-
-# channel_list
-
-#   my $url = sprintf "http://www.ten.com.au/citySelect.aspx?change=true";
-#   my $data = &get_url($url,5);
-#   if (!$data) {
-#     &log("CRITICAL ERROR: Could not set region because of error fetching '$url'");
-#     exit(1);
-#   }
-# 
-#   my $tree = HTML::TreeBuilder->new_from_content($data);
-#   if (!$tree) {
-#     &log("CRITICAL ERROR: url '$url' doesn't seem to contain any valid HTML: has the format changed?");
-#                 exit(1);
-#         }
-# 
-#   $opt->{viewstate} = $_->attr('value') if ($_ = $tree->look_down('_tag' => 'input', 'type' => 'hidden', 'name' => '__VIEWSTATE'));
-#   if (!defined $opt->{viewstate}) {
-#     &log(" has the format changed? could not find 'viewstate'...");
-#     $stats{viewstate_not_found}++;
-#     $opt->{viewstate} = "";
-#   }
-# 
-#   my $reg = 1;              # sydney
-#   $reg = 2 if ($opt->{region} =~ /^9/);        # melbourne
-#   $reg = 3 if ($opt->{region} =~ /(75|78|79|114|74|108)/);  # brisbane
-#   $reg = 4 if ($opt->{region} =~ /(101|102)/);      # perth
-#   $reg = 5 if ($opt->{region} =~ /(81|82|83|85|86|107)/);    # adelaide
-# 
-#   my $postvars = "__VIEWSTATE=".urlify($opt->{viewstate})."&new_site_id=".$reg."&_ctl1.x=0&_ctl1.y=0";
-#   $data = &get_url($url, 5, undef, "POST", $postvars);
-# 
-#   $stats{programmes} = 0 if (!defined $stats{programmes});
 }
 
 ##############################################################################

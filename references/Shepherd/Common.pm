@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.33';
+my $version = '0.34';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -970,6 +970,36 @@ sub write_cache
     my ($filename, $store) = @_;
     eval { Storable::store($store, $filename); };
     &log("WARNING: Unable to write cache to file $filename: $@") if ($@);
+}
+
+##########################################################################
+
+sub which_state
+{
+	my $region = shift;
+
+	my $state;
+	if ($region =~ /^(93|94|95|90|98)$/) {
+		$state = "VIC";
+	} elsif ($region =~ /^(73|66|67|63|69|71|106|184|259|261|262|263|264)$/) {
+		$state = "NSW";
+	} elsif ($region =~ /^(75|78|255|256|258|254|253|257|79|114)$/) {
+		$state = "QLD";
+	} elsif ($region =~ /^(101|102)$/) {
+		$state = "WA";
+	} elsif ($region =~ /^(81|82|83|85|86|107)$/) {
+		$state = "SA";
+	} elsif ($region =~ /^(74|108)$/) {
+		$state = "NT";
+	} elsif ($region =~ /^(126)$/) {
+		$state = "ACT";
+	} elsif ($region =~ /^(88)$/) {
+		$state = "TAS";
+	} else {
+		$state = "QLD";
+	}
+
+	return $state;
 }
 
 ##########################################################################

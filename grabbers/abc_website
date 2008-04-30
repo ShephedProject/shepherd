@@ -22,7 +22,7 @@
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.20";
+my $version = "3.21";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -128,16 +128,8 @@ die "no channel file specified, see --help for instructions\n", if ($opt_channel
 
 &read_cache if ($opt_no_cache == 0);
 
-# figure out region
-my $abc_region = "netw";	# national by default
-$abc_region = "act"	if ($region =~ /^(126)$/);
-$abc_region = "nsw"	if ($region =~ /^(73|184|66|67|63|69|71|106)$/);
-$abc_region = "nt"	if ($region =~ /^(74|108)$/);
-$abc_region = "qld"	if ($region =~ /^(75|78|255|256|258|254|253|257|79|114)$/);
-$abc_region = "sa"	if ($region =~ /^(81|82|83|85|86|107)$/);
-$abc_region = "tas"	if ($region =~ /^(88)$/);
-$abc_region = "vic"	if ($region =~ /^(94|93|90|95|98)$/);
-$abc_region = "wa"	if ($region =~ /^(101|102)$/);
+# figure out region, "netw" is national
+my $abc_region = lc(Shepherd::Common::which_state($region));
 $urls->{guide}->{ABC1} .= $abc_region;
 
 # read channels file
