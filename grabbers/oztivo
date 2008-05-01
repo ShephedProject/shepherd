@@ -37,7 +37,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.13';
+my $version = '2.14';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -86,7 +86,7 @@ my %s_to_o_map = (
 	'90' => {	# VIC: Eastern Victoria
 		'ABC1' => 'ABC-Vic',
 		'Prime (Albury)' => 'Prime-Vic',
-		'Prime (Regional)' => 'Prime-Vic',
+		'Prime (Regional Victoria)' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
 		'TEN' => 'SC10-Vic',
 		'WIN' => 'WIN-Vic',
