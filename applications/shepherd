@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.41';
+my $version = '1.2.42';
 
 # tv_grab_au
 # "Shepherd"
@@ -3556,7 +3556,7 @@ sub query_iteration
     {
 	return $i unless (defined $plugin_data->{"$grabber-$i"});
 	$i++;
-	die "Insane infinite loop suspected!" if ($i > 10);
+	die "Insane infinite loop suspected!" if ($i > 15);
     }
 }
 
