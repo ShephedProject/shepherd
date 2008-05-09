@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.34';
+my $version = '0.35';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -504,14 +504,40 @@ sub mirror
     if (!$response->is_error) {
 	my $data;
 	open(FILE, $file) || die "Can't read $file: $!";
-	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
-			$atime,$mtime,$ctime,$blksize,$blocks) = stat($file);
-	read FILE, $data, $size;
-	close FILE;
+	binmode(FILE); # DOS / Windows rubbish
+	read(FILE, $data, -s FILE);
+	close(FILE);
 	$response->content($data);
     }
 
     return $response;
+}
+
+# if mirror file not too old then read it in and uncompress
+sub get_mirror_file
+{
+	my ($file, $days_good) = @_;
+
+	my $data;
+	if (-r $file) {
+		my $mirror_age = int(((time - (stat($file))[9]) / (24*60*60)) + 0.5); # days old
+		if ($mirror_age <= $days_good) {
+			if (open(FILE, $file)) {
+				binmode(FILE); # DOS / Windows rubbish
+				read(FILE, $data, -s FILE);
+				close(FILE);
+	
+				# If the original web page was sent gzipped then the mirror file
+				# is gzipped and should be unpacked
+				if ($data =~ m/^\037\213/) {	# magic number at start of gzip file
+					$data = Compress::Zlib::memGunzip($data);
+				}
+			}
+		} else {
+			printf("Mirror file to old at %d days and needs to be less then %d days.\n",$mirror_age, $days_good);
+		}
+	}
+	return $data;
 }
 
 # Sleep if it's been less than the specified min. seconds since our

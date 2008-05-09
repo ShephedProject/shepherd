@@ -4,15 +4,18 @@
 
 # performs two functions:
 #   1. takes existing programmes flagged as HDTV by grabbers,
-#   2. checks the digital broadcasting australia (www.dba.org.au)
+#   2. checks the DTV Forum Australia (http://www.dtvforum.info/)
 #  .. and populates the '(chan)HD' channels (if they exist)
 #  with the HD versions of the programs.
 
 #  originally written by Richard Dale <richard@interlink.com.au>,
 #  September 2006
+#  Modified to use DTV Forums Australia instead of Digital Broadcasting Australia
+#  Chris Williams <shepherd@psychogeeks.com>
+#  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.39";
+my $version = "0.40";
 
 $| = 1;
 print "$progname v$version\n";
@@ -37,6 +40,10 @@ $hdoverride->{TEN} = [
 	"The Office",
 	"Battlestar Galactica"
 	];
+$hdoverride->{Nine} = [
+	"CSI: Crime Scene Investigation",
+	"Without a Trace"
+	];
 
 # Add translations for show names that differ between DBA and our normal tv_grab_au names
 my $translation;
@@ -44,10 +51,10 @@ $translation->{'ACA'} = 'A Current Affair';
 $translation->{'CSI'} = 'CSI: Crime Scene Investigation';
 $translation->{'CSI-Miami'} = 'CSI: Miami';
 
-# translations between DBA website and what we know channels as
+# translations between website and what we know channels as
 my $chan_name_translations;
 $chan_name_translations->{"Ten"} = "TEN";
-$chan_name_translations->{"ABC Main"} = "ABC1";
+$chan_name_translations->{"ABC"} = "ABC1";
 
 my $hd_to_sds;
 @{$hd_to_sds->{"7HD"}} = ("Seven","Southern Cross","Central GTS/BKN","Golden West");
@@ -76,8 +83,7 @@ my $override_settings = { };
 my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
 
 my $opt;
-$opt->{dbaurl} = "http://www.dba.org.au/index.asp?sectionID=126";
-$opt->{alternate_dbaurl} = "http://web.archive.org/web/20070821190807/http://www.dba.org.au/index.asp?sectionID=126";
+$opt->{dbaurl} = "http://www.dtvforum.info/index.php?showtopic=28574";
 
 $opt->{output_file} = "output.xmltv";
 $opt->{region} = 94;
@@ -322,120 +328,141 @@ sub setup_channels
 
 sub lookup_dba
 {
-	my $file = "dba.html";
-	my $data = &Shepherd::Common::get_url( url => $opt->{dbaurl},
-		retries => 0,
- 		# the website doesn't support 'If-Modified-Since' headers but we can live in hope
-		mirror => $file);
+	unlink "dba.html"; # old cache file before 2008-05-08
 
-	if (!$data) {
-		$data = &Shepherd::Common::get_url( url => $opt->{alternate_dbaurl},
-		    retries => 4,
- 		    # the website doesn't support 'If-Modified-Since' headers but we can live in hope
-		    mirror => $file);
-	}
-
-	if (!$data && open(FILE, $file)) {
-		read(FILE, $data, -s FILE);
-		close FILE;
-		$stats{used_mirror} = int((($script_start_time - (stat($file))[9]) / (24*60*60)) + 0.5); # days old
-		return if ($stats{used_mirror} > 14);
-	}
-
+	my $mirror_to = "dtvinfo.html";
+	my $data = &Shepherd::Common::get_url( url => $opt->{dbaurl}, mirror => $mirror_to);
+	# the website doesn't support 'If-Modified-Since' headers but we can live in hope
+	$data = &Shepherd::Common::get_mirror_file($mirror_to, 14) if (!$data);
 	return if (!$data);
 
-	# Brute force hack to remove closing FONT tags because these misplaced tags screws up HTMLTreeBuilder
-	$data =~ s/<\/font>//ig;
+	my $prime_present = $data =~ /Prime\s+HD/; # hack Seven also to Prime if no Prime data
 
-	my $tree = HTML::TreeBuilder->new_from_content(Encode::decode_utf8($data)); 
-	return if (!$tree);
+	# Parse the HTML of the page
+	#
+	my $tree = HTML::TreeBuilder->new_from_content($data);
+	if (!$tree) {
+		print "Can't build tree from url.\n";
+		return;
+	}
 
-	# each daily section starts with:
-	# <TABLE class=tv... 
-	# so we'll search for that and populate an array
+	# Find the first post in the thread
+	#
+	my $postNode = $tree->look_down('_tag'=>'div', 'class'=>'postcolor', 'id'=>qr{post-.*}); 
+	if ($postNode) {
+		# Found the post, let's iterate through the children extracting text.
+		#
+		# We're interested in the data that follows the first horizontal line of
+		# underscores and precedes the second line.  The earlier data is a 
+		# highlights list, and the later data is a disclaimer.
+		#
+		# The data is several chunks like this on the web page:
+		#
+		# Thursday 1st May 2008
+		# Nine HD
+		# 5:30am - Today
+		# 9:00am - Mornings With Kerri-Anne
+		# 11:30am - Fresh Cooking With The Australian Women's Weekly
+		# 7:00pm - Two And A Half Men (Did You Check with the Captain of the Flying Monkeys?)
+		# HD Only 11:00am - The Mountain [DD5.1]
+		# 
+		# but they may appear in this loop split onto several lines at <B>, <U> or
+		# other boundaries in the source markup.  For example, the last line becomes:
+		#
+		# HD Only
+		# 11:00am - The Mountain
+		# [DD5.1]
+		#
+		# because the "HD Only" is in a <SPAN> with colour red.  This splitting will
+		# not have a negative impact on the actual programme, channel, or date info, 
+		# as long as the triggering markup does not occur mid-field. It currently 
+		# doesn't.
+		#
+		my $datePattern = qr{(\d?\d)(?:st|nd|rd|th)\s+([[:alpha:]]+)\s+(\d\d\d\d)$}io;
+		my $chanPattern = qr{^(ABC|Nine|Seven|Prime|Ten|SBS)\s+HD}io;
+		my $progPattern = qr{(\d?\d:\d\d\s*(?:am|pm))\s+-\s+(.*)$}io;
+		my $currDate = undef;
+		my $currChan = undef;	
 
-	$tree->warn(1);
-	my $tablenum = 0;
-	foreach my $tv_table ($tree->look_down('_tag' => 'table', 'class' => 'tv')) {
-		$tablenum++;
-		my $rownum = 0;
-		my @chan_map;
-		foreach my $row ($tv_table->look_down('_tag' => 'tr')) {
-			$rownum++;
-			my $colnum = 0;
-			my $colname = "";
+		my $betweenLines = 0;	# Toggle as we parse each horiz. line
+		foreach my $node ($postNode->content_list()) {
+			my $text = (ref($node) eq 'HTML::Element') ?
+				$node->as_text() :
+				$node;
+			$text =~ s/^\s+|\s+$//g;	# strip leading/trailing spaces
+			next if $text eq '';		# skip empty strings
+			if ($text =~ m/^_+$/) {		# horiz line
+				$betweenLines = !$betweenLines;
+				next;
+			}
+			next unless $betweenLines;
 
-			foreach my $col ($row->look_down('_tag' => 'td')) {
-				$colnum++;
-
-				if ($rownum == 1) {
-					#
-					# populate channel list
-					#
-
-					my $channame = $col->as_text();
-					$channame =~ s/[^\x20-\x7f]//g;
-					$channame =~ s/(^\s+|\s+$)//g;
-					if ($channame ne "") {
-						$channame = $chan_name_translations->{$channame}
-						  if (defined $chan_name_translations->{$channame});
-
-						if (!defined $channels->{$channame}) {
-							printf "DBA listed unknown channel '$channame'! Ignored.\n";
-							$stats{unknown_channels}++;
-						} else {
-							$chan_map[$colnum] = $channame;
-							printf "got channel '$channame' in table $tablenum row $rownum column $colnum\n" if ($opt->{debug} > 1);
-						}
-					}
+			if ($text =~ $datePattern) {
+				# Date is not currently used except for debugging
+				$currDate = "$1 $2 $3";	# e.g. 3 May 2008
+			}
+			elsif ($text =~ $chanPattern) {
+				my $channame = $1;
+				$channame = $chan_name_translations->{$channame}
+					if (defined $chan_name_translations->{$channame});
+				if (defined $channels->{$channame}) {
+					$currChan = $channame;
+				} elsif ((!$prime_present) && ($channame eq 'Seven') && defined($channels->{'Prime'})) {
+					$currChan = $channame;
 				} else {
-					#
-					# programmes
-					#
+					printf "** Found unknown channel '%s'! Ignored.\n", $channame;
+					$stats{unknown_channels}++;
+					$currChan = undef;
+				}
+			}
+			elsif ($text =~ $progPattern) {
+				# Time is not currently used except for debugging
+				my $progtime = $1;
+				my $progname = $2;
+				if (defined $currChan) {
+					# Clean up some cruft
+					$progname =~ s/^MOVIE:\s*//;
+					$progname =~ s/^HD Documentary:\s*/HD Docos: /;
+					$progname =~ s/\s*\([^(]+\)$//;	# (episode title)
 
-					if ($colnum == 1) {
-						my $field = $col->as_text();
-						if ($field !~ /Subject to availability/i) {
-							$colname = $field;
-							printf "table %d row %d: parsing '%s'\n",$tablenum,$rownum,$colname; # if ($opt->{debug});
-						}
-					} else {
-						# since we're only interested in HD programs, just look for
-						# titles in <u> tags
+					printf "Channel: '%s', Date: '%s', Time: '%s', Prog: '%s'\n",
+						$currChan, $currDate, $progtime, $progname;
 
-						foreach my $hdprog ($col->look_down('_tag' => 'u')) {
-							my $progname = $hdprog->as_trimmed_text();
-							#$progname =~ s/[^\x20-\x7f]/ /g;
-							$progname =~ s/\xA0/ /g; # &nbsp; can be &#160; == &#xA0;
+					# Apply manual translation if needed
+					if (defined($translation->{$progname})) {
+						$progname = $translation->{$progname};
+						$stats{manual_translations}++;
+					}
 
-							$progname =~ s/^(.*)\(HD\).*/$1/; # strip
-							$progname =~ s/(^\s+|\s+$)//g;
-							if (($progname ne "") && (length($progname) > 2)) {
-
-								if (!defined $chan_map[$colnum]) {
-									printf "ignoring HD prog '$progname' on unknown channel (table $tablenum row $rownum column $colnum $colname)\n";
-								} else {
-									printf "HD prog table %d row %d column %d: '%s' [%s %s]\n",$tablenum,$rownum,$colnum,$progname,$chan_map[$colnum],$colname; # if ($opt->{debug});
-
-									if (defined($translation->{$progname})) {
-										$progname = $translation->{$progname};
-										$stats{manual_translations}++;
-									}
-
-									foreach my $xmlid (@{$channels->{$chan_map[$colnum]}}) {
-										$d->{prog}->{$xmlid}->{$progname} = $chan_map[$colnum];
-									}
-									$stats{parsed_hd_progs}++;
-								}
-							}
+					# Store the result and update stats
+					if (defined $channels->{$currChan}) {
+						foreach my $xmlid (@{$channels->{$currChan}}) {
+							$d->{prog}->{$xmlid}->{$progname} = $currChan;
 						}
 					}
+					if ((!$prime_present) && ($currChan eq 'Seven') && defined($channels->{'Prime'})) {
+						foreach my $xmlid (@{$channels->{'Prime'}}) {
+							$d->{prog}->{$xmlid}->{$progname} = 'Prime';
+						}
+					}
+					$stats{parsed_hd_progs}++;
 				}
+				else {
+					printf "** Ignoring matched prog '%s' at '%s'\n",
+						$progname, $progtime;
+				}
+			}
+			else {
+				printf "** Ignoring text '%s'\n", $text;
 			}
 		}
 	}
-	$tree->delete;
+	
+	# Clean up 
+	#
+	$tree->delete();
 }
+
 
 ######################################################################################################
 
@@ -475,7 +502,7 @@ sub programme_cb( $ )
 		goto MATCH;
 	}
 
-	# see if title matches everything we have seen on this channel
+	# see if title matches a known hd program for this channel
 	foreach my $t (keys %{($d->{prog}->{$this_chan})}) {
 		if (canonicalizeTitles_match($t,$this_title)) {
 			# match!

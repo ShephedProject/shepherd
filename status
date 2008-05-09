@@ -1,11 +1,11 @@
 application     shepherd            1.2.41
 reference       channel_list        18
-reference       Shepherd/Common.pm  0.34
+reference       Shepherd/Common.pm  0.35
 reference       Shepherd/MythTV.pm  0.7
 grabber         yahoo7widget        1.105
 grabber         rex                 3.6.7
 grabber         abc_website         3.21
-grabber         sbsnews_website     0.19-r1
+grabber         sbsnews_website     0.20
 grabber         oztivo              2.14
 grabber         yahoo7web           0.33-r1
 grabber         foxtel_swf          0.26
@@ -17,5 +17,5 @@ grabber         acctv_website       0.08
 reconciler      reconciler_mk2      0.39
 postprocessor   imdb_augment_data   0.42
 postprocessor   tvdb_augment_data   0.11
-postprocessor   flag_aus_hdtv       0.39
+postprocessor   flag_aus_hdtv       0.40
 postprocessor   augment_timezone    0.21
