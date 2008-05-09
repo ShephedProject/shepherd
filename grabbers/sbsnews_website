@@ -14,7 +14,7 @@
 use strict;
 
 my $progname = "sbsnews_website";
-my $version = "0.20";
+my $version = "0.21";
 
 use XMLTV;
 use POSIX qw(strftime);
@@ -151,7 +151,7 @@ sub get_sbsnews_data
  		    # the website doesn't support 'If-Modified-Since' headers but we can live in hope
 		    mirror => $file);
 
-	$data = &Shepherd::Common::get_mirror_file($file, 14) if (!$data);
+	$data = &Shepherd::Common::get_mirror_file($file, 56) if (!$data);
 
 	exit 22 unless ($data);
 
