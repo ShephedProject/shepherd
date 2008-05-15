@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.3.0';
+my $version = '1.3.1';
 
 # tv_grab_au
 # "Shepherd"
@@ -842,7 +842,7 @@ sub report_stats
     else
     {
 	&log("Posting anonymous usage statistics.\n");
-	return 0 unless (fetch_file("http://www.whuffy.com/shepherd/report.cgi", undef, $postvars));
+	return 0 unless (fetch_file("http://www.whuffy.com/report.cgi", undef, $postvars));
     }
 
     # successful post, clear out our pending messages
