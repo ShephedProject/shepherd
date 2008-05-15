@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.2.42';
+my $version = '1.3.0';
 
 # tv_grab_au
 # "Shepherd"
@@ -53,8 +53,6 @@ my $wiki = 'http://svn.whuffy.com/wiki';
 # --- Global Variables
 # ---------------------------------------------------------------------------
 
-my $HOME = 'http://www.whuffy.com';
-
 my $CWD = &find_home;
 -d $CWD or mkdir $CWD or die "Cannot create directory $CWD: $!";
 chdir($CWD);
@@ -67,6 +65,7 @@ my $opt = {};
 my $pref_title_source;
 my $want_paytv_channels;
 my $mirror_site;
+my $sources;
 my $debug = 0;
 my $last_successful_run;
 my $last_successful_run_data;
@@ -289,25 +288,78 @@ sub update
 	return 0;
     }
 
-    &log("\nChecking for updates:\n\n");
-    my $data = fetch_shepherd_file("shepherd/status.csum");
+    &log("\nChecking for updates:\n");
 
-    unless ($data)
+    # Sources
+    #
+    # Sources are where Shepherd looks for updates. Users can specify
+    # new sources as mirrors in case Shepherd's default source becomes
+    # unavailable, or for additional, unofficial functionality.
+
+    my (%datalist, %network_errors);
+    my $count = 0;
+    foreach my $site (@$sources)
+    {
+	$count++;
+	&log("Source #$count: $site\n");
+	my $data = fetch_file($site . 'status.csum', undef, 1);
+	if (!$data)
+	{
+	    print "Locking components owned by source $site.\n";
+	    $network_errors{$site} = 1;
+	    next;
+	}
+	my @source_components;
+	while ($data =~ /(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/g)
+	{
+	    my ($progtype, $proggy, $latestversion, $csum1, $csum2) = ($1,$2,$3,$4,$5);
+	    if ($datalist{$proggy})
+	    {
+		&log(1, "Preferring previous source for $progtype $proggy\n");
+	    }
+	    else
+	    {
+		$datalist{$proggy} = { progtype => $progtype, 
+				       latestversion => $latestversion,
+				       csum1 => $csum1,
+				       csum2 => $csum2,
+				       source => $site
+				   };
+		push @source_components, $proggy;
+	    }
+
+	}
+	&log(1, "Source #$count has " . scalar(@source_components) . " components (" .
+	        join(', ', @source_components) . ")\n");
+    }
+
+    unless (keys %datalist)
     {
 	&log("Skipping update.\n");
 	return 0;
     }
 
+    &log("\n");
+
     my %clist = %$components;
 
-    while ($data =~ /(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/g)
+    foreach my $stage (qw( application reference grabber reconciler postprocessor ))
     {
-	my ($progtype, $proggy, $latestversion, $csum1, $csum2) = ($1,$2,$3,$4,$5);
-	if (update_component($proggy, $latestversion, $progtype, $csum1, $csum2))
+	foreach my $c (keys %datalist)
 	{
-	    $made_changes++;
+	    my $proggy = $datalist{$c};
+	    next unless ($proggy->{progtype} eq $stage);
+	    if ($components->{$c} and $components->{$c}->{source} and $components->{$c}->{source} ne $proggy->{source} and $network_errors{$components->{$c}->{source}} and 1) # /* the unavailable source is preferred */)
+	    {
+		$proggy->{source} = $components->{$c}->{source};
+		$proggy->{csum1} = 'locked';
+	    }
+	    if (update_component($c, $proggy->{source}, $proggy->{latestversion}, $stage, $proggy->{csum1}, $proggy->{csum2}))
+	    {
+		$made_changes++;
+	    }
+	    delete $clist{$c};
 	}
-	delete $clist{$proggy};
     }
 
     # if user has set system to not update, then simply tell them if there are updates
@@ -321,7 +373,7 @@ sub update
 
     # work out what components disappeared (if any)
     foreach (keys %clist) {
-	unless ($components->{$_}->{disabled}) {
+	unless ($components->{$_}->{disabled} or $network_errors{$components->{$_}->{source}}) {
 	    &log("\nDeleted component: $_.\n");
 	    disable($_, 2);
 	    $made_changes++;
@@ -332,7 +384,7 @@ sub update
 
 sub update_component
 {
-    my ($proggy, $latestversion, $progtype, $csum1, $csum2) = @_;
+    my ($proggy, $source, $latestversion, $progtype, $csum1, $csum2) = @_;
 
     my $ver = 0;
     $ver = $components->{$proggy}->{ver} if (defined $components->{$proggy} and -e query_filename($proggy,$progtype));
@@ -342,6 +394,10 @@ sub update_component
     if ($components->{$proggy} and $components->{$proggy}->{disabled} and $components->{$proggy}->{disabled} == 1)
     {
 	$action = 'DISABLED BY USER';
+    }
+    elsif ($csum1 eq 'locked')
+    {
+	$action = 'SOURCE LOCKED';
     }
 
     unless ($action)
@@ -389,7 +445,9 @@ sub update_component
 
     &log(sprintf  "* %-54s%17s\n",
 		    ucfirst($progtype) . " $proggy" .
-			($ver ? " v$ver" : '') . "...",
+			($ver ? " v$ver" : '') . 
+			($opt->{debug} ? ' [' . &shortsource($source) . ']' : '') .
+			"...",
 		    $action);
 
     if ($action eq 'FAILED')
@@ -427,7 +485,7 @@ sub update_component
 
     return $result if (defined $opt->{noupdate});
     return 0 unless ($result);
-    install($proggy, $latestversion, $progtype, $ver, $csum1, $csum2);
+    install($proggy, $source, $latestversion, $progtype, $ver, $csum1, $csum2);
     return 1;
 }
 
@@ -442,9 +500,15 @@ sub csum_file
     return $sha1->hexdigest;
 }
 
+sub shortsource
+{
+    my $source = shift;
+    ($source =~ /(.*):\/+w*\.*(.*?)\//) ? $2 : $source;
+}
+
 sub install
 {
-    my ($proggy, $latestversion, $progtype, $oldver, $csum1, $csum2) = @_;
+    my ($proggy, $source, $latestversion, $progtype, $oldver, $csum1, $csum2) = @_;
 
     my $config;
     my $rdir = "";
@@ -460,7 +524,7 @@ sub install
     my $newfile = "$ldir/$proggy-$latestversion";
 
     $rdir = $progtype . 's';
-    my $rfile = "shepherd/$rdir/$proggy";
+    my $rfile = $source . "$rdir/$proggy";
 
     # have we previously downloaded it but haven't been able to install it
     # (due to a failed test or failed dependencies or something like that)?
@@ -469,7 +533,7 @@ sub install
 	$config = Data::Dumper->Dump([$components_pending_install->{$proggy}->{config}], ["config"]);
     } else {
 	&log("Downloading $proggy v$latestversion.\n");
-	return unless (fetch_shepherd_file($rfile, $newfile, undef, $csum2));
+	return unless (fetch_file($rfile, $newfile, 1, undef, $csum2));
 
 	# Make component executable
 	chmod 0755,$newfile unless ($progtype eq 'reference');
@@ -477,7 +541,7 @@ sub install
 
     # Fetch config file
     $rfile .= ".conf";
-    $config = fetch_shepherd_file($rfile, undef, undef, $csum1) if (!defined $config);
+    $config = fetch_file($rfile, undef, 1, undef, $csum1) if (!defined $config);
 
     return unless ($config); # everyone MUST have config files
 
@@ -520,6 +584,7 @@ sub install
     $components->{$proggy}->{type} = $progtype;
     $components->{$proggy}->{ver} = $latestversion;
     $components->{$proggy}->{config} = $config;
+    $components->{$proggy}->{source} = $source;
     $components->{$proggy}->{updated} = time;
     $components->{$proggy}->{admin_status} = sprintf "updated from %s to %s", $oldver, $latestversion;
     delete $components_pending_install->{$proggy} if (defined $components_pending_install->{$proggy});
@@ -552,23 +617,6 @@ sub install
     {
 	enable($proggy);
     }
-}
-
-sub fetch_shepherd_file
-{
-    my ($fn, $store, $postvars, $csum) = @_;
-
-    my $sites = "";
-    $sites = "$mirror_site," if ($mirror_site);
-    $sites .= $HOME;
-
-    my $ret;
-    foreach my $site (split(/,/,$sites)) 
-    {
-	$ret = fetch_file("$site/$fn", $store, 1, $postvars, $csum);
-	return $ret if ($ret);
-    }
-    return undef;
 }
 
 sub test_proggy
@@ -794,7 +842,7 @@ sub report_stats
     else
     {
 	&log("Posting anonymous usage statistics.\n");
-	return 0 unless (fetch_shepherd_file("report.cgi", undef, $postvars));
+	return 0 unless (fetch_file("http://www.whuffy.com/shepherd/report.cgi", undef, $postvars));
     }
 
     # successful post, clear out our pending messages
@@ -1625,6 +1673,29 @@ sub read_config_file
 	    if (defined $pref_title_source && $pref_title_source eq 'yahoo7widget,abc2_website');
     delete $components->{'abc2_website'} if (defined $components &&
 	    defined $components->{'abc2_website'} && !defined $components->{'abc2_website'}->{'ver'});
+    
+    # Migrate from 'mirror_site' to new 'sources'
+    unless ($sources)
+    {
+	&log("Defining default source.\n");
+	&reset_sources;
+	# Components with no source are assigned to whuffy
+	foreach (keys %$components)
+	{
+	    $components->{$_}->{source} ||= 'http://www.whuffy.com/shepherd/';
+	}
+    }
+	
+    if ($mirror_site)
+    {
+	print "Migrating mirrors to sources.\n";
+	foreach my $site (split (/,/, $mirror_site))
+	{
+	    $site = "$site/" unless ($site =~ /\/$/);
+	    push(@$sources, $site);
+	}
+	$mirror_site = undef;
+    }
 }
 
 sub read_channels_file
@@ -1663,8 +1734,8 @@ sub read_file
 sub write_config_file
 {
     write_file($config_file, 'configuration', 
-	[$region,  $pref_title_source,  $want_paytv_channels,  $sysid,  $last_successful_run, $last_successful_run_data, $last_successful_runs, $mirror_site,  $components,  $components_pending_install,  $pending_messages ],
-	["region", "pref_title_source", "want_paytv_channels", "sysid", "last_successful_run", "last_successful_run_data", "last_successful_runs", "mirror_site", "components", "components_pending_install", "pending_messages" ]);
+	[$region,  $pref_title_source,  $want_paytv_channels,  $sysid,  $last_successful_run, $last_successful_run_data, $last_successful_runs, $sources, $components,  $components_pending_install,  $pending_messages ],
+	["region", "pref_title_source", "want_paytv_channels", "sysid", "last_successful_run", "last_successful_run_data", "last_successful_runs", 'sources', "components", "components_pending_install", "pending_messages" ]);
 }
 
 sub write_channels_file
@@ -1709,7 +1780,6 @@ sub get_command_line_options
   GetOptions($opt, qw(	config-file=s
 			help
 			configure:s
-			setmirror=s
 			setpreftitle=s
 			clearpreftitle
 			capabilities
@@ -1730,6 +1800,7 @@ sub get_command_line_options
 			disable=s
 			enable=s
 			component-set=s
+			delete=s
 			nolog
 			nonotify
 			notimetest
@@ -1747,6 +1818,9 @@ sub get_command_line_options
 			ancestry=s
 			history
 			sidtest
+			sources
+			addsource=s
+			delsource=s
 		     ));
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
@@ -1772,12 +1846,14 @@ sub process_setup_commands
 {
     my %routines = (	enable => 'WS',
 			disable => 'WS',
+			'delete' => 'WS',
 			setorder => 'WS',
 			check => 'WS',
 			setpreftitle => 'W',
 			clearpreftitle => 'W',
-			setmirror => 'W',
 			'reset' => 'W',
+			addsource => 'W',
+			delsource => 'W',
 			status => '',
 			history => '',
 			desc => '',
@@ -1788,7 +1864,8 @@ sub process_setup_commands
 			'component-set' => '',
 			'pending' => '',
 			sidtest => '',
-			ancestry => ''
+			ancestry => '',
+			sources => ''
 		    );
 
     my ($run, $write_flag, $status_flag);
@@ -1835,14 +1912,6 @@ sub clearpreftitle
     1;
 }
 
-# if a mirror has been specified, add it into our config
-sub setmirror
-{
-    my $arg = shift;
-    $mirror_site = $arg;
-    &log("Setting mirror site(s): $mirror_site\n");
-}
-
 sub reset
 {
     &log(2, "\nWARNING! The --reset argument will remove your established\n" .
@@ -1870,6 +1939,14 @@ sub reset
             }
         }
     }
+}
+
+sub delete
+{
+    my $proggy = shift;
+
+    delete $components->{$proggy};
+    &log("\nDeleted component \"$proggy\".");
 }
 
 # used to call a component in a manner so it can set some tunable parameter
@@ -1931,6 +2008,106 @@ sub list_chan_names
 		$reg, $REGIONS{$reg}, join("\n\t",fetch_channels($reg));
 }
 
+sub sources
+{
+    my $arg = shift;
+
+    if ($arg and $arg eq 'reset')
+    {
+	print "Resetting sources.\n";
+	&reset_sources;
+    }
+    print "Sources:\n".
+          "  # Source                                        Can Update\n".
+	  "-------------------------------------------------------------------\n";
+
+    my $count = 1;
+    foreach my $site (@$sources)
+    {
+	printf " %2d %-50s\n",
+	       $count,
+	       $site;
+	$count++;
+    }
+}
+
+sub addsource
+{
+    my $source = shift;
+
+    my ($site, $priority, @rest) = split(/,/, $source);
+
+    if (@rest)
+    {
+	print "Warning: Ignoring unknown options: @rest\n";
+    }
+
+    $site = "$site/" unless ($site =~ /\/$/);
+
+    &delsource($site, 1);
+
+    if (!$priority or $priority < 1 or $priority > @$sources)
+    {
+	$priority = @$sources;
+    }
+    else
+    {
+	$priority--;
+    }
+    splice (@$sources, $priority, 0, $site);
+    &log("\nAdded source $site\n");
+    if (fetch_file($site . 'status.csum', undef, 1))
+    {
+	&log("Source appears valid.\n");
+    }
+    else
+    {
+	&log("\n*** WARNING: Source unreachable! ***\n\n");
+    }
+    &sources;
+    &log("\nPLEASE READ CAREFULLY!\n".
+	 "Adding a source allows the remote host to install, update\n".
+	 "and execute software on your system. This is a serious\n".
+	 "security risk, and we strongly recommend both that you\n".
+	 "take steps to limit the damage a malicious source could do.\n".
+	 "See: $wiki/Security\n");
+}
+
+sub delsource 
+{
+    my ($source, $quietcheck) = @_;
+
+    if ($source eq 'all')
+    {
+	print "Resetting sources.\n";
+	&reset_sources;
+	return &sources;
+    }
+    $source = "$source/" unless ($source =~ /\/$/);
+    for (my $i = 0; $i < @$sources; $i++)
+    {
+	my $site = $sources->[$i];
+	if ($source eq $site)
+	{
+	    splice (@$sources, $i, 1);
+	    &reset_sources if (@$sources < 1);
+	    return if ($quietcheck);
+	    print "\nDeleted source: $source\n";
+	    return &sources;
+	}
+    }
+    unless ($quietcheck)
+    {
+	print "\nError: No such source: \"$source\"\n";
+	exit;
+    }
+}
+
+sub reset_sources
+{
+    $sources = [ 'http://www.whuffy.com/shepherd/' ];
+}
+
 sub set_icons
 {
     print "\n\nPopulating Channel Icons.\n\n";
@@ -1956,7 +2133,7 @@ sub set_icons
 
     # fetch icon styles
     print "Done.\n\nFetching icon styles ... ";
-    my $icon_styles = fetch_file($HOME."/shepherd/logo_list.txt");
+    my $icon_styles = fetch_file('http://www.whuffy.com/shepherd/logo_list.txt');
     exit(1) if (!$icon_styles);
 
     print "Done\n\n".
@@ -3173,7 +3350,8 @@ sub desc
 	    &log("\n*** " . uc($lasttype) . "S ***\n");
 	}
 	&log("\n$_ v$components->{$_}->{ver}" .
-	     "\n* " . pretty_print(query_config($_, 'desc'), 77) . "\n");
+	     "\n* " . pretty_print(query_config($_, 'desc'), 77) . "\n".
+	     "* Component source: " . $components->{$_}->{source} . "\n");
 	if ($lasttype eq 'grabber')
 	{
 	    &log("* Data Quality: " . $qual_table{int(query_config($_, 'quality'))} . "\n");
@@ -3307,14 +3485,18 @@ Configuration options:
 
     --disable <s>         Don't ever use component <s>
     --enable <s>          Make component <s> available for use again
+    --delete <s>          Permanently remove component <s>
+
     --component-set <s>   Used to update a component configuration/setting
 
     --set-icons           Download channel icons and update MythTV to use them
-    --setmirror <s>       Set URL <s> as primary location to check for updates
     --setpreftitle <s>    Set preferred 'title' source as grabber <s>
     --clearpreftitle      Clear preferred 'title' source
     --reset               Remove all previous title translation data
 
+    --sources             List Shepherd sources
+    --addsource <s>[,p]   Add a Shepherd source (optional: priority #)
+    --delsource <s>       Delete a Shepherd source (or 'all')
 };
     exit 0;
 }
