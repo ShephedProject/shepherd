@@ -1,0 +1,798 @@
+#!/usr/bin/perl
+#
+# sbsweb TV guide grabber
+#
+# TODO: 
+# 1. Get shows on previous day if before 5am or whatever
+# 2. Gaps support
+# 3. conf file
+#
+
+my $version = '0.0.1';
+
+use strict;
+use Getopt::Long;
+use POSIX;
+use Data::Dumper;
+use IO::File;
+use XMLTV;
+use HTML::TreeBuilder;
+use Shepherd::Common;
+
+# ---------------------------------------------------------------------------
+# --- Global Variables
+
+my $progname = "sbsweb";
+
+my $DATASOURCE = "sbs.com.au";
+
+my $lang = 'en';
+my $debug = 0;
+my $channels;
+my $opt_channels;
+my $opt = { };
+my $gaps;
+my %stats;
+my $shows;
+my $cache;
+my $runtime = time;
+my $zerohr;
+my @skipped_channels;
+my $loc;
+my $chanid;
+
+# ---------------------------------------------------------------------------
+# --- Setup
+
+print "$progname $version\n";
+
+$| = 1;
+
+&get_command_line_options;
+
+exit 0 if ($opt->{version});
+
+&help if ($opt->{help});
+
+&set_defaults;
+
+&read_channels_file;
+
+unless ($channels)
+{
+    print "ERROR: No channels requested. Please use --channels_file.\n";
+    exit 33;
+}
+$chanid = $channels->{'SBS'};
+
+&read_gaps_file;
+
+&read_cache;
+
+&set_region;
+
+&get_guide_data;
+
+&calculate_stop_times;
+
+&write_cache;
+
+print Dumper($shows) if ($debug);
+
+&write_xml;
+
+&Shepherd::Common::print_stats($progname, $version, $runtime, %stats);
+
+&log("Done.");
+exit;
+
+
+# ---------------------------------------------------------------------------
+# --- Subs
+
+sub get_guide_data
+{
+    &log("Grabbing data for days " . $opt->{offset} .
+         " - " . ($opt->{days} - 1) .
+	 ($opt->{output} ? " into " . $opt->{output} : '') .
+	 ".");
+
+    # Calculate midnight on day zero in epoch time
+    my @today = localtime($runtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+    $zerohr = $runtime - (($today[0]) + ($today[1]*60) + ($today[2]*60*60));
+
+    for my $day ($opt->{offset} .. ($opt->{days} - 1))
+    { 
+	&log("Day $day");
+
+	my $daystr = &POSIX::strftime("%Y-%m-%d", localtime($runtime + ($day * 86400)));
+
+	my $url = "http://www.$DATASOURCE/schedule/$daystr/$loc";
+	my $guidedata = &Shepherd::Common::get_url($url);
+	exit 11 unless ($guidedata);
+
+	&parse_guide($guidedata, $day);
+    }
+    &log("Found " . &num_items($shows) . " shows on " . scalar(keys %$shows) . " channels.");
+}
+
+sub parse_guide
+{
+    my ($guidedata, $day, $window) = @_;
+
+    &log("Parsing guide page (Day $day hr $window).") if ($debug);
+    my $tree = HTML::TreeBuilder->new;
+    $tree->no_space_compacting(1);
+    $tree->parse($guidedata);
+    $tree->eof;
+
+    my $content = $tree->look_down(_tag => 'div', id => 'content');
+    foreach my $block ($content->look_down(_tag => 'ul', class => 'tv_schedule'))
+    {
+	&log("Found block.") if ($debug);
+	my $show;
+	foreach my $li ($block->look_down(_tag => 'li'))
+	{
+	    &log("Li line") if ($debug);
+	    my $start = $li->look_down(_tag => 'span', class => 'tv_schedule_time');
+	    if ($start)
+	    {
+		if ($show->{start})
+		{
+		    $shows->{$chanid}->{$show->{start}} = $show;
+		    $show = undef;
+		}
+
+		my ($hr, $min) = split(/:/, $start->as_text);
+		$start = ($hr * 3600) + ($min * 60);
+		$show->{start} = $zerohr + $start;
+		&log("Start: " . $show->{start}) if ($debug);
+		$show->{channel} = $chanid;
+	    }
+	    my $title = $li->look_down(_tag => 'a', class => 'leftpad');
+	    if ($title)
+	    {
+		$show->{title} = $title->as_text;
+		&log("Title: " . $show->{title}) if ($debug);
+	    }
+	    my $desc = $li->look_down(_tag => 'div', class => 'tv_schedule_item_description');
+	    if ($desc)
+	    {
+		$desc = $desc->look_down(_tag => 'p')->as_text;
+		$desc =~ s/ +$//; # Remove trailing spaces
+		if ($desc =~ /\(Rpt\)/)
+		{
+		    $show->{'previously-shown'} = { };
+		}
+		if ($desc =~ /\bCC\b/)
+		{
+		    push @{$show->{'subtitles'}}, 'teletext';
+		}
+		if ($desc =~ /\bWS\b/)
+		{
+		    $show->{video}->{aspect} = '16:9';
+		}
+		if ($desc =~ s/^Movie: //)
+		{
+		    push @{$show->{category}}, 'movie';
+		}
+		if ($desc =~ /\(Sport\)/)
+		{
+		    push @{$show->{category}}, 'sports';
+		}
+		if ($desc =~ /\((Thriller|Documentary|Drama)\)/)
+		{
+		    push @{$show->{category}}, $1;
+		}
+		if ($desc =~ / \(([12]\d\d\d)\) /)
+		{
+		    $show->{date} = $1;
+		}
+		if ($desc =~ /\b(G|PG|M|MA)\b/)
+		{
+		    $show->{rating} = $1;
+		}
+		if ($desc =~ / \(From (.*?), in (.*?)\) /)
+		{
+		    my ($country, $language) = ($1, $2);
+
+		    $country = 'USA' if ($country eq 'the US');
+		    $country = 'UK' if ($country eq 'the UK');
+		    $show->{country} = $country;
+
+		    my @parts = split (/,/, $language);
+		    $show->{language} = $parts[0];
+		    my $lastpart = $parts[scalar(@parts)-1];
+		    if ($lastpart =~ /^ *(.*) subtitles$/)
+		    {
+			push @{$show->{'subtitles'}}, split(/ and /, $1);
+		    }
+		}
+		$desc =~ s/ +$//; # Remove trailing spaces
+
+		$show->{desc} = $desc;
+		&log("Desc: " . $show->{desc}) if ($debug);
+	    }
+	}
+	$shows->{$chanid}->{$show->{start}} = $show;
+    }
+    $tree->delete;
+}
+
+sub details
+{
+    # iterate through our list, compare to cache, lookup if necessary
+    my $count = 0;
+    my $num_shows = &num_items($shows);
+    foreach my $ch (keys %$shows)
+    {
+	foreach my $s (sort keys %{$shows->{$ch}})
+	{
+	    my $show = $shows->{$ch}->{$s};
+	    if ($show->{start} > $zerohr + (86400 * $opt->{days}))
+	    {
+		&log("Late  : " . $show->{title}) if ($debug);
+		delete $shows->{$ch}->{$s};
+	    }
+	    elsif ($show->{stop} and $show->{stop} < $zerohr + (86400 * $opt->{offset}))
+	    {
+		&log("Early : " . $show->{title}) if ($debug);
+		delete $shows->{$ch}->{$s};
+	    }
+	    elsif ($gaps and &is_outside_gaps($show->{channel}, $show->{start}, $show->{stop}))
+	    {
+		&log("Nongap: " . $show->{title}) if ($debug);
+		delete $shows->{$ch}->{$s};
+	    }
+	    elsif (
+		$cache 
+		    and 
+		$cache->{$ch} 
+		    and 
+		$cache->{$ch}->{$s}
+		    and
+		$cache->{$ch}->{$s}->{details}
+		    and
+		$cache->{$ch}->{$s}->{stop} eq $show->{stop}
+		    and
+		$cache->{$ch}->{$s}->{title} eq $show->{title})
+	    {
+		&log("Cached: ". $show->{title}) if ($debug);
+		$shows->{$ch}->{$s} = $cache->{$ch}->{$s};
+		$stats{cache_hits}++;
+		$stats{shows}++;
+	    }
+	    else
+	    {
+		&log("New   : " . $show->{title}) if ($debug);
+		my $html = &fetch_details($show->{pid});
+		if ($html)
+		{
+		    &parse_details($html, $show);
+		    $show->{details} = 1;
+		    $cache->{$ch}->{$s} = $show;
+		    $stats{shows}++;
+		}
+		else
+		{
+		    &log("Couldn't fetch " . $show->{title} .
+			 " (pid " . $show->{pid} . ")!");
+		}
+	    }
+	    $count++;
+	    if ($count % 25 == 0)
+	    {
+		&log(sprintf " ...processed %d of %d shows [%s elapsed, %d new, %d cached, %d unwanted]",
+		    $count, $num_shows, 
+		    &Shepherd::Common::pretty_duration(time - $runtime),
+		    $stats{shows} - $stats{cache_hits},
+		    $stats{cache_hits},
+		    $count - $stats{shows});
+	    }
+	}
+    }
+}
+
+sub parse_details
+{
+    my ($html, $show) = @_;
+
+    &log("Parsing \"$show->{title}\"") if ($debug);
+    my $tree = HTML::TreeBuilder->new_from_content($html);
+
+    my $desc = $tree->look_down(_tag => 'p', class => 'teaser');
+    unless (defined $desc)
+    {
+	print "Dumping bad HTML:\n$html\n" if ($debug);
+	print "Can't parse details page! Title: $show->{title}\n";
+	exit 22;
+    }
+
+    if ($desc)
+    {
+	$desc = &strip_whitespace($desc->as_text);
+	$show->{desc} = $desc if ($desc);
+    }
+
+    my $div = $tree->look_down(_tag => 'div', class => 'contentDetails');
+    my (%video, $category, %type);
+    foreach my $tr ($div->look_down(_tag => 'tr'))
+    {
+	if ($tr->as_text =~ /(.*?):(.*)/)
+	{
+	    if ($1 eq 'Type')
+	    {
+		$category = &strip_whitespace($2);
+	    }
+	    elsif ($1 eq 'Country')
+	    {
+		$show->{country} = $2;
+	    }
+	    elsif ($1 eq 'Language')
+	    {
+		$show->{language} = $2;
+	    }
+	    elsif ($1 eq 'Cast')
+	    {
+		foreach (split /, /, $2)
+		{
+		    push @{$show->{credits}{actor}}, &strip_whitespace($_);
+		}
+	    }
+	    elsif ($1 eq 'Director')
+	    {
+		foreach (split /, /, $2)
+		{
+		    push @{$show->{credits}{director}}, &strip_whitespace($_);
+		}
+	    }
+	    elsif ($1 eq 'Writer') # unseen
+	    {
+		foreach (split /, /, $2)
+		{
+		    push @{$show->{credits}{writer}}, &strip_whitespace($_);
+		}
+	    }
+	    elsif ($1 eq 'Duration')
+	    {
+		if ($2 =~ /(\d+) min/)
+		{
+		    $show->{length} = $1 * 60;
+		    if (!$show->{stop}) {
+			$show->{stop} = $show->{start} + ($1 * 60);
+			&log("Filled in stop time! $1 minutes.") if ($debug);
+		    }
+		}
+	    }
+	    elsif ($1 eq 'Format')
+	    {
+		foreach my $info (split /, /, $2)
+		{
+		    $info = &strip_whitespace($info);
+		    if ($info eq 'Closed Captions')
+		    {
+			push @{$show->{'subtitles'}}, 'teletext';
+		    }
+		    elsif ($info eq 'Subtitles')
+		    {
+			push @{$show->{'subtitles'}}, 'onscreen';
+		    }
+		    elsif ($info eq 'Widescreen')
+		    {
+			$video{aspect} = '16:9';
+		    }
+		    elsif ($info eq 'High Definition')
+		    {
+			$video{'quality'} = 'HDTV';
+		    }
+		    elsif ($info eq 'Premiere')
+		    {
+			$show->{'premiere'} = [ $info ];
+			$type{premiere} = 1;
+		    }
+		    elsif ($info eq 'Live')
+		    {
+			$type{live} = 1;
+		    }
+		    elsif ($info eq 'Final' || $info eq 'Finale') # unseen
+		    {
+			$type{final} = 1;
+		    }
+		    elsif ($info eq 'Return') # unseen
+		    {
+			$type{return} = 1;
+		    }
+		    elsif ($info eq 'Repeat')
+		    {
+			$show->{'previously-shown'} = { };
+		    }
+		    elsif ($info eq 'Movie')
+		    {
+			$type{movie} = 1;
+		    }
+		    else
+		    {
+			&log("Unknown info field: \"$info\"");
+		    }
+		}
+	    }
+	    elsif ($1 eq 'Rating')
+	    {
+		$show->{rating} = $2;
+	    }
+	    elsif ($1 eq 'Year')
+	    {
+		$show->{date} = $2;
+	    }
+	    elsif ($1 eq 'Channel' or $1 eq 'Time')
+	    {
+		# ignore: handled elsewhere
+	    }
+	    else
+	    {
+		&log("Ignoring $1: $2") if ($debug);
+	    }
+	}
+	else
+	{
+	    &log("Unknown field: " .$tr->as_text);
+	}
+    }
+    $show->{video} = { %video } if (%video);
+    $show->{category} = [ &Shepherd::Common::generate_category(
+        $show->{title}, $category, %type) ];
+
+    $tree->delete;
+
+    print "Parsed: " . Dumper($show) if ($debug);
+}
+
+sub calculate_stop_times
+{
+    foreach my $ch (keys %$shows)
+    {
+	my $last_start_time;
+	foreach my $s (reverse sort keys %{$shows->{$ch}})
+	{
+	    $shows->{$ch}->{$s}->{stop} = $last_start_time if ($last_start_time);
+	    $last_start_time = $shows->{$ch}->{$s}->{start};
+	}
+    }
+}
+
+sub write_xml
+{
+    my %writer_args = ( encoding => 'ISO-8859-1' );
+
+    &log("Writing " . &num_items($shows) . " shows to XML.");
+
+    if ($opt->{output})
+    {
+	my $fh = new IO::File(">" . $opt->{output})
+	    or die "Can't open " . $opt->{output} . ": $!";
+	$writer_args{OUTPUT} = $fh;
+    }
+
+    my $writer = new XMLTV::Writer(%writer_args);
+
+    $writer->start
+	( { 'source-info-url'    => $DATASOURCE,
+	    'source-info-name'   => $progname,
+	    'generator-info-name' => "$progname $version"} );
+
+    for my $channel (sort keys %$channels)
+    {
+	$writer->write_channel( { 
+		'display-name' => [ [ $channel, $lang ] ],
+		'id' => $channels->{$channel} } );
+    }
+
+    foreach my $ch (sort keys %$shows)
+    {
+	foreach my $s (sort keys %{$shows->{$ch}})
+	{
+	    # Don't return shows with no stop time
+	    next unless ($shows->{$ch}->{$s}->{stop});
+
+	    # Format for XMLTV-compliance
+	    my %p = %{$shows->{$ch}->{$s}};
+	    foreach my $field ('title', 'sub-title', 'desc', 'country')
+	    {
+		$p{$field} = [[ $p{$field}, $lang ]] if ($p{$field});
+	    }
+	    $p{language} = [ $p{language}, $lang ] if ($p{language});
+	    $p{start} = &POSIX::strftime("%Y%m%d%H%M", localtime($p{start}));
+	    $p{stop} = &POSIX::strftime("%Y%m%d%H%M", localtime($p{stop}));
+	    $p{rating} = [[ $p{rating}, 'ABA', undef ]] if ($p{rating});
+	    if ($p{category} && ref($p{category}) eq "ARRAY"
+		    && $p{category}[0] && ref($p{category}[0]) ne "ARRAY") # obsolete 14/10/2007
+	    {
+		foreach (@{$p{category}})
+		{
+		    $_ = [ &Shepherd::Common::translate_category($_), $lang ];
+		}
+	    }
+	    if ($p{subtitles})
+	    {
+		my @s;
+		foreach (@{$p{subtitles}})
+		{
+		    push @s, { type => $_ };
+		}
+		$p{subtitles} = [ @s ];
+	    }
+	    delete $p{pid};
+	    delete $p{details};
+
+	    &log("-> " . $shows->{$ch}->{$s}->{title}) if ($debug);
+#	    print Dumper(\%p);
+	    $shows->{$ch}->{$s}->{start} = &POSIX::strftime("%Y%m%d%H%M", localtime($s));
+	    $writer->write_programme(\%p);
+	}
+    }
+
+    $writer->end();
+}
+
+# ---------------------------------------------------------------------
+# Helper subs
+
+sub num_items
+{
+    my $hash = shift;
+    my $count = 0;
+    foreach my $ch (keys %$hash)
+    {
+	$count += scalar keys %{$hash->{$ch}};
+    }
+    return $count;
+}
+
+sub is_outside_gaps
+{
+    my ($ch, $start, $stop) = @_;
+
+    foreach my $gap (@{$gaps->{$ch}})
+    {
+	if ($gap =~ /(\d+)-(\d+)/)
+	{
+	    return 0 if ($stop > $1 and $start < $2);
+	}
+    }
+    return 1;
+}
+
+sub strip_whitespace 
+{
+    $_[0] =~ /^\s*(.*?)\s*$/ ? $1 : $_[0];
+}
+
+# ---------------------------------------------------------------------
+# Setup subs
+
+
+sub read_cache
+{
+    $cache = Shepherd::Common::read_cache(\$opt->{'cache-file'});
+    if ($cache)
+    {
+	&log("Retrieved " . &num_items($cache) . " cached items from file.");
+	&clean_cache;
+    }
+    else
+    {
+	$cache = { };
+	&log("Not using cache.");
+    }
+    if ($opt->{'dump-cache'})
+    {
+	&log("Dumping cache.");
+	print Dumper($cache);
+	exit 0;
+    }
+}
+
+sub clean_cache
+{
+    my $cutoff = $runtime - 86400;   
+    &log("Removing cached shows that finish earlier than " . localtime($cutoff) . ".") if ($debug);
+    my $count = 0;
+
+    foreach my $ch (keys %$cache)
+    {
+	foreach my $s (keys %{$cache->{$ch}})
+	{
+	    if ($cache->{$ch}->{$s}->{stop} < $cutoff)
+	    {
+		&log("Removing $cache->{$ch}->{$s}->{title}.") if ($debug);
+		delete $cache->{$ch}->{$s};
+		$count++;
+	    }
+	}
+    }
+    &log("Removed $count stale items from cache.") if ($count);
+}
+
+sub write_cache
+{
+    my $n = &num_items($cache);
+    return unless ($n);
+    &log("Writing $n shows to cache.");
+    Shepherd::Common::write_cache($opt->{'cache-file'}, $cache);
+}
+
+sub set_region
+{
+    # Not totally sure about these regions... is regional NSW 'Sydney'
+    # or 'Regional'?
+    if (grep ($_ == $opt->{region}, qw( 63 66 67 69 71 73 106 184 259 261 262 263 264)))
+    {
+	$loc = 'SBS Television';
+    }
+    elsif (grep ($_ == $opt->{region}, qw( 90 93 94 95 98 )))
+    {
+	$loc = 'SBS Melbourne';
+    }
+    elsif (grep ($_ == $opt->{region}, qw( 75 78 79 114 253 254 255 256 257 258 )))
+    {
+	$loc = 'SBS Queensland';
+    }
+    elsif (grep ($_ == $opt->{region}, qw( 81 82 83 85 86 107 )))
+    {
+	$loc = 'SBS SA';
+    }
+    elsif (grep ($_ == $opt->{region}, qw( 101 102 )))
+    {
+	$loc = 'SBS WA';
+    }
+    else
+    {
+	$loc = 'Regional';
+    }
+
+    &log("Location: $loc") if ($debug);
+}
+
+
+sub get_command_line_options
+{
+    &Getopt::Long::Configure('pass_through');
+    &GetOptions($opt, qw(
+			    help
+			    debug
+			    output=s
+			    days=i
+			    offset=i
+			    region=i
+			    dump-cache
+			    cache-file=s
+			    channels_file=s
+			    gaps_file=s
+			    version
+			    warper
+			));
+    $debug = $opt->{debug};
+
+    if (@ARGV)
+    {
+	&log("\nUnknown option(s): @ARGV\n");
+    }
+}
+
+sub set_defaults
+{
+    my $defaults = {
+	'days' => 7,
+	'offset' => 0,
+	'region' => 94,
+	'output' => &getcwd . '/output.xmltv',
+	'cache-file' => &getcwd . '/' . $progname . '.cache',
+	'channels_file' => &getcwd . '/channels.conf'
+    };
+
+    foreach (keys %$defaults)
+    {
+	unless (defined $opt->{$_})
+	{
+	    $opt->{$_} = $defaults->{$_};
+	}
+    }
+
+    $opt->{'days'} = 7 if ($opt->{'days'} > 7);
+
+    &Shepherd::Common::set_defaults(
+	stats => \%stats,
+	delay => "1-5",
+	debug => $debug,
+	webwarper => $opt->{warper}
+	);
+
+    # Initialize stats
+    %stats = ( );
+    foreach (qw( cache_hits shows ))
+    {
+	$stats{$_} = 0;
+    }
+}
+
+sub read_channels_file 
+{
+    &read_config_file('channels', 'channels_file');
+    unless ($channels)
+    {
+	print "ERROR: No channels requested. Please use --channels_file.\n";
+	exit 33;
+    }
+    foreach (keys %$channels)
+    {
+	unless ($_ eq 'SBS')
+	{
+	    &log("Ignoring unsupported channel $_.");
+	    delete $channels->{$_};
+	}
+    }
+    $chanid = $channels->{'SBS'};
+    unless (keys %$channels and $chanid)
+    {
+	&log("ERROR: No supported channels requested. Exiting.");
+	exit 22;
+    }
+
+}
+
+sub read_gaps_file
+{
+    &read_config_file('gaps', 'gaps_file');
+    if ($gaps)
+    {
+	foreach (keys %$gaps)
+	{
+	    $gaps->{$channels->{$_}} = $gaps->{$_};
+	    delete $gaps->{$_};
+	}
+    }
+}
+
+sub read_config_file
+{
+    my ($name, $arg) = @_;
+
+    return unless ($opt->{$arg});
+    &log("Reading $name file: $opt->{$arg}");
+    if (-r $opt->{$arg})
+    {
+	local (@ARGV, $/) = ($opt->{$arg});
+	no warnings 'all';
+	eval <>;
+	die "Can't parse $name file: $@" if ($@);
+    }
+    else
+    {
+	&log("Unable to read $name file.");
+    }
+}
+
+sub log
+{
+    &Shepherd::Common::log(@_);
+}
+
+sub help
+{
+    print q{
+Command-line options:
+  --help                 Print this message
+  --version              Show current version
+
+  --output <file>        Write XML into the specified file
+  --channels_file <file> Read channel subscriptions from file
+
+  --region <n>           Grab data for region code <n>
+  --days <n>             Grab <n> days of data (today being day 1)
+  --offset <n>           Skip the first <n> days
+
+  --debug                Print lots of debugging output
+};
+    exit 0;
+}
+
