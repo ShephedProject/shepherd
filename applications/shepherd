@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.3.2';
+my $version = '1.3.3';
 
 # tv_grab_au
 # "Shepherd"
@@ -64,7 +64,7 @@ my @options;
 my $opt = {};
 my $pref_title_source;
 my $want_paytv_channels;
-my $mirror_site;
+my $mirror_site;    # obsolete
 my $sources;
 my $debug = 0;
 my $last_successful_run;
@@ -1821,6 +1821,7 @@ sub get_command_line_options
 			sources
 			addsource=s
 			delsource=s
+			mode=s
 		     ));
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
@@ -3469,6 +3470,8 @@ sub help
 
 Session options:
     --output <s>          Create output file <s> (default: output.xmltv)
+    --mode <s>            Efficiency (default), Speed or Quality
+
     --noupdate            Don't update; just grab data
     --update              Update only; don't grab data
 
@@ -3538,6 +3541,10 @@ sub grab_data
 
     my $used_grabbers = 0;
     &log("\nSHEPHERD: Grabber stage ($grab_policy).\n");
+    &log("SHEPHERD: " .
+	 (($opt->{mode} and grep($_ eq lc($opt->{mode}), qw(quality speed))) ?
+	     ucfirst(lc($opt->{mode})) : 'Efficiency') . 
+	     " mode.\n");
 
     &analyze_plugin_data("",1,$progname);    
 
@@ -4065,9 +4072,19 @@ sub score_grabbers
 	    $catbonus += $hits / $timeslice->{chandays};
 	}
 
-	my $dqbonus = 2 ** ($dq-1);
-
-	my $mult = $dq ** $catbonus;
+	my $mult;
+	if ($opt->{mode} and lc($opt->{mode}) eq 'quality')
+	{
+	    $mult = ($dq ** $dq) * $catbonus / 2;
+	}
+	elsif ($opt->{mode} and lc($opt->{mode} eq 'speed'))
+	{
+	    $mult = ($catbonus ** $catbonus) * $dq / 2;
+	}
+	else
+	{
+	    $mult = $dq ** $catbonus;
+	}
 
 	$mult *= 0.9 if (query_config($grabber, 'has_noncritical_gaps'));
 
