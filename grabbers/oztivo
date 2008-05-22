@@ -37,7 +37,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.14';
+my $version = '2.15';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -897,6 +897,17 @@ foreach my $sname ( keys(%$channels), keys(%$opt_channels) ) {
 				#
 				$outdom->adoptNode($prognode);
 				$root->appendChild($prognode);
+
+				# If there are <star-rating> element(s) present and they contain 
+				# a <value> element with '0/10' then delete the <star-rating>.
+				# OzTivo data uses this to mean 'Unrated' rather than 'Terrible programme'.
+				# This rating is used by the post-processors and skews their results.
+				#
+				my @ratings = $prognode->findnodes("star-rating[value='0/10']");
+				foreach my $rating (@ratings) {
+					$rating->unbindNode();
+				}
+				
 
 				# Correct the channel attribute to use our desired XMLTV id
 				# as specified in the channels.conf file.
