@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.3.3';
+my $version = '1.3.4';
 
 # tv_grab_au
 # "Shepherd"
@@ -2499,7 +2499,7 @@ sub configure_channels_guided
           "channels also.  HD related SD channels are required.\n",
           "The 7HD, Nine HD and TEN HD channels are populated\n",
           "with programs from the first related SD channel.\n",
-          "http://svn.whuffy.com/index.fcgi/wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
+          "$wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
     my $want_hdtv = &XMLTV::Ask::ask_boolean("Do you have High-Definition (HDTV)?");
 
     my (@channellist, @hd_channellist, @paytv_channellist);
@@ -2736,7 +2736,7 @@ sub configure_channels_advanced
           "channels also.  HD related SD channels are required.\n",
           "The 7HD, Nine HD and TEN HD channels are populated\n",
           "with programs from the first related SD channel.\n",
-          "http://svn.whuffy.com/index.fcgi/wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
+          "$wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
     if (&XMLTV::Ask::ask_boolean("\nDo you wish to include HDTV channels?")) 
     {
         #limit to ones in $channels and if 7HD remove 7HD and first 7
