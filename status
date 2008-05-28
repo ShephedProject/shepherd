@@ -1,5 +1,5 @@
 application     shepherd            1.3.4
-reference       channel_list        18
+reference       channel_list        19
 reference       Shepherd/Common.pm  0.35
 reference       Shepherd/MythTV.pm  0.7
 grabber         yahoo7widget        1.105
