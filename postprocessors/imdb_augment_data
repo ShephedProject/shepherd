@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.42";
+my $version = "0.43";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -255,7 +255,7 @@ sub read_cache
 		foreach my $key (keys %{$prog}) {
 			if (($data_cache->{movie_lookup}->{$key}->{last_fetched} < $max_age) ||
 				(($data_cache->{movie_lookup}->{$key}->{last_fetched} > 1208908800) && # 2008/04/23
-				($data_cache->{movie_lookup}->{$key}->{last_fetched} < 1209600000))){  # 2008/05/01
+				($data_cache->{movie_lookup}->{$key}->{last_fetched} < 1209772800))){  # 2008/05/03
 			delete $data_cache->{movie_lookup}->{$key};
 			$stats{removed_programme_from_cache}++
 			}
