@@ -38,7 +38,7 @@
 262:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
 263:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,NBN,Prime,Sthn Cross TEN
 264:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
-Foxtel:ACC,AdultsOnly960,AIR,AnimalPlanet,AntennaPacific,ARENATV,ARENATV2,Aurora,BBCWorld,Bio,BloombergTelevision,Boomerang,CartoonNetwork,ChannelV,ChannelV2,CNBC,CNN,CountryMusicChannel,CrimeandInvestigationNetwork,DiscoveryChannel,DiscoveryHealth,DiscoveryScience,DiscoveryTravel,DisneyChannel,E!Entertainment,ESPN,Eurosportnews,EXPO,FashionTV,FOXClassics,FOXClassics2,FOXNews,FOXSPORTS1,FOXSPORTS2,FOXSPORTS3,FOXSPORTSNews,FOX8,FOX82,FOXTELBoxOffice,FOXTELGamesworld,FUELTV,Hallmark,HOWTOChannel,LifestyleChannel2,LifeStyleFOOD,MainEvent,MAX,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,NickJr,Nickelodeon,NITV,Ovation,PlayhouseDisney,RAIInternational,SCIFI,showcase,SHOWTIME,SHOWTIMEGreats,SHOWTIME2,SkyNewsAustralia,SkyNewsBusiness,SkyRacing,TCM,THECOMEDYCHANNEL,THECOMEDYCHANNEL2,TheHistoryChannel,TheLifeStyleChannel,TheWeatherChannel,TV1,TV12,TVN,TVSN,UKTV,UKTV2,VH1,W,W2,WORLDMOVIES
+Foxtel:ACC,AdultsOnly960,AIR,AnimalPlanet,AntennaPacific,ARENATV,ARENATV2,Aurora,BBCWorld,Bio,BloombergTelevision,Boomerang,CartoonNetwork,ChannelV,ChannelV2,CNBC,CNN,CountryMusicChannel,CrimeandInvestigationNetwork,DiscoveryChannel,DiscoveryHealth,DiscoveryScience,DiscoveryTravel,DisneyChannel,E!Entertainment,ESPN,Eurosportnews,EXPO,FashionTV,FOXClassics,FOXClassics2,FOXNews,FOXSPORTS1,FOXSPORTS2,FOXSPORTS3,FOXSPORTSNews,FOX8,FOX82,FoxtelBoxOffice,FOXTELGamesworld,FUELTV,Hallmark,HOWTOChannel,LifeStyleFOOD,MainEvent,MAX,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,NickJr,Nickelodeon,NITV,Ovation,PlayhouseDisney,RAIITALIA,SCIFI,showcase,SHOWTIME,SHOWTIMEGreats,SHOWTIME2,SkyNewsAustralia,SkyNewsBusiness,SkyRacing,TCM,THECOMEDYCHANNEL,THECOMEDYCHANNEL2,TheHistoryChannel,TheLifeStyleChannel,TheLifestyleChannel2,TheWeatherChannel,TV1,TV12,TVN,TVSN,UKTV,UKTV2,VH1,W,W2,WORLDMOVIES
 SelecTV:AnimalPlanet,AntennaGreek,BBCWorld,CartoonNetwork,CNN,DiscoveryScience,DiscoveryHealth,DiscoveryTravel,DiscoveryRealTime,E!Entertainment,ERTGreek,Eurosport,FashionTV,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,Ovation,SkyRacing,TCM,TVChileSpanish,TVE,VH1
 ---migrate---
 71:Prime (Canberra/Wollongong/South Coast)->Prime Wollongong,Prime (Wagga Wagga/Orange)->Prime Orange
@@ -63,3 +63,4 @@ SelecTV:Eurosportnews->Eurosport
 95:7HD->Prime HD
 184:7HD->Prime HD
 263:WIN->NBN
+Foxtel:FOXTELBoxOffice->FoxtelBoxOffice,LifestyleChannel2->TheLifestyleChannel2,RAIInternational->RAIITALIA
