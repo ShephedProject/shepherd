@@ -2,15 +2,15 @@
 #
 # sbsweb TV guide grabber
 #
-# Great data except for some unreliability around ep titles
+# Good data, usually 14-21 days, but has a lot of variability
+# in titles & subtitles.
 #
-# TODO: 
-# 1. Get shows on previous day if before 5am or whatever
-# 2. Gaps support
-# 3. conf file
+# Currently only good for the main SBS channel, not SBS News, but
+# has been coded to make adding any future channels easy.
+#
 #
 
-my $version = '0.0.1';
+my $version = '1.0';
 
 use strict;
 use Getopt::Long;
@@ -33,12 +33,10 @@ my $debug = 0;
 my $channels;
 my $opt_channels;
 my $opt = { };
-my $gaps;
 my %stats;
 my $shows;
 my $runtime = time;
 my $zerohr;
-my @skipped_channels;
 my $loc;
 my $chanid;
 
@@ -66,15 +64,13 @@ unless ($channels)
 }
 $chanid = $channels->{'SBS'};
 
-&read_gaps_file;
-
 &set_region;
 
 &get_guide_data;
 
 &tidy_data;
 
-print Dumper($shows) if ($debug);
+# print Dumper($shows) if ($debug);
 
 &write_xml;
 
@@ -98,7 +94,14 @@ sub get_guide_data
     my @today = localtime($runtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
     $zerohr = $runtime - (($today[0]) + ($today[1]*60) + ($today[2]*60*60));
 
-    for my $day ($opt->{offset} .. ($opt->{days} - 1))
+    my $startday = $opt->{offset};
+    unless (!$startday and $today[2] > 5)
+    {
+	$startday--;
+	&log("Fetching previous day's page for pre-5AM shows.");
+    }
+
+    for my $day ($startday .. ($opt->{days} - 1))
     { 
 	my $daystr = &POSIX::strftime("%Y-%m-%d", localtime($runtime + ($day * 86400)));
 	&log("Day $day: $daystr");
@@ -114,9 +117,9 @@ sub get_guide_data
 
 sub parse_guide
 {
-    my ($guidedata, $day, $window) = @_;
+    my ($guidedata, $day) = @_;
 
-    &log("Parsing guide page (Day $day hr $window).") if ($debug);
+    &log("Parsing guide page (Day $day).") if ($debug);
     my $tree = HTML::TreeBuilder->new;
     $tree->no_space_compacting(1);
     $tree->parse($guidedata);
@@ -135,6 +138,7 @@ sub parse_guide
 		if ($show->{start})
 		{
 		    $shows->{$chanid}->{$show->{start}} = $show;
+		    $stats{'shows'}++;
 		    $show = undef;
 		}
 
@@ -192,6 +196,14 @@ sub parse_guide
 		{
 		    $show->{rating} = $1;
 		}
+		if ($desc =~ /Directed by (.*?)(?: and| \(|[,\.])/)
+		{
+		    $show->{credits}{director} = [ $1 ];
+		}
+		if ($desc =~ / [sS]tar(?:s|ring) (.*?),? and (.*?)\./)
+		{
+		    $show->{credits}{actor} = [ split(/, /, $1), $2 ];
+		}
 		if ($desc =~ / \(From (.*?), in (.*?)\) /)
 		{
 		    my ($country, $language) = ($1, $2);
@@ -214,6 +226,7 @@ sub parse_guide
 	    }
 	}
 	$shows->{$chanid}->{$show->{start}} = $show;
+	$stats{'shows'}++;
     }
     $tree->delete;
 }
@@ -223,6 +236,7 @@ sub parse_guide
 # 3. Figure out likely subtitles
 sub tidy_data
 {
+    &log("Tidying data.") if ($debug);
     foreach my $ch (keys %$shows)
     {
 	my $last_start_time;
@@ -311,7 +325,7 @@ sub tidy_data
 	    {
 		&log("Dropping rating from title (" .
 		    $shows->{$ch}->{$s}->{title} .
-		    ")");
+		    ")") if ($debug);
 		$shows->{$ch}->{$s}->{title} = $1;
 	    }
 
@@ -319,24 +333,30 @@ sub tidy_data
             {
                 &log("Correcting title (" .
                      $shows->{$ch}->{$s}->{title} .
-                     ")");
+                     ")") if ($debug);
                 $shows->{$ch}->{$s}->{title} = "The $1";
             }
-            if ($shows->{$ch}->{$s}->{title} =~ /(.*) +\*.*\*/)
+            if ($shows->{$ch}->{$s}->{title} =~ /(.*) +\(?\*.*\*\)?/)
             {
                 &log("Stripping title \"" .
                      $shows->{$ch}->{$s}->{title} .
-                     '"');
+                     '"') if ($debug);
                 $shows->{$ch}->{$s}->{title} = $1;
             }
 
+	    # 4. Title & sub-title whitespace tidy
+	    $shows->{$ch}->{$s}->{title} = strip_whitespace($shows->{$ch}->{$s}->{title});
+	    if ($shows->{$ch}->{$s}->{'sub-title'})
+	    {
+		$shows->{$ch}->{$s}->{'sub-title'} = strip_whitespace($shows->{$ch}->{$s}->{'sub-title'});
+	    }
 	}
     }
 }
 
 sub write_xml
 {
-    my %writer_args = ( encoding => 'ISO-8859-1' );
+    my %writer_args = ( encoding => 'UTF-8' );
 
     &log("Writing " . &num_items($shows) . " shows to XML.");
 
@@ -404,7 +424,12 @@ sub write_xml
 	    delete $p{pid};
 	    delete $p{details};
 
-	    &log("-> " . $shows->{$ch}->{$s}->{title}) if ($debug);
+	    if ($debug)
+	    {
+		&log("-> " . $shows->{$ch}->{$s}->{title} .
+		     ($shows->{$ch}->{$s}->{'sub-title'} ?
+		      ' ("' . $shows->{$ch}->{$s}->{'sub-title'} . '")' : ''));
+	    }
 #	    print Dumper(\%p);
 	    $shows->{$ch}->{$s}->{start} = &POSIX::strftime("%Y%m%d%H%M", localtime($s));
 	    $writer->write_programme(\%p);
@@ -426,20 +451,6 @@ sub num_items
 	$count += scalar keys %{$hash->{$ch}};
     }
     return $count;
-}
-
-sub is_outside_gaps
-{
-    my ($ch, $start, $stop) = @_;
-
-    foreach my $gap (@{$gaps->{$ch}})
-    {
-	if ($gap =~ /(\d+)-(\d+)/)
-	{
-	    return 0 if ($stop > $1 and $start < $2);
-	}
-    }
-    return 1;
 }
 
 sub strip_whitespace 
@@ -494,9 +505,7 @@ sub get_command_line_options
 			    offset=i
 			    region=i
 			    channels_file=s
-			    gaps_file=s
 			    version
-			    warper
 			));
     $debug = $opt->{debug};
 
@@ -524,7 +533,7 @@ sub set_defaults
 	}
     }
 
-    $opt->{'days'} = 14 if ($opt->{'days'} > 14);
+    $opt->{'days'} = 31 if ($opt->{'days'} > 31);
 
     &Shepherd::Common::set_defaults(
 	stats => \%stats,
@@ -564,19 +573,6 @@ sub read_channels_file
 	exit 22;
     }
 
-}
-
-sub read_gaps_file
-{
-    &read_config_file('gaps', 'gaps_file');
-    if ($gaps)
-    {
-	foreach (keys %$gaps)
-	{
-	    $gaps->{$channels->{$_}} = $gaps->{$_};
-	    delete $gaps->{$_};
-	}
-    }
 }
 
 sub read_config_file
