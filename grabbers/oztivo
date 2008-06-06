@@ -5,6 +5,11 @@
 # Chris Williams <shepherd@psychogeeks.com>
 # Copyright Chris Williams, 2008.
 #
+# http://www.oztivo.net		OzTiVo TWiki
+# http://tvguide.oztivo.net	TV Guide site, needs twiki login/password
+# http://xml.oztivo.net/xmltv	XML files cache machine, copy from main machine
+# http://www.oztivo.net/xmltv	XML files main machine (will be removed end of June 2008)
+
 use strict;
 
 use Getopt::Long;
@@ -37,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.17';
+my $version = '2.18';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -700,7 +705,7 @@ sub load_config() {
 # Local extension of the shared get_url() to cater for password authentication 
 # failure
 #
-# Returns the data as a string, or undef if data couild not be retrieved
+# Returns the data as a string, or undef if data could not be retrieved
 #
 sub get_url($) {
 	my ($data, $success, $status, $bytes);
@@ -714,7 +719,7 @@ sub get_url($) {
 		($data, $success, $status, $bytes) = Shepherd::Common::get_url(
 				url => $url,
 				referer => "Shepherd ".$nicename." grabber, version ".$version,
-				delay => 1,
+				delay => "1-3",
 				retries => 0);
 
 		last if ($success);
@@ -739,7 +744,10 @@ __EOM
 
 	# hack: if we don't get back something that looks like xml then try to
 	# ungzip it
-	$data = Compress::Zlib::memGunzip($data) if (substr($data,0,1) ne '<');
+	if (substr($data,0,1) ne '<') {
+		print "Doesn't look like xml, attempting to gunzip.\n";
+		$data = Compress::Zlib::memGunzip($data);
+	}
 
 	return $data;
 } 
@@ -768,7 +776,7 @@ exit 0 if ($ver);	# Just print the version and leave
 # Load the configuration otherwise
 #
 configure() if ($configure);
-load_config();
+#load_config();
 
 exit 0 if ($ready_check);	# Just print the version and leave
 
@@ -816,13 +824,14 @@ my $enddate = sprintf('%04d-%02d-%02d', $year+1900, $mon+1, $mday);
 #	last modified date.
 #
 
-my $datalist = get_url("http://$user:$pw\@minnie.tuhs.org/xmltv/datalist.xml.gz");
+#my $datalist = get_url("http://$user:$pw\@minnie.tuhs.org/xmltv/datalist.xml.gz");
+my $datalist = get_url("http://xml.oztivo.net/xmltv/datalist.xml.gz");
 unless (defined($datalist)) {
 	die "\nError fetching data list xml file!\n";
 }
 
 # Make the user credentials safe
-my $credentials = uri_escape($user) .':' . uri_escape($pw);
+#my $credentials = uri_escape($user) .':' . uri_escape($pw);
 
 my $dlparser = XML::LibXML->new();		# For the datalist.xml file
 my $progparser = XML::LibXML->new();	# For the programme data files
@@ -883,7 +892,7 @@ foreach my $sname ( keys(%$channels), keys(%$opt_channels) ) {
 		print "\nCannot find the $oname baseurl in the datalist.xml file\n";
 		next;
 	}
-	$baseurl =~ s!^(https?://)!$1$credentials\@!;
+	#$baseurl =~ s!^(https?://)!$1$credentials\@!;
 
 	# Process the list of data files for today or later
 	#
