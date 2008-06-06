@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.35';
+my $version = '0.36';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -1005,7 +1005,7 @@ sub which_state
 	my $region = shift;
 
 	my $state;
-	if ($region =~ /^(93|94|95|90|98)$/) {
+	if ($region =~ /^(93|94|95|90|98|266|267|268)$/) {
 		$state = "VIC";
 	} elsif ($region =~ /^(73|66|67|63|69|71|106|184|259|261|262|263|264)$/) {
 		$state = "NSW";

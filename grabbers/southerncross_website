@@ -33,7 +33,7 @@
 use strict;
 
 my $progname = "southerncross_website";
-my $version = "0.19";
+my $version = "0.20";
 
 #use LWP::UserAgent;
 #use LWP::ConnCache;
@@ -292,15 +292,30 @@ sub set_region
 #    $url .= "";
 #    # maybe TDT maybe 10
 #  }
-  if ($region == 98) # VIC - Western Victoria
-  { # http://www.aba.gov.au/licplan/planning/licareas/defmaps/documents/maps/la_182.pdf
+  if ($region == 90) # VIC - Ballarat
+  {
+    $channel = "TEN";
+    $url .= "BAL:Southern%20Cross%20TEN%20-%20Ballarat";
+  }
+  elsif ($region == 98) # VIC - Gippsland
+  {
+    $channel = "TEN";
+    $url .= "GIP:Southern%20Cross%20TEN%20-%20Gippsland";
+  }
+  elsif ($region == 266) # VIC - Bendigo
+  {
     $channel = "TEN";
     $url .= "BEN:Southern%20Cross%20TEN%20-%20Bendigo";
   }
-  elsif ($region == 90) # VIC - Eastern Victoria
-  { # http://www.ourguide.com.au/vic/
+  elsif ($region == 267) # VIC - Shepparton
+  {
     $channel = "TEN";
-    $url .= "GIP:Southern%20Cross%20TEN%20-%20Gippsland";
+    $url .= "SHE:Southern%20Cross%20TEN%20-%20Shepparton";
+  }
+  elsif ($region == 268) # VIC - Albury/Wodonga
+  {
+    $channel = "TEN";
+    $url .= "ALB:Southern%20Cross%20TEN%20-%20Albury";
   }
   elsif ($region == 66) # NSW - Central Coast
   { # http://www.atn.com.au/nsw/syd/cen-map.htm
@@ -308,42 +323,42 @@ sub set_region
     $url .= "WOL:Southern%20Cross%20TEN%20-%20Wollongong";
   }
   elsif ($region == 69) # NSW - Tamworth
-  { # http://www.atn.com.au/nsw/north/nth-map.htm
+  {
     $channel = "Sthn Cross TEN";
     $url .= "TAM:Southern%20Cross%20TEN%20-%20Tamworth";
   }
   elsif ($region == 71 || $region == 259) # NSW - Wollongong & NSW - Far South Coast
-  { # http://www.atn.com.au/nsw/north/nth-map.htm
+  {
     $channel = "TEN";
     $url .= "WOL:Southern%20Cross%20TEN%20-%20Wollongong";
   }
   elsif ($region == 261) # NSW - Lismore/Coffs Harbour
-  { # http://www.atn.com.au/nsw/north/nth-map.htm
+  {
     $channel = "Sthn Cross TEN";
     $url .= "LIS:Southern%20Cross%20TEN%20-%20Lismore";
   }
   elsif ($region == 262) # NSW - Orange/Dubbo
-  { # http://www.atn.com.au/nsw/north/nth-map.htm
+  {
     $channel = "TEN";
     $url .= "ORA:Southern%20Cross%20TEN%20-%20Orange/Dubbo";
   }
   elsif ($region == 263) # NSW - Taree/Port Macquarie
-  { # http://www.atn.com.au/nsw/north/nth-map.htm
+  {
     $channel = "Sthn Cross TEN";
     $url .= "TAR:Southern%20Cross%20TEN%20-%20Taree";
   }
   elsif ($region == 264) # NSW - Wagga Wagga
-  { # http://www.atn.com.au/nsw/north/nth-map.htm
+  {
     $channel = "TEN";
     $url .= "WAG:Southern%20Cross%20TEN%20-%20Wagga";
   }
   elsif ($region == 184) # NSW - Newcastle
-  { # simple
+  {
     $channel = "Sthn Cross TEN";
     $url .= "NEW:Southern%20Cross%20TEN%20-%20Newcastle";
   }
   elsif ($region == 63) # NSW - Broken Hill
-  { # http://www.centralonline.com.au/contact.asp
+  {
     $channel = "Sthn Cross TEN";
     $url .= "BRO%2010:Southern%20Cross%20TEN%20-%20Broken%20Hill";
 #    $channel = "Central GTS/BKN"; # 7
@@ -357,47 +372,47 @@ sub set_region
 #    $url .= "PIR%207:Southern%20Cross%20Television%20-%20Port%20Pirie";
   }
   elsif ($region == 78) # QLD - Gold Coast
-  { # simple
+  {
     $channel = "Sthn Cross TEN";
     $url .= "GOL:Southern%20Cross%20TEN%20-%20Gold%20Coast";
   }
   elsif ($region == 255) # QLD - Sunshine Coast
-  { # simple
+  {
     $channel = "TEN";
     $url .= "SUN:Southern%20Cross%20TEN%20-%20Sunshine%20Coast";
   }
   elsif ($region == 256) # QLD - Toowoomba
-  { # simple
+  {
     $channel = "TEN";
     $url .= "TOO:Southern%20Cross%20TEN%20-%20Toowoomba";
   }
   elsif ($region == 258) # QLD - Wide Bay (Bundaberg)
-  { # simple
+  {
     $channel = "TEN";
     $url .= "BUN:Southern%20Cross%20TEN%20-%20Bundaberg";
   }
   elsif ($region == 254) # QLD - Rockhampton
-  { # simple
+  {
     $channel = "TEN";
     $url .= "ROC:Southern%20Cross%20TEN%20-%20Rockhampton";
   }
   elsif ($region == 253) # QLD - Mackay
-  { # simple
+  {
     $channel = "TEN";
     $url .= "MAC:Southern%20Cross%20TEN%20-%20Mackay";
   }
   elsif ($region == 257) # QLD - Townsville
-  { # simple
+  {
     $channel = "TEN";
     $url .= "TOW:Southern%20Cross%20TEN%20-%20Townsville";
   }
   elsif ($region == 79) # QLD - Cairns
-  { # simple
+  {
     $channel = "TEN";
     $url .= "CAI:Southern%20Cross%20TEN%20-%20Cairns";
   }
   elsif ($region == 126) # ACT - ACT
-  { # simple
+  {
     $channel = "TEN";
     $url .= "CAN:Southern%20Cross%20TEN%20-%20Canberra";
   }

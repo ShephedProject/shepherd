@@ -15,7 +15,7 @@
 #  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.40";
+my $version = "0.41";
 
 $| = 1;
 print "$progname v$version\n";
@@ -58,10 +58,10 @@ $chan_name_translations->{"ABC"} = "ABC1";
 
 my $hd_to_sds;
 @{$hd_to_sds->{"7HD"}} = ("Seven","Southern Cross","Central GTS/BKN","Golden West");
-@{$hd_to_sds->{"Prime HD"}} = ("Prime","Prime (Regional Victoria)","Prime (Albury)");
+@{$hd_to_sds->{"Prime HD"}} = ("Prime");
 @{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
-@{$hd_to_sds->{"TEN HD"}} = ("TEN","TEN (NSW: Southern NSW)","TEN (Mildura Digital)",
-		"Sthn Cross TEN","WIN TEN","TDT");
+@{$hd_to_sds->{"TEN HD"}} = ("TEN","Sthn Cross TEN","WIN TEN","TDT","DDT");
+
 
 my $sd_to_hd;
 foreach my $hdchannel (keys %$hd_to_sds) {

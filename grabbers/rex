@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.7';
+my $version  = '3.6.8';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -767,9 +767,10 @@ sub translate_channel_name
 {
     my ($chan, $seen_before) = @_;
 
-    my $rchans = {
-	90 => { 'Prime' => [ 'Prime (Regional Victoria)', 'Prime (Albury)' ] },
-	};
+    my $rchans;
+#     $rchans = {
+# 	90 => { 'Prime' => [ 'Prime (Regional Victoria)', 'Prime (Albury)' ] },
+# 	};
 
     my $region = $opt->{region};
     return $chan unless ($rchans->{$region} and $rchans->{$region}->{$chan});

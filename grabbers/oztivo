@@ -37,7 +37,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.16';
+my $version = '2.17';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -83,13 +83,13 @@ my %s_to_o_map = (
 		'TEN' => 'Ten-NSW',
 		'WIN' => 'WIN-NSW',
 	},
-	'90' => {	# VIC: Eastern Victoria
+	'90' => {	# VIC: Ballarat
 		'ABC1' => 'ABC-Vic',
-		'Prime (Albury)' => 'Prime-Vic',
-		'Prime (Regional Victoria)' => 'Prime-Vic',
+		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
 		'TEN' => 'SC10-Vic',
 		'WIN' => 'WIN-Vic',
+		'Imparja' => 'IMP',
 	},
 	'63' => {	# NSW: Broken Hill
 		'ABC1' => 'ABC-NSW',
@@ -209,10 +209,10 @@ my %s_to_o_map = (
 	},
 	'74' => {	# NT: Darwin
 		'ABC1' => 'ABC-NT',
-		'Nine' => undef,
 		'SBS' => 'SBS-NT',
-		'Southern Cross' => 'SC10-Qld',
-		#? 'Seven' => 'Seven-Dar',
+		'Southern Cross' => 'Seven-Dar',
+		'Nine' => 'Nine-NT',
+		'DDT' => 'Ten-Dar',
 	},
 	'85' => {	# SA: South East SA
 		'ABC1' => 'ABC-SA',
@@ -325,7 +325,7 @@ my %s_to_o_map = (
 		'Seven' => 'Seven-SA',
 		'TEN' => 'Ten-SA',
 	},
-	'98' => {	# VIC: Western Victoria
+	'98' => {	# VIC: Gippsland
 		'ABC1' => 'ABC-Vic',
 		'Imparja' => 'IMP',
 		'Prime' => 'Prime-Vic',
@@ -367,6 +367,28 @@ my %s_to_o_map = (
 		'Nine' => 'Nine-SA',
 		'SBS' => 'SBS-SA',
 		'Sthn Cross TEN' => 'SC10-NSW',
+	},
+	'266' => {	# VIC: Bendigo
+		'ABC1' => 'ABC-Vic',
+		'Prime' => 'Prime-Vic',
+		'SBS' => 'SBS-Vic',
+		'TEN' => 'SC10-Vic',
+		'WIN' => 'WIN-Vic',
+		'Imparja' => 'IMP',
+	},
+	'267' => {	# VIC: Shepparton
+		'ABC1' => 'ABC-Vic',
+		'Prime' => 'Prime-Vic',
+		'SBS' => 'SBS-Vic',
+		'TEN' => 'SC10-Vic',
+		'WIN' => 'WIN-Vic',
+	},
+	'268' => {	# VIC: Albury/Wodonga
+		'ABC1' => 'ABC-Vic',
+		'Prime' => 'Prime-Vic',
+		'SBS' => 'SBS-Vic',
+		'TEN' => 'SC10-Vic',
+		'WIN' => 'WIN-Vic',
 	},
 	'PAY' => {	# Pay channels
 		'ACC' => 'ACC',

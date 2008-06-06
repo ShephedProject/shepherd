@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.3.5';
+my $version = '1.3.6';
 
 # tv_grab_au
 # "Shepherd"
@@ -90,22 +90,22 @@ my %REGIONS = (
 	74 => "NT: Darwin",     75 => "QLD: Brisbane",  78 => "QLD: Gold Coast",
 	79 => "QLD: Cairns",    81 => "SA: Adelaide",   82 => "SA: Renmark",
 	83 => "SA: Riverland",  85 => "SA: South East SA",      86 => "SA: Spencer Gulf",
-	88 => "TAS: Tasmania",  90 => "VIC: Eastern Victoria",  93 => "VIC: Geelong",
-	94 => "VIC: Melbourne", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Western Victoria",
+	88 => "TAS: Tasmania",  90 => "VIC: Ballarat",  93 => "VIC: Geelong",
+	94 => "VIC: Melbourne", 95 => "VIC: Mildura/Sunraysia", 98 => "VIC: Gippsland",
 	101 => "WA: Perth",     102 => "WA: Regional",  106 => "NSW: Remote and Central",
 	107 => "SA: Remote and Central",        108 => "NT: Remote and Central",        114 => "QLD: Remote and Central",
-	126 => "ACT: ACT",      184 => "NSW: Newcastle",        253 => "QLD: Mackay",
+	126 => "ACT: Canberra", 184 => "NSW: Newcastle",        253 => "QLD: Mackay",
 	254 => "QLD: Rockhampton",      255 => "QLD: Sunshine Coast",   256 => "QLD: Toowoomba",
 	257 => "QLD: Townsville",       258 => "QLD: Wide Bay", 259 => "NSW: Far South Coast",
 	261 => "NSW: Lismore/Coffs Harbour",    262 => "NSW: Orange/Dubbo",     263 => "NSW: Taree/Port Macquarie",
-	264 => "NSW: Wagga Wagga",);
+	264 => "NSW: Wagga Wagga",      266 => "VIC: Bendigo",  267 => "VIC: Shepparton",
+	268 => "VIC: Albury/Wodonga",);
 
 my $hd_to_sds;
 @{$hd_to_sds->{"7HD"}} = ("Seven","Southern Cross","Central GTS/BKN","Golden West");
-@{$hd_to_sds->{"Prime HD"}} = ("Prime","Prime (Regional Victoria)","Prime (Albury)");
+@{$hd_to_sds->{"Prime HD"}} = ("Prime");
 @{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
-@{$hd_to_sds->{"TEN HD"}} = ("TEN","TEN (NSW: Southern NSW)","TEN (Mildura Digital)",
-	"Sthn Cross TEN","WIN TEN","TDT");
+@{$hd_to_sds->{"TEN HD"}} = ("TEN","Sthn Cross TEN","WIN TEN","TDT","DDT");
 
 
 my $invoked = get_full_path($0);

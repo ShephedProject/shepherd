@@ -3,7 +3,7 @@
 # citysearch TV guide grabber
 #
 
-my $version = '3.0.0';
+my $version = '3.0.1';
 
 use strict;
 use Getopt::Long;
@@ -155,7 +155,7 @@ sub parse_guide
 	    $channame =~ s/^ //g;
 	    $channame =~ s/ $//g;
 	    $channame =~ s/\n//g;
-	    $channame = 'Prime Canberra/Sth Coast' if ($channame eq 'Prime' and $opt->{region} == 126);
+#	    $channame = 'Prime Canberra/Sth Coast' if ($channame eq 'Prime' and $opt->{region} == 126);
 
 	    my $chanid = $channels->{$channame};
 	    unless ($chanid)

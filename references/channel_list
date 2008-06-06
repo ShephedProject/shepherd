@@ -4,7 +4,7 @@
 69:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,NBN,Prime,Sthn Cross TEN
 71:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
 73:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Channel NSW,TVS,Nine,TEN,Seven,ACC,EXPO
-74:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,Southern Cross,Nine,DDT
+74:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Southern Cross,Nine,DDT
 75:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Briz 31,TEN,Nine,Seven
 78:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,NBN,Sthn Cross TEN,TEN,Nine,Prime,Seven
 79:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
@@ -14,11 +14,11 @@
 85:ABC1,ABC2,SBS,SBS News,Nine HD,TEN HD,WIN,WIN TEN
 86:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Sthn Cross TEN,Nine,Central GTS/BKN
 88:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,Southern Cross,TDT
-90:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime (Regional Victoria),Prime (Albury)
+90:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,Imparja,TEN
 93:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Channel 31,Seven
 94:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Channel 31,Seven
 95:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
-98:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,Imparja,WIN,Prime,TEN,Seven
+98:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,Seven,Prime,WIN,Imparja,TEN
 101:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Access 31,TEN,Nine,Seven
 102:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Golden West,WIN,Access 31,Nine,TEN,Seven
 106:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,Seven,Imparja,Prime
@@ -38,6 +38,9 @@
 262:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
 263:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,NBN,Prime,Sthn Cross TEN
 264:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
+266:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,Imparja,TEN
+267:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,TEN
+268:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,TEN
 Foxtel:ACC,AdultsOnly960,AIR,AnimalPlanet,AntennaPacific,ARENATV,ARENATV2,Aurora,BBCWorld,Bio,BloombergTelevision,Boomerang,CartoonNetwork,ChannelV,ChannelV2,CNBC,CNN,CountryMusicChannel,CrimeandInvestigationNetwork,DiscoveryChannel,DiscoveryHealth,DiscoveryScience,DiscoveryTravel,DisneyChannel,E!Entertainment,ESPN,Eurosportnews,EXPO,FashionTV,FOXClassics,FOXClassics2,FOXNews,FOXSPORTS1,FOXSPORTS2,FOXSPORTS3,FOXSPORTSNews,FOX8,FOX82,FoxtelBoxOffice,FOXTELGamesworld,FUELTV,Hallmark,HOWTOChannel,LifeStyleFOOD,MainEvent,MAX,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,NickJr,Nickelodeon,NITV,Ovation,PlayhouseDisney,RAIITALIA,SCIFI,showcase,SHOWTIME,SHOWTIMEGreats,SHOWTIME2,SkyNewsAustralia,SkyNewsBusiness,SkyRacing,TCM,THECOMEDYCHANNEL,THECOMEDYCHANNEL2,TheHistoryChannel,TheLifeStyleChannel,TheLifestyleChannel2,TheWeatherChannel,TV1,TV12,TVN,TVSN,UKTV,UKTV2,VH1,W,W2,WORLDMOVIES
 SelecTV:AnimalPlanet,AntennaGreek,BBCWorld,CartoonNetwork,CNN,DiscoveryScience,DiscoveryHealth,DiscoveryTravel,DiscoveryRealTime,E!Entertainment,ERTGreek,Eurosport,FashionTV,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,Ovation,SkyRacing,TCM,TVChileSpanish,TVE,VH1
 ---migrate---
@@ -64,3 +67,5 @@ SelecTV:Eurosportnews->Eurosport
 184:7HD->Prime HD
 263:WIN->NBN
 Foxtel:FOXTELBoxOffice->FoxtelBoxOffice,LifestyleChannel2->TheLifestyleChannel2,RAIInternational->RAIITALIA
+90:268:Prime (Albury):Prime (Regional Victoria)->Prime,Prime (Albury)->Prime
+90:Prime (Albury)->Prime,Prime (Regional Victoria)->Prime

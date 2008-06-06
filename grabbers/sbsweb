@@ -10,7 +10,7 @@
 #
 #
 
-my $version = '1.0';
+my $version = '1.01';
 
 use strict;
 use Getopt::Long;
@@ -465,30 +465,16 @@ sub set_region
 {
     # Not totally sure about these regions... is regional NSW 'Sydney'
     # or 'Regional'?
-    if (grep ($_ == $opt->{region}, qw( 63 66 67 69 71 73 106 184 259 261 262 263 264)))
-    {
-	$loc = 'SBS Television';
-    }
-    elsif (grep ($_ == $opt->{region}, qw( 90 93 94 95 98 )))
-    {
-	$loc = 'SBS Melbourne';
-    }
-    elsif (grep ($_ == $opt->{region}, qw( 75 78 79 114 253 254 255 256 257 258 )))
-    {
-	$loc = 'SBS Queensland';
-    }
-    elsif (grep ($_ == $opt->{region}, qw( 81 82 83 85 86 107 )))
-    {
-	$loc = 'SBS SA';
-    }
-    elsif (grep ($_ == $opt->{region}, qw( 101 102 )))
-    {
-	$loc = 'SBS WA';
-    }
-    else
-    {
-	$loc = 'Regional';
-    }
+    my $state = Shepherd::Common::which_state($opt->{region});
+    my $loc = "Regional";
+    $loc = "SBS Television"     if ($state eq "NSW");
+    $loc = "SBS Melbourne"      if ($state eq "VIC");
+    $loc = "SBS Queensland"     if ($state eq "QLD");
+    $loc = "SBS SA"             if ($state eq "SA");
+    $loc = "SBS WA"             if ($state eq "WA");
+    #$loc = ""             if ($state eq "TAS");
+    #$loc = ""             if ($state eq "NT");
+    #$loc = ""             if ($state eq "ACT");
 
     &log("Location: $loc") if ($debug);
 }
