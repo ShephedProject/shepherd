@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.3.6';
+my $version = '1.3.7';
 
 # tv_grab_au
 # "Shepherd"
@@ -184,6 +184,7 @@ exit if ($opt->{version});
 &help if ($opt->{help});
 
 &check_user;
+&invoke_correctly;
 &read_config_file;
 &check_region;
 &read_channels_file;
@@ -267,26 +268,6 @@ exit (!$any_data);
 sub update
 {
     my $made_changes = 0;
-    my $wanted_prog = get_full_path(query_filename('shepherd','application'));
-    if (($invoked ne $wanted_prog) && (!$opt->{configure}))
-    {
-	if (-e $wanted_prog)
-	{
-	    &log("\n*** Restarting ($invoked invoked, $wanted_prog wanted)  ***\n\n");
-	    &close_logfile unless $opt->{nolog};
-	    exec("$wanted_prog @options");
-	    # This exits.
-	    exit(0);
-	}
-
-	&log(2, "\nWARNING: you should really be running ".ucfirst($progname)."\n".
-		"    as '".query_filename('shepherd','application')."'\n".
-		"    rather than '$invoked'!\n".
-		"    Auto-update has been disabled until you fix this!\n\n");
-	&countdown();
-	&log("\nSkipped auto-update.\n\n");
-	return 0;
-    }
 
     &log("\nChecking for updates:\n");
 
@@ -970,6 +951,30 @@ sub check_user
     }
 }
 
+sub invoke_correctly
+{
+    &log(1, "Home: $CWD\n");
+    my $wanted_prog = get_full_path(query_filename('shepherd','application'));
+    if (($invoked ne $wanted_prog) && (!$opt->{configure}))
+    {
+        if (-e $wanted_prog)
+        {
+	    &log("\n*** Application/user mismatch ***\n".
+		   "    You invoked: $invoked\n".
+		   "    Instead of : $wanted_prog\n" .
+                 "\n*** Restarting ***\n\n");
+            &close_logfile unless $opt->{nolog};
+            exec("$wanted_prog @options");
+            # This exits.
+            exit(0);
+        }
+
+        &log("\n*** Installing Shepherd into $CWD ***\n\n" .
+	     "If this is not what you intend, CTRL-C now.\n");
+        &countdown();
+    }
+}
+
 # if last run was successful and was less than 12 hours ago, refuse to run.
 # there's really no point calling shepherd more frequently than this.
 sub check_last_run
@@ -1414,11 +1419,19 @@ sub compress_file
 
 sub open_logfile
 {
-    -d $LOG_DIR or mkdir $LOG_DIR or die "Cannot create directory $LOG_DIR: $!";
+    unless (-d $LOG_DIR or mkdir $LOG_DIR)
+    {
+        print "Cannot create directory $LOG_DIR: $!";
+	return;
+    }
 
     &rotate_logfiles;
     &log(1, "Logging to: $log_file\n");
-    open(LOG_FILE,">>$LOG_DIR/$log_file") || die "can't open log file $LOG_DIR/$log_file for writing: $!\n";
+    unless (open(LOG_FILE,">>$LOG_DIR/$log_file"))
+    {
+	print "Can't open log file $LOG_DIR/$log_file for writing: $!\n";
+	return;
+    }
 
     my $now = localtime(time);
     printf LOG_FILE "$progname v$version started at $now\n";
