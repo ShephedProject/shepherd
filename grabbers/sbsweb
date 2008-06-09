@@ -10,7 +10,7 @@
 #
 #
 
-my $version = '1.01';
+my $version = '1.02';
 
 use strict;
 use Getopt::Long;
@@ -466,15 +466,12 @@ sub set_region
     # Not totally sure about these regions... is regional NSW 'Sydney'
     # or 'Regional'?
     my $state = Shepherd::Common::which_state($opt->{region});
-    my $loc = "Regional";
+    my $loc = "SBS Regional";
     $loc = "SBS Television"     if ($state eq "NSW");
     $loc = "SBS Melbourne"      if ($state eq "VIC");
     $loc = "SBS Queensland"     if ($state eq "QLD");
-    $loc = "SBS SA"             if ($state eq "SA");
+    $loc = "SBS SA"             if ($state eq "SA" or $state eq 'NT' or $state eq 'TAS');
     $loc = "SBS WA"             if ($state eq "WA");
-    #$loc = ""             if ($state eq "TAS");
-    #$loc = ""             if ($state eq "NT");
-    #$loc = ""             if ($state eq "ACT");
 
     &log("Location: $loc") if ($debug);
 }
