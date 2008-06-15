@@ -5,7 +5,7 @@ reference       Shepherd/MythTV.pm  0.7
 grabber         yahoo7widget        1.106
 grabber         rex                 3.6.8
 grabber         abc_website         3.21
-grabber         sbsnews_website     0.21
+grabber         sbsnews_website     0.22
 grabber         oztivo              2.18
 grabber         yahoo7web           0.34
 grabber         foxtel_swf          0.26-r1

@@ -14,7 +14,7 @@
 use strict;
 
 my $progname = "sbsnews_website";
-my $version = "0.21";
+my $version = "0.22";
 
 use XMLTV;
 use POSIX qw(strftime);
@@ -142,16 +142,18 @@ sub get_sbsnews_data
 {
 	my $file = "WNC-Schedule.html";
 
+	my $data;
+	print "Old webpage no longer exists. Retrieving cache if available. Need new parser.\n";
 	# 7 days in one URL: http://www.sbs.com.au/whatson/WNC-Schedule.html
-	my $data = &Shepherd::Common::get_url( url => "http://www.sbs.com.au/whatson/WNC-Schedule.html",
-		    stats => \%stats,
-		    retries => 4,
-		    debug => $opt->{debug} ? 3 : 1,
-		    retry_delay => 120,
- 		    # the website doesn't support 'If-Modified-Since' headers but we can live in hope
-		    mirror => $file);
+# 	my $data = &Shepherd::Common::get_url( url => "http://www.sbs.com.au/whatson/WNC-Schedule.html",
+# 		    stats => \%stats,
+# 		    retries => 4,
+# 		    debug => $opt->{debug} ? 3 : 1,
+# 		    retry_delay => 120,
+#  		    # the website doesn't support 'If-Modified-Since' headers but we can live in hope
+# 		    mirror => $file);
 
-	$data = &Shepherd::Common::get_mirror_file($file, 56) if (!$data);
+	$data = &Shepherd::Common::get_mirror_file($file, 84) if (!$data);
 
 	exit 22 unless ($data);
 
