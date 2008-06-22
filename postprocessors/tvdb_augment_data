@@ -19,7 +19,7 @@
 use strict;
 
 my $progname = "tvdb_augment_data";
-my $version = "0.11";
+my $version = "0.12";
 my $mirrorlist_url = 'http://thetvdb.com/interfaces/GetMirrors.php';
 
 use XMLTV;
@@ -28,6 +28,7 @@ use Getopt::Long;
 use HTML::TreeBuilder;
 use Shepherd::Common;
 use Data::Dumper;
+use Encode;
 
 #
 # some initial cruft
@@ -232,7 +233,7 @@ sub read_cache
 		foreach my $key (keys %{($data_cache->{prog})}) {
 			my $num_items = 0;
 			foreach my $key2 (keys %{($data_cache->{prog}->{$key})}) {
-				if ($data_cache->{prog}->{$key}->{$key2}->{expires} < time) {
+				if ($data_cache->{prog}->{$key}->{$key2}->{expires} < $script_start_time) {
 					delete $data_cache->{prog}->{$key}->{$key2};
 					$stats{removed_prog_from_cache}++
 				} else {
@@ -244,7 +245,7 @@ sub read_cache
 	
 		# age our title cache on startup
 		foreach my $key (keys %{($data_cache->{title})}) {
-			if ($data_cache->{title}->{$key}->{expires} < time) {
+			if ($data_cache->{title}->{$key}->{expires} < $script_start_time) {
 				delete $data_cache->{title}->{$key};
 				$stats{removed_title_from_cache}++
 			}
@@ -623,7 +624,7 @@ sub perform_lookups
 
 			if ((defined $title) && (include_prog($prog))) {
 				my $lc_title = lc($title);
-				&lookup_title_web($title,$prog_count) if (!defined $data_cache->{prog}->{$lc_title});
+				&lookup_title_web($lc_title) if (!defined $data_cache->{prog}->{$lc_title});
 
 				# proceed to episode lookup if we have something in our title cache
 				if ((defined $data_cache->{title}->{$lc_title}) && ($data_cache->{title}->{$lc_title}->{notfound} == 0)) {
@@ -722,34 +723,31 @@ sub lookup_mirrors
 
 sub lookup_title_web
 {
-	my ($title, $prog_count) = @_;
-	my $lc_title = lc($title);
+	my ($lc_title) = @_;
 
 	my $letter = substr($lc_title,0,1);
 	$letter = "OTHER" if ($letter !~ /[a-z]/);
 
-	my $found_title = 0;
-
 	# only lookup if we have passed our caching threshold for this letter...
-	if ((!defined $data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires}) ||
-			($data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires} < time)) {
+	if (!defined $data_cache->{title}->{"WEB_LOOKUP_".$letter}) {
 		Shepherd::Common::log("    fetching series tables for '".$letter."' ...");
 
 		my $url = "http://thetvdb.com/?tab=listseries&letter=".$letter;
 		my $data = &get_url($url);
 		if (!$data) {
-			Shepherd::Common::log("      ".$url." didn't return any valid data!  skipping...");
+			Shepherd::Common::log("      ".$url." didn't return any valid data!  skipping for 7 days...");
 
 			# try again in 7 days
-			$data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires} = time + (7 * 86400);
+			$data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires} = $script_start_time + (7 * 86400);
 			$stats{failed_title_web_fetch}++;
 			die "failed title web fetch" if $stats{failed_title_web_fetch} >= $max_failures;
 			return;
 		}
 
-		my $expires_in = time + ($opt->{cache_title_for} * 86400);
+		my $expires_in = $script_start_time + ($opt->{cache_title_for} * 86400);
 		$data_cache->{title}->{"WEB_LOOKUP_".$letter}->{expires} = $expires_in;
 
+		$data = Encode::decode_utf8($data);
 		my $tree = HTML::TreeBuilder->new_from_content($data);
 		my $tree_table = $tree->look_down('_tag' => 'table', 'id' => 'listtable');
 
@@ -823,7 +821,7 @@ sub lookup_episode
 		$stats{negatively_cached_prog}++;
 		
 		$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{notfound} = 1;
-		$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{expires} = time + (($opt->{cache_details_for} / 2) * 86400);
+		$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{expires} = $script_start_time + (($opt->{cache_details_for} / 2) * 86400);
 
 		# on an episode-lookup failure, thetvdb.com doesn't return any SeriesData,
 		# so schedule that for a bulk get.
@@ -842,8 +840,8 @@ sub lookup_episode
 	delete $data_cache->{prog}->{$lc_title}->{$lc_subtitle} if (defined $data_cache->{prog}->{$lc_title}->{$lc_subtitle});
 
 	# set expiry on these
-	$data_cache->{prog}->{$lc_title}->{SERIES}->{expires} = time + ($opt->{cache_details_for} * 86400);
-	$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{expires} = time + ($opt->{cache_details_for} * 86400);
+	$data_cache->{prog}->{$lc_title}->{SERIES}->{expires} = $script_start_time + ($opt->{cache_details_for} * 86400);
+	$data_cache->{prog}->{$lc_title}->{$lc_subtitle}->{expires} = $script_start_time + ($opt->{cache_details_for} * 86400);
 
 	foreach my $field ("SeriesData-Status", "SeriesData-FirstAired", "SeriesData-Network", "SeriesData-Genre", "SeriesData-Actors", "SeriesData-Overview", "id", "SeasonNumber", "EpisodeNumber", "EpisodeName") {
 		my $fieldtag = $item->getElementsByTagName($field)->item(0)->getFirstChild;
@@ -926,7 +924,7 @@ sub lookup_series_updates
 					}
 				}
 
-				$data_cache->{prog}->{$name}->{SERIES}->{expires} = time + ($opt->{cache_details_for} * 86400);
+				$data_cache->{prog}->{$name}->{SERIES}->{expires} = $script_start_time + ($opt->{cache_details_for} * 86400);
 				$stats{inserted_prog_into_cache}++;
 				&write_cache if (($stats{inserted_prog_into_cache} % 15) == 0);
 			}
@@ -999,7 +997,7 @@ sub lookup_episode_updates
 					}
 				}
 				$data_cache->{prog}->{$title}->{$subtitle}->{have_episode_details} = 1;
-				$data_cache->{prog}->{$title}->{$subtitle}->{expires} = time + (($opt->{cache_details_for} / 2) * 86400);
+				$data_cache->{prog}->{$title}->{$subtitle}->{expires} = $script_start_time + (($opt->{cache_details_for} / 2) * 86400);
 
 				$stats{inserted_episode_into_cache}++;
 				&write_cache if (($stats{inserted_episode_into_cache} % 15) == 0);
