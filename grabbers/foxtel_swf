@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "0.26";
+my $version = "0.27";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -615,10 +615,16 @@ sub get_programs
 			next;
 		}
 
-		$prog->{'sub-title'} = [[ $prog_ref->{'EpisodeTitle'}, $opt->{lang} ]]
-		  if ((defined $prog_ref->{'EpisodeTitle'}) &&
-		      (ref $prog_ref->{'EpisodeTitle'} ne "HASH") &&
-		      ($prog_ref->{'EpisodeTitle'} ne ""));
+		if ((defined $prog_ref->{'EpisodeTitle'}) &&
+		    (ref $prog_ref->{'EpisodeTitle'} ne "HASH") &&
+		    ($prog_ref->{'EpisodeTitle'} ne "")) {
+			$prog->{'sub-title'} = [[ $prog_ref->{'EpisodeTitle'}, $opt->{lang} ]];
+			if ($prog->{'sub-title'}->[0]->[0] =~ /(?:Series\s*(\d+),\s*)?Episode\s*(\d+)/i) { # "Series 2, Episode 19"
+				my $xmltv_ns = ($1 ? ($1 - 1) : "") ." . ". ($2 ? ($2 - 1) : "") ." . 0";
+				$prog->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
+				#<sub-title lang="en">Episode 1084</sub-title> <desc lang="en">S1, Ep84.
+			}
+		}
 		$prog->{rating} = [[ $prog_ref->{'ParentalRating'}, 'ABA', undef ]] if $prog_ref->{'ParentalRating'} ne "-";
 		$prog->{subtitles} = [ { 'type' => 'teletext' } ]
 		  if (((defined $prog_ref->{'SubtitledInd'}) && ($prog_ref->{'SubtitledInd'} ne "false")) ||
@@ -674,10 +680,30 @@ sub get_programs
 				}
 				$prog->{rating}->[0]->[0] .= " $1" if ($desc =~ s/\((([a-z],)*[a-z])\)//i);
 				$prog->{date} = $1 if ($desc =~ s/\(((19|20)\d\d)\)//);
-				# hard to parse cast, country and languages
 				$desc =~ s/\*\*MISSING\*\*\.//g;
 				$desc =~ s/(^\s+|\s+$)//g;
 				$prog->{desc} = [[ $desc, $opt->{lang} ]] if length($desc) > 0;
+				if ($desc =~ s/Episode\s*(#[\da-f]+)\.?//i) { # "Episode #1132."
+					$prog->{'episode-num'} = [ [ $1, 'onscreen' ] ];
+				}
+				if ($desc =~ s/(?:S(?:Series\s*)?(\d+),\s*)?Ep(\d+)\.?//i) { # "S5, Ep16. "
+					my $xmltv_ns = ($1 ? ($1 - 1) : "") ." . ". ($2 ? ($2 - 1) : "") ." . 0";
+					$prog->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
+				}
+				# hard to parse country, languages and cast
+				my $countries = "Australia|USA|UK|Canada|Germany|Hungary|Iceland|Spain|France|Israel|Norway|Italy|Japan|Colombia|Venezuela|Algeria|Netherlands|Morocco|Finland|Ireland|South Africa|Greece|Belgium|Denmark|South Korea";
+				if ($desc =~ s/^\s*($countries)(?:\/($countries))?\.//i) {
+					push(@{($prog->{country})},[$1]) if $1;
+					push(@{($prog->{country})},[$2]) if $2;
+				}
+				my $languages = "Australian|English|Spanish|French|Hebrew|Arabic|Norwegian|Italian|Hindi|Polish|Russian|Japanese|German|Polish|Dutch|Romanian|Swedish|Finnish|Bengali|Xhosa|Greek|Turkish|Danish|Korean";
+				if ($desc =~ s/^\s*((?:$languages)(?:,\s*(?:$languages))?)\.//i) {
+					$prog->{language}->[0] = $1;
+				}
+				if ($desc =~ s/^\s*([a-z]+ [a-z]+), ([a-z]+ [a-z]+)\.//i) {
+					push(@{($prog->{credits}->{actor})},$1);
+					push(@{($prog->{credits}->{actor})},$2);
+				}
 			}
 		}
 
