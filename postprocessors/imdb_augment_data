@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.43";
+my $version = "0.44";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -1090,8 +1090,7 @@ sub programme_cb( $ )
 		my ($season) = ($imdb->{airdate} =~ /Season\s+(\d+)/i);
 		my ($episode) = ($imdb->{airdate} =~ /Episode\s+(\d+)/i);
 		if ($season || $episode) {
-			my $xmltv_ns = sprintf "%d . %d . %d",
-					($season ? ($season - 1) : 0), ($episode ? ($episode - 1) : 0), 0;
+			my $xmltv_ns = ($season ? ($season - 1) : "") ." . ". ($episode ? ($episode - 1) : "") ." . 0";
 			$prog->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
 		}
 	}

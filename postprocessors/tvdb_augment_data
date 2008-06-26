@@ -19,7 +19,7 @@
 use strict;
 
 my $progname = "tvdb_augment_data";
-my $version = "0.12";
+my $version = "0.13";
 my $mirrorlist_url = 'http://thetvdb.com/interfaces/GetMirrors.php';
 
 use XMLTV;
@@ -506,10 +506,7 @@ sub write_xmltv
 				# Episode Number
 				if ($episode_data->{EpisodeNumber})
 				{
-				    my $xmltv_ns = sprintf "%d . %d . %d",
-							   ($episode_data->{SeasonNumber} ? ($episode_data->{SeasonNumber} - 1) : 0),
-							   $episode_data->{EpisodeNumber} - 1,
-							   0;
+				    my $xmltv_ns = ($episode_data->{SeasonNumber} ? ($episode_data->{SeasonNumber} - 1) : "") ." . ". ($episode_data->{EpisodeNumber} ? ($episode_data->{EpisodeNumber} - 1) : "") ." . 0";
 				    $prog->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
 				    $added .= "     added episode-num '$xmltv_ns'\n";
 				}
