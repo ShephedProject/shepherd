@@ -15,7 +15,7 @@
 #  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.41";
+my $version = "0.42";
 
 $| = 1;
 print "$progname v$version\n";
@@ -581,6 +581,15 @@ MATCH:
 	return;
 }
 
+# $hd keys are orignal xmlids, with {channel} set to HD xmlids from $channel_xmlid_to_opt_channel_xmlid
+#	details from SD channels
+#		that can be found in $channel_xmlid_to_opt_channel_xmlid
+#		and are detected as HD or "copysd" is set
+# $sd keys are 7HD, Prime HD, Nine HD, TEN HD plus other $opt_channel *HD variants
+#	details from untouched SD channels
+#		that can be found in $channel_xmlid_to_opt_channel_xmlid
+# $ar keys are 7HD, Prime HD, Nine HD, TEN HD
+#	details from HD channels only: 7HD, Prime HD, Nine HD, TEN HD
 sub write_hd
 {
 	# remove from argument channel identical (time, title, sub-title) programs found on sd channel
@@ -662,7 +671,7 @@ sub write_hd
 		# write any left over argument programs
 		while (defined $aprog) {
 			$aprog->{channel} = $channel_xmlid_to_opt_channel_xmlid{$xmlid};
-			&gapfill($prog->{channel}, $prog->{start}, $prog->{stop});
+			&gapfill($aprog->{channel}, $aprog->{start}, $aprog->{stop});
 			$writer->write_programme($aprog);
 			$stats{wrote_prog_into_hdtv_channel}++;
 
