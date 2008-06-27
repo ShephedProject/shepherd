@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.3.7';
+my $version = '1.3.8';
 
 # tv_grab_au
 # "Shepherd"
@@ -2014,13 +2014,19 @@ sub list_chan_names
 	list_chan_names_diff("SelecTV", @rchans);
 	print "\n Use to update channel_list and selectv_website.conf (check mapping to foxtel in shepherd and selectv_website, and check oztivo mapping)\n\n";
 
+	my $channel_support_exceptions = '';
 	foreach my $id (sort { scalar($a) <=> scalar($b) } keys %REGIONS)
 	{
 	    my @rchans = fetch_channels($id, 1);
 	    printf "%s:%s\n", $id, join(',', @rchans);
-	    list_chan_names_diff($id, @rchans);
+	    my $cse = list_chan_names_diff($id, @rchans);
+	    $channel_support_exceptions = "$channel_support_exceptions $cse"
+		    if $cse;
 	    sleep 1;
 	}
+
+	print "\n\'channel_support_exceptions\' => \'$channel_support_exceptions\',\n";
+
 	return;
     }
 
@@ -2035,12 +2041,19 @@ sub list_chan_names_diff
 
     my @ochans = read_official_channels($id);
     my $line = '';
+    my $channel_support_exceptions = '';
 
     my $count = scalar(@rchans);
     foreach my $chan (@ochans) {
 	@rchans = grep($chan ne $_, @rchans);
 	if ($count == scalar(@rchans)) { # didn't find
 	    $line = "$line-$chan,";
+	    $chan =~ s/ /_/g;
+	    if ($channel_support_exceptions) {
+	    	$channel_support_exceptions = "$channel_support_exceptions,$chan";
+	    } else {
+		$channel_support_exceptions = "$chan";
+	    }
 	} else {
 	    $count = scalar(@rchans);
 	}
@@ -2051,6 +2064,11 @@ sub list_chan_names_diff
     if ($line) {
 	print " difference: $line\n";
     }
+
+    $channel_support_exceptions = "$id:-$channel_support_exceptions"
+	    if $channel_support_exceptions;
+
+    return $channel_support_exceptions;
 }
 
 sub sources
