@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 my $progname = 'shepherd';
-my $version = '1.3.9';
+my $version = '1.3.10';
 
 # tv_grab_au
 # "Shepherd"
@@ -1686,7 +1686,12 @@ sub read_config_file
 	    if (defined $pref_title_source && $pref_title_source eq 'yahoo7widget,abc2_website');
     delete $components->{'abc2_website'} if (defined $components &&
 	    defined $components->{'abc2_website'} && !defined $components->{'abc2_website'}->{'ver'});
-    
+    # 27/06/08 - removed jrobbo as a preferred title source
+    $pref_title_source = undef
+	    if (defined $pref_title_source && $pref_title_source eq 'jrobbo');
+    delete $components->{'jrobbo'} if (defined $components &&
+	    defined $components->{'jrobbo'} && !defined $components->{'jrobbo'}->{'ver'});
+
     # Migrate from 'mirror_site' to new 'sources'
     unless ($sources)
     {
@@ -2485,8 +2490,7 @@ sub configure
     my $def = "Do not transition; just use best quality titles";
     my %transition = (	"ltd (aka tv_grab_au, versions 1,30, 1.40 or 1.41)" => 'yahoo7widget',
 			"OzTivo" => 'oztivo',
-			"Rex" => 'rex',
-			"JRobbo" => 'jrobbo' );
+			"Rex" => 'rex');
     my $defaulttrans = $def;
     foreach my $key (keys %transition) {
 	$defaulttrans = $key if ((defined $pref_title_source) && ($transition{$key} eq $pref_title_source));
