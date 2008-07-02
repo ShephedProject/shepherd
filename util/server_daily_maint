@@ -29,6 +29,7 @@ use SVG::TT::Graph::Pie;
 use Storable;
 use HTML::Template;
 use Time::Local;
+use Date::Manip;
 
 my $stats_file = $store_dir . "/stats.config";
 my $store = { };
@@ -49,6 +50,13 @@ $debug = 1 if (grep ($_ eq '--debug', @ARGV));
 &rollover_statistics;	# rotate statistics
 
 &delete_old_files;	# delete old feedback files
+
+$store->{last_run} = $starttime;
+&write_config;	        # need to do this in case we barf during
+                        # stats generation -- we've renamed/deleted
+			# old stats files so keep config file in
+			# sync
+
 &parse_feedback;	# parse any (new) feedback files
 
 &aggregate_stats;	# use last 7 days to build last week, etc.
@@ -61,7 +69,6 @@ if (grep ($_ eq '--dump', @ARGV))
 
 &generate_reports;	# generate reports and graphs
 
-$store->{last_run} = $starttime; # update our last_run time
 &write_config;		# write out our updated stats
 
 print "Done.\n";
@@ -142,70 +149,53 @@ sub set_default_values
 sub rollover_statistics
 {
 
-	# 1. new month
-	if (strftime("%m", localtime($store->{last_run})) != strftime("%m", localtime($starttime))) {
-		for (my $i = ($store->{num_months}-1); $i >= 0; $i--) {
-			if (defined $store->{per_month}->[$i]) {
-				$store->{per_month}->[$i+1] = undef;
-				$store->{per_month}->[$i+1] = $store->{per_month}->[$i];
-				$store->{per_month}->[$i] = undef;
-			}
-		}
-		if ($store->{num_months} >= $store->{max_months}) {
-			delete $store->{per_month}->[($store->{num_months})];
-		} else {
-			$store->{num_months}++;
-		}
-	}
+    return unless ($store->{last_run});
 
-	# 2. new week
-	if (strftime("%U", localtime($store->{last_run})) != strftime("%U", localtime($starttime))) {
-		for (my $i = ($store->{num_weeks}-1); $i >= 0; $i--) {
-			if (defined $store->{per_week}->[$i]) {
-				$store->{per_week}->[$i+1] = undef;
-				$store->{per_week}->[$i+1] = $store->{per_week}->[$i];
-				$store->{per_week}->[$i] = undef;
-			}
-		}
-		if ($store->{num_weeks} >= $store->{max_weeks}) {
-			delete $store->{per_week}->[($store->{num_weeks})];
-		} else {
-			$store->{num_weeks}++;
-		}
-	}
+    my $last_run = &Date::Manip::ParseDateString("epoch " . $store->{last_run});
+    my $now = &Date::Manip::ParseDate("epoch $starttime");
+    my $weekdiffstr = &Date::Manip::DateCalc($last_run, $now);
+    my $monthdiffstr = &Date::Manip::DateCalc($last_run, $now, undef, 1);
 
-	# 3. new day
-	if (strftime("%w", localtime($store->{last_run})) != strftime("%w", localtime($starttime))) {
-		for (my $i = ($store->{num_days}-1); $i >= 0; $i--) {
-			if (defined $store->{per_day}->[$i]) {
-				$store->{per_day}->[$i+1] = undef;
-				$store->{per_day}->[$i+1] = $store->{per_day}->[$i];
-				$store->{per_day}->[$i] = undef;
-			}
-		}
-		if ($store->{num_days} >= $store->{max_days}) {
-			delete $store->{per_day}->[($store->{num_days})];
-		} else {
-			$store->{num_days}++;
-		}
-	}
+    my $months_since = (($monthdiffstr =~ /(\d+):(\d+):/) && ($1 * 12 + $2));
+    &rollover_units('month', $months_since);
 
-	# 4. new hour
-	if (strftime("%H", localtime($store->{last_run})) != strftime("%H", localtime($starttime))) {
-		for (my $i = ($store->{num_hours}-1); $i >= 0; $i--) {
-			if (defined $store->{per_hour}->[$i]) {
-				$store->{per_hour}->[$i+1] = undef;
-				$store->{per_hour}->[$i+1] = $store->{per_hour}->[$i];
-				$store->{per_hour}->[$i] = undef;
-			}
-		}
-		if ($store->{num_hours} >= $store->{max_hours}) {
-			delete $store->{per_hour}->[($store->{num_hours})];
-		} else {
-			$store->{num_hours}++;
-		}
-	}
+    my $weeks_since = (($weekdiffstr =~ /0:0:(\d+):/) && $1);
+    &rollover_units('week', $weeks_since);
 
+    my $days_since = (($weekdiffstr =~ /0:0:(\d+):(\d+):/) && ($1 * 7 + $2));
+    &rollover_units('day', $days_since);
+
+    my $hours_since = (($weekdiffstr =~ /0:0:(\d+):(\d+):(\d+):/) && ($1 * 168 + $2 * 24 + $3));
+    &rollover_units('hour', $hours_since);
+
+#    print "Finished; per_hour 1 is: " . Dumper($store->{per_hour}->[1]) . "\n"; die;
+}
+
+# Helper function called by rollover_stats; abstracts the code for
+# rolling over months/weeks/days/hours.
+sub rollover_units
+{
+    my ($unit, $units_since) = @_;
+
+    if ($units_since)
+    {
+	print "$units_since $unit since last stats rollover\n"; # if ($debug);
+
+	my $num_units = 'num_' . $unit . 's';
+	my $max_units = 'max_' . $unit . 's';
+	my $per_unit = 'per_' . $unit;
+        for (my $i = ($store->{$num_units}-1); $i >= 0; $i--)
+        {
+            if ($i + $units_since < $store->{$max_units})
+            {
+                $store->{$per_unit}->[$i + $units_since] = $store->{$per_unit}->[$i];
+		print "store -> $per_unit -> [ $i + $units_since ] copied from $i\n";
+            }
+            $store->{$per_unit}->[$i] = undef;
+        }
+        $store->{$num_units} += $units_since;
+        $store->{$num_units} = $store->{$max_units} - 1 if ($store->{$num_units} >= $store->{$max_units});
+    }
 }
 
 ###############################################################################
@@ -303,11 +293,13 @@ sub parse_feedback
 		$hr_num = $store->{max_hours} if ($hr_num > $store->{max_hours});
 		$hr_num = 0 if ($hr_num < 0);
 
-		printf " - gathering statistics from $store_dir/$file ($file_modtime -> hr $hr_num)\n" if ($debug);
+		printf " - gathering statistics from $store_dir/$file ($file_modtime -> hr $hr_num)\n"; # if ($debug);
 
 		my $parsed = 0;
 		$store->{per_hour}->[$hr_num]->{visits}++;		 # total # of visits seen
 		$store->{total}->{visits}++;
+
+#		printf "   : visits hr $hr_num: %d\n", $store->{per_hour}->[$hr_num]->{visits};
 
 		my $sid;
 
@@ -1176,6 +1168,9 @@ sub generate_reports
 
 	foreach my $c (sort keys %clist) 
 	{
+
+		next if ($c eq 'shepherd'); # shouldn't be there; is sneaking in via parsing error
+
 		$template = HTML::Template->new(filename => "$template_dir/server_daily_maint_component.tmpl");
 		$template->param(NOW => "". localtime($starttime));
 		$template->param('NAME', $c);
