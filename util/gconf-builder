@@ -165,7 +165,7 @@ else
     $config->{option_ready} ||= '--version';
 }
 
-print	"\nCATEGORY: Data Quality\n\n" .
+print	"\nCATEGORY: Data Accuracy\n\n" .
 	"Rate the accuracy of the data $grabber fetches; i.e. how often it\n" .
 	"can be relied upon to report the right programs in the right timeslots.\n" .
 	"(This is a measure of the source $grabber relies upon rather than a\n".
@@ -175,6 +175,9 @@ print	"\nCATEGORY: Data Quality\n\n" .
 	"(3) Guide data is 100% accurate, or very close to it\n\n";
 
 $config->{quality} = ask_choice("Data quality?", 3, 1, 2, 3);
+
+print	"\nCATEGORY: Data Comprehensiveness (sub-titles)\n\n";
+$config->{has_subtitles} = ask_boolean("Does $grabber gather episode names?", 1);
 
 print	"\nCATEGORY: Granularity\n\n" .
 	"Specify whether $grabber is able to fetch data in slices,\n" .
