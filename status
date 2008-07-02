@@ -9,12 +9,12 @@ grabber         abc_website         3.21-r1
 grabber         sbsnews_website     1.00-r1
 grabber         oztivo              2.19-r1
 grabber         yahoo7web           0.34-r1
-grabber         foxtel_swf          0.27
+grabber         foxtel_swf          0.27-r1
 grabber         channelnsw_gov      0.8-r1
 grabber         southerncross_website   0.20-r1
 grabber         ten_website         1.06-r1
 grabber         citysearch          3.0.1
-grabber         acctv_website       0.08
+grabber         acctv_website       0.08-r1
 grabber         sbsweb              1.02-r1
 reconciler      reconciler_mk2      0.39
 postprocessor   imdb_augment_data   0.44
