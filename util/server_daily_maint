@@ -29,7 +29,6 @@ use SVG::TT::Graph::Pie;
 use Storable;
 use HTML::Template;
 use Time::Local;
-use Date::Manip;
 
 my $stats_file = $store_dir . "/stats.config";
 my $store = { };
@@ -151,24 +150,26 @@ sub rollover_statistics
 
     return unless ($store->{last_run});
 
-    my $last_run = &Date::Manip::ParseDateString("epoch " . $store->{last_run});
-    my $now = &Date::Manip::ParseDate("epoch $starttime");
-    my $weekdiffstr = &Date::Manip::DateCalc($last_run, $now);
-    my $monthdiffstr = &Date::Manip::DateCalc($last_run, $now, undef, 1);
+    my @llast = localtime($store->{last_run});
+    my @lnow = localtime($starttime);
 
-    my $months_since = (($monthdiffstr =~ /(\d+):(\d+):/) && ($1 * 12 + $2));
-    &rollover_units('month', $months_since);
+    # Figure out the difference. This is a little trickier than you
+    # might think, since we want to know not how much time has
+    # elapsed, but the difference in month/week/day/hour number.
+    # For example, it may be 2 hours since we last ran, but if
+    # we last ran at 11PM and it's now 1AM, we are in a new day
+    # number.
 
-    my $weeks_since = (($weekdiffstr =~ /0:0:(\d+):/) && $1);
-    &rollover_units('week', $weeks_since);
+    my $yrdiff = $lnow[5] - $llast[5]; 
+    my $modiff = (12 * $yrdiff) + $lnow[4] - $llast[4];
+    my $weekdiff = ($yrdiff * 52) + strftime("%U", @lnow) - strftime("%U", @llast);
+    my $daydiff = ($yrdiff * 365) + $lnow[7] - $llast[7];
+    my $hrdiff = int($starttime / 3600) - int($store->{last_run} / 3600);
 
-    my $days_since = (($weekdiffstr =~ /0:0:(\d+):(\d+):/) && ($1 * 7 + $2));
-    &rollover_units('day', $days_since);
-
-    my $hours_since = (($weekdiffstr =~ /0:0:(\d+):(\d+):(\d+):/) && ($1 * 168 + $2 * 24 + $3));
-    &rollover_units('hour', $hours_since);
-
-#    print "Finished; per_hour 1 is: " . Dumper($store->{per_hour}->[1]) . "\n"; die;
+    &rollover_units('month', $modiff);
+    &rollover_units('week', $weekdiff);
+    &rollover_units('day', $daydiff);
+    &rollover_units('hour', $hrdiff);
 }
 
 # Helper function called by rollover_stats; abstracts the code for
