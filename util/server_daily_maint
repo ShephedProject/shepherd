@@ -9,7 +9,10 @@
 #  - updates store of some common statistics (users, failures, duration, time-of-day) etc.
 #  - generates pretty graphs and html
 #  - generates graphs showing when components have missing data (...Max to add this part. :) )
-
+#
+#  LIMITATIONS
+#  Should be run at least once per day. If not, then unprocessed data older than 00:00AM
+#  yesterday will not be added to stats.
 
 # settings
 my $days_to_keep = 14;		# keep 14 days
@@ -33,6 +36,7 @@ use Time::Local;
 my $stats_file = $store_dir . "/stats.config";
 my $store = { };
 my $starttime = time;
+my $newday;	
 
 print "Running at:\n";
 print strftime "- %a %b %e %H:%M:%S %Y %z (system time)\n", localtime;
@@ -160,6 +164,36 @@ sub rollover_statistics
     # we last ran at 11PM and it's now 1AM, we are in a new day
     # number.
 
+    # Note that our concept of "Day/Week/Month Zero" is a little 
+    # weird. Day 1 is yesterday, and Day 2 the day before that; 
+    # Week 1 is the 7-day period ending last Sunday midnight; 
+    # Month 1 is last month, which may be 28, 30, or 31 days
+    # long. Day 0, however, is the most recent 24 hours, even
+    # though this most likely spans two days. Week 0 and Month 0
+    # are periods of time from one week ago and one month ago 
+    # respectively until now.
+    #
+    # So when you look at the graphs, the most recent day is
+    # not actually today, but a 24-hour period up until whenever
+    # this script happened to run last.
+    # 
+    # An odd effect of this is that Day 0 and Day 1 will usually
+    # overlap (as will Week 0 and Week 1, and Month 0 and Month 1).
+    # While Day 1 will always be "yesterday", Day 0 might be
+    # the 24-hour period from 7am yesterday until 7am today,
+    # for example.
+    #
+    # We could correct this, so that Day 0 was simply all 
+    # data collected so far today, but this would be less useful,
+    # since, being made up of incomplete data, Day 0 would 
+    # probably always look smaller than Day 1 (a little, if the 
+    # script runs late in the day; a lot, if it runs early). 
+    #
+    # The point of the stats is to help quickly spot problems,
+    # and this would be defeated if you had to wait a day until you
+    # could accurately compare today's data with yesterday's. 
+    # 
+
     my $yrdiff = $lnow[5] - $llast[5]; 
     my $modiff = (12 * $yrdiff) + $lnow[4] - $llast[4];
     my $weekdiff = ($yrdiff * 52) + strftime("%U", @lnow) - strftime("%U", @llast);
@@ -170,6 +204,8 @@ sub rollover_statistics
     &rollover_units('week', $weekdiff);
     &rollover_units('day', $daydiff);
     &rollover_units('hour', $hrdiff);
+
+    $newday = 1 if ($daydiff);
 }
 
 # Helper function called by rollover_stats; abstracts the code for
@@ -207,11 +243,26 @@ sub rollover_units
 
 sub aggregate_stats
 {
+	print "Aggregating stats.\n";
 	# build day 0 based on last 24 hours
 	delete $store->{per_day}->[0];
 	for (my $i = 0; $i < 24; $i++) {
 		next if (!defined $store->{per_hour}->[$i]);
 		$store->{per_day}->[0] = &merge_in_stats($store->{per_day}->[0], $store->{per_hour}->[$i]);
+	}
+
+        # if it's a new day, build day 1 based on 24 hours until most recent midnight,
+	# since otherwise our day 1 will be a rolled-over day 0, which would have
+	# been the 24-hour period up until whenever the script last ran yesterday.
+	if ($newday)
+	{
+	    print "Rebuilding Day 1.\n";
+	    delete $store->{per_day}->[1];
+	    my $hr_now = (localtime($starttime))[2];
+	    for (my $i = $hr_now + 1; $i < ($hr_now + 25); $i++) {
+		next if (!defined $store->{per_hour}->[$i]);
+		$store->{per_day}->[1] = &merge_in_stats($store->{per_day}->[1], $store->{per_hour}->[$i]);
+	    }
 	}
 
 	# build week 0 based on last 7 days
@@ -387,7 +438,7 @@ sub parse_feedback
 				{
 				    my ($code, $msg) = ($1, $2);
 				    my $shortsid = $1 if ($sid =~ /\d+\.(\d+)/);
-				    unshift @{$store->{failcodes}->{$c}}, { timestamp => $starttime, sysid => $shortsid, file => $file, code => $code, msg => $msg };
+				    unshift @{$store->{failcodes}->{$c}}, { timestamp => $file_modtime, sysid => $shortsid, file => $file, code => $code, msg => $msg };
 				}
 
 				# duration (total count, min, max, average from duration/counter)
