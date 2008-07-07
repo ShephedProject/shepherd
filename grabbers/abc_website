@@ -22,7 +22,7 @@
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.21";
+my $version = "3.22";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -530,6 +530,16 @@ DAYS:	while ($days_left > 0) {
 		my $prog;
 
 		my $cache_key = sprintf "%d,%d,%s,%s", $unprocessed_starttime[$i], $unprocessed_starttime[$i+1], $xmlid, $unprocessed_progname[$i];
+
+		# The ABC guide normalizes everything to 5 minutes. This means that very
+		# short shows have the same start and stop time (a duration of 0 seconds),
+		# which Shepherd's reconciler will ignore as bad data. We will therefore
+		# enforce a minimum duration of 2 minutes.
+		#
+		if ($unprocessed_starttime[$i+1] <= $unprocessed_starttime[$i])
+		{
+		    $unprocessed_starttime[$i+1] += (2*60);
+		}
 
 		$prog->{'channel'} =	$xmlid;
 		$prog->{'start'} =	POSIX::strftime("%Y%m%d%H%M", localtime($unprocessed_starttime[$i]));
