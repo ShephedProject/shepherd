@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.16';
+my $version = '1.3.17';
 
 # tv_grab_au
 # "Shepherd"
@@ -1617,6 +1617,7 @@ sub add_pending_message
 {
     my ($component, $field, @rest) = @_;
 
+    &log("SHEPHERD: Set pending message: $component $field @rest\n") if ($debug);
     my $iteration = 0;
     my $componentname = $component;
     if ($component ne $progname)
@@ -2794,15 +2795,15 @@ sub grab_data
 
     if ($used_grabbers == 0)
     {
-	&log("SHEPHERD: No valid grabbers installed/enabled!\n");
+	&log("SHEPHERD: No valid grabbers available for $grab_policy stage.\n");
     }
     elsif (!$data_satisfies_policy)
     {
-	&log("SHEPHERD: Ran through all grabbers but still have policy-violating gaps in data! :(\n");
+	&log("SHEPHERD: Ran through all grabbers but still have policy-violating gaps in data. :(\n");
     }
     elsif (!$data_found_all)
     {
-	&log("SHEPHERD: Unfillable micro-gaps exist in data!\n");
+	&log("SHEPHERD: Unfillable micro-gaps exist in data.\n");
     }
 }
 
@@ -2921,7 +2922,7 @@ sub choose_grabber
 	$total = score_grabbers($grabber_policy);
  
 	&log("SHEPHERD: Scoring grabbers on ability to efficiently provide needed data:\n");
-	&log("Only considering micro-grabbers.\n") if ($find_microgaps);
+	&log("SHEPHERD: Only considering micro-grabbers.\n") if ($find_microgaps);
 	foreach (sort { $gscore->{$b} <=> $gscore->{$a} } keys %$gscore)
 	{
 	    next if ($_ =~ /\[cache\]/);
@@ -2974,7 +2975,7 @@ sub choose_grabber
 	return undef if $grabber_policy eq "paytv" && !$total;
 
 	if (!$total) { # $grabber_policy ne "paytv"
-	    &log("Unfillable timeslice\n\n");
+	    &log("SHEPHERD: Unfillable timeslice.\n\n");
 	    add_timeslice_to_missing_unfillable();
 	}
 
@@ -4177,21 +4178,30 @@ sub dump_already_missing
 {
     my ($d, $proggy) = @_;
 
-    if (defined $d->{already_missing}) {
-	$d->{already_missing} .= sprintf "-%02d:%02d",
-	  int($d->{already_missing_last} / 3600),
-	  int(($d->{already_missing_last} % 3600) / 60)
-          if (defined $d->{already_missing_last});
+    if (defined $d->{already_missing}) 
+    {
+	if (defined $d->{already_missing_last})
+	{
+	    $d->{already_missing} .= sprintf "-%02d:%02d",
+	                                     int($d->{already_missing_last} / 3600),
+					     int(($d->{already_missing_last} % 3600) / 60);
+	}
+
         push(@{($d->{missing_all})}, $d->{already_missing});
 
 	$d->{already_missing_epoch} .= sprintf "-%d",$d->{already_missing_last_epoch};
 
-	# Don't append this missing period to the 'missing_all_epoch' string
-	# if it's a noncritical gap and we already know this grabber tends
-	# to have those (eg yahoo7widget). We can do this because at the
-	# grabber level 'missing_all_epoch' is used only for stats reporting, 
-	# not any further analysis.
-	unless (query_config($proggy, 'has_noncritical_gaps') and is_noncritical_gap($d->{already_missing_epoch}))
+	# $plugin_data -> 'missing_all_epoch' records MISSING_DATA for stats
+	# reporting. We don't want to be bothered by data holes that are:
+	# (a) 'Noncritical', and we already know this grabber tends
+	#     to have those (eg yahoo7widget); or
+	# (b) In Shepherd and Day 6 or higher. (This allows Shepherd to attempt
+	#     to fill a longer schedule -- e.g. 14 days -- but not throw a lot
+	#     of warnings if it fails to.)
+	unless
+	   (( &query_config($proggy, 'has_noncritical_gaps') and &is_noncritical_gap($d->{already_missing_epoch}))
+		or
+	    ( $proggy eq $progname and $d->{already_missing_epoch} =~ /(\d+)-/ and $1 > $policy{starttime} + (5*86400)))
 	{
 	    $d->{missing_all_epoch} .= "," if (defined $d->{missing_all_epoch});
 	    $d->{missing_all_epoch} .= $d->{already_missing_epoch};
