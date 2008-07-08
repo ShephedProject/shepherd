@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.17';
+my $version = '1.3.18';
 
 # tv_grab_au
 # "Shepherd"
@@ -4200,9 +4200,9 @@ sub dump_already_missing
 	#     of warnings if it fails to.)
 	unless
 	   (( &query_config($proggy, 'has_noncritical_gaps') and &is_noncritical_gap($d->{already_missing_epoch}))
-		or
-	    ( $proggy eq $progname and $d->{already_missing_epoch} =~ /(\d+)-/ and $1 > $policy{starttime} + (5*86400)))
-	{
+#		or
+#	    ( $proggy eq $progname and $d->{already_missing_epoch} =~ /(\d+)-/ and $1 > $policy{starttime} + (5*86400)))
+	)	{
 	    $d->{missing_all_epoch} .= "," if (defined $d->{missing_all_epoch});
 	    $d->{missing_all_epoch} .= $d->{already_missing_epoch};
 	}
