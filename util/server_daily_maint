@@ -560,7 +560,7 @@ sub numvar
 
 sub report_count_data
 {
-	my ($template, $varname, $field, $reptype, $ignore_zero) = @_;
+	my ($template, $varname, $field, $reptype, $min_hits) = @_;
 	$reptype = "all" unless (defined $reptype);
 
 	my @ret = ();
@@ -568,10 +568,11 @@ sub report_count_data
 
 	foreach my $timeslice (@loop)
 	{
-		next if ($ignore_zero and !numvar($store->{"per_$timeslice"}->[0]->{$field},$field));
 		my %h;
-	        $h{'TIMESLICE'} = $timeslice;
 		$h{'SEEN'} = numvar($store->{"per_$timeslice"}->[0]->{$field},$field);
+		next if ($min_hits and $h{'SEEN'} < $min_hits);
+
+		$h{'TIMESLICE'} = $timeslice;
 		$h{'PREVIOUS'} = numvar($store->{"per_$timeslice"}->[1]->{$field},$field);
 
 		push (@ret, \%h);
@@ -1008,7 +1009,7 @@ sub graph_one_count_data
 
 sub graph_count_data
 {
-	my ($template, $varname, $request, $gheight, $gwidth, $show_key, @fields) = @_;
+	my ($template, $varname, $request, $gheight, $gwidth, $show_key, $min_hits, @fields) = @_;
 
 	my @requests = split(/ /, $request);
 	my @graphs;
@@ -1037,7 +1038,7 @@ sub graph_count_data
 		my $fieldnum = 0, my $d, my $fielddesc = "", my @keys;
                 foreach my $field (@fields) 
 		{
-			my $anydata = 0;
+			my $hits = 0;
 			my @data;
 			for (my $i = ($max-1); $i >= 0; $i--) 
 			{
@@ -1053,12 +1054,12 @@ sub graph_count_data
 				}
                                 my $time_offset = $starttime - ($i * $tdata->{$timeslice}->{n});
                                 push(@data, strftime("%Y-%m-%d %H:%M:%S", localtime($time_offset)), $val);
-				$anydata = 1 if ($val);
+				$hits += $val;
                         }
 			$fielddesc .= $field."_";
 
-			# Prevent unnecessary entries in keyed graphs
-			next if ($show_key and !$anydata);
+			# Ignore insignificant hits
+			next if ($min_hits and $hits < $min_hits);
 
 			push (@{$d->[$fieldnum]}, @data);
 			$fieldnum++;
@@ -1102,12 +1103,12 @@ sub generate_reports
 	&report_count_data($template, 'SUCCESS', 'success_sysid_list', 'all');
 	&report_count_data($template, 'MISSING', 'missing_sysid_list', 'all');
 	&report_count_data($template, 'FAILURE', 'fail_sysid_list', 'all');
-	&graph_count_data($template, 'GRAPHS_USAGE', 'day week 12week year', 0, 0, 0, 'success_sysid_list', 'missing_sysid_list', 'fail_sysid_list');
+	&graph_count_data($template, 'GRAPHS_USAGE', 'day week 12week year', 0, 0, 0, 0, 'success_sysid_list', 'missing_sysid_list', 'fail_sysid_list');
 
 	&graph_missing_data($template, 'GRAPHS_MISSING');
 
 	&report_count_data($template, 'RUNS_SEEN', "visits", "all");
-	&graph_count_data($template, 'GRAPHS_RUNS', "day week 12week year", 0, 0, 0, "visits");
+	&graph_count_data($template, 'GRAPHS_RUNS', "day week 12week year", 0, 0, 0, 0, "visits");
 
 	my @graphs = ();
 	push @graphs, { GRAPH => &graph_runtime("per_day", 0, 7, "Last week") };
@@ -1126,7 +1127,7 @@ sub generate_reports
 	}
 	$template->param('DURATION' => \@duration);
 
-	&graph_count_data($template, 'GRAPHS_DURATION', "day week 12week year", 0, 0, 0, "duration_min", "duration", "duration_max");
+	&graph_count_data($template, 'GRAPHS_DURATION', "day week 12week year", 0, 0, 0, 0, "duration_min", "duration", "duration_max");
 
 	@graphs = ( );
 	my $rdata = &gather_region_data("per_day", 0, 7, 1);
@@ -1193,7 +1194,7 @@ sub generate_reports
 		$h->{'SUCCESS_RATE_WEEK'} = calc_success_rate($c, "week");
 
 		push @components, $h;
-		my @uniques = report_count_data(0, 0, "c_".$c."_fail_sysid_list", "brief", "ignore-zero");
+		my @uniques = report_count_data(0, 0, "c_".$c."_fail_sysid_list", "brief", 5);
 		push @cfailures, { NAME => $c, TIMESLICES => $uniques[0] } if (@{$uniques[0]});
 		push @counters, "c_".$c."_fail_sysid_list";
 
@@ -1201,7 +1202,7 @@ sub generate_reports
 	}
 	$template->param('COMPONENTS', \@components);
 	$template->param('CFAILURES', \@cfailures);
-	&graph_count_data($template, 'CFAILURE_GRAPHS', 'day week', 220, 1010, 1, @counters);
+	&graph_count_data($template, 'CFAILURE_GRAPHS', 'day week', 220, 1010, 1, 5, @counters);
 
 	@graphs = ();
 	push @graphs, { GRAPH => &graph_mins_grabbed('per_hour', 0, 24, "Last day", 120, 505) };
@@ -1230,12 +1231,12 @@ sub generate_reports
 		&report_count_data($template, 'SUCCESS', 'c_'.$c.'_success_sysid_list', 'all');
 		&report_count_data($template, 'MISSING', 'c_'.$c.'_missing_sysid_list', 'all');
 		&report_count_data($template, 'FAILURE', 'c_'.$c.'_fail_sysid_list', 'all');
-		&graph_count_data($template, 'GRAPHS_USAGE', 'day week 12week year', 0, 0, 0, 'c_'.$c.'_success_sysid_list', 'c_'.$c.'_missing_sysid_list', 'c_'.$c.'_fail_sysid_list');
+		&graph_count_data($template, 'GRAPHS_USAGE', 'day week 12week year', 0, 0, 0, 0, 'c_'.$c.'_success_sysid_list', 'c_'.$c.'_missing_sysid_list', 'c_'.$c.'_fail_sysid_list');
 
 		&graph_missing_data($template, 'GRAPHS_MISSING', $c);
 
 		&report_count_data($template, 'RUNS_SEEN', 'c_'.$c.'_runs', "all");
-		&graph_count_data($template, 'GRAPHS_RUNS', "day week 12week year", 0, 0, 0, 'c_'.$c.'_runs');
+		&graph_count_data($template, 'GRAPHS_RUNS', "day week 12week year", 0, 0, 0, 0, 'c_'.$c.'_runs');
 
 		&report_failure_msgs($template, $c);
 
@@ -1277,7 +1278,7 @@ sub generate_reports
 			}
 			$h->{'DURATIONS'} = \@durations;
 
-			$h->{'GRAPHS_DURATIONS'} = &graph_count_data(undef, undef, "day week 12week year", 0, 0, 0, $g."_duration", $g."_duration_min", $g."_duration_max");
+			$h->{'GRAPHS_DURATIONS'} = &graph_count_data(undef, undef, "day week 12week year", 0, 0, 0, 0, $g."_duration", $g."_duration_min", $g."_duration_max");
 			push @sf, $h;
 		}
 		$template->param(SUCCESS_FAILURE => \@sf);
@@ -1307,7 +1308,7 @@ if (0) {
 				push @timeslices, $h;
 			    }
 			}
-			push @statistics, { STATNAME => $sname, TIMESLICES => [ @timeslices ], GRAPHS_STATISTICS => &graph_count_data(undef, undef, "72hour 12week", 0, 0, 0, $svar."_duration", $svar."_duration_min", $svar."_duration_max")};
+			push @statistics, { STATNAME => $sname, TIMESLICES => [ @timeslices ], GRAPHS_STATISTICS => &graph_count_data(undef, undef, "72hour 12week", 0, 0, 0, 0, $svar."_duration", $svar."_duration_min", $svar."_duration_max")};
 		}
 
 }
