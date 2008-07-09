@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.8';
+my $version  = '3.6.9';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -943,7 +943,7 @@ sub bad_parse
   my $msg = shift;
   print "Parsing error: $msg.\n";
   $stats{failed_parses}++;
-  if ($stats{failed_parses} > 4 and !scalar(keys %shows))
+  if ($stats{failed_parses} > 4 and !scalar(keys %$precache))
   {
       print "ERROR! Unable to parse any shows! Looks like a major problem. " .
 	    "Exiting.\n";
