@@ -18,11 +18,12 @@ foreach (@ARGV)
 	{
 	    foreach my $gap (split (/,/, $bit))
 	    {
-		if ($gap =~ /(\d+)-(\d+)/)
+		if ($gap =~ /(\d+)-(\d+)(.*)/)
 		{
 		    printf "- %s - %s (%d mins)\n",
 			   localtime($1).'', localtime($2).'',
 			   int((($2 - $1)/60)+0.1);
+		    print "Channel: $3\n" if ($3);
 		}
 		else
 		{
@@ -32,8 +33,7 @@ foreach (@ARGV)
 	}
 	else
 	{
-	    $ch = $bit;
-	    print "Channel: $ch\n";
+	    print "Channel: $bit\n";
 	}
     }
 }
