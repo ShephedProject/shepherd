@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.106";
+my $version = "1.107";
 
 use XMLTV;
 use XML::DOM;
@@ -97,7 +97,7 @@ Shepherd::Common::setup_ua('agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; 
 &scan_channels if (defined $opt->{scanchan});
 die "no channel file specified, see --help for instructions\n", unless (defined $opt->{channels_file});
 
-$opt->{days} = 8 if $opt->{days} > 8;	# no data beyond 8 days
+$opt->{days} = 9 if $opt->{days} > 9;	# no data beyond 9 days
 
 #
 # go go go!
