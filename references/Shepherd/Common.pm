@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.36';
+my $version = '0.37';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -587,23 +587,26 @@ sub setup_ua
     $ua->env_proxy();
 
     my @agent_list = (
-	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.3) Gecko/20070309 Firefox/2.0.0.3',
-	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.11) Gecko/20070312 Firefox/1.5.0.11',
-	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.8.1.3) Gecko/20070309 Firefox/2.0.0.3',
-	'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.3) Gecko/20061201 Firefox/2.0.0.3 (Ubuntu-feisty)',
-	'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.8.1.3) Gecko/20070309 Firefox/2.0.0.3',
+	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9) Gecko/2008061004 Firefox/3.0',
+	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9) Gecko/2008052906 Firefox/3.0',
+	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.8.1.15) Gecko/20080623 Firefox/2.0.0.15',
+	'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.0) Gecko/2008061600 SUSE/3.0-0.2 Firefox/3.0',
+	'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9) Gecko/2008061015 Firefox/3.0',
+	'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9) Gecko/20080617 Firefox/3.0',
+	'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9) Gecko/2008061004 Firefox/3.0',
+
+	'Mozilla/5.0 (Windows; U; MSIE 7.0; Windows NT 6.0; en-US)',
 	'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)',
 	'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
 	'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 1.1.4322)',
 	'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)',
-	'Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en-us) AppleWebKit/85.8.5 (KHTML, like Gecko) Safari/85.8.1',
-	'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.7.6) Gecko/20050512 Firefox',
-	'Opera/9.10 (X11; Linux i686; U; en)',
-	'Opera/9.10 (Windows NT 5.2; U; en)',
-	'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
-	'Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en-us) AppleWebKit/412 (KHTML, like Gecko) Safari/412',
-	'Mozilla/5.0 (Macintosh; U; Intel Mac OS X; en-us) AppleWebKit/418.9 (KHTML, like Gecko) Safari/419.3',
-	'Mozilla/5.0 (Macintosh; U; Intel Mac OS X; fr) AppleWebKit/418.9 (KHTML, like Gecko) Safari/419.3'
+	'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)',
+
+	'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/525.18 (KHTML, like Gecko) Version/3.1.1 Safari/525.17',
+	'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_4; en-us) AppleWebKit/525.18 (KHTML, like Gecko) Version/3.1.2 Safari/525.20.1',
+
+	'Opera/9.51 (Windows NT 6.0; U; en)',
+	'Opera/9.51 (Windows NT 5.1; U; en)'
     );
 
     my $agent = ($cnf{fake} ? $agent_list[int(rand($#agent_list+1))] : ($cnf{agent} ? $cnf{agent} : 'Shepherd'));
