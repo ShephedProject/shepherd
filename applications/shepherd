@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.19';
+my $version = '1.3.20';
 
 # tv_grab_au
 # "Shepherd"
@@ -998,7 +998,14 @@ sub check_last_run
     return if (!defined $last_successful_run);
     my $last_ran_secs_ago = time - $last_successful_run;
 
-    &log(0,"\n".ucfirst($progname)." was successfully run ".pretty_duration($last_ran_secs_ago)." ago.\n");
+    &log(0,"\n".ucfirst($progname)." last ran successfully ".pretty_duration($last_ran_secs_ago)." ago.\n");
+
+    if ($opt->{'daily'} and $last_ran_secs_ago < 22*60*60)
+    {
+	&log("Exiting due to --daily option.\n");
+	exit 0;
+    }
+
     return if ($last_ran_secs_ago > (12*60*60));
     return if ($opt->{dontcallgrabbers});
 
@@ -1857,6 +1864,7 @@ sub get_command_line_options
 			addsource=s
 			delsource=s
 			mode=s
+			daily
 		     ));
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
@@ -2564,6 +2572,8 @@ Session options:
 
     --noupdate            Don't update; just grab data
     --update              Update only; don't grab data
+
+    --daily               Exit unless 22 hours since last grab
 
     --debug               Print debugging messages
     --quiet               Don't print anything except errors
