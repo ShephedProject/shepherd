@@ -19,5 +19,5 @@ grabber         sbsweb              1.02-r1
 reconciler      reconciler_mk2      0.39
 postprocessor   imdb_augment_data   0.44
 postprocessor   tvdb_augment_data   0.13
-postprocessor   flag_aus_hdtv       0.42
+postprocessor   flag_aus_hdtv       0.43
 postprocessor   augment_timezone    0.21

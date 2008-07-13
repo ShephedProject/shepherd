@@ -11,11 +11,12 @@
 #  originally written by Richard Dale <richard@interlink.com.au>,
 #  September 2006
 #  Modified to use DTV Forums Australia instead of Digital Broadcasting Australia
+#  http://www.dtvforum.info/index.php?showtopic=28574
 #  Chris Williams <shepherd@psychogeeks.com>
 #  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.42";
+my $version = "0.43";
 
 $| = 1;
 print "$progname v$version\n";
@@ -53,15 +54,18 @@ $translation->{'CSI-Miami'} = 'CSI: Miami';
 
 # translations between website and what we know channels as
 my $chan_name_translations;
-$chan_name_translations->{"Ten"} = "TEN";
-$chan_name_translations->{"ABC"} = "ABC1";
+$chan_name_translations->{"ABC"} = "ABC1HD";
+$chan_name_translations->{"Seven"} = "7HD";
+$chan_name_translations->{"Prime"} = "Prime HD";
+$chan_name_translations->{"Nine"} = "Nine HD";
+$chan_name_translations->{"Ten"} = "TEN HD";
+$chan_name_translations->{"SBS"} = "SBSHD";
 
 my $hd_to_sds;
 @{$hd_to_sds->{"7HD"}} = ("Seven","Southern Cross","Central GTS/BKN","Golden West");
 @{$hd_to_sds->{"Prime HD"}} = ("Prime");
 @{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
 @{$hd_to_sds->{"TEN HD"}} = ("TEN","Sthn Cross TEN","WIN TEN","TDT","DDT");
-
 
 my $sd_to_hd;
 foreach my $hdchannel (keys %$hd_to_sds) {
@@ -379,7 +383,7 @@ sub lookup_dba
 		# doesn't.
 		#
 		my $datePattern = qr{(\d?\d)(?:st|nd|rd|th)\s+([[:alpha:]]+)\s+(\d\d\d\d)$}io;
-		my $chanPattern = qr{^(ABC|Nine|Seven|Prime|Ten|SBS)\s+HD}io;
+		my $chanPattern = qr{^(ABC|Seven|Prime|Nine|Ten|SBS)\s+HD}io;
 		my $progPattern = qr{(\d?\d:\d\d\s*(?:am|pm))\s+-\s+(.*)$}io;
 		my $currDate = undef;
 		my $currChan = undef;	
@@ -403,12 +407,8 @@ sub lookup_dba
 			}
 			elsif ($text =~ $chanPattern) {
 				my $channame = $1;
-				$channame = $chan_name_translations->{$channame}
-					if (defined $chan_name_translations->{$channame});
-				if (defined $channels->{$channame}) {
-					$currChan = $channame;
-				} elsif ((!$prime_present) && ($channame eq 'Seven') && defined($channels->{'Prime'})) {
-					$currChan = $channame;
+				if (defined $chan_name_translations->{$channame}) {
+					$currChan = $chan_name_translations->{$channame};
 				} else {
 					printf "** Found unknown channel '%s'! Ignored.\n", $channame;
 					$stats{unknown_channels}++;
@@ -435,16 +435,10 @@ sub lookup_dba
 					}
 
 					# Store the result and update stats
-					if (defined $channels->{$currChan}) {
-						foreach my $xmlid (@{$channels->{$currChan}}) {
-							$d->{prog}->{$xmlid}->{$progname} = $currChan;
-						}
-					}
-					if ((!$prime_present) && ($currChan eq 'Seven') && defined($channels->{'Prime'})) {
-						foreach my $xmlid (@{$channels->{'Prime'}}) {
-							$d->{prog}->{$xmlid}->{$progname} = 'Prime';
-						}
-					}
+					push(@{$d->{prog}->{$currChan}}, $progname);
+					push(@{$d->{prog}->{'Prime HD'}}, $progname)
+						if ((!$prime_present) && ($currChan eq '7HD'));
+
 					$stats{parsed_hd_progs}++;
 				}
 				else {
@@ -503,7 +497,11 @@ sub programme_cb( $ )
 	}
 
 	# see if title matches a known hd program for this channel
-	foreach my $t (keys %{($d->{prog}->{$this_chan})}) {
+	my $channel = $reverse_channels->{$this_chan};
+	$channel = $sd_to_hd->{$channel} if defined $sd_to_hd->{$channel}; # if sd name, use hd name
+	$channel = "ABC1HD" if $channel eq "ABC1";
+	$channel = "SBSHD" if $channel eq "SBS";
+	foreach my $t (@{$d->{prog}->{$channel}}) {
 		if (canonicalizeTitles_match($t,$this_title)) {
 			# match!
 			printf "  matched '$t' to '$this_title' (canonical match)\n" if (!defined $d->{seenprog}->{$this_title});
