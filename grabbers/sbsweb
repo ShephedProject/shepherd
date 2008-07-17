@@ -10,7 +10,7 @@
 #
 #
 
-my $version = '1.02';
+my $version = '2.00';
 
 use strict;
 use Getopt::Long;
@@ -125,7 +125,8 @@ sub parse_guide
     $tree->parse($guidedata);
     $tree->eof;
 
-    my $post_pm;
+    my $last_hr = 0;
+    my $am_pm = 0;
     my $content = $tree->look_down(_tag => 'div', id => 'content');
     foreach my $block ($content->look_down(_tag => 'ul', class => 'tv_schedule'))
     {
@@ -143,12 +144,15 @@ sub parse_guide
 		}
 
 		my ($hr, $min) = split(/:/, $start->as_text);
-		$post_pm = 1 if ($hr > 12);
-		$start = ($hr * 3600) + ($min * 60);
-		$start += ($day * 86400);
-		$start += 86400 if ($hr < 6 and $post_pm);
-		$start += $zerohr;
-		$show->{start} = $start;
+
+		# Times are 12hr clocks: if this hour is less than the last hour
+		# we saw, we must have rolled over AM/PM. So add 12 hours to
+		# the actual time.
+		$am_pm += 12 if ($hr + $am_pm < $last_hr);
+		$hr += $am_pm;
+		$last_hr = $hr;
+
+		$show->{start} = $zerohr + ($day * 86400) + ($hr * 3600) + ($min * 60);
 		$show->{channel} = $chanid;
 	    }
 	    my $title = $li->look_down(_tag => 'a', class => 'leftpad');
