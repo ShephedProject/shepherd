@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.22';
+my $version = '1.3.23';
 
 # tv_grab_au
 # "Shepherd"
@@ -1859,7 +1859,6 @@ sub get_command_line_options
 			set-icons
 			ancestry=s
 			history
-			sidtest
 			sources
 			addsource=s
 			delsource=s
@@ -1896,6 +1895,7 @@ sub process_setup_commands
 			setpreftitle => 'W',
 			clearpreftitle => 'W',
 			'reset' => 'W',
+			'component-set' => 'W',
 			addsource => 'W',
 			delsource => 'W',
 			status => '',
@@ -1905,9 +1905,7 @@ sub process_setup_commands
 			'show-channels' => '',
 			'list-chan-names' => '',
 			'set-icons' => '',
-			'component-set' => '',
 			'pending' => '',
-			sidtest => '',
 			ancestry => '',
 			sources => ''
 		    );
@@ -2011,7 +2009,6 @@ sub component_set
 	$components->{$component}->{default_cmdline} = "--".join(":--",@args);
 	&log("\nSet default options for $component to: --".join(" --",@args)."\n");
     }
-    &write_config_file;
 }
 
 sub sources
