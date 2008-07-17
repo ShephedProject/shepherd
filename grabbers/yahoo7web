@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "yahoo7web";
-my $version = "0.34";
+my $version = "0.35";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -595,7 +595,7 @@ sub fetch_one_prog
 				push(@genre, translate_category($v));
 			} elsif ($f eq "captions") {
 				$data_cache->{progs}->{$cache_key}->{subtitles} = [ { 'type' => 'teletext' } ] if ($v eq "true");
-			} elsif ($f eq "repeat") {
+			} elsif ($f eq "repeat" and $v and $v eq "true") {
 				$data_cache->{progs}->{$cache_key}->{'previously-shown'} = { };
 			} elsif ($f eq "start_date") {
 				; # nothing
