@@ -10,7 +10,7 @@
 #
 #
 
-my $version = '2.00';
+my $version = '2.01';
 
 use strict;
 use Getopt::Long;
@@ -360,7 +360,7 @@ sub tidy_data
 
 sub write_xml
 {
-    my %writer_args = ( encoding => 'UTF-8' );
+    my %writer_args = ( encoding => 'ISO-8859-1' );
 
     &log("Writing " . &num_items($shows) . " shows to XML.");
 
