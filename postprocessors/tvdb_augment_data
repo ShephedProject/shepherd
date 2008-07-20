@@ -19,7 +19,7 @@
 use strict;
 
 my $progname = "tvdb_augment_data";
-my $version = "0.13";
+my $version = "0.14";
 my $mirrorlist_url = 'http://thetvdb.com/interfaces/GetMirrors.php';
 
 use XMLTV;
@@ -346,12 +346,17 @@ sub write_xmltv
 						and $data_cache->{prog}->{$title}->{SERIES}->{Overview} ne "")
 					{
 						# Use 'Series Info' as desc if there's nothing else
-					        $new_desc = "Series Info: " . $data_cache->{prog}->{$title}->{SERIES}->{Overview};
-						$added .= "     existing desc was blank, set to: '$new_desc'\n";
+						if ($desc) {
+							$new_desc = "$desc\n";
+						} else {
+							$new_desc = "";
+						}
+					        $new_desc .= "Series Info: " . $data_cache->{prog}->{$title}->{SERIES}->{Overview};
+						$added .= "     existing desc was blank or short, set to: '$new_desc'\n";
 					}
 					else
 					{
-						$added .= "     existing desc blank but nothing to fill it with :(\n";
+						$added .= "     existing desc blank or short but nothing to fill it with :(\n";
 					}
 
 					if ($new_desc) 

@@ -18,6 +18,6 @@ grabber         acctv_website       0.08-r1
 grabber         sbsweb              2.00
 reconciler      reconciler_mk2      0.39
 postprocessor   imdb_augment_data   0.44
-postprocessor   tvdb_augment_data   0.13
+postprocessor   tvdb_augment_data   0.14
 postprocessor   flag_aus_hdtv       0.43
 postprocessor   augment_timezone    0.21
