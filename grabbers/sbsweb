@@ -10,7 +10,7 @@
 #
 #
 
-my $version = '2.01';
+my $version = '2.02';
 
 use strict;
 use Getopt::Long;
@@ -20,6 +20,7 @@ use IO::File;
 use XMLTV;
 use HTML::TreeBuilder;
 use Shepherd::Common;
+use Encode;
 
 # ---------------------------------------------------------------------------
 # --- Global Variables
@@ -109,6 +110,8 @@ sub get_guide_data
 	my $url = "http://www.$DATASOURCE/schedule/$daystr/$loc";
 	my $guidedata = &Shepherd::Common::get_url($url);
 	exit 11 unless ($guidedata);
+
+	Encode::from_to($guidedata, "UTF-8", "iso-8859-1");
 
 	&parse_guide($guidedata, $day);
     }
