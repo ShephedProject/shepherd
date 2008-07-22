@@ -8,9 +8,8 @@
 # Currently only good for the main SBS channel, not SBS News, but
 # has been coded to make adding any future channels easy.
 #
-#
 
-my $version = '2.02';
+my $version = '2.03';
 
 use strict;
 use Getopt::Long;
@@ -298,30 +297,34 @@ sub tidy_data
 			$shows->{$ch}->{$s}->{title} = $1;
 			$shows->{$ch}->{$s}->{'sub-title'} = $2;
 		    }
-		    elsif ($shows->{$ch}->{$s}->{desc} =~ /^(.*?) - (.*)/)
+		    elsif ($shows->{$ch}->{$s}->{desc} =~ /^(.*?) - (.*)/
+			    and
+			length($1) < 36
+			    and
+			grep(/^[A-Z]/, split(/ /, $2)))
 		    {
 			my ($subtitle, $rest) = ($1, $2);
-			if (length ($subtitle) < 36
-				and
-			    grep(/^[A-Z]/, split(/ /, $subtitle)))
+			&log("Splitting desc of " .
+			     $shows->{$ch}->{$s}->{title} .
+			     " (" .
+			     substr($shows->{$ch}->{$s}->{desc}, 0, 38) .
+			     "...)") if ($debug);
+
+			$shows->{$ch}->{$s}->{desc} = $rest;
+
+			# Drop subtitle if it's the same as the show name.
+			# Kinda unfortunate in that occasionally this will
+			# lead to incorrect dropping, but otherwise we get
+			# lots of bad subtitles.
+			unless ($shows->{$ch}->{$s}->{title} =~ /^$subtitle$/i)
 			{
-			    &log("Splitting desc of " .
-				$shows->{$ch}->{$s}->{title} .
-				" (" .
-				substr($shows->{$ch}->{$s}->{desc}, 0, 38) .
-				"...)") if ($debug);
-
-			    $shows->{$ch}->{$s}->{desc} = $rest;
-
-			    # Drop subtitle if it's the same as the show name.
-			    # Kinda unfortunate in that occasionally this will
-			    # lead to incorrect dropping, but otherwise we get
-			    # lots of bad subtitles.
-			    unless ($shows->{$ch}->{$s}->{title} =~ /^$subtitle$/i)
-			    {
-				$shows->{$ch}->{$s}->{'sub-title'} = $subtitle;
-			    }
+			    $shows->{$ch}->{$s}->{'sub-title'} = $subtitle;
 			}
+		    }
+		    # Set "Part x of y" as subtitle if nothing better
+		    elsif ($shows->{$ch}->{$s}->{desc} =~ /\((part \d+(?: of \d+))\)/i)
+		    {
+			$shows->{$ch}->{$s}->{'sub-title'} = $1;
 		    }
                 }
 	    }
