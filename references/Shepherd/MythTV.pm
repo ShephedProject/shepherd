@@ -2,7 +2,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.7';
+my $version = '0.8';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -150,5 +150,6 @@ sub close_connection
     undef $dbh;
 }
 
-1;
+die "No DBI mysql support, please install!\n" if !grep /mysql/, DBI->available_drivers;
 
+1;
