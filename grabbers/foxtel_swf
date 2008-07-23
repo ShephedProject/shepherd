@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "0.27";
+my $version = "0.28";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -278,6 +278,8 @@ sub get_reference_data
 		postvars => $postvars,
 		headers => \@additional_headers);
 
+	die "Failed to get ReferenceData\n" if !$data;
+
 	Shepherd::Common::log("DEBUG: get_reference_data got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 
 	my $parsed_xml = XMLin($data);
@@ -384,11 +386,13 @@ sub get_region_data
 		postvars => $postvars,
 		headers => \@additional_headers);
 
+	die "Failed to get RegionData\n" if !$data;
+
 	Shepherd::Common::log("DEBUG: get_region_data got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 
 	my $parsed_xml = XMLin($data);
 
-	die "Failed to retrieve valid ReferenceData\n"
+	die "Failed to retrieve valid RegionData\n"
 	  if (!defined $parsed_xml->{'soap:Body'}->{'GetRegionChannelsResponse'}->{'GetRegionChannelsResult'});
 	my $ref = $parsed_xml->{'soap:Body'}->{'GetRegionChannelsResponse'}->{'GetRegionChannelsResult'};
 
