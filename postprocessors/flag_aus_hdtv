@@ -16,7 +16,7 @@
 #  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.43";
+my $version = "0.44";
 
 $| = 1;
 print "$progname v$version\n";
@@ -214,8 +214,10 @@ EOF
 	}
 
 	die "'--channels_file {file}' must be specified. see --help for details.\n" if (!$opt->{channels_file});
-	die "unknown --action policy, see --help for details.\n"
-			if (($opt->{action} ne "move") && ($opt->{action} ne "copy") && ($opt->{action} ne "copysd"))
+	if (($opt->{action} ne "move") && ($opt->{action} ne "copy") && ($opt->{action} ne "copysd")) {
+		print "unknown --action policy '$opt->{action}' using default 'copysd', see --help for details.\n\n";
+		$opt->{action} = "copysd";
+	}
 }
 
 ######################################################################################################
@@ -356,9 +358,9 @@ sub lookup_dba
 	if ($postNode) {
 		# Found the post, let's iterate through the children extracting text.
 		#
-		# We're interested in the data that follows the first horizontal line of
-		# underscores and precedes the second line.  The earlier data is a 
-		# highlights list, and the later data is a disclaimer.
+		# We're interested in the data that follows the second horizontal line of
+		# underscores and precedes the third line.  The earlier data is a
+		# comment, highlights list, and the later data is a disclaimer.
 		#
 		# The data is several chunks like this on the web page:
 		#
@@ -396,10 +398,10 @@ sub lookup_dba
 			$text =~ s/^\s+|\s+$//g;	# strip leading/trailing spaces
 			next if $text eq '';		# skip empty strings
 			if ($text =~ m/^_+$/) {		# horiz line
-				$betweenLines = !$betweenLines;
+				$betweenLines++;
 				next;
 			}
-			next unless $betweenLines;
+			next unless $betweenLines == 2;
 
 			if ($text =~ $datePattern) {
 				# Date is not currently used except for debugging
