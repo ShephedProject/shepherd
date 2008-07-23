@@ -95,7 +95,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.40";
+my $version = "0.41";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -370,6 +370,9 @@ unless ($opt->{nolog}) {
 	close(LOG_FILE);
 	&write_alt_title_log;
 }
+
+die "No output file: $opt->{output_file}"
+	if !(-w $opt->{output_file} && -s $opt->{output_file});
 
 exit(0);
 
