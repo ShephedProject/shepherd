@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "yahoo7web";
-my $version = "0.35";
+my $version = "0.36";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -29,6 +29,7 @@ my $writer;
 my $prev_url;
 my $d;
 my $opt;
+my $abc2_eariest_start = "300000000000";
 
 #
 # parse command line
@@ -136,9 +137,11 @@ if (defined $opt->{anon_socks}) {
 
 &get_summary_pages;
 &get_detailed_pages;
+&fix_abc2_gap;
+
+$writer->end();
 
 &write_cache unless (defined $opt->{no_cache});
-$writer->end();
 
 &print_stats;
 exit(0);
@@ -549,6 +552,10 @@ sub get_detailed_pages
 
 		printf "DEBUG: programme xmltv: ".Dumper($prog) if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 		$writer->write_programme($prog);
+
+		$abc2_eariest_start = $prog->{start}
+				if (defined $channels->{ABC2} &&
+				$prog->{channel} eq $channels->{ABC2} && $abc2_eariest_start > $prog->{start});
 	}
 }
 
@@ -679,3 +686,30 @@ sub window_channel_is_within_microgap
 
 ##############################################################################
 
+sub fix_abc2_gap
+{
+	# check if abc2 has a gap on the first day when the station is closed
+	if (defined $channels->{ABC2} &&
+			$abc2_eariest_start > POSIX::strftime("%Y%m%d%H%M", localtime($script_start_time))) {
+
+		# create 7am today
+		my @timeattr = localtime($script_start_time); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+		$timeattr[0] = 0; # zero seconds
+		$timeattr[1] = 0; # min
+		$timeattr[2] = 7; # hours 7am
+		my $time7am = mktime(@timeattr);
+		my $xmltime7am = POSIX::strftime("%Y%m%d%H%M", localtime($time7am));
+
+		if (($script_start_time < $time7am) && ($abc2_eariest_start >= $xmltime7am))
+		{
+			my $show;
+			$show->{'channel'} =    $channels->{ABC2};
+			$show->{'title'} =      [[ "Station Close Guess", $opt->{lang} ]];
+			$show->{'start'} =      POSIX::strftime("%Y%m%d%H%M", localtime($script_start_time));
+			$show->{'stop'} =       $abc2_eariest_start;
+
+			Shepherd::Common::cleanup($show);
+			$writer->write_programme($show);
+		}
+	}
+}
