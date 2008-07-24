@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "yahoo7web";
-my $version = "0.37";
+my $version = "0.38";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -569,7 +569,9 @@ sub get_detailed_pages
 		my $time7am = mktime(@timeattr);
 		my $xmltime7am = POSIX::strftime("%Y%m%d%H%M", localtime($time7am));
 
-		if (($script_start_time < $time7am) && ($abc2_eariest_start == $xmltime7am))
+		if (($script_start_time < $time7am) && ($abc2_eariest_start == $xmltime7am) &&
+			(!defined $opt->{gaps_file} ||
+			 window_is_within_microgap($script_start_time, $time7am, "ABC2")))
 		{
 			my $show;
 			$show->{'channel'} =    $channels->{ABC2};
