@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.108";
+my $version = "1.109";
 
 use XMLTV;
 use XML::DOM;
@@ -578,7 +578,7 @@ sub write_data
 	}
 
 	# check if abc2 has a gap on the first day when the station is closed
-	if (defined $channels->{ABC2} &&
+	if ($abc2_eariest_start != "300000000000" && (!defined $opt->{offset}) && defined $channels->{ABC2} &&
 			$abc2_eariest_start > POSIX::strftime("%Y%m%d%H%M", localtime($starttime))) {
 
 		# create 7am today
@@ -590,7 +590,7 @@ sub write_data
 		$time7am -= $time_offset;
 		my $xmltime7am = POSIX::strftime("%Y%m%d%H%M", localtime($time7am));
 
-		if (($starttime < $time7am) && ($abc2_eariest_start >= $xmltime7am))
+		if (($starttime < $time7am) && ($abc2_eariest_start == $xmltime7am))
 		{
 			my $show;
 			$show->{'channel'} =    $channels->{ABC2};
