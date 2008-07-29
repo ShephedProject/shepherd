@@ -16,7 +16,7 @@
 #  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.44";
+my $version = "0.45";
 
 $| = 1;
 print "$progname v$version\n";
@@ -87,7 +87,8 @@ my $override_settings = { };
 my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
 
 my $opt;
-$opt->{dbaurl} = "http://www.dtvforum.info/index.php?showtopic=28574";
+$opt->{url} = "http://www.dtvforum.info/index.php?showtopic=28574";
+$opt->{newurl} = "http://www.dtvforum.info/index.php?showtopic=68946";
 
 $opt->{output_file} = "output.xmltv";
 $opt->{region} = 94;
@@ -116,7 +117,8 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 
 &setup_channels;
 
-&lookup_dba() if (!defined $opt->{nodbalookup});
+&lookup_website($opt->{url}, 0) if (!defined $opt->{nodbalookup});
+&lookup_website($opt->{newurl}, 1) if (!defined $opt->{nodbalookup});
 
 #
 # now eat up the XMLTV inputs we were given!
@@ -168,7 +170,7 @@ sub parse_command_line
 		'action=s'	=> \$opt->{action},
 		'region=i'	=> \$opt->{region},
 		'nodbalookup'	=> \$opt->{nodbalookup},
-		'dbaurl=s'	=> \$opt->{dbaurl},
+		'url=s'		=> \$opt->{url},
 		'notag'		=> \$opt->{notag},
 		'days=i'	=> \$opt->{days},	# ignored
 		'offset=i'	=> \$opt->{offset},	# ignored
@@ -187,7 +189,7 @@ options:
   --channels_file=(f)  shepherd channels file (mandatory)
 
   --nodbalookup        don't look up programmes on DBA website (default: do)
-  --dbaurl=(url)       URL where dba lists HDTV programming (default: $opt->{dbaurl})
+  --url=(url)          URL that lists HDTV programming (default: $opt->{url})
 
   --action=(policy)    policy can be one of:
                         move - move HD progs to HD channel (remove it from SD channel)
@@ -332,12 +334,16 @@ sub setup_channels
 
 ######################################################################################################
 
-sub lookup_dba
+sub lookup_website
 {
+	my $url = shift;
+	my $new = shift;
+
 	unlink "dba.html"; # old cache file before 2008-05-08
 
 	my $mirror_to = "dtvinfo.html";
-	my $data = &Shepherd::Common::get_url( url => $opt->{dbaurl}, mirror => $mirror_to);
+	$mirror_to = "dtvforum.html" if $new;
+	my $data = &Shepherd::Common::get_url(url => $url, mirror => $mirror_to);
 	# the website doesn't support 'If-Modified-Since' headers but we can live in hope
 	$data = &Shepherd::Common::get_mirror_file($mirror_to, 14) if (!$data);
 	return if (!$data);
@@ -384,9 +390,9 @@ sub lookup_dba
 		# as long as the triggering markup does not occur mid-field. It currently 
 		# doesn't.
 		#
-		my $datePattern = qr{(\d?\d)(?:st|nd|rd|th)\s+([[:alpha:]]+)\s+(\d\d\d\d)$}io;
+		my $datePattern = qr{(?:(\d?\d)(?:st|nd|rd|th)\s+([[:alpha:]]+)\s+(\d\d\d\d)$)|(?:[[:alpha:]]+\s+(\d?\d)/(\d?\d)/(\d\d)$)}io;
 		my $chanPattern = qr{^(ABC|Seven|Prime|Nine|Ten|SBS)\s+HD}io;
-		my $progPattern = qr{(\d?\d:\d\d\s*(?:am|pm))\s+-\s+(.*)$}io;
+		my $progPattern = qr{(\d?\d:\d\d\s*(?:am|pm))\s+(?:-\s+)?(.*)$}io;
 		my $currDate = undef;
 		my $currChan = undef;	
 
@@ -401,11 +407,12 @@ sub lookup_dba
 				$betweenLines++;
 				next;
 			}
-			next unless $betweenLines == 2;
+			next unless $betweenLines == 2 || $new;
 
 			if ($text =~ $datePattern) {
 				# Date is not currently used except for debugging
-				$currDate = "$1 $2 $3";	# e.g. 3 May 2008
+				$currDate = "$1 $2 $3" if $1;	# e.g. 3 May 2008
+				$currDate = "$4/$5/$6" if $4;
 			}
 			elsif ($text =~ $chanPattern) {
 				my $channame = $1;
@@ -423,6 +430,7 @@ sub lookup_dba
 				my $progname = $2;
 				if (defined $currChan) {
 					# Clean up some cruft
+					$progname =~ s/\*$//;
 					$progname =~ s/^MOVIE:\s*//;
 					$progname =~ s/^HD Documentary:\s*/HD Docos: /;
 					$progname =~ s/\s*\([^(]+\)$//;	# (episode title)
