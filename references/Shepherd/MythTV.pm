@@ -2,7 +2,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.8';
+my $version = '0.9';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -69,7 +69,7 @@ sub setup
 {
     my $cfgfile = shift;
 
-    $cfgfile = &find_database_settings_file unless ($cfgfile);
+    $cfgfile = &find_database_settings_file() unless ($cfgfile);
     return unless ($cfgfile);
 
     unless (open(F,"<$cfgfile")) 
@@ -117,7 +117,7 @@ sub query
 
 sub open_connection
 {
-    &setup unless ($db);
+    &setup() unless ($db);
 
     unless ($db->{DBName} and $db->{DBHostName} and $db->{DBUserName} and $db->{DBPassword})
     {
