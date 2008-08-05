@@ -15,6 +15,7 @@ grabber         ten_website         1.06-r2
 grabber         citysearch          3.0.1-r1
 grabber         acctv_website       0.08-r1
 grabber         sbsweb              2.03
+grabber         sbsnews_website     1.01
 reconciler      reconciler_mk2      0.41
 postprocessor   imdb_augment_data   0.44
 postprocessor   tvdb_augment_data   0.14

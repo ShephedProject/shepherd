@@ -16,7 +16,7 @@
 use strict;
 
 my $progname = "sbsnews_website";
-my $version = "1.00";
+my $version = "1.01";
 
 use XMLTV;
 use POSIX qw(strftime);
@@ -184,25 +184,70 @@ sub cook_data
 	my $day = shift;
 
 	my $row = 0; my $started = 0;
-	my $previous_time = 0;
+	my $previous_start_time = 0; my $previous_stop_time = 0;
+	my $next_12hours_start = 0; my $next_12hours_stop = 0;
+	my $seen_24_time = 0;
 	while (1) {
+		die "Possible infinite loop, too many rows!" if $row >= 100;
 		#print $raw->{$time_column}->{$row}->{title} . "\n";
 		#print $raw->{$title_column}->{$row}->{title} . "\n";
 
 		my ($start_time, $stop_time);
 		if ($raw->{$time_column}->{$row}->{title} &&
+				$raw->{$title_column}->{$row}->{title} &&
 				$raw->{$time_column}->{$row}->{title} =~
-				/^(\d{1,2})[:.](\d{1,2})\s*\-\s*(\d{1,2})[:.](\d{1,2})$/) {
+				/^(\d{1,2})[:.](\d{1,2})(?:\s*\-\s*(\d{1,2})[:.](\d{1,2}))?$/) {
 			$started=1;
 
 			$start_time = ($1*60*60)+($2*60);
-			$stop_time = ($3*60*60)+($4*60);
+			$seen_24_time = 1 if $1 >= 13;
+			$start_time += (12*60*60) if $next_12hours_start;
+			if (!$seen_24_time) {
+				if ($start_time < $previous_start_time) {
+					if (!$next_12hours_start) {
+						$next_12hours_start = 1;
+						$start_time += (12*60*60);
+					} else {
+						$next_12hours_start = 0;
+						$start_time -= (12*60*60);
+					}
+				}
+				if ($start_time >= (24*60*60)) {
+					$next_12hours_start = 0;
+					$start_time -= (24*60*60);
+				}
+			}
+
+			if ($3 && $4) {
+				$stop_time = ($3*60*60)+($4*60);
+				$seen_24_time = 1 if $3 >= 13;
+				$stop_time += (12*60*60) if $next_12hours_stop;
+				if (!$seen_24_time) {
+					if ($stop_time < $previous_stop_time) {
+						if (!$next_12hours_stop) {
+							$next_12hours_stop = 1;
+							$stop_time += (12*60*60);
+						} else {
+							$next_12hours_stop = 0;
+							$stop_time -= (12*60*60);
+						}
+					}
+					if ($stop_time >= (24*60*60)) {
+						$next_12hours_stop = 0;
+						$stop_time -= (24*60*60);
+					}
+				}
+			} else {
+				$stop_time = $start_time;
+			}
+
 			if ($start_time > $stop_time) {
 				$stop_time += (24*60*60);
-			} elsif ($previous_time > $start_time) {
-				$day = ($day + 1) % 7
+			} elsif ($previous_stop_time > $start_time) {
+				$day = ($day + 1) % 7;
 			}
-			$previous_time = $stop_time;
+			$previous_start_time = $start_time;
+			$previous_stop_time = $stop_time;
 		} else {
 			$row += 1;
 			if (!$started) {
@@ -217,7 +262,7 @@ sub cook_data
 		my $prog;
 		$prog->{channel} = $channels->{'SBS News'};
 		$prog->{start} = $start_time;
-		$prog->{stop} = $stop_time;
+		$prog->{stop} = $stop_time if ($stop_time != $start_time);
 		$prog->{title} = [[ $raw->{$title_column}->{$row}->{title}, $opt->{lang} ]];
 		$prog->{'sub-title'} = [[ $raw->{$title_column}->{$row}->{subtitle}, $opt->{lang} ]]
 				if $raw->{$title_column}->{$row}->{subtitle};
@@ -312,6 +357,35 @@ sub fix_gaps
 		@list = sort {$b <=> $a} keys %{$week->{$day}};
 
 		foreach my $start (@list) {
+			if (!defined $week->{$day}->{$start}->{stop}) {
+				my $start = $week->{$day}->{$start}->{start};
+
+				if ($week->{$day}->{$start}->{title}->[0]->[0] =~ /Weather\s*Watch/i ||
+						((($prev_start - $start) / (60*60)) < 3)) { # fix long gaps
+					$week->{$day}->{$start}->{stop} = $prev_start;
+				} else {
+					my $new_stop = $start + (60*60); # make it an one hour show
+					$week->{$day}->{$start}->{stop} = $new_stop;
+					my $new_day = $day;
+					if ($new_stop >= (24*60*60)) {
+						$new_stop -= (24*60*60);
+						$prev_start -= (24*60*60);
+						$new_day = ($day + 1) % 7;
+					}
+					my $new_prog = { title => [[ 'Weather Watch', $opt->{lang} ]],
+							channel => $channels->{'SBS News'},
+							start => $new_stop,
+							stop => $prev_start };
+					&log(sprintf "Inserting 'Weather Watch' on %s between %s to %s",
+							$day_names[$new_day],
+							&print_time($new_prog->{start}),
+							&print_time($new_prog->{stop}));
+					$week->{$new_day}->{$new_stop} = $new_prog;
+					$prev_start = $new_stop;
+					$stats{gap_add_close}++;
+				}
+			}
+	
 			my $stop = $week->{$day}->{$start}->{stop};
 
 			if ($stop != $prev_start) {
@@ -334,7 +408,7 @@ sub fix_gaps
 							&print_time($new_prog->{start}),
 							&print_time($new_prog->{stop}));
 					$week->{$new_day}->{$stop} = $new_prog;
-					$stats{gap_add_close}++
+					$stats{gap_add_close}++;
 
 				# Gaps of 15 or more minutes in other times are genuine holes
 				} elsif ($diff / 60 >= 15) {
@@ -347,7 +421,7 @@ sub fix_gaps
 							&print_time($new_prog->{start}),
 							&print_time($new_prog->{stop}));
 					$week->{$new_day}->{$stop} = $new_prog;
-					$stats{gap_add_gap}++
+					$stats{gap_add_gap}++;
 
 				# Gaps of <15 minutes shall be filled in
 				} else {
@@ -358,7 +432,7 @@ sub fix_gaps
 						&print_time($week->{$day}->{$start}->{stop} + $diff),
 						$day_names[$day]) if ($opt->{debug});
 					$week->{$day}->{$start}->{stop} += $diff;
-					$stats{gap_extended_stops}++
+					$stats{gap_extended_stops}++;
 				}
 			}
 			$prev_start = $start;
