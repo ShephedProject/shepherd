@@ -16,7 +16,7 @@
 #  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.46";
+my $version = "0.47";
 
 $| = 1;
 print "$progname v$version\n";
@@ -47,6 +47,9 @@ $hdoverride->{Nine} = [
 	];
 $hdoverride->{Seven} = [
 	"Games of the XXIX Olympiad - Beijing"
+];
+$hdoverride->{SBS} = [
+	"Beijing 2008"
 ];
 
 # Add translations for show names that differ between DBA and our normal tv_grab_au names
