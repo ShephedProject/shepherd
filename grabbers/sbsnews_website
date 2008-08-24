@@ -16,7 +16,7 @@
 use strict;
 
 my $progname = "sbsnews_website";
-my $version = "1.01";
+my $version = "1.02";
 
 use XMLTV;
 use POSIX qw(strftime);
@@ -259,20 +259,28 @@ sub cook_data
 
 		#print "$day ".&print_time($start_time)." ".&print_time($stop_time)."\n";
 
-		my $prog;
-		$prog->{channel} = $channels->{'SBS News'};
-		$prog->{start} = $start_time;
-		$prog->{stop} = $stop_time if ($stop_time != $start_time);
-		$prog->{title} = [[ $raw->{$title_column}->{$row}->{title}, $opt->{lang} ]];
-		$prog->{'sub-title'} = [[ $raw->{$title_column}->{$row}->{subtitle}, $opt->{lang} ]]
-				if $raw->{$title_column}->{$row}->{subtitle};
-		$prog->{category} = [[ 'News', undef ]]
-				if ($raw->{$title_column}->{$row}->{title} =~ /News/i);
-		&Shepherd::Common::cleanup($prog);
+		#print "$raw->{$title_column}->{$row}->{title}\n";
+		my $title = $raw->{$title_column}->{$row}->{title};
+		$title =~ s/\xA0/ /g; # &nbsp; can be &#160; == &#xA0;
+		$title =~ s/^\s+//s;
+		$title =~ s/\s+$//s;
 
-		$week->{$day}->{$start_time} = $prog;
+		if ($title) {
+			my $prog;
+			$prog->{channel} = $channels->{'SBS News'};
+			$prog->{start} = $start_time;
+			$prog->{stop} = $stop_time if ($stop_time != $start_time);
+			$prog->{title} = [[ $title, $opt->{lang} ]];
+			$prog->{'sub-title'} = [[ $raw->{$title_column}->{$row}->{subtitle}, $opt->{lang} ]]
+					if $raw->{$title_column}->{$row}->{subtitle};
+			$prog->{category} = [[ 'News', undef ]]
+					if ($raw->{$title_column}->{$row}->{title} =~ /News/i);
+			&Shepherd::Common::cleanup($prog);
 
-		#warn Dumper($prog);
+			$week->{$day}->{$start_time} = $prog;
+
+			#warn Dumper($prog);
+		}
 
 		$row += 1;
 	};
