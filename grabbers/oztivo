@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.19';
+my $version = '2.20';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -177,7 +177,7 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-SA',
 		'Imparja' => 'IMP',
 		'SBS' => 'SBS-SA',
-		'Seven' => 'Seven-SA',
+		'SCTV Central' => 'Seven-SA',
 	},
 	'88' => {	# Tasmania
 		'ABC1' => 'ABC-Tas',
@@ -199,7 +199,7 @@ my %s_to_o_map = (
 		'Imparja' => 'IMP',
 		'Prime' => 'PrimeS',
 		'SBS' => 'SBS-NSW',
-		'Seven' => 'Seven-Syd',
+		'SCTV Central' => 'Seven-Syd',
 	},
 	'126' => {	# ACT
 		'ABC1' => 'ABC-Can',
@@ -237,12 +237,13 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-Vic',
 		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
-		'TEN' => 'Ten-Vic',
+		'TEN (VIC: Mildura/Sunraysia)' => 'Ten-Vic',
+		'TEN (Mildura Digital)' => 'Ten-Vic',
 		'WIN' => 'WIN-Vic',
 	},
 	'75' => {	# QLD: Brisbane
 		'ABC1' => 'ABC-Qld',
-		'Briz 31' => 'BRIZ',
+		'QCTV' => 'BRIZ',
 		'Nine' => 'Nine-Qld',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Bris',
@@ -260,13 +261,13 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-NT',
 		'Imparja' => 'IMP',
 		'SBS' => 'SBS-NT',
-		'Seven' => 'Seven-Dar',
+		'SCTV Central' => 'Seven-Dar',
 	},
 	'114' => {	# QLD: Remote & Central
 		'ABC1' => 'ABC-Qld',
 		'Imparja' => 'IMP',
 		'SBS' => 'SBS-Qld',
-		'Seven' => 'Seven-Qld',
+		'SCTV Central' => 'Seven-Qld',
 	},
 	'184' => {	# NSW: Newcastle
 		'ABC1' => 'ABC-NSW',
@@ -337,7 +338,7 @@ my %s_to_o_map = (
 		'Imparja' => 'IMP',
 		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
-		'Seven' => 'Seven-Mel',
+		'SCTV Central' => 'Seven-Mel',
 		'TEN' => 'Ten-Vic',
 		'WIN' => 'WIN-Vic',
 	},

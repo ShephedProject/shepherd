@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.109";
+my $version = "1.110";
 
 use XMLTV;
 use XML::DOM;
@@ -227,6 +227,10 @@ sub region_channels
 # 	if ($r == 90) { # VIC: Eastern Victoria
 # 		push (@{($chan_map{"Prime"})}, "Prime (Regional Victoria)", "Prime (Albury)");
 # 	}
+
+	if ($r == 95) { # VIC: Mildura/Sunraysia
+		push (@{($chan_map{"TEN"})}, "TEN (VIC: Mildura/Sunraysia)", "TEN (Mildura Digital)");
+	}
 
 	return %chan_map;
 }

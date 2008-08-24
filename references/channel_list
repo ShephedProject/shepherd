@@ -17,7 +17,7 @@
 90:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,Imparja,TEN
 93:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Channel 31,Seven
 94:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Channel 31,Seven
-95:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
+95:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,Prime,TEN (VIC: Mildura/Sunraysia),TEN (Mildura Digital)
 98:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,SCTV Central,Prime,WIN,TEN,Imparja
 101:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Access 31,TEN,Nine,Seven
 102:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Golden West,WIN,Access 31,Nine,TEN,Seven
@@ -75,3 +75,4 @@ Foxtel:FOXTELBoxOffice->FoxtelBoxOffice,LifestyleChannel2->TheLifestyleChannel2,
 107:Seven->SCTV Central
 108:Seven->SCTV Central
 114:Seven->SCTV Central
+95:TEN->TEN (VIC: Mildura/Sunraysia)

@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "yahoo7web";
-my $version = "0.38";
+my $version = "0.39";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -296,6 +296,14 @@ sub build_channel_quirks_map
 # 			"Prime (Regional Victoria)",
 # 			"Prime (Albury)");
 # 	}
+
+
+	if ($opt->{region} == 95) {
+		# VIC: Mildura/Sunraysia
+		push (@{($chan_map{"TEN"})},
+			"TEN (VIC: Mildura/Sunraysia)",
+			"TEN (Mildura Digital)");
+	}
 
 	return %chan_map;
 }
