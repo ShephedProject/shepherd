@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.26';
+my $version = '1.3.27';
 
 # tv_grab_au
 # "Shepherd"
@@ -279,9 +279,9 @@ sub update
 	$count++;
 	&log("Source #$count: $site\n");
 	my $data = fetch_file($site . 'status.csum?', undef, 1);
-	if ((!$data) || ($data !~ /^END$/))
+	if ((!$data) || (!($data =~ /\nEND\n/)))
 	{
-	    &log(1, "Locking components owned by source $site due to network error.\n");
+	    &log(0, "Locking components owned by source $site due to network error.\n");
 	    $network_errors{$site} = 1;
 	    next;
 	}
