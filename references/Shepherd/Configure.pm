@@ -2,8 +2,14 @@
 
 package Shepherd::Configure;
 
-my $version = '0.1';
+my $version = '0.2';
 
+#
+# 1. Create tv_grab_au symlink
+# 2. Insert 'tv_grab_au' into mythconverg -> videosource
+# 3. Create cron job
+#
+#
 use strict;
 no strict 'refs';
 
@@ -122,6 +128,16 @@ sub configure
     &::write_channels_file;
     &update_mythtv_channels($mchans) if ($mchans);
 
+    print "\nMythTV Integration\n\n".
+          "If you run MythTV, Shepherd can register itself as the default grabber\n".
+	  "and set your system to run it regularly to ensure up-to-date guide data.\n".
+	  "This is generally easier than doing it yourself.\n\n";
+    
+    if (&XMLTV::Ask::ask_boolean("Would you like Shepherd to auto-configure MythTV?", 1))
+    {
+	&configure_mythtv;
+    }
+
     print "Checking if any components require configuration.\n\n";
     &::check;
 
@@ -129,23 +145,17 @@ sub configure
 
     &::status;
 
-    print "\nShepherd is installed into $::CWD.\n\n" .
-          "Run it as: $::CWD/shepherd\n\n".
-	  "MythTV users may wish to create the following symlink, by " .
-	  "doing this (as root):\n" .
-	  "  \"ln -s $::CWD/$::progname /usr/bin/tv_grab_au\".\n\n";
+    print "\nShepherd is installed into $::CWD.\n\n";
 
-    if (&XMLTV::Ask::ask_boolean("\n\nShepherd can (optionally) install channel icons.\nDo you wish to do this now?")) {
+    if (&XMLTV::Ask::ask_boolean("\nShepherd can (optionally) install channel icons.\nDo you wish to do this now?")) {
 	&set_icons;
     }
 
     print "\nIf you wish to add/change channel icons in future, you can call Shepherd with:\n".
 	  "    $::CWD/$::progname --set-icons\n\n";
 
-    unless (&XMLTV::Ask::ask_boolean("\nGrab data now?"))
-    {
-	exit 0;
-    }
+    print "Done.\n";
+    exit 0;
 }
 
 sub configure_channels_guided
@@ -839,6 +849,10 @@ sub update_mythtv_channels
     }
 }
 
+# ------------------------------
+# -   List Channel Names       -
+# ------------------------------
+#
 # This does a web lookup rather than reading the official 
 # channels_list reference.
 sub list_chan_names
@@ -925,6 +939,163 @@ sub list_chan_names_diff
 
     return $channel_support_exceptions;
 }
+
+# ------------------------------
+# -   MythTV Integration       -
+# ------------------------------
+#
+#
+
+sub configure_mythtv
+{
+    &::log("\nConfiguring MythTV...\n");
+
+    # Check existence of symlink
+
+    my $me = "$::CWD/applications/shepherd/shepherd";
+
+    &::log("Setting up symlink...\n");
+
+    my $mapped = 0;
+    my $symlink;
+    my @delete_me;
+    foreach my $path (split/:/, $ENV{PATH})
+    {
+	my $tv_grab_au = "$path/tv_grab_au";
+
+	# Figure out an appropriate symlink.
+	# (We'll use /usr/bin/tv_grab_au, but only if 
+	# /usr/bin/ is in PATH.)
+	$symlink = $tv_grab_au unless ($symlink && $symlink eq '/usr/bin/tv_grab_au');
+
+	if (-e $tv_grab_au)
+	{
+	    if (-l $tv_grab_au)
+	    {
+		my $link = readlink($tv_grab_au);
+		if ($link and $link eq $me)
+		{
+		    &::log("Symlink $tv_grab_au is correctly mapped to $me.\n");
+		    $mapped = $tv_grab_au;
+		    last;
+		}
+	    }
+	    push @delete_me, $tv_grab_au;
+	}
+    }
+
+    &::log("\n");
+
+    if (!$mapped or @delete_me)
+    {
+	if (@delete_me)
+	{
+	    &::log("\nShepherd would like to DELETE the following file(s):\n\n");
+	    system ("ls -l --color @delete_me");
+	    &::log("\n");
+	}
+	if (!$mapped)
+	{
+	    &::log("Shepherd would like to CREATE the following symlink:\n\n".
+		" $symlink -> $me\n\n");
+	}
+
+	my $response = &XMLTV::Ask::ask_boolean(
+	    ucfirst(
+		($mapped ? '' : ( 'create symlink ' . (@delete_me ? 'and ' : ''))) .
+		(@delete_me ? 'delete ' . scalar(@delete_me) . ' file(s)' : '')) .
+	    '?', 1);
+	unless ($response)
+	{
+	    &::log("Aborting.\n");
+	    return;
+	}
+
+	system("sudo rm @delete_me") if (@delete_me);
+	system("sudo ln -s $me $symlink") unless ($mapped);
+    }
+
+    &::log("Symlink established:\n");
+    system("ls -l --color `which tv_grab_au`");
+    &::log("\n");
+
+    # 2. Insert 'tv_grab_au' into mythconverg -> videosource
+
+    &::log("Registering Shepherd as tv_grab_au with MythTV.\n");
+
+    # No eval because I want to bomb out if this fails:
+    # no point creating cron jobs if they won't work.
+    use lib 'references';
+    require Shepherd::MythTV;
+
+    my $dbh = &Shepherd::MythTV::open_connection();
+    return unless ($dbh);
+    $dbh->do("UPDATE videosource SET xmltvgrabber='tv_grab_au'") 
+        || die "Error updating MythTV database: ".$dbh->errstr;
+    &Shepherd::MythTV::close_connection;
+
+    &::log("MythTV database updated.\n\n");
+
+    # 3. Create cron job
+
+    &::log("Creating cron job...\n");
+    my $oldcronfile = "$::CWD/cron.bak";
+
+    system("crontab -l > $oldcronfile");
+
+    my $newcron = '';
+    my $oldcron = '';
+    if (open (OLDCRON, $oldcronfile))
+    {
+	while (my $line = <OLDCRON>)
+	{
+	    $oldcron .= $line;
+	    $newcron .= $line unless ($line =~ /mythfilldatabase/);
+	}
+	close OLDCRON;
+    }
+
+    my $minute = int (rand(60));
+    my $job = "$minute * * * * mythfilldatabase --graboptions '--daily'\n";
+
+    $newcron .= $job;
+
+    my $newcronfile = "$::CWD/cron.new";
+    open (NEWCRON, ">$newcronfile")
+	or die "Unable to open $newcronfile: $!";
+    print NEWCRON $newcron;
+    close NEWCRON;
+
+    &::log("\nShepherd would like to replace this:\n\n$oldcron\n" .
+	   "... with this:\n\n$newcron\n");
+    unless (&XMLTV::Ask::ask_boolean("Replace your crontab as displayed above?", 1))
+    {
+	&::log("Aborting.\n");
+	return;
+    }
+
+    system("crontab $newcronfile");
+
+    &::log("Done.\n");
+
+    if (&XMLTV::Ask::ask_boolean("Would you like to see your symlink " .
+	    "and cron job?", 1))
+    {
+	my $cmd = "ls -l --color `which tv_grab_au`";
+	&::log("\n" . '$ ' . $cmd . "\n");
+	system($cmd);
+
+	$cmd = "crontab -l";
+	&::log("\n" . '$ ' . $cmd . "\n");
+	system($cmd);
+    }
+
+    &::log("\nSuccessfully configured MythTV.\n\n".
+           "Your system will run mythfilldatabase on the $minute" . 
+	   "th minute of every hour,\n" .
+           "which will trigger Shepherd (as tv_grab_au) with the --daily option.\n");
+}
+
 
 # ------------------------------
 # -   Icons                    -
