@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.2';
+my $version = '0.3';
 
 #
 # 1. Create tv_grab_au symlink
@@ -948,7 +948,10 @@ sub list_chan_names_diff
 
 sub configure_mythtv
 {
-    &::log("\nConfiguring MythTV...\n");
+    &::log("\nConfiguring MythTV...\n\n" .
+	   "This will create a symbolic link to Shepherd from tv_grab_au,\n".
+           "register Shepherd as the default grabber with MythTV, and create\n".
+           "a cron job to ensure it is run regularly.\n\n");
 
     # Check existence of symlink
 
@@ -1055,7 +1058,7 @@ sub configure_mythtv
 	close OLDCRON;
     }
 
-    my $minute = int (rand(60));
+    my $minute = (localtime)[1] + 2;
     my $job = "$minute * * * * mythfilldatabase --graboptions '--daily'\n";
 
     $newcron .= $job;
