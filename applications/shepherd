@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.29';
+my $version = '1.3.30';
 
 # tv_grab_au
 # "Shepherd"
@@ -690,6 +690,17 @@ sub enable_or_disable
 	}
 	return;
     }
+
+    if ($proggy eq 'all')
+    {
+	foreach (keys %$components)
+	{
+	    next if ($_ eq $progname);
+	    &enable_or_disable($which, $_, $n);
+	}
+	return;
+    }
+    
     
     return unless ($which eq 'enable' or $which eq 'disable');
 
@@ -2582,11 +2593,13 @@ sub help
 
 Session options:
     --output <s>          Create output file <s> (default: output.xmltv)
-    --mode <s>            Efficiency (default), Speed or Quality
+    --days <n>            Retrieve <n> days of guide data
+    --offset <n>          Skip first <n> days
 
     --noupdate            Don't update; just grab data
     --update              Update only; don't grab data
 
+    --mode <s>            Efficiency (default), Speed or Quality
     --daily               Exit unless 22 hours since last grab
 
     --debug               Print debugging messages
@@ -2594,17 +2607,18 @@ Session options:
     --notquiet            Don't be --quiet
     --nolog               Don't write a logfile
     --nonotify            Don't report anonymous usage statistics
-    --nolog               Don't write a logfile
 
-Configuration options: 
-    --configure [<s>]     Setup (<s> is an optional component to configure)
-    --check               Check status of all components, configure if necessary
+Configuration options:
+    --configure           Setup
+    --configure-mythtv    Create system symlink & cron job for MythTV
 
-    --disable <s>         Don't ever use component <s>
-    --enable <s>          Make component <s> available for use again
-    --delete <s>          Permanently remove component <s>
+    --check               Check all components
 
-    --component-set <s>   Used to update a component configuration/setting
+    --disable <s>         Set component <s> (or "all") as not to be used
+    --enable <s>          Set component <s> (or "all") as available for use
+
+    --component-set <s>   Set default parameter for component <s>
+    --configure <s>       Setup component <s>
 
     --set-icons           Download channel icons and update MythTV to use them
     --setpreftitle <s>    Set preferred 'title' source as grabber <s>
