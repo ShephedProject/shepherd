@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.3';
+my $version = '0.4';
 
 #
 # 1. Create tv_grab_au symlink
@@ -1058,7 +1058,7 @@ sub configure_mythtv
 	close OLDCRON;
     }
 
-    my $minute = (localtime)[1] + 2;
+    my $minute = ((localtime)[1] + 2) % 60;
     my $job = "$minute * * * * mythfilldatabase --graboptions '--daily'\n";
 
     $newcron .= $job;
