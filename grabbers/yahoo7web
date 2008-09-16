@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "yahoo7web";
-my $version = "0.39";
+my $version = "0.40";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -94,7 +94,6 @@ Shepherd::Common::set_default("debug", ($opt->{debug} ? 2 : 0));
 Shepherd::Common::set_default("webwarper", 1) if (defined $opt->{warper});
 Shepherd::Common::set_default("squid", 1) if (defined $opt->{obfuscate});
 Shepherd::Common::set_default("referer", "last");
-Shepherd::Common::set_default("retry_delay", 30);
 Shepherd::Common::setup_ua(cookie_jar => 1);
 
 # read channels file
