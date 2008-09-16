@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.30';
+my $version = '1.3.31';
 
 # tv_grab_au
 # "Shepherd"
@@ -86,6 +86,7 @@ my $components_pending_install = { };
 my $config_file =   "$CWD/$progname.conf";
 my $channels_file = "$CWD/channels.conf";
 my $log_file = "$progname.log";
+my $output_filename = "$CWD/output.xmltv";
 my $sysid = time.".".$$;
 my $pending_messages = { };
 my $starttime = time;
@@ -216,6 +217,8 @@ if (&report_stats)
 {
     &write_config_file;
 }
+
+&test_output_file;
 
 unless ($opt->{update})
 {
@@ -1881,6 +1884,7 @@ sub get_command_line_options
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
   $opt->{configure} = 1 if (defined $opt->{configure} and !$opt->{configure});
+  $output_filename = $opt->{output} if ($opt->{output});
   delete $opt->{quiet} if (defined $opt->{notquiet});
 }
 
@@ -4628,6 +4632,14 @@ sub call_data_processor
     return $have_all_data;
 }
 
+# We test out ability to write to the output file early, since if
+# that fails there's no point continuing.
+sub test_output_file
+{
+    my $fh = new IO::File(">>$output_filename")
+	or die "Can't open $output_filename for writing: $!";
+    $fh->close;
+}
 
 sub output_data
 {
@@ -4635,8 +4647,6 @@ sub output_data
     $reuse_cached_output = 0 if (!defined $reuse_cached_output);
     
     my $output_cache_copy = "$CWD/output.xmltv";
-    my $output_filename = "$CWD/output.xmltv";
-    $output_filename = $opt->{output} if ($opt->{output});
 
     if ($reuse_cached_output) {
 	# re-use existing cached output
@@ -4650,8 +4660,7 @@ sub output_data
     }
 
     my %writer_args = ( encoding => 'ISO-8859-1' );
-    my $fh = new IO::File(">$output_filename") ||
-      die "can't open $output_filename for writing: $!";
+    my $fh = new IO::File(">$output_filename") || die "Can't open $output_filename for writing: $!";
     $writer_args{OUTPUT} = $fh;
 
     $writer = new XMLTV::Writer(%writer_args);
