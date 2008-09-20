@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.31';
+my $version = '1.3.32';
 
 # tv_grab_au
 # "Shepherd"
@@ -555,7 +555,7 @@ sub install
 
     -d $ARCHIVE_DIR or mkdir $ARCHIVE_DIR or die "Cannot create directory $ARCHIVE_DIR: $!\n";
 
-    rename("$ldir/$proggy", "$ARCHIVE_DIR/$proggy-$oldver") if (-e "$ldir/$proggy");
+    rename("$ldir/$proggy", "$ARCHIVE_DIR/$proggy") if (-e "$ldir/$proggy");
     rename($newfile, "$ldir/$proggy");
     
     &log(1, "Installed $proggy v$latestversion.\n");
