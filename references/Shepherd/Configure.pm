@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.4';
+my $version = '0.5';
 
 #
 # 1. Create tv_grab_au symlink
@@ -949,9 +949,10 @@ sub list_chan_names_diff
 sub configure_mythtv
 {
     &::log("\nConfiguring MythTV...\n\n" .
-	   "This will create a symbolic link to Shepherd from tv_grab_au,\n".
-           "register Shepherd as the default grabber with MythTV, and create\n".
-           "a cron job to ensure it is run regularly.\n\n");
+	   "This will:\n".
+	   "1. Create a symbolic link to Shepherd from tv_grab_au\n".
+           "2. Register Shepherd with MythTV as the default grabber\n".
+	   "3. Create a cron job to ensure it is run regularly.\n\n");
 
     # Check existence of symlink
 
@@ -1024,7 +1025,7 @@ sub configure_mythtv
 
     # 2. Insert 'tv_grab_au' into mythconverg -> videosource
 
-    &::log("Registering Shepherd as tv_grab_au with MythTV.\n");
+    &::log("Registering Shepherd as tv_grab_au with MythTV.\n\n");
 
     # No eval because I want to bomb out if this fails:
     # no point creating cron jobs if they won't work.
@@ -1041,10 +1042,23 @@ sub configure_mythtv
 
     # 3. Create cron job
 
-    &::log("Creating cron job...\n");
+    &::log("Creating cron job...\n\n");
     my $oldcronfile = "$::CWD/cron.bak";
 
-    system("crontab -l > $oldcronfile");
+    my $cmd = "crontab -l > $oldcronfile";
+    my $no_permission = system("crontab -l > $oldcronfile");
+
+    # Some systems (Gentoo) only allow root to run crontab
+    if ($no_permission)
+    {
+	&::log("Crontab command failed; trying again with root permission...\n");
+	if (system("sudo crontab -u `whoami` -l > $oldcronfile"))
+	{
+	    &::log("Non-zero return from crontab. Aborting.\n");
+	    return;
+	}
+	&::log("OK: seemed to work.\n\n");
+    }
 
     my $newcron = '';
     my $oldcron = '';
@@ -1069,7 +1083,7 @@ sub configure_mythtv
     print NEWCRON $newcron;
     close NEWCRON;
 
-    &::log("\nShepherd would like to replace this:\n\n$oldcron\n" .
+    &::log("Shepherd would like to replace this:\n\n$oldcron\n" .
 	   "... with this:\n\n$newcron\n");
     unless (&XMLTV::Ask::ask_boolean("Replace your crontab as displayed above?", 1))
     {
@@ -1077,7 +1091,9 @@ sub configure_mythtv
 	return;
     }
 
-    system("crontab $newcronfile");
+    $cmd = "crontab $newcronfile";
+    $cmd = "sudo $cmd -u `whoami`" if ($no_permission);
+    system($cmd) and &::log("Failed?\n");
 
     &::log("Done.\n");
 
@@ -1089,6 +1105,7 @@ sub configure_mythtv
 	system($cmd);
 
 	$cmd = "crontab -l";
+	$cmd = "sudo $cmd -u `whoami`" if ($no_permission);
 	&::log("\n" . '$ ' . $cmd . "\n");
 	system($cmd);
     }
