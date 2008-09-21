@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.32';
+my $version = '1.3.33';
 
 # tv_grab_au
 # "Shepherd"
@@ -28,6 +28,7 @@ BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 use strict;
 no strict 'refs';
+use lib 'references';
 
 # ---------------------------------------------------------------------------
 # --- required perl modules
@@ -399,7 +400,9 @@ sub update_component
     {
 	# check it still works
         my $test_result = 1;
-        if ($progtype ne 'application' and $progtype ne 'reference') 
+        unless ($progtype eq 'application' 
+		or
+		($progtype eq 'reference' and $proggy !~ /^Shepherd\/.*\.pm$/)) 
 	{
             $test_result = test_proggy($proggy, $progtype, undef, 1);
         }
@@ -530,7 +533,7 @@ sub install
 	return;
     }
 
-    if ($progtype eq 'reference')
+    if ($progtype eq 'reference' and $proggy !~ /^Shepherd\/.*\.pm$/)
     {
 	$components->{$proggy}->{ready} = 1;
     }
@@ -602,16 +605,24 @@ sub test_proggy
 {
     my ($proggy, $progtype, $specific_version, $quiet) = @_;
 
-    &log("Testing $proggy ... ") unless ($quiet);
+    &log("Testing $progtype $proggy ... ") unless ($quiet);
 
     my $progname = query_filename($proggy, $progtype);
     $progname .= "-".$specific_version if ((defined $specific_version) && ($specific_version ne ""));
 
-    my $opt_ready = query_config($proggy, 'option_ready');
-    $opt_ready ||= '--version';
-    
-    my ($result,$resultmsg,$test_output) = call_prog($proggy, $progname." $opt_ready"." 2>&1",1,1,0, $progtype);
+    my $exec;
+    if ($progtype eq 'reference')
+    {
+	$exec = "perl -e 'require \"$progname\";'";
+    }   
+    else
+    {
+	$exec = $progname . ' ' . (&query_config($proggy, 'option_ready') or '--version');
+    }
+ 
+    &log(1, "\nExecuting: $exec\n") unless ($quiet);
 
+    my ($result,$resultmsg,$test_output) = call_prog($proggy, $exec,1,1,0, $progtype);
     &log(1, "Return value: $result\n") unless ($quiet);
 
     my $statusmsg;
@@ -743,9 +754,10 @@ sub check
 
     &log("\nTesting all components...\n\n");
 
-    foreach my $proggy (keys %$components) {
+    foreach my $proggy (sort keys %$components) {
 	my $progtype = $components->{$proggy}->{type};
-	next if ($progtype eq 'application' or $progtype eq 'reference');
+	next if ($progtype eq 'application');
+	next if ($progtype eq 'reference' and $proggy !~ /^Shepherd\/.*\.pm$/);
 	my $try_count = 0;
 
 RETRY:
@@ -1599,6 +1611,9 @@ sub fetch_file
     my ($url, $store, $id_self, $postvars, $csum) = @_;
     my $request;
 
+    # Need to drop cache-defeating final '?' if looking for local file
+    $url = $1 if ($url =~ /^(file:\/\/\/.*)\?$/);
+
     &log(1, "Fetching $url.\n");
     
     my $ua = LWP::UserAgent->new();
@@ -2077,7 +2092,7 @@ sub addsource
     }
     splice (@$sources, $priority, 0, $site);
     &log("\nAdded source $site\n");
-    if (fetch_file($site . 'status.csum', undef, 1))
+    if (&fetch_file($site . 'status.csum?', undef, 1))
     {
 	&log("Source appears valid.\n");
     }
@@ -2131,21 +2146,18 @@ sub reset_sources
 
 sub list_chan_names
 {
-    use lib "references";
     require Shepherd::Configure;
     &Shepherd::Configure::list_chan_names;
 }
 
 sub set_icons
 {
-    use lib "references";
     require Shepherd::Configure;
     &Shepherd::Configure::set_icons;
 }
 
 sub configure_mythtv
 {
-    use lib "references";
     require Shepherd::Configure;
     &Shepherd::Configure::configure_mythtv;
 }
@@ -2284,7 +2296,6 @@ sub configure
 {
     eval
     {
-	use lib 'references';
 	require Shepherd::Configure;
 
 	return &Shepherd::Configure::configure;
@@ -2396,7 +2407,6 @@ sub retrieve_mythtv_channels
     my $mchans;
     eval
     {
-        use lib 'references';
         require Shepherd::MythTV;
 
         my $dbh = &Shepherd::MythTV::open_connection();
