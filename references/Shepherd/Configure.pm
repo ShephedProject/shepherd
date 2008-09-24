@@ -2,14 +2,8 @@
 
 package Shepherd::Configure;
 
-my $version = '0.5';
+my $version = '0.6';
 
-#
-# 1. Create tv_grab_au symlink
-# 2. Insert 'tv_grab_au' into mythconverg -> videosource
-# 3. Create cron job
-#
-#
 use strict;
 no strict 'refs';
 
@@ -1046,15 +1040,20 @@ sub configure_mythtv
     my $oldcronfile = "$::CWD/cron.bak";
 
     my $cmd = "crontab -l > $oldcronfile";
-    my $no_permission = system("crontab -l > $oldcronfile");
+
+    # Response codes: 0==success, 1==empty cron, other==failure
+    my $response = (system($cmd) >> 8);
+    my $no_permission = 1 if ($response > 1);
 
     # Some systems (Gentoo) only allow root to run crontab
     if ($no_permission)
     {
-	&::log("Crontab command failed; trying again with root permission...\n");
-	if (system("sudo crontab -u `whoami` -l > $oldcronfile"))
+	&::log("Error code $response from crontab command; trying again with root permission...\n");
+	$cmd = "sudo crontab -u `whoami` -l > $oldcronfile";
+	$response = (system($cmd) >> 8);
+	if ($response > 1)
 	{
-	    &::log("Non-zero return from crontab. Aborting.\n");
+	    &::log("Error code $response from crontab. Aborting.\n");
 	    return;
 	}
 	&::log("OK: seemed to work.\n\n");
@@ -1083,9 +1082,18 @@ sub configure_mythtv
     print NEWCRON $newcron;
     close NEWCRON;
 
-    &::log("Shepherd would like to replace this:\n\n$oldcron\n" .
-	   "... with this:\n\n$newcron\n");
-    unless (&XMLTV::Ask::ask_boolean("Replace your crontab as displayed above?", 1))
+    if ($response)
+    {
+	&::log("Shepherd believes you currently have no crontab, and would\n".
+	    "like to set your crontab to:\n");
+    }
+    else
+    {
+	&::log("Shepherd would like to replace this:\n\n$oldcron\n" .
+	    "... with this:\n");
+    }
+    &::log("\n$newcron\n");
+    unless (&XMLTV::Ask::ask_boolean("Set your crontab as displayed above?", 1))
     {
 	&::log("Aborting.\n");
 	return;
