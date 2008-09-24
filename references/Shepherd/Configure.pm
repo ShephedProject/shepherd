@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.6';
+my $version = '0.7';
 
 use strict;
 no strict 'refs';
@@ -946,7 +946,8 @@ sub configure_mythtv
 	   "This will:\n".
 	   "1. Create a symbolic link to Shepherd from tv_grab_au\n".
            "2. Register Shepherd with MythTV as the default grabber\n".
-	   "3. Create a cron job to ensure it is run regularly.\n\n");
+	   "3. Turn off MythTV-driven scheduling of guide data updates\n".
+	   "4. Create a cron job to periodically run Shepherd.\n\n");
 
     # Check existence of symlink
 
@@ -1030,6 +1031,11 @@ sub configure_mythtv
     return unless ($dbh);
     $dbh->do("UPDATE videosource SET xmltvgrabber='tv_grab_au'") 
         || die "Error updating MythTV database: ".$dbh->errstr;
+
+    &::log("Ok. Turning off MythTV-scheduled guide data updates...\n");
+    $dbh->do("UPDATE settings SET data='0' WHERE value='MythFillEnabled'")
+	|| &::log("Warning: Unable to check/update MythFillEnabled setting: ".$dbh->errstr.".\n");
+
     &Shepherd::MythTV::close_connection;
 
     &::log("MythTV database updated.\n\n");
