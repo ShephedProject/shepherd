@@ -171,7 +171,7 @@ ICON	W2	foxtel	http://www.foxtel.com.au/EPG/logos/logo_132.jpg
 ICON	SkyRacing	foxtel	http://www.foxtel.com.au/EPG/logos/logo_43.jpg
 ICON	CNBCAustralia	foxtel	http://www.foxtel.com.au/EPG/logos/logo_33.jpg
 ICON	SHOWTIME2	foxtel	http://www.foxtel.com.au/EPG/logos/logo_29.jpg
-ICON	BBCWorld	foxtel	http://www.foxtel.com.au/EPG/logos/logo_2.jpg
+ICON	BBCWorldNews	foxtel	http://www.foxtel.com.au/EPG/logos/logo_2.jpg
 ICON	BloombergTelevision	foxtel	http://www.foxtel.com.au/EPG/logos/logo_34.jpg
 ICON	WORLDMOVIES	foxtel	http://www.foxtel.com.au/EPG/logos/logo_36.jpg
 ICON	UKTV	foxtel	http://www.foxtel.com.au/EPG/logos/logo_17.jpg

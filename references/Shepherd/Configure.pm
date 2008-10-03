@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.7';
+my $version = '0.8';
 
 use strict;
 no strict 'refs';
@@ -665,7 +665,7 @@ sub fetch_channels_selectv
 	my %SelecTV_to_Foxtel = (
 		"AnimalPlanet" => "AnimalPlanet",
 		"AntennaGreek" => "AntennaGreek",		# SelecTV only
-		"BBCWorld" => "BBCWorld",
+		"BBCWorld" => "BBCWorldNews",
 		"CartoonNetwork" => "CartoonNetwork",
 		"CNNI" => "CNN",				# rename
 		"DiscoveryScience" => "DiscoveryScience",
