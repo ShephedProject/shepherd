@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "0.28";
+my $version = "0.29";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -670,6 +670,11 @@ sub get_programs
 			$cache_key .= ", ".$prog->{rating}->[0]->[0]
 					if defined $prog->{rating} && $prog->{rating}->[0]->[0];
 			$cache_key .= ")";
+
+			# stop using cache for UKTV and ESPN on new time slot shows
+			$cache_key .= " $prog->{start}"
+					if (($d->{channels}->{$prog_ref->{'ChannelId'}}->{name} eq 'UKTV') ||
+							($d->{channels}->{$prog_ref->{'ChannelId'}}->{name} eq 'ESPN'));
 
 			my $desc = get_prog_desc($prog_ref->{'ProgramId'}, $cache_key, $prog_count);
 			if ((defined $desc) && ($desc ne "")) {
