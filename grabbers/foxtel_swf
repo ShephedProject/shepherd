@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "0.29";
+my $version = "0.30";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -586,6 +586,11 @@ sub get_programs
 		$prog_count++;
 
 		$prog->{title} = [[ $prog_ref->{'ProgramName'}, $opt->{lang} ]];
+		if ($prog->{title}->[0]->[0] =~ s/\s*(?:S(\d+)\s*)?Ep(\d+)(?:\s*&(?:amp;)?\s*\d+$)?//i) { # "S1 Ep5 &amp; 6"
+			my $xmltv_ns = ($1 ? ($1 - 1) : "") ." . ". ($2 ? ($2 - 1) : "") ." . 0"; # drops " & 6"
+			$prog->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
+			#<title lang="en">Brotherhood S1 Ep5 &amp; 6</title>
+		}
 		$prog->{length} = int($prog_ref->{'Duration'} * 60);
 
 		if (!defined $prog_ref->{'Duration'}) {
