@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.44";
+my $version = "0.45";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -306,8 +306,11 @@ sub search_imdb_online
 		my $url = $token->[1]{href}; # undefined when 200 results returned
 		if ($url && $url =~ /\/title\/tt[0-9]+\//) {
 			my $text = $tp->get_trimmed_text();
-			next if ($text =~ /\(VG\)/); # skip video games "(VG)"
-			my ($found_year) = ($text =~ /\(((19|20)\d\d)\)/);
+			my $showname = $title;
+			$showname = "$1, The" if ($showname =~ /^The (.*)/i);	# format to match search results
+			next unless ($text =~ /^$showname \(((19|20)\d\d)\)$/i); # ignore partial & approximate matches
+			my $found_year = $1;
+			print "Found year is $found_year.\n";
 			if (!$movie_year || !$found_year || (abs($movie_year - $found_year) <= 1) ) {
 				$urls{$url}++; # store as a hash since imdb sometimes gives dups
 				$urls_found++ if ($urls{$url} == 1);
@@ -645,7 +648,7 @@ sub get_imdb_movie_online
 	#
 	&imdb_scalar_parser($html_data, "h5", "tagline","trimmed","h5", "a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{tagline});
 	&imdb_scalar_parser($html_data, "h5", "plot","trimmed","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{plot});
-	&imdb_scalar_parser($html_data, "b", "user rating","trimmed","b","/b","b", \$data_cache->{movie_lookup}->{$movie_url}->{rating});
+	&imdb_scalar_parser($html_data, "h5", "user rating","trimmed","b","/b","b", \$data_cache->{movie_lookup}->{$movie_url}->{rating});
 	&imdb_scalar_parser($html_data, "h5", "runtime","trimmed","h5","br", undef, \$data_cache->{movie_lookup}->{$movie_url}->{runtime});
 	&imdb_scalar_parser($html_data, "h5", "(aka|also known as)","trimmed","b","/div", undef, \$data_cache->{movie_lookup}->{$movie_url}->{aka});
 	&imdb_scalar_parser($html_data, "h5", "trivia","trimmed","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{trivia});
