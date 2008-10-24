@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.33';
+my $version = '1.3.34';
 
 # tv_grab_au
 # "Shepherd"
@@ -104,7 +104,7 @@ my $invoked = get_full_path($0);
 
 # grabbing
 my $gscore;
-my $days = 7;
+my $days = 8;
 my $missing;
 my $missing_unfillable;
 my $timeslice;
@@ -2613,7 +2613,7 @@ Session options:
     --noupdate            Don't update; just grab data
     --update              Update only; don't grab data
 
-    --mode <s>            Efficiency (default), Speed or Quality
+    --mode <s>            Quality (default), Efficiency or Speed
     --daily               Exit unless 22 hours since last grab
 
     --debug               Print debugging messages
@@ -2686,8 +2686,8 @@ sub grab_data
     &log("\nSHEPHERD: Grabber stage ($grab_policy).\n");
     &log("SHEPHERD: Seeking supplementary data for episode names ('sub-titles').\n") if ($grab_policy eq 'expanded');
     &log("SHEPHERD: " .
-	 (($opt->{mode} and grep($_ eq lc($opt->{mode}), qw(quality speed))) ?
-	     ucfirst(lc($opt->{mode})) : 'Efficiency') . 
+	 (($opt->{mode} and grep($_ eq lc($opt->{mode}), qw(efficiency speed))) ?
+	     ucfirst(lc($opt->{mode})) : 'Quality') . 
 	     " mode.\n");
 
     &analyze_plugin_data("",1,$progname);    
@@ -3223,17 +3223,17 @@ sub score_grabbers
 	}
 
 	my $mult;
-	if ($opt->{mode} and lc($opt->{mode}) eq 'quality')
+	if ($opt->{mode} and lc($opt->{mode}) eq 'efficiency')
 	{
-	    $mult = ($dq ** $dq) * $catbonus / 2;
+	    $mult = $dq ** $catbonus;
 	}
 	elsif ($opt->{mode} and lc($opt->{mode} eq 'speed'))
 	{
 	    $mult = ($catbonus ** $catbonus) * $dq / 2;
 	}
-	else
+	else	# Quality mode
 	{
-	    $mult = $dq ** $catbonus;
+	    $mult = ($dq ** $dq) * $catbonus / 2;
 	}
 
 	$mult *= 0.9 if (query_config($grabber, 'has_noncritical_gaps'));
