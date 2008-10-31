@@ -1,0 +1,1086 @@
+#!/usr/bin/perl -w
+#
+# "News"
+#
+# Note that this is currently a straight copy of Rex with a few default
+# values changed. Should this grabber & Rex require modification, it'd
+# be worth merging the common code into a library or something.
+
+my $version  = '1.0';
+
+use strict;
+
+use Getopt::Long;
+use Date::Manip;
+use File::Path;
+use File::Basename;
+use Data::Dumper;
+use HTML::TreeBuilder;
+use JavaScript;
+use POSIX;
+use Encode;
+
+use XMLTV;
+use XMLTV::Ask;
+
+use Shepherd::Common;
+
+# ---------------------------------------------------------------------------
+# --- Global Variables
+
+my $progname = "News";
+my $lang = "en";
+
+my $DATASOURCE             = "http://guides.news.com.au";
+my $DATASOURCE_SETUP       = "$DATASOURCE/television/profile/?action=saveProfile";
+my $DATASOURCE_GUIDE       = "$DATASOURCE/television/guide/";
+my $DATASOURCE_GUIDE_TODAY = "$DATASOURCE/television/guide/?action=restofday";
+my $DATASOURCE_DETAIL      = "$DATASOURCE/television/guide/";
+
+my $runtime = time();
+my $laststats = $runtime;
+my $firstfetch;
+my $debug = 0;
+my $opt = { };
+my $channels;
+my $opt_channels;
+my $gaps;
+my %chanid;
+my $cached;
+my $lastpids;
+my $precache;
+my $ua;
+my $jsc;
+my %shows;
+my $numshows;
+my %stats;
+my $dcount;
+
+# ---------------------------------------------------------------------------
+# --- Setup
+
+print "$progname $version\n";
+
+$| = 1;
+
+Getopt::Long::Configure(qw/pass_through/);
+
+get_command_line_options();
+
+print "Ignoring --config-file option.\n" if ($opt->{'config-file'});
+
+exit 0 if ($opt->{version});
+
+help() if ($opt->{help});
+
+set_defaults();
+read_channels_file();
+unless ($channels)
+{
+    print "ERROR: No channels requested. Please use --channels_file.\n";
+    exit 2;
+}
+
+read_gaps_file();
+
+if ($opt->{test})
+{
+  print "Test mode: won't write XML or cache.\n";
+  $opt->{output} = undef;
+}
+	
+build_channel_map();
+
+if ($opt->{'show-channels'})
+{
+  show_channels();
+  exit 0;
+}
+
+if ($debug or $opt->{'show-config'})
+{
+  show_config();
+  exit 0 if ($opt->{'show-config'});
+}
+
+restore_cache();
+
+if ($opt->{'dump-cache'})
+{
+  dump_cache();
+  exit 0;
+}
+
+initialize_stats();
+setup_javascript();
+
+# ---------------------------------------------------------------------------
+# --- Go!
+
+get_guide_data();
+
+get_details_data();
+
+save_cache() if ($numshows);
+
+write_xml();
+
+print stats(1);
+
+Shepherd::Common::print_stats($progname, $version, $runtime, %stats);
+
+exit 0;
+
+# ---------------------------------------------------------------------------
+# --- Stop!
+
+
+#
+# Subs!
+# 
+
+sub get_guide_data
+{
+  print "Grabbing data for days " . ($opt->{offset} + 1) .
+        " - $opt->{days}" . 
+	($opt->{output} ? " into " . $opt->{output} : '') .
+	".\n";
+
+  refresh_ua() unless ($ua);
+
+  my ($guidedata, $date);
+
+  for my $day ($opt->{offset} .. $opt->{days} - 1)
+  {
+    $date = Ymd(DateCalc("today", "+ $day days"));
+    print "Day $day.\n" if ($debug);
+
+    if (!$day)
+    {
+      # Special bandwidth-saving URL for day 0
+
+      my $cacheid = $DATASOURCE_GUIDE_TODAY;
+      if ($cached->{$cacheid}) {
+        $guidedata = $cached->{$cacheid}->{data};
+      } else {
+        $guidedata = get_page($DATASOURCE_GUIDE_TODAY);
+        if ($guidedata) {
+          $cached->{$cacheid}->{data} = $guidedata;
+          $cached->{$cacheid}->{stop} = POSIX::strftime("%Y%m%d%H%M%S", localtime($runtime));
+          $cached->{$cacheid}->{title}[0][0] = $cacheid;
+        }
+      }
+      parse_guide($guidedata, $date) if ($guidedata);
+    }
+    else
+    {
+      # Need to grab day in 6-hour chunks.
+      my $rid = $opt->{region};
+      for (1 .. 4)
+      {
+        my $cacheid = "${DATASOURCE_GUIDE}?r=${rid}&d=${date}&p=$_";
+        if ($cached->{$cacheid}) {
+          $guidedata = $cached->{$cacheid}->{data};
+        } else {
+          $guidedata = get_page(url => $DATASOURCE_GUIDE,
+                        postvars =>
+                        [ 'action' => "grid",
+                          'region_id' => $rid,
+                          'date' => $date,
+                          'period' => $_,
+                          'submit' => 'submit'
+                        ]);
+          if ($guidedata) {
+            $cached->{$cacheid}->{data} = $guidedata;
+            $cached->{$cacheid}->{stop} = POSIX::strftime("%Y%m%d%H%M%S", localtime($runtime));
+            $cached->{$cacheid}->{title}[0][0] = $cacheid;
+          }
+        }
+        parse_guide($guidedata, $date, $_) if ($guidedata);
+      }
+    }
+  }
+  $numshows = scalar(keys %$precache);
+  print "Shows found: $numshows.\n";
+}
+
+#
+# This sub fills up %shows with details, either from the cache or
+# from the web.
+#
+sub get_details_data
+{
+  $firstfetch = time();
+  my $show;
+  foreach my $pid (keys %$precache)
+  {
+    if ($cached->{$pid})
+    {
+      print "Cached: " . $cached->{$pid}->{title}[0][0] . ".\n" if ($debug);
+      if (verify_cache($pid))
+      {
+        $shows{$pid} = $cached->{$pid};
+        $stats{cache_hits}++;
+      }
+      else
+      {
+        print "Cache has stale data for \"" . $cached->{$pid}->{title}[0][0] .
+	      "\": fetching fresh data.\n" if ($debug);
+	$stats{cache_changes}++;
+      }
+    }
+    unless ($shows{$pid})
+    {
+      $show = download_show($pid);
+      if ($show)
+      {
+        $show->{channel}=$precache->{$pid}->{channel}; # this is a fix for undistinguished channels
+        $shows{$pid} = $show;
+	$cached->{$pid} = $show;
+        $stats{detail_pages}++;
+      }
+      else
+      {
+	print "Failed to parse show $pid.\n";
+      }
+    }
+    if ($opt->{stats} and time() - $laststats >= $opt->{stats})
+    {
+      print stats();
+    }
+  }
+}
+
+sub verify_cache
+{
+  my $pid = shift;
+
+  my @c = ( 
+            [ 
+	      'Title', 
+	      $cached->{$pid}->{title}[0][0], 
+	      $precache->{$pid}->{title} 
+	    ],
+	    [ 
+	      'Start time',
+	      $cached->{$pid}->{start},
+	      $precache->{$pid}->{start}
+	    ],
+	    [
+	      'Stop time',
+	      $cached->{$pid}->{stop},
+	      $precache->{$pid}->{stop}
+	    ],
+	    [
+	      'Subtitle',
+	      ($cached->{$pid}->{'sub-title'} ? $cached->{$pid}->{'sub-title'}[0][0] : undef),
+	      $precache->{$pid}->{'sub-title'}
+	    ]
+	  ); 
+  foreach my $cmp (@c)
+  {
+    return 0 unless compare_caches($cmp->[0], $cmp->[1], $cmp->[2]);
+  }
+  return 1;
+}
+
+sub compare_caches
+{
+  my ($name, $arg1, $arg2) = @_;
+
+  # Special case for subtitles.
+  return 1 if ($name eq 'Subtitle' and !$arg2);
+  # Special case for no precache stop.
+  return 1 if ($name eq 'Stop time' and !$arg2);
+  
+  $arg1 = '--missing--' unless $arg1;
+  $arg2 = '--missing--' unless $arg2;
+
+  return 1 if $arg1 eq $arg2;
+
+  print "$name mismatch: \"$arg1\" vs \"$arg2\".\n" if ($debug);
+  return 0;
+}
+
+sub download_show
+{
+  my ($pid, $recurse_count) = @_;
+
+  $recurse_count ||= 0;
+  return undef if ($recurse_count > 2);
+ 
+  $dcount++;
+  refresh_ua() if ($dcount % 20 == 0); # don't wait for error page
+
+  my $result;
+
+  print "Downloading # $pid.\n" if ($debug);
+  my $detailsdata = get_page($DATASOURCE_DETAIL .
+                      '?action=event&event_id=' . $pid .
+                      '&refresh=&region_id=' . $opt->{region});
+  $result = parse_details($detailsdata) if ($detailsdata);
+  unless ($detailsdata and $result)
+  {
+    refresh_ua();
+    return download_show($pid, $recurse_count+1);
+  }
+
+  return $result;
+}
+
+sub save_cache
+{
+  return if ($opt->{test} or $opt->{nowrite_cache});
+  print "Saving cache.\n";
+  Shepherd::Common::write_cache($opt->{'cache-file'}, $cached);
+}
+
+sub write_xml
+{
+  return if ($opt->{test});
+  
+  my %writer_args = ( encoding => 'ISO-8859-1' );
+
+  print "Writing XML.\n";
+
+  if ($opt->{output}) 
+  {
+    my $fh = new IO::File(">" . $opt->{output})  
+  	     or die "Can't open " . $opt->{output} . ": $!";
+    $writer_args{OUTPUT} = $fh;
+  }
+
+  my $writer = new XMLTV::Writer(%writer_args);
+
+  $writer->start
+    ( { 'source-info-url'    => $DATASOURCE,
+        'source-info-name'   => "Datasource Name",
+        'generator-info-name' => "$progname $version"} );
+
+  for my $channel (sort keys %$channels) 
+  {
+    my $chanid = $chanid{lc $channel};
+    $writer->write_channel( { 'display-name' => [[$channel, $lang]],
+                              'id' => $chanid } );
+  } 
+
+  foreach my $pid (keys %shows)
+  {
+    print "- " . $shows{$pid}->{'title'}[0][0] . "\n" if ($debug);
+    $writer->write_programme($shows{$pid});
+  }
+
+  $writer->end();
+}
+
+sub refresh_ua
+{
+  print "Refreshing UA.\n" if ($debug);
+  
+  if ($ua)
+  {
+     print stats() if ($debug and $opt->{stats});
+     print "Sleeping...\n" if ($debug);
+     sleep_for(2 + int(rand(10)));
+  }
+
+  $ua = Shepherd::Common::setup_ua( cookie_jar => 1 );
+
+  # Set initial cookie
+#  unless (get_page(url => $DATASOURCE, retries => 4)) # Try hard to fetch main page
+#  {
+#      print "Unable to fetch main datasource page. No connectivity? Exiting.\n";
+#      print stats(1);
+#      die "Can't fetch front page.\n";
+#  }
+
+  # Set region/service cookie
+  unless (get_page(url => $DATASOURCE_SETUP, postvars => [ 'fta_region_id' => $opt->{'region'} ]))
+  {
+      print "ERROR: Unable to set region/service cookie.\n";
+      print stats(1);
+      die "Can't set region/service cookie.";
+  }
+
+  $dcount = 0;
+}
+
+sub setup_javascript 
+{
+  print "Initializing JavaScript interpreter.\n" if ($debug);
+  $jsc = new JavaScript::Runtime->create_context();
+  $jsc->set_error_handler( sub { } ) if (exists(&JavaScript::Context::set_error_handler));
+  $jsc->eval(qq{
+    var doc = '';
+    function Location() { this.href  = '$DATASOURCE'; }
+    function Document() { this.write = function(x) { doc += x; } }
+    function Window()   { this.___ww = 0 }
+    location = new Location;
+    document = new Document;
+    window   = new Window;
+  });
+}
+
+sub restore_cache
+{
+  unless ($opt->{'ignore-cache'} or $opt->{'rebuild-cache'})
+  {
+    $cached = Shepherd::Common::read_cache(\$opt->{'cache-file'});
+  }
+  if ($cached)
+  {
+    print "Retrieved " . keys(%$cached) . " cached items from file.\n";
+    clean_cache();
+  }
+  else
+  {
+    $cached = { };
+    print "Not using cache.\n";
+  }
+}
+
+sub clean_cache
+{
+    my $r = expand_date(localtime(time() - 3*3600)."");
+    my $c = 0;
+    print "Removing cache items that finish earlier than $r.\n" if ($debug);
+    foreach (keys %$cached)
+    {
+	if (Date_Cmp($r, $cached->{$_}->{stop}) == 1)
+	{
+	    print "Removing $cached->{$_}->{title}[0][0].\n" if ($debug);
+	    delete $cached->{$_};
+	    $c++;
+	}
+    }
+    print "Removed $c stale items from cache.\n";
+}
+
+sub dump_cache
+{
+  print "Cache: " . Dumper($cached) . "\n";
+}
+
+sub initialize_stats
+{
+    %stats = ( );
+    foreach (qw( successful_requests failed_requests slept_for bytes detail_pages cache_hits cache_changes failed_parses ))
+    {
+	$stats{$_} = 0;
+    }
+}
+
+sub stats
+{
+  my $finished = shift;
+
+  my $t = time() - $runtime;
+  
+  my $ret = "$progname $version " . 
+            ($finished ? "finished" : "in progress") .
+	    ":\n";
+  $ret .= sprintf
+	" %d shows grabbed\n" .
+  	" %d downloads, including %d detail pages (%d KB)\n" .
+        " %d cache hits, %d changes from cache\n" .
+	" %d failed downloads, %d failed parses\n",
+	scalar(keys %shows),
+        $stats{successful_requests}, $stats{detail_pages}, ($stats{bytes}/1024),
+	$stats{cache_hits}, $stats{cache_changes},
+	$stats{failed_requests}, $stats{failed_parses};
+  $ret .= sprintf " Time elapsed: %s (spent sleeping: %s)\n",
+                  timestats($t), timestats($stats{slept_for});
+  unless ($finished or !$stats{detail_pages})
+  {
+    $t = ((((time() - $firstfetch) * ($numshows - $stats{cache_hits})) / $stats{detail_pages})) - $t;
+    
+    $ret .= " Estimated time remaining: " . timestats($t) . "\n";
+  }
+  $laststats = time();
+  return $ret;
+}
+
+sub timestats
+{
+  my $t = shift;
+
+  my $ret = '';
+  if ($t >= 3600)
+  {
+    $ret .= sprintf("%d hr ", $t / 3600);
+    $t = $t % 3600;
+  }
+  $ret .= sprintf("%d min %d sec", $t / 60, $t % 60);
+  return $ret;
+}
+
+sub get_page
+{
+  my $ret = Shepherd::Common::get_url(@_);
+  if ($stats{successful_requests} and $stats{failed_requests} > ($stats{successful_requests} * 5))
+  {
+      printf "Exiting: %d failed network requests vs %d successes.\n",
+             $stats{failed_requests}, $stats{successful_requests};
+      print stats(1);
+      die "Too many network failures.";
+  }
+  $ret =~ s/&nbsp;/ /g if ($ret);
+  return $ret;
+}
+
+sub parse_guide
+{
+  my ($guidedata, $date, $phase) = @_;
+
+  print "Parsing guide page.\n" if ($debug);
+
+  $phase ||= 0;
+
+  $guidedata = readjs(Encode::decode_utf8($guidedata));
+
+  my $tree = HTML::TreeBuilder->new_from_content($guidedata);
+  my $curchan = '';
+  my @channels_seen;
+  my ($pid, $block, $line, $link, $title);
+  my $c = 0;
+  foreach my $tag ($tree->look_down('_tag' => 'td', 'class' => 'venue'))
+  {
+    # Some screens repeat channel name
+    next if ($tag->left);
+
+    $c++;
+    my $channame = $tag->as_text();
+    my $curchan = translate_channel_name($tag->as_text(), scalar(grep($_ eq $channame, @channels_seen)));
+    push @channels_seen, $channame;
+    if (!$channels->{$curchan})
+    {
+      print "Ignoring unsubscribed channel $curchan.\n" if ($debug);
+      next;
+    }
+    print "Channel: $curchan.\n" if ($debug);
+    $block = $tag->parent();
+    foreach $line ($block->look_down('_tag' => 'td', 'class' => undef))
+    {
+      my ($pid, $title, $start, $pextra);
+
+      my $linetext = $line->as_text();
+
+      foreach my $href ($line->look_down('_tag' => 'a'))
+      {
+	  $title = strip_whitespace($href->as_text());
+	  unless (HTML::Entities::decode($href->as_HTML()) =~ /event_popup\('(\d+)/)
+	  {
+	      &bad_parse("No pid found in guide data block");
+	      next;
+	  }
+	  $pid = $1;
+	  if ($linetext =~ /^(.*)\Q$title\E/)
+	  {
+	      $start = strip_whitespace($1);
+	      if ($phase and $phase == 1 and $start =~ /pm/)
+	      {
+		  $start = expand_date($start ." ". Ymd(DateCalc($date, "- 1 day")));
+	      }
+	      else
+	      {
+		  $start = expand_date("$start $date");
+	      }
+	      &addme($pid, $title, $start, undef, $curchan);
+	  }
+	  else
+	  {
+	      &bad_parse("Failed to match start time out of $linetext");
+	  }
+	  $linetext =~ /$title(.*)/ and $linetext = $1;
+      }
+    }
+  }
+  bad_parse("No shows found on guide page ($date phase $phase)") unless ($c);
+  $tree->delete();
+}
+
+sub addme
+{
+  my ($pid, $title, $start, $pextra, $curchan) = @_;
+  
+  if ($precache->{$pid})
+  {
+    print "Duplicate: $title ($pid).\n" if ($debug);
+  }
+  else
+  {
+    print "New: $title " . ($pextra ? "($pextra) " : '') . 
+          "($pid) $start\n" if ($debug);
+    if ($pextra and $pextra =~ /\(\d\d\d\d\)/)
+    {
+      print "Ignoring detail.\n" if ($debug);
+      $pextra = undef;
+    }
+    $precache->{$pid} = { 'title' => $title, 
+		          'start' => $start,
+			  'sub-title' => $pextra,
+			  'channel' => $channels->{$curchan}
+			};
+    my $lastpid = $lastpids->{$curchan};
+    if ($lastpid)
+    {
+	$precache->{$lastpid}->{stop} = $start;
+	if ($start < $precache->{$lastpid}->{start}) 
+	{
+	    print "Oddness detected in \"" .
+	          $precache->{$lastpid}->{title} .
+		  "\" (pid $pid), starting at " .
+		  $precache->{$lastpid}->{start} .
+		  ".\n";
+	    delete $precache->{$lastpid} if ($gaps);
+	}
+	elsif ($gaps)
+	{
+	    if (is_outside_gaps($curchan, $precache->{$lastpid}->{start}, $precache->{$lastpid}->{stop}))
+	    {
+		delete $precache->{$lastpid};
+	    }
+	}
+    }
+    $lastpids->{$curchan} = $pid;
+  }
+}
+
+# The guide pages for some regions don't provide any way to distinguish
+# between (eg) "Prime (Regional)" and "Prime (Albury)" in the same region,
+# other than the order in which they're listed. (They're both called
+# simply "Prime".) This func tracks which is which.
+sub translate_channel_name
+{
+    my ($chan, $seen_before) = @_;
+
+    my $rchans;
+#     $rchans = {
+# 	90 => { 'Prime' => [ 'Prime (Regional Victoria)', 'Prime (Albury)' ] },
+# 	};
+
+    $rchans = {
+	95 => { 'TEN' => [ 'TEN (VIC: Mildura/Sunraysia)', 'TEN (Mildura Digital)' ] },
+	};
+
+    my $region = $opt->{region};
+    return $chan unless ($rchans->{$region} and $rchans->{$region}->{$chan});
+    return $rchans->{$region}->{$chan}->[$seen_before];
+}
+
+sub parse_details 
+{
+  my $detailsdata = shift;
+
+  my ($show, $str, @rows, $block, $start, $stop, $date, $time, @extra, @items);
+
+  $detailsdata = readjs(Encode::decode_utf8($detailsdata));
+
+  my $tree = HTML::TreeBuilder->new_from_content($detailsdata);
+
+  my $event = $tree->look_down('_tag' => 'div', 'class' => 'event');
+
+  return &bad_parse("Mising title") unless ($event);  # site is probably sending that block page
+
+  $show->{'title'} = [[ strip_whitespace($event->look_down('_tag' => 'h1')->as_text()), $lang ]];
+  $str = $tree->find('h2');
+  if ($str)
+  {
+    $show->{'sub-title'} = [[ strip_whitespace($str->as_text()), $lang ]];
+  }
+
+  $time = $tree->find('h3') or return &bad_parse("Missing section: Time");
+  $date = $tree->find('h4') or return &bad_parse("Missing section: Date");
+  if(HTML::Entities::decode($time->as_HTML()) =~ /(\b[\d\.]+[ap]m)\s+.*?\s+([\d\.]+[ap]m) (.*)</)
+  {
+    ($start, $stop) = ($1, $2);
+    $date = $date->as_text();
+    $show->{'start'} = &expand_date("$start $date");
+    $show->{'stop'} = &expand_date("$stop $date");
+    # This guide always has the stop time 1 minute early!
+    $show->{'stop'} = &expand_date(DateCalc($show->{'stop'}, "+ 1 minute"));
+    $show->{'channel'} = $3;
+  }
+  else
+  {
+    return &bad_parse("Missing times"); 
+  }
+  if (Date_Cmp($show->{'start'}, $show->{'stop'}) == 1)
+  {
+     $show->{'stop'} = &expand_date(DateCalc($show->{'stop'}, "+ 1 day"));
+     print "Adjusted STOP time.\n" if ($debug);
+  }
+
+  $block = $event->look_down('_tag' => 'p');
+  if ($block and $block->as_text())
+  {
+    $show->{'desc'} = [[ &strip_whitespace($block->as_text()), $lang ]];
+  }
+
+  my ($category, %type);
+  foreach my $tag ($event->look_down('_tag' => 'tr'))
+  {
+    $str = $tag->as_text();
+    if ($str =~ /Genre:(.+)/)
+    {
+      $category = &strip_whitespace($1);
+      $str = $tree->find('h5');
+      $type{movie} = 1 if ($str and $str->as_text() =~ /movie/i);
+    }
+    elsif ($str =~ /Rating:(.+)/)
+    {
+      $str = &strip_whitespace($1);
+      if ($str =~ /(.*?)\s*\[(.+)\]/)
+      {
+	  $str = $1;
+	  my $sr = $2;
+	  $sr =~ s/or medical procedures//ig;
+	  $sr = &Shepherd::Common::subrating($sr);
+	  $str ." $sr";
+      }
+      $show->{'rating'} = [[ $str, 'ABA', undef]];
+    }
+    elsif ($str =~ /Cast:(.+)/)
+    {
+      $show->{'credits'}{'actor'} = [ split(/, /, &strip_whitespace($1)) ];
+    }
+    elsif ($str =~ /Director:(.+)/)
+    {
+      $show->{'credits'}{'director'} = [ split(/, /, &strip_whitespace($1)) ];
+    }
+    elsif ($str =~ /Writer:(.+)/) # unseen
+    {
+      $show->{'credits'}{'writer'} = [ split(/, /, &strip_whitespace($1)) ];
+    }
+    elsif ($str =~ /Year:\s*(\d+)/)
+    {
+      $show->{'date'} = &strip_whitespace($1);
+    }
+    elsif ($str =~ /Country:(.+)/)
+    {
+      $show->{'country'} = [[ split(/, /, &strip_whitespace($1)) ]];
+    }
+    elsif ($str =~ /Language:(.+)/)
+    {
+      $show->{'language'} = [ &strip_whitespace($1) ];
+    }
+    elsif ($str =~ /Duration:(\d+)/)
+    {
+      $show->{'length'} = $1 * 60;
+    }
+    elsif ($str =~ /^ /)
+    {
+      my $td = $tag->look_down('_tag' => 'td');
+      $str = $td->as_HTML();
+      @extra = split(/<br ?\/?>/, $str);
+      my %video;
+      foreach my $bit (@extra)
+      {
+        $bit =~ s/<.*>//;
+	$bit = &strip_whitespace($bit);
+	next unless ($bit);
+	if ($bit eq 'Repeat')
+	{
+	    $show->{'previously-shown'} = { };
+	}
+	elsif ($bit eq 'Widescreen')
+	{
+	    $video{'aspect'} = '16:9';
+	}
+	elsif ($bit eq 'High Definition')
+	{
+	    $video{'quality'} = 'HDTV';
+	}
+	elsif ($bit eq 'Closed Captions')
+	{
+	    $show->{'subtitles'} = [ { 'type' => 'teletext' } ];
+	}
+	elsif ($bit eq 'New Episode')
+	{
+	    $show->{'premiere'} = [ $bit ];
+	}
+	elsif ($bit eq 'Premiere')
+	{
+	    $show->{'premiere'} = [ $bit ];
+	    $type{premiere} = 1;
+	}
+	elsif ($bit eq 'LIVE' || $bit eq 'Live')
+	{
+	    $type{live} = 1;
+	}
+	elsif ($bit eq 'Final' || $bit eq 'Finale')
+	{
+	    $type{final} = 1;
+	}
+	elsif ($bit eq 'Return') # unseen
+	{
+	    $type{return} = 1;
+	}
+	$show->{'video'} = \%video if (%video);
+      }
+    }
+  }
+  $show->{'category'} = [ &Shepherd::Common::generate_category(
+      $show->{'title'}[0][0], $category, %type) ];
+
+  $tree->delete();
+  print Dumper($show) if ($debug);
+  return $show;
+}
+
+sub bad_parse
+{
+  my $msg = shift;
+  print "Parsing error: $msg.\n";
+  $stats{failed_parses}++;
+  if ($stats{failed_parses} > 4 and !scalar(keys %$precache))
+  {
+      print "ERROR! Unable to parse any shows! Looks like a major problem. " .
+	    "Exiting.\n";
+      print stats(1);
+      die "Major parsing error";
+  }
+  return 0;
+}
+
+sub is_outside_gaps
+{
+  my ($ch, $start, $stop) = @_;
+
+  $start = udate_to_epoch($start);
+  $stop = udate_to_epoch($stop);
+
+  foreach my $gap (@{$gaps->{$ch}})
+  {
+      if ($gap =~ /(\d+)-(\d+)/)
+      {
+	  return 0 if ($stop > $1 and $start < $2);
+      }
+  }
+  return 1;
+}
+
+sub udate_to_epoch
+{
+    my $udate = shift;
+
+    if ($udate =~ /(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)/)
+    {
+	my ($year, $month, $day, $hour, $minute, $second) = ($1, $2, $3, $4, $5, $6);
+	$month--;
+	$year -= 1900;
+	return POSIX::strftime("%s", $second, $minute, $hour, $day, $month, $year);
+    }
+    die "Unable to parse udate $udate!";
+}
+
+sub readjs {
+  my $data = shift;
+  $data =~ s{<script type="?text/javascript"?[^>]*>(.*?)</script>}{
+    my $x = $1;
+    $jsc->eval(qq{ doc = '' });
+    $jsc->eval($x);
+    $jsc->eval(qq{ doc }) || '';
+  }isge;
+  $data;
+}
+ 
+sub read_channels_file 
+{
+    read_config_file('channels', 'channels_file');
+}
+
+sub read_gaps_file
+{
+    read_config_file('gaps', 'gaps_file');
+}
+
+sub read_config_file
+{
+    my ($name, $arg) = @_;
+
+    return unless ($opt->{$arg});
+    print "Reading $name file: $opt->{$arg}\n";
+    if (-r $opt->{$arg})
+    {
+	local (@ARGV, $/) = ($opt->{$arg});
+	no warnings 'all';
+	eval <>;
+	die "Can't parse $name file: $@" if ($@);
+    }
+    else
+    {
+	print "Unable to read $name file.\n";
+    }
+}
+
+sub get_command_line_options
+{
+  GetOptions($opt, qw(
+			help
+			debug
+			output=s
+			days=i
+			offset=i
+			region=i
+			show-config
+			show-channels
+			rebuild-cache
+			ignore-cache
+			nowrite-cache
+			dump-cache
+			cache-file=s
+			config-file=s
+			channels_file=s
+			gaps_file=s
+			stats=i
+			test
+			desc
+			version
+			warper
+		    ));
+  $debug = $opt->{debug};   
+
+  if (@ARGV)
+  {
+    print "\nWARNING: Ignoring unknown option(s): @ARGV\n\n";
+  }
+}
+
+sub show_config
+{
+  my $short = shift;
+  
+  print "\nConfiguration\n".
+          "-------------\n";
+  unless ($short)
+  {
+    print "Debug mode : " . is_set($debug) . "\n" .
+          "Test mode  : " . is_set($opt->{test}) . "\n" .
+          "Webwarping : " . is_set($opt->{warper}) . "\n" .
+	  "Cache file : " . $opt->{'cache-file'};
+    print ' (not reading)' if ($opt->{'ignore-cache'} or $opt->{'rebuild-cache'});
+    print ' (not updating)' if ($opt->{test} or $opt->{'ignore-cache'} or $opt->{'nowrite-cache'});
+    print "\n" .
+	  "Output file: " . ($opt->{output} ? $opt->{output} : "None") . "\n" .
+	  "Chann file : $opt->{channels_file}\n" .
+	  ($opt->{gaps_file} ? "Gaps file  : " . $opt->{gaps_file} . "\n" : '') .
+	  "Statistics : " . ($opt->{stats} ? "every " . $opt->{stats} . " seconds" : "off") . "\n";
+  }
+  print   "Region ID  : $opt->{region}\n" .
+	  "Days wanted: $opt->{days} (offset: $opt->{offset})\n";
+  show_channels();
+  print "\n";
+}
+
+sub is_set
+{
+  my $arg = shift;
+  return $arg ? "Yes" : "No";
+}
+
+sub show_channels
+{
+  print "Subscribed channels:\n";
+  print "    $_ -> $channels->{$_}\n" for sort keys %$channels;
+}
+
+sub build_channel_map
+{
+  # --- extract sorted subscribed channel list from config-file hash;
+  # also compute canonicalised lowercased channel to xmltvid hash
+  %chanid = map { lc $_, $channels->{$_} } keys %$channels;
+}
+
+sub set_defaults
+{
+  my $defaults = {
+	  'days' => 7,
+	  'offset' => 0,
+	  'region' => 94,
+	  'stats' => 90,
+	  'output' => getcwd() . '/output.xmltv',
+	  'cache-file' => getcwd() . '/cache.dat',
+	  'channels_file' => getcwd() . '/channels.conf'
+  };
+					      
+  foreach (keys %$defaults)
+  {
+    unless (defined $opt->{$_})
+    {
+      $opt->{$_} = $defaults->{$_};
+    }
+  }
+
+  $opt->{'days'} = 7 if ($opt->{'days'} > 7);
+
+  Shepherd::Common::set_defaults(
+	stats => \%stats, 
+	delay => "1-4",
+	debug => $debug,
+	webwarper => $opt->{warper}
+    );
+}
+
+sub expand_date
+{
+  my $t = shift;
+  $t =~ s/\./:/;
+  my $ret = ParseDate($t);
+
+  # strip colons
+  $ret =~ tr/://d;
+
+  return $ret;
+}
+
+sub Ymd { UnixDate($_[0], "%Y-%m-%d") or die "Date problem in Ymd($_[0])" }
+
+sub strip_whitespace 
+{ 
+  my $str = shift; 
+  $str =~ s/^\s*(.*?)\s*$/$1/; 
+  return $str;
+}
+
+sub sleep_for
+{
+    my $n = shift;
+    return unless ($n);
+    sleep $n;
+    $stats{slept_for} += $n;
+}
+
+sub help
+{
+  print q{
+Command-line options:
+    --help                 Print this message
+
+    --version              Show current version
+    --show-channels        Show subscribed channels & exit
+    --show-config          Show configuration details & exit
+    --dump-cache           Show cache & exit
+		
+    --cache-file <file>    Use the specified cache file
+    --output <file>        Write XML into the specified file
+    --channels_file <file> Read channel subscriptions from file
+    --gaps_file <file>     Read gaps from file
+
+    --region <n>           Grab data for region code <n>
+    --days <n>             Grab <n> days of data (today being day 1)
+    --offset <n>           Skip the first <n> days
+
+    --stats <n>            Print stats every n secs (0=off)
+    --debug                Print lots of debugging output
+
+    --warper               Use webwarper.net anonymizer
+
+    --test                 Don't write any output or update cache
+    --ignore-cache         Neither read nor update cache
+    --nowrite-cache        Read but don't update cache
+    --rebuild-cache        Destroy and rebuild cache
+};
+  exit 0;
+}
+
