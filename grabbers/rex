@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.11';
+my $version  = '3.6.12';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -1126,7 +1126,7 @@ sub set_defaults
     }
   }
 
-  $opt->{'days'} = 7 if ($opt->{'days'} > 7);
+#  $opt->{'days'} = 7 if ($opt->{'days'} > 7);
 
   Shepherd::Common::set_defaults(
 	stats => \%stats, 
