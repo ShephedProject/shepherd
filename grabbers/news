@@ -6,7 +6,7 @@
 # values changed. Should this grabber & Rex require modification, it'd
 # be worth merging the common code into a library or something.
 
-my $version  = '1.2';
+my $version  = '1.3';
 
 use strict;
 
@@ -574,7 +574,7 @@ sub parse_guide
 	      next;
 	  }
 	  $pid = $1;
-	  if ($linetext =~ /^(.*)\Q$title\E/)
+	  if ($linetext =~ /^(.*?)\Q$title\E/)
 	  {
 	      $start = strip_whitespace($1);
 	      if ($phase and $phase == 1 and $start =~ /pm/)
