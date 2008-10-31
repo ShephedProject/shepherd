@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.10';
+my $version  = '3.6.11';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -854,15 +854,15 @@ sub parse_details
       }
       $show->{'rating'} = [[ $sr ? "$str $sr" : $str, 'ABA', undef]];
     }
-    elsif ($str =~ /Cast: (.+)/)
+    elsif ($str =~ /Cast:(.+)/)
     {
       $show->{'credits'}{'actor'} = [ split(/, /, strip_whitespace($1)) ];
     }
-    elsif ($str =~ /Director: (.+)/)
+    elsif ($str =~ /Director:(.+)/)
     {
       $show->{'credits'}{'director'} = [ split(/, /, strip_whitespace($1)) ];
     }
-    elsif ($str =~ /Writer: (.+)/) # unseen
+    elsif ($str =~ /Writer:(.+)/) # unseen
     {
       $show->{'credits'}{'writer'} = [ split(/, /, strip_whitespace($1)) ];
     }
@@ -870,15 +870,15 @@ sub parse_details
     {
       $show->{'date'} = strip_whitespace($1);
     }
-    elsif ($str =~ /Country: (.+)/)
+    elsif ($str =~ /Country:(.+)/)
     {
       $show->{'country'} = [[ split(/, /, strip_whitespace($1)) ]];
     }
-    elsif ($str =~ /Language: (.+)/)
+    elsif ($str =~ /Language:(.+)/)
     {
       $show->{'language'} = [ strip_whitespace($1) ];
     }
-    elsif ($str =~ /Duration:\s(\d+)/)
+    elsif ($str =~ /Duration:\s*(\d+)/)
     {
       $show->{'length'} = $1 * 60;
     }
