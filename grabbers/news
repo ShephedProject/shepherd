@@ -6,7 +6,7 @@
 # values changed. Should this grabber & Rex require modification, it'd
 # be worth merging the common code into a library or something.
 
-my $version  = '1.0';
+my $version  = '1.1';
 
 use strict;
 
@@ -736,7 +736,7 @@ sub parse_details
 	  my $sr = $2;
 	  $sr =~ s/or medical procedures//ig;
 	  $sr = &Shepherd::Common::subrating($sr);
-	  $str ." $sr";
+	  $str .= " $sr";
       }
       $show->{'rating'} = [[ $str, 'ABA', undef]];
     }
