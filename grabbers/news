@@ -2,11 +2,11 @@
 #
 # "News"
 #
-# Note that this is currently a straight copy of Rex with a few default
+# Note that this is currently mostly a copy of Rex with a few default
 # values changed. Should this grabber & Rex require modification, it'd
 # be worth merging the common code into a library or something.
 
-my $version  = '1.3';
+my $version  = '1.4';
 
 use strict;
 
@@ -574,9 +574,10 @@ sub parse_guide
 	      next;
 	  }
 	  $pid = $1;
-	  if ($linetext =~ /^(.*?)\Q$title\E/)
+	  if ($linetext =~ /^(.*?)\Q$title\E(.*)/)
 	  {
 	      $start = strip_whitespace($1);
+	      $linetext = $2;
 	      if ($phase and $phase == 1 and $start =~ /pm/)
 	      {
 		  $start = expand_date($start ." ". Ymd(DateCalc($date, "- 1 day")));
@@ -585,13 +586,13 @@ sub parse_guide
 	      {
 		  $start = expand_date("$start $date");
 	      }
-	      &addme($pid, $title, $start, undef, $curchan);
+	      if ($start)
+	      {
+		  &addme($pid, $title, $start, undef, $curchan);
+		  next;
+	      }
 	  }
-	  else
-	  {
-	      &bad_parse("Failed to match start time out of $linetext");
-	  }
-	  $linetext =~ /$title(.*)/ and $linetext = $1;
+	  &bad_parse("Failed to match start time out of " . $href->as_HTML);
       }
     }
   }
@@ -605,7 +606,7 @@ sub addme
   
   if ($precache->{$pid})
   {
-    print "Duplicate: $title ($pid).\n" if ($debug);
+    print "Duplicate: $title ($pid) $start.\n" if ($debug);
   }
   else
   {
