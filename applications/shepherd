@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.34';
+my $version = '1.3.35';
 
 # tv_grab_au
 # "Shepherd"
@@ -1204,7 +1204,14 @@ sub migrate_channels
     {
 	$mflag = 1 if ($line =~ /---migrate---/);
 	next unless ($mflag);
-	next unless ($line =~ /^$region:(.*)/ or $line =~ /^\*:(.*)/);
+
+	# Look for our region number before the first colon.
+	# EG These all match region 126:
+	# 126:TEN->SC10
+	# 126,254,255:TEN->SC10
+	# *:TEN->SC10
+	next unless ($line =~ /^[^:]*\b$region\b.*?:(.*)/ or $line =~ /^\*:(.*)/);
+
 	my $migrations = $1;
 	if ($migrations =~ /(.*?):(.*?):(.*)/) {
 		my $to_region = $1;
