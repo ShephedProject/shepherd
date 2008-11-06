@@ -1,79 +1,55 @@
-63:ABC1,ABC2,SBS,SBS News,7HD,TEN HD,Sthn Cross TEN,Central GTS/BKN
-66:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,NBN,TEN,Sthn Cross TEN,Nine,Prime,Seven
-67:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
-69:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,NBN,Prime,Sthn Cross TEN
-71:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
-73:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Channel NSW,TVS,Nine,TEN,Seven,ACC,EXPO
-74:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Southern Cross,Nine,DDT
-75:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Seven,QCTV
-78:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,NBN,Sthn Cross TEN,TEN,Nine,Prime,Seven
-79:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
-81:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Seven,C31 Adelaide
-82:ABC1,ABC2,SBS,SBS News,Nine HD,TEN HD,WIN,WIN TEN
-83:ABC1,ABC2,SBS,SBS News,Nine HD,TEN HD,WIN,WIN TEN
-85:ABC1,ABC2,SBS,SBS News,Nine HD,TEN HD,WIN,WIN TEN
-86:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Sthn Cross TEN,Nine,Central GTS/BKN
-88:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,Southern Cross,TDT
-90:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,Imparja,TEN
-93:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Channel 31,Seven
-94:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Channel 31,Seven
-95:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,Prime,TEN (VIC: Mildura/Sunraysia),TEN (Mildura Digital)
-98:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,SCTV Central,Prime,WIN,TEN,Imparja
-101:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Access 31,TEN,Nine,Seven
-102:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Golden West,WIN,Access 31,Nine,TEN,Seven
-106:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,SCTV Central,Prime,Imparja
-107:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,SCTV Central,Imparja
-108:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,SCTV Central,Imparja
-114:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,SCTV Central,Imparja
-126:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
-184:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,NBN,Sthn Cross TEN,Prime
-253:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
-254:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
-255:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
-256:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
-257:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
-258:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,TEN,Seven
-259:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
-261:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,NBN,Prime,Sthn Cross TEN
-262:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
-263:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,NBN,Prime,Sthn Cross TEN
-264:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,WIN,TEN,Prime
-266:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,Imparja,TEN
-267:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,TEN
-268:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,Prime,WIN,TEN
+63:ABC1,ABC2,SBS,SBS News,SC10,Central GTS/BKN,ABC HD,SBS HD
+66:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,NBN,TEN,SC10,Nine,Prime,Seven,ABC HD,SBS HD
+67:ABC1,ABC2,SBS,SBS News,WIN,SC10,Prime,ABC HD,SBS HD
+69:ABC1,ABC2,SBS,SBS News,Prime HD,NBN,Prime,SC10,ABC HD,SBS HD
+71:ABC1,ABC2,SBS,SBS News,Prime HD,WIN,SC10,Prime,ABC HD,SBS HD
+73:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Channel NSW,TVS,Nine,TEN,Seven,ACC,EXPO,ABC HD,SBS HD
+74:ABC1,ABC2,SBS,SBS News,SCTV,Nine,DDT
+75:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Seven,QCTV,ABC HD,SBS HD
+78:ABC1,ABC2,SBS,SBS News,7HD,Prime HD,Nine HD,TEN HD,NBN,SC10,TEN,Nine,Prime,Seven,ABC HD,SBS HD
+79:ABC1,ABC2,SBS,SBS News,7HD,WIN,SC10,Seven,ABC HD,SBS HD
+81:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Seven,C31 Adelaide,ABC HD,SBS HD
+82:ABC1,ABC2,SBS,SBS News,WIN,WIN TEN,ABC HD,SBS HD
+83:ABC1,ABC2,SBS,SBS News,WIN,WIN TEN,ABC HD,SBS HD
+85:ABC1,ABC2,SBS,SBS News,WIN,WIN TEN,ABC HD,SBS HD
+86:ABC1,ABC2,SBS,SBS News,SC10,Nine,Central GTS/BKN,ABC HD,SBS HD
+88:ABC1,ABC2,SBS,SBS News,WIN,SCTV,TDT
+90:ABC1,ABC2,SBS,SBS News,Prime HD,Prime,WIN,Imparja,SC10,ABC HD,SBS HD
+93:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Channel 31,Seven,ABC HD,SBS HD
+94:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,TEN,Nine,Channel 31,Seven,ABC HD,SBS HD
+95:ABC1,ABC2,SBS,SBS News,Prime HD,WIN,Prime,TEN,SC10,ABC HD,SBS HD
+98:ABC1,ABC2,SBS,SBS News,Prime HD,SCTV Central,Prime,WIN,SC10,Imparja,ABC HD,SBS HD
+101:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,Access 31,TEN,Nine,Seven,ABC HD,SBS HD
+102:ABC1,ABC2,SBS,SBS News,Golden West,WIN,Access 31,Nine,TEN,Seven,ABC HD,SBS HD
+106:ABC1,ABC2,SBS,SBS News,SCTV Central,Prime,Imparja,ABC HD,SBS HD
+107:ABC1,ABC2,SBS,SBS News,SCTV Central,Imparja,ABC HD,SBS HD
+108:ABC1,ABC2,SBS,SBS News,SCTV Central,Imparja
+114:ABC1,ABC2,SBS,SBS News,SCTV Central,Imparja,ABC HD,SBS HD
+126:ABC1,ABC2,SBS,SBS News,Prime HD,WIN,SC10,Prime,ABC HD,SBS HD
+184:ABC1,ABC2,SBS,SBS News,Prime HD,Nine HD,TEN HD,NBN,SC10,Prime,ABC HD,SBS HD
+253:ABC1,ABC2,SBS,SBS News,7HD,WIN,SC10,Seven,ABC HD,SBS HD
+254:ABC1,ABC2,SBS,SBS News,7HD,WIN,SC10,Seven,ABC HD,SBS HD
+255:ABC1,ABC2,SBS,SBS News,7HD,Nine HD,TEN HD,WIN,Nine,TEN,Seven,SC10,ABC HD,SBS HD
+256:ABC1,ABC2,SBS,SBS News,7HD,WIN,SC10,Seven,ABC HD,SBS HD
+257:ABC1,ABC2,SBS,SBS News,7HD,WIN,SC10,Seven,ABC HD,SBS HD
+258:ABC1,ABC2,SBS,SBS News,7HD,WIN,SC10,Seven,ABC HD,SBS HD
+259:ABC1,ABC2,SBS,SBS News,Prime HD,WIN,SC10,Prime,ABC HD,SBS HD
+261:ABC1,ABC2,SBS,SBS News,Prime HD,NBN,Prime,SC10,ABC HD,SBS HD
+262:ABC1,ABC2,SBS,SBS News,Prime HD,WIN,SC10,Prime,ABC HD,SBS HD
+263:ABC1,ABC2,SBS,SBS News,Prime HD,NBN,Prime,SC10,ABC HD,SBS HD
+264:ABC1,ABC2,SBS,SBS News,Prime HD,WIN,SC10,Prime,ABC HD,SBS HD
+266:ABC1,ABC2,SBS,SBS News,Prime HD,Prime,WIN,Imparja,SC10,ABC HD,SBS HD
+267:ABC1,ABC2,SBS,SBS News,Prime HD,Prime,WIN,SC10,ABC HD,SBS HD
+268:ABC1,ABC2,SBS,SBS News,Prime HD,Prime,WIN,SC10,ABC HD,SBS HD
 Foxtel:ACC,AdultsOnly960,AIR,AnimalPlanet,AntennaPacific,ARENATV,ARENATV2,Aurora,BBCWorldNews,Bio,BloombergTelevision,Boomerang,CartoonNetwork,ChannelV,ChannelV2,CNBC,CNN,CountryMusicChannel,CrimeandInvestigationNetwork,DiscoveryChannel,DiscoveryHealth,DiscoveryScience,DiscoveryTravel,DisneyChannel,E!Entertainment,ESPN,Eurosportnews,EXPO,FashionTV,FOXClassics,FOXClassics2,FOXNews,FOXSPORTS1,FOXSPORTS2,FOXSPORTS3,FOXSPORTSNews,FOX8,FOX82,FoxtelBoxOffice,FOXTELGamesworld,FUELTV,Hallmark,HOWTOChannel,LifeStyleFOOD,MainEvent,MAX,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,NickJr,Nickelodeon,NITV,Ovation,PlayhouseDisney,RAIITALIA,SCIFI,showcase,SHOWTIME,SHOWTIMEGreats,SHOWTIME2,SkyNewsAustralia,SkyNewsBusiness,SkyRacing,TCM,THECOMEDYCHANNEL,THECOMEDYCHANNEL2,TheHistoryChannel,TheLifeStyleChannel,TheLifestyleChannel2,TheWeatherChannel,TV1,TV12,TVN,TVSN,UKTV,UKTV2,VH1,W,W2,WORLDMOVIES
 SelecTV:AnimalPlanet,AntennaGreek,BBCWorld,CartoonNetwork,CNN,DiscoveryScience,DiscoveryHealth,DiscoveryTravel,DiscoveryRealTime,E!Entertainment,ERTGreek,Eurosport,FashionTV,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,Ovation,SkyRacing,TCM,TVChileSpanish,TVE,VH1
 ---migrate---
-71:Prime (Canberra/Wollongong/South Coast)->Prime Wollongong,Prime (Wagga Wagga/Orange)->Prime Orange
-Foxtel:A1->NatGeoAdventure,CNBCAustralia->CNBC,CrimeandInvestigation->CrimeandInvestigationNetwork
-79:Seven (Cairns)->Seven Cairns
+Foxtel:A1->NatGeoAdventure,CNBCAustralia->CNBC,CrimeandInvestigation->CrimeandInvestigationNetwork,FOXTELBoxOffice->FoxtelBoxOffice,LifestyleChannel2->TheLifestyleChannel2,RAIInternational->RAIITALIA,BBCWorld->BBCWorldNews
 SelecTV:Eurosportnews->Eurosport
 *:ABC->ABC1
-79:253:WIN (Mackay/Wide Bay):WIN (QLD: Regional)->WIN,WIN (Mackay/Wide Bay)->WIN,Seven Cairns->Seven,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven
-79:254:Seven (Rockhampton/Toowoomba):WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven Cairns->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven,Seven (Rockhampton/Toowoomba)->Seven
-79:255:Seven (Townsville/Mackay/Wide Bay/Sunshine Coast):WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven Cairns->Seven,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven
-79:WIN (Mackay/Wide Bay)->WIN,WIN (QLD: Regional)->WIN,Seven (Rockhampton/Toowoomba)->Seven,Seven (Townsville/Mackay/Wide Bay/Sunshine Coast)->Seven,Seven Cairns->Seven
-69:261:Prime Lismore/Coffs Hbr:Prime Tamworth/Taree/Port->Prime,Prime Lismore/Coffs Hbr->Prime,7HD->Prime HD
-69:Prime Lismore/Coffs Hbr->Prime,Prime Tamworth/Taree/Port->Prime,7HD->Prime HD
-71:259:Prime Canberra/Sth Coast:Prime Wagga Wagga->Prime,Prime Wollongong->Prime,Prime Orange->Prime,Prime Canberra/Sth Coast->Prime,TEN (Mildura Digital)->TEN,TEN (NSW: Southern NSW)->TEN,7HD->Prime HD
-71:262:Prime Orange:Prime Wagga Wagga->Prime,Prime Wollongong->Prime,Prime Canberra/Sth Coast->Prime,Prime Orange->Prime,TEN (NSW: Southern NSW)->TEN,TEN (Mildura Digital)->TEN,7HD->Prime HD
-71:264:Prime Wagga Wagga:Prime Wollongong->Prime,Prime Orange->Prime,Prime Canberra/Sth Coast->Prime,Prime Wagga Wagga->Prime,TEN (NSW: Southern NSW)->TEN,TEN (Mildura Digital)->TEN,7HD->Prime HD
-71:Prime Wagga Wagga->Prime,Prime Orange->Prime,Prime Canberra/Sth Coast->Prime,Prime Wollongong->Prime,TEN (NSW: Southern NSW)->TEN,TEN (Mildura Digital)->TEN,7HD->Prime HD
-90:Prime (Regional)->Prime (Regional Victoria),7HD->Prime HD
-106:Prime Wagga Wagga->Prime
-126:Prime Canberra/Sth Coast->Prime,7HD->Prime HD
-67:7HD->Prime HD
-95:7HD->Prime HD
-184:7HD->Prime HD
-263:WIN->NBN
-Foxtel:FOXTELBoxOffice->FoxtelBoxOffice,LifestyleChannel2->TheLifestyleChannel2,RAIInternational->RAIITALIA
-90:268:Prime (Albury):Prime (Regional Victoria)->Prime,Prime (Albury)->Prime
-90:Prime (Albury)->Prime,Prime (Regional Victoria)->Prime
 75:Briz 31->QCTV
-98:Seven->SCTV Central
-106:Seven->SCTV Central
-107:Seven->SCTV Central
-108:Seven->SCTV Central
-114:Seven->SCTV Central
-95:TEN->TEN (VIC: Mildura/Sunraysia)
-Foxtel:BBCWorld->BBCWorldNews
+98,106,107,108,114:Seven->SCTV Central
+95:TEN (VIC: Mildura/Sunraysia)->TEN,TEN (Mildura Digital)->SC10
+*:Sthn Cross TEN->SC10
+67,71,79,90,98,126,253,254,256,257,258,259,262,264,266,267,268:TEN->SC10
+74,88:Southern Cross->SCTV
