@@ -6,7 +6,7 @@
 # values changed. Should this grabber & Rex require modification, it'd
 # be worth merging the common code into a library or something.
 
-my $version  = '1.4';
+my $version  = '1.5';
 
 use strict;
 
@@ -17,6 +17,7 @@ use File::Basename;
 use Data::Dumper;
 use HTML::TreeBuilder;
 use JavaScript;
+use JavaScript::Runtime;
 use POSIX;
 use Encode;
 
@@ -310,7 +311,7 @@ sub download_show
   return undef if ($recurse_count > 2);
  
   $dcount++;
-  refresh_ua() if ($dcount % 20 == 0); # don't wait for error page
+#  refresh_ua() if ($dcount % 20 == 0); # don't wait for error page
 
   my $result;
 
@@ -386,20 +387,12 @@ sub refresh_ua
 
   $ua = Shepherd::Common::setup_ua( cookie_jar => 1 );
 
-  # Set initial cookie
-#  unless (get_page(url => $DATASOURCE, retries => 4)) # Try hard to fetch main page
-#  {
-#      print "Unable to fetch main datasource page. No connectivity? Exiting.\n";
-#      print stats(1);
-#      die "Can't fetch front page.\n";
-#  }
-
   # Set region/service cookie
-  unless (get_page(url => $DATASOURCE_SETUP, postvars => [ 'fta_region_id' => $opt->{'region'} ]))
+  unless (get_page(url => $DATASOURCE_SETUP, retries => 4, postvars => [ 'fta_region_id' => $opt->{'region'} ]))
   {
-      print "ERROR: Unable to set region/service cookie.\n";
+      print "Unable to fetch profile page. No network? Exiting.\n";
       print stats(1);
-      die "Can't set region/service cookie.";
+      die "Unable to fetch front page (no network?)";
   }
 
   $dcount = 0;
