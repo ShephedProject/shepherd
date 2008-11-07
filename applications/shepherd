@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.35';
+my $version = '1.3.36';
 
 # tv_grab_au
 # "Shepherd"
@@ -101,6 +101,8 @@ my $invoked = get_full_path($0);
 @{$hd_to_sds->{"Prime HD"}} = ("Prime");
 @{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
 @{$hd_to_sds->{"TEN HD"}} = ("TEN","Sthn Cross TEN","WIN TEN","TDT","DDT");
+@{$hd_to_sds->{"ABC HD"}} = ("ABC1");
+@{$hd_to_sds->{"SBS HD"}} = ("SBS");
 
 # grabbing
 my $gscore;

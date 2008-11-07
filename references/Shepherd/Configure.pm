@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.9';
+my $version = '0.10';
 
 use strict;
 no strict 'refs';
@@ -190,7 +190,7 @@ sub configure_channels_guided
 
     if ($want_hdtv)
     {
-	@hd_channellist = grep(!/ABC2|SBS News|31/i, @channellist);
+	@hd_channellist = grep(!/ABC2|ABC1|SBS News|31/i, @channellist);
 
 	#limit to ones in $channels (don't know so can't) and if 7HD remove 7HD and first 7 (don't know so do anyway)
 	foreach my $hdchannel (keys %$::hd_to_sds) {

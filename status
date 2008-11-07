@@ -1,8 +1,8 @@
-application     shepherd            1.3.35
+application     shepherd            1.3.36
 reference       channel_list        28
 reference       Shepherd/Common.pm  0.37
 reference       Shepherd/MythTV.pm  0.9
-reference       Shepherd/Configure.pm   0.9
+reference       Shepherd/Configure.pm   0.10
 grabber         yahoo7widget        1.110-r3
 grabber         rex                 3.6.12
 grabber         news                1.4
