@@ -9,7 +9,7 @@
 # has been coded to make adding any future channels easy.
 #
 
-my $version = '2.03';
+my $version = '2.04';
 
 use strict;
 use Getopt::Long;
@@ -316,7 +316,7 @@ sub tidy_data
 			# Kinda unfortunate in that occasionally this will
 			# lead to incorrect dropping, but otherwise we get
 			# lots of bad subtitles.
-			unless ($shows->{$ch}->{$s}->{title} =~ /^$subtitle$/i)
+			unless ($shows->{$ch}->{$s}->{title} =~ /^\Q$subtitle\E$/i)
 			{
 			    $shows->{$ch}->{$s}->{'sub-title'} = $subtitle;
 			}
