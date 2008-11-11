@@ -9,7 +9,7 @@
 # has been coded to make adding any future channels easy.
 #
 
-my $version = '2.04';
+my $version = '2.05';
 
 use strict;
 use Getopt::Long;
@@ -297,7 +297,7 @@ sub tidy_data
 			$shows->{$ch}->{$s}->{title} = $1;
 			$shows->{$ch}->{$s}->{'sub-title'} = $2;
 		    }
-		    elsif ($shows->{$ch}->{$s}->{desc} =~ /^(.*?) - (.*)/
+		    elsif ($shows->{$ch}->{$s}->{desc} =~ /^\W*(.*?)\W* - (.*)/
 			    and
 			length($1) < 36
 			    and
