@@ -1,5 +1,5 @@
 application     shepherd            1.3.36
-reference       channel_list        28
+reference       channel_list        29
 reference       Shepherd/Common.pm  0.37
 reference       Shepherd/MythTV.pm  0.9
 reference       Shepherd/Configure.pm   0.10
@@ -7,7 +7,7 @@ grabber         yahoo7widget        1.110-r3
 grabber         rex                 3.6.12
 grabber         news                1.5
 grabber         abc_website         3.22
-grabber         oztivo              2.22
+grabber         oztivo              2.23
 grabber         yahoo7web           0.40
 grabber         foxtel_swf          0.30-r2
 grabber         channelnsw_gov      0.8-r1
