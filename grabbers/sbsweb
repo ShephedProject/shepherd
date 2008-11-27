@@ -9,7 +9,7 @@
 # has been coded to make adding any future channels easy.
 #
 
-my $version = '2.05';
+my $version = '2.06';
 
 use strict;
 use Getopt::Long;
@@ -297,13 +297,17 @@ sub tidy_data
 			$shows->{$ch}->{$s}->{title} = $1;
 			$shows->{$ch}->{$s}->{'sub-title'} = $2;
 		    }
-		    elsif ($shows->{$ch}->{$s}->{desc} =~ /^\W*(.*?)\W* - (.*)/
+		    elsif ($shows->{$ch}->{$s}->{desc} =~ /^(.*?) - (.*)/
 			    and
 			length($1) < 36
 			    and
 			grep(/^[A-Z]/, split(/ /, $2)))
 		    {
 			my ($subtitle, $rest) = ($1, $2);
+
+			# strip parentheses if they contain entire subtitle
+			$subtitle = $1 if ($subtitle =~ /^\((.*)\)$/);
+
 			&log("Splitting desc of " .
 			     $shows->{$ch}->{$s}->{title} .
 			     " (" .
@@ -318,7 +322,14 @@ sub tidy_data
 			# lots of bad subtitles.
 			unless ($shows->{$ch}->{$s}->{title} =~ /^\Q$subtitle\E$/i)
 			{
-			    $shows->{$ch}->{$s}->{'sub-title'} = $subtitle;
+			    if ($subtitle =~ /^movie\b/i)
+			    {
+				push @{$shows->{$ch}->{$s}->{category}}, 'movie';
+			    }
+			    else
+			    {
+				$shows->{$ch}->{$s}->{'sub-title'} = $subtitle;
+			    }
 			}
 		    }
 		    # Set "Part x of y" as subtitle if nothing better
@@ -339,12 +350,12 @@ sub tidy_data
 		$shows->{$ch}->{$s}->{title} = $1;
 	    }
 
-            if ($shows->{$ch}->{$s}->{title} =~ /(.*), The$/)
+            if ($shows->{$ch}->{$s}->{title} =~ /(.*), (the|le|les|la|l')$/i)
             {
                 &log("Correcting title (" .
                      $shows->{$ch}->{$s}->{title} .
                      ")") if ($debug);
-                $shows->{$ch}->{$s}->{title} = "The $1";
+                $shows->{$ch}->{$s}->{title} = "$2 $1";
             }
             if ($shows->{$ch}->{$s}->{title} =~ /(.*) +\(?\*.*\*\)?/)
             {
