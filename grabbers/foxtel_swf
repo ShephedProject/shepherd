@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "0.30";
+my $version = "0.31";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -72,7 +72,6 @@ if ($opt->{version}) {
 }
 
 die "no channel file specified, see --help for instructions\n", if (!$opt->{channels_file});
-$opt->{days} = 7 if ($opt->{days} > 7); # limit to a max of 7 days
 
 #
 # go go go!
