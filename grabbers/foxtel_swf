@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "0.31";
+my $version = "1.00";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -16,6 +16,7 @@ use POSIX qw(strftime mktime);
 use Getopt::Long;
 use Data::Dumper;
 use Shepherd::Common;
+use Crypt::SSLeay;
 
 #
 # global variables and settings
