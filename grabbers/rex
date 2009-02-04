@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '3.6.12';
+my $version  = '4.0.0';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -100,6 +100,7 @@ my $version  = '3.6.12';
 #                    use Shepherd::Common::translate_category
 # 3.6.2   : Feature: use new Common::generate_category, don't add 'advisory',
 #                    add 'length', add 'final' and 'return' (unseen)
+# 4.0.0   : Minor format change.
 
 use strict;
 use Getopt::Long;
@@ -791,8 +792,8 @@ sub parse_details
 
   my $tree = HTML::TreeBuilder->new_from_content($detailsdata);
 
-  $block = $tree->find('h1');
-  return bad_parse("Mising title") unless ($block);  # site is probably sending that block page
+  $block = $tree->look_down('_tag' => 'span', 'class' => 'OH NOES');
+  return bad_parse("Missing title") unless ($block);  # site is probably sending that block page
 
   $show->{'title'} = [[ strip_whitespace($block->as_text()), $lang ]];
   $str = $tree->find('h2');

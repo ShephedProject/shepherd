@@ -4,7 +4,7 @@ reference       Shepherd/Common.pm  0.37
 reference       Shepherd/MythTV.pm  0.9
 reference       Shepherd/Configure.pm   0.10
 grabber         yahoo7widget        1.110-r3
-grabber         rex                 3.6.12
+grabber         rex                 4.0.0
 grabber         news                1.5
 grabber         abc_website         3.22
 grabber         oztivo              2.23
