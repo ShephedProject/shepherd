@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '4.0.0';
+my $version  = '4.0.1';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -101,6 +101,7 @@ my $version  = '4.0.0';
 # 3.6.2   : Feature: use new Common::generate_category, don't add 'advisory',
 #                    add 'length', add 'final' and 'return' (unseen)
 # 4.0.0   : Minor format change.
+# 4.0.1   : Give up quicker when encountering format change
 
 use strict;
 use Getopt::Long;
@@ -948,7 +949,9 @@ sub bad_parse
   my $msg = shift;
   print "Parsing error: $msg.\n";
   $stats{failed_parses}++;
-  if ($stats{failed_parses} > 4 and !scalar(keys %$precache))
+  if ($stats{failed_parses} > 4 
+	  and 
+      ($firstfetch ? !scalar(keys %shows) : !scalar(keys %$precache)))
   {
       print "ERROR! Unable to parse any shows! Looks like a major problem. " .
 	    "Exiting.\n";
