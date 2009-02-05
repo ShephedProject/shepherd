@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.12';
+my $version = '0.13';
 
 use strict;
 no strict 'refs';
@@ -1077,8 +1077,17 @@ sub configure_mythtv
 	close OLDCRON;
     }
 
+    my $mythfilldatabase = `which mythfilldatabase`;
+    unless ($mythfilldatabase)
+    {
+	&::log("WARNING! Unable to locate \"mythfilldatabase\". (Is MythTV installed?)\n".
+	       "Proceeding anyway, but cron job may not work.\n\n");
+	$mythfilldatabase = 'mythfilldatabase';
+    }
+    chomp $mythfilldatabase;
+
     my $minute = ((localtime)[1] + 2) % 60;
-    my $job = "$minute * * * * nice mythfilldatabase --graboptions '--daily'\n";
+    my $job = "$minute * * * * nice $mythfilldatabase --graboptions '--daily'\n";
 
     $newcron .= $job;
 
