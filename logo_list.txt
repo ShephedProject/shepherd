@@ -101,6 +101,24 @@ ICON	TEN HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogma
 ICON	TEN HD	t8_blue	http://ash.ms/projects/channels/download/icons-t8-blue/png/ten-hd.png
 ICON	TEN HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/ten-hd.png
 
+#ICON	One HD	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
+ICON	One HD	lyngsat	http://www.lyngsat-logo.com/logo/tv/oo/one_hd.jpg
+#ICON	One HD	tatey_blue	http://tatey.com/images/au_network_logos/one-hd.png
+ICON	One HD	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/one-hd.png
+ICON	One HD	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/one-hd.png
+ICON	One HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/one-hd.png
+ICON	One HD	t8_blue	http://ash.ms/projects/channels/download/icons-t8-blue/png/one-hd.png
+ICON	One HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/one-hd.png
+
+#ICON	One Digital	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
+#ICON	One Digital	lyngsat	http://www.lyngsat-logo.com/logo/tv/oo/one.jpg
+#ICON	One Digital	tatey_blue	http://tatey.com/images/au_network_logos/one.png
+ICON	One Digital	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/one.png
+ICON	One Digital	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/one.png
+ICON	One Digital	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/one.png
+ICON	One Digital	t8_blue	http://ash.ms/projects/channels/download/icons-t8-blue/png/one.png
+ICON	One Digital	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/one.png
+
 ICON	SBS	standard	http://imagestore.ugbox.net/thumb/sbs_861c4b17d8fc1856b8142446ddf6.jpg
 ICON	SBS	lyngsat	http://www.lyngsat-logo.com/logo/tv/ss/sbs.jpg
 ICON	SBS	tatey_blue	http://tatey.com/images/au_network_logos/sbs.png

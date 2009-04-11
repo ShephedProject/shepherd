@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.13';
+my $version = '0.14';
 
 use strict;
 no strict 'refs';
@@ -173,7 +173,7 @@ sub configure_channels_guided
           "having Shepherd's postprocessors populate HDTV content\n".
           "then Shepherd will need to know the XMLTV IDs for the HD\n".
           "channels also.  HD related SD channels are required.\n",
-          "The 7HD, Nine HD and TEN HD channels are populated\n",
+          "The 7HD, Nine HD and One HD channels are populated\n",
           "with programs from the first related SD channel.\n",
           "$::wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n\n";
     my $want_hdtv = &XMLTV::Ask::ask_boolean("Do you have High-Definition (HDTV)?");
@@ -414,7 +414,7 @@ sub configure_channels_advanced
           "having Shepherd's postprocessors populate HDTV content\n".
           "then Shepherd will need to know the XMLTV IDs for the HD\n".
           "channels also.  HD related SD channels are required.\n",
-          "The 7HD, Nine HD and TEN HD channels are populated\n",
+          "The 7HD, Nine HD and One HD channels are populated\n",
           "with programs from the first related SD channel.\n",
           "$::wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
     if (&XMLTV::Ask::ask_boolean("\nDo you wish to include HDTV channels?")) 

@@ -8,7 +8,7 @@
 use strict;
 
 my $progname = "ten_website";
-my $version = "1.06";
+my $version = "1.07";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -454,11 +454,11 @@ sub get_detail_pages
 			}
 
 			# HD
-			if ($data !~ /Not high definition/) {
+#			if ($data !~ /Not high definition/) {
 				$data_cache->{prog_cache}->{$url}->{video}->{aspect} = "16:9";      # widescreen
-				$data_cache->{prog_cache}->{$url}->{video}->{quality} = "HDTV" unless (defined $opt->{no_hdtv_flags});
-				&log("  got HD") if (defined $opt->{debug} && $opt->{debug} > 1);
-			}
+#				$data_cache->{prog_cache}->{$url}->{video}->{quality} = "HDTV" unless (defined $opt->{no_hdtv_flags});
+#				&log("  got HD") if (defined $opt->{debug} && $opt->{debug} > 1);
+#			}
 
 			# Rating
 			if ($data =~ /"Rated ([A-Z0-9a-z]+)"/) {
