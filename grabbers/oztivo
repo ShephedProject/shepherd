@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.24';
+my $version = '2.26';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
