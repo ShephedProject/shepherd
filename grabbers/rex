@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '4.0.1';
+my $version  = '5.0.0';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -793,7 +793,7 @@ sub parse_details
 
   my $tree = HTML::TreeBuilder->new_from_content($detailsdata);
 
-  $block = $tree->look_down('_tag' => 'span', 'class' => 'OH NOES');
+  $block = $tree->look_down('_tag' => 'span', 'class' => 'THIS PAGE');
   return bad_parse("Missing title") unless ($block);  # site is probably sending that block page
 
   $show->{'title'} = [[ strip_whitespace($block->as_text()), $lang ]];
