@@ -6,7 +6,7 @@
 # values changed. Should this grabber & Rex require modification, it'd
 # be worth merging the common code into a library or something.
 
-my $version  = '1.5';
+my $version  = '1.6';
 
 use strict;
 
@@ -17,7 +17,6 @@ use File::Basename;
 use Data::Dumper;
 use HTML::TreeBuilder;
 use JavaScript;
-use JavaScript::Runtime;
 use POSIX;
 use Encode;
 
