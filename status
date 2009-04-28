@@ -17,7 +17,7 @@ grabber         citysearch          3.0.1-r4
 grabber         acctv_website       0.08-r1
 grabber         sbsweb              2.06
 grabber         sbsnews_website     1.02
-reconciler      reconciler_mk2      0.41
+reconciler      reconciler_mk2      0.42
 postprocessor   imdb_augment_data   0.46
 postprocessor   flag_aus_hdtv       0.49
 postprocessor   augment_timezone    0.21

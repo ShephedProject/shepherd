@@ -95,7 +95,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.41";
+my $version = "0.42";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -887,6 +887,7 @@ sub match_stoplist_override
 	# alternate programme ALSO matches the right-hand-side
 	my $canonical_stop_list_exceptions = {
 		'Law.*Order' => [ "Criminal", "SVU", "Special", "Trial" ],
+		'BBC World News' => [ "America" ],
 		'(CSI|Crime.*Scene.*Investigation).*:' => [ ":.*Crime", "NY", "N.Y", "New", "Miami" ]
 		};
 
