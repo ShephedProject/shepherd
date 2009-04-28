@@ -42,10 +42,10 @@
 267:ABC1,ABC2,SBS,SBS News,Prime HD,Prime,WIN,SC10,ABC HD,SBS HD
 268:ABC1,ABC2,SBS,SBS News,Prime HD,Prime,WIN,SC10,ABC HD,SBS HD
 Foxtel:111HITS,ACC,AdultsOnly960,AIR,AnimalPlanet,AntennaPacific,Arena,Arena2,Aurora,BBCHD,BBCKnowledge,BBCWorldNews,Bio,BloombergTelevision,Boomerang,CartoonNetwork,Cbeebies,ChannelV,ChannelV2,CNBC,CNN,ComedyChannel,Comedy2,CountryMusicChannel,CrimeandInvestigationNetwork,DiscoveryChannel,DiscoveryHD,DiscoveryHomeandHealth,DiscoveryScience,DiscoveryTravel,DisneyChannel,E!Entertainment,ESPN,ESPNHD,Eurosportnews,EXPO,FashionTV,FOXClassics,FOXClassics2,FOXNews,FOXSPORTS1,FOXSPORTS2,FOXSPORTS3,FOXSportsHD,FOXSPORTSNews,FOX8,FOX82,FoxtelBoxOffice,FOXTELGamesworld,FUELTV,Hallmark,HOWTOChannel,LifeStyleFOOD,MainEvent,MAX,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NatGeoHD,NationalGeographic,NickJr,Nickelodeon,NITV,Ovation,PlayhouseDisney,RAIITALIA,SCIFI,showcase,SHOWTIME,SHOWTIMEGreats,SHOWTIME2,SkyNewsAustralia,SkyNewsBusiness,SkyRacing,TCM,TheHistoryChannel,TheLifeStyleChannel,LifeStyle2,TheWeatherChannel,TV1,TV12,TVN,TVSN,UKTV,UKTV2,VH1,W,W2,WORLDMOVIES
-SelecTV:AnimalPlanet,AntennaGreek,BBCWorld,CartoonNetwork,CNN,DiscoveryScience,DiscoveryHealth,DiscoveryTravel,DiscoveryRealTime,E!Entertainment,ERTGreek,Eurosport,FashionTV,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,Ovation,SkyRacing,TCM,TVChileSpanish,TVE,VH1
+SelecTV:AnimalPlanet,AntennaGreek,BBCWorldNews,BloombergTelevision,CartoonNetwork,CNN,DiscoveryScience,DiscoveryHomeandHealth,DiscoveryTravel,DiscoveryRealTime,DisneyChannel,E!Entertainment,ERTGreek,Eurosport,FashionTV,MOVIEEXTRA,MOVIEGREATS,MOVIEONE,MOVIETWO,MTV,NatGeoAdventure,NationalGeographic,Ovation,PlayhouseDisney,SkyRacing,TCM,TVChileSpanish,TVE,VH1
 ---migrate---
 Foxtel:111Hits->111HITS,DiscoveryHealth->DiscoveryHomeandHealth,CrimeandInvestigation->CrimeandInvestigationNetwork 
-SelecTV:Eurosportnews->Eurosport
+SelecTV:Eurosportnews->Eurosport,BBCWorld->BBCWorldNews,DiscoveryHealth->DiscoveryHomeandHealth
 *:ABC->ABC1
 75:Briz 31->QCTV
 98,106,107,108,114:Seven->SCTV Central
