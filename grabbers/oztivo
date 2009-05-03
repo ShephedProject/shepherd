@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.26';
+my $version = '2.27';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -89,14 +89,14 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-NSW',
 		'Prime' => 'PrimeS',
 		'SBS' => 'SBS-NSW',
-		'TEN' => 'Ten-NSW',
+		'SC10' => 'SC10-NSW',
 		'WIN' => 'WIN-NSW',
 	},
 	'90' => {	# VIC: Ballarat
 		'ABC1' => 'ABC-Vic',
 		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
-		'TEN' => 'SC10-Vic',
+		'SC10' => 'SC10-Vic',
 		'WIN' => 'WIN-Vic',
 		'Imparja' => 'IMP',
 	},
@@ -104,7 +104,7 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-NSW',
 		'Central GTS/BKN' => 'GTS-BKN',
 		'SBS' => 'SBS-NSW',
-		'Sthn Cross TEN' => 'SC10-NSW',
+		'SC10' => 'SC10-NSW',
 	},
 	'102' => {	# WA: Regional
 		'ABC1' => 'ABC-WA',
@@ -123,7 +123,7 @@ my %s_to_o_map = (
 		'Prime' => 'Prime-GC',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Bris',
-		'Sthn Cross TEN' => 'SC10-GC',
+		'SC10' => 'SC10-GC',
 		'TEN' => 'Ten-Qld',
 	},
 	'255' => {	# QLD: Sunshine Coast
@@ -131,48 +131,49 @@ my %s_to_o_map = (
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Qld',
 		'TEN' => 'Ten-Qld',
+		'SC10' => 'SC10-Qld',
 		'WIN' => 'Win-Qld',
 	},
 	'256' => {	# QLD: Toowoomba
 		'ABC1' => 'ABC-Qld',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Qld',
-		'TEN' => 'Ten-Qld',
+		'SC10' => 'SC10-Qld',
 		'WIN' => 'Win-Qld',
 	},
 	'258' => {	# QLD: Wide Bay
 		'ABC1' => 'ABC-Qld',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Qld',
-		'TEN' => 'Ten-Qld',
+		'SC10' => 'Ten-Qld',
 		'WIN' => 'Win-Qld',
 	},
 	'254' => {	# QLD: Rockhampton
 		'ABC1' => 'ABC-Qld',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Qld',
-		'TEN' => 'Ten-Qld',
+		'SC10' => 'Ten-Qld',
 		'WIN' => 'Win-Qld',
 	},
 	'253' => {	# QLD: Mackay
 		'ABC1' => 'ABC-Qld',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Qld',
-		'TEN' => 'Ten-Qld',
+		'SC10' => 'Ten-Qld',
 		'WIN' => 'Win-Qld',
 	},
 	'257' => {	# QLD: Townsville
 		'ABC1' => 'ABC-Qld',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Qld',
-		'TEN' => 'Ten-Qld',
+		'SC10' => 'Ten-Qld',
 		'WIN' => 'Win-Qld',
 	},
 	'79' => {	# QLD: Cairns
 		'ABC1' => 'ABC-Qld',
 		'SBS' => 'SBS-Qld',
 		'Seven' => 'Seven-Qld',
-		'TEN' => 'Ten-Qld',
+		'SC10' => 'Ten-Qld',
 		'WIN' => 'Win-Qld',
 	},
 	'107' => {	# SA: Remote & Central
@@ -207,8 +208,8 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-Can',
 		'Prime' => 'Prime-Can',
 		'SBS' => 'SBS-Can',
-		'TEN' => 'Ten-Can',
-		'WIN' => 'Win-Can',
+		'SC10' => 'Ten-Can',
+		'WIN' => 'WIN-Can',
 	},
 	'82' => {	# SA: Renmark
 		'ABC1' => 'ABC-SA',
@@ -239,8 +240,8 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-Vic',
 		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
-		'TEN (VIC: Mildura/Sunraysia)' => 'Ten-Vic',
-		'TEN (Mildura Digital)' => 'Ten-Vic',
+		'TEN' => 'Ten-Vic',
+		'SC10' => 'SC10-Vic',
 		'WIN' => 'WIN-Vic',
 	},
 	'75' => {	# QLD: Brisbane
@@ -276,27 +277,27 @@ my %s_to_o_map = (
 		'NBN' => 'NBN',
 		'Prime' => 'PrimeN',
 		'SBS' => 'SBS-NSW',
-		'Sthn Cross TEN' => 'SC10-NSW',
+		'SC10' => 'SC10-NSW',
 	},
 	'69' => {	# NSW: Tamworth
 		'ABC1' => 'ABC-NSW',
 		'NBN' => 'NBN',
 		'Prime' => 'PrimeN',
 		'SBS' => 'SBS-NSW',
-		'Sthn Cross TEN' => 'SC10-NSW',
+		'SC10' => 'SC10-NSW',
 	},
 	'71' => {	# NSW: Wollongong
 		'ABC1' => 'ABC-NSW',
 		'Prime' => 'PrimeS',
 		'SBS' => 'SBS-NSW',
-		'TEN' => 'Ten-NSW',
+		'SC10' => 'SC10-NSW',
 		'WIN' => 'WIN-NSW',
 	},
 	'259' => {	# NSW: Far South Coast
 		'ABC1' => 'ABC-NSW',
 		'Prime' => 'Prime-Can',
 		'SBS' => 'SBS-NSW',
-		'TEN' => 'Ten-NSW',
+		'SC10' => 'SC10-NSW',
 		'WIN' => 'WIN-NSW',
 	},
 	'261' => {	# NSW: Lismore/Coffs Harbour
@@ -304,13 +305,13 @@ my %s_to_o_map = (
 		'NBN' => 'NBN',
 		'Prime' => 'PrimeN',
 		'SBS' => 'SBS-NSW',
-		'Sthn Cross TEN' => 'SC10-NSW',
+		'SC10' => 'SC10-NSW',
 	},
 	'262' => {	# NSW: Orange/Dubbo
 		'ABC1' => 'ABC-NSW',
 		'Prime' => 'PrimeS',
 		'SBS' => 'SBS-NSW',
-		'TEN' => 'Ten-NSW',
+		'SC10' => 'SC10-NSW',
 		'WIN' => 'WIN-NSW',
 	},
 	'263' => {	# NSW: Taree/Port Macquarie
@@ -318,13 +319,13 @@ my %s_to_o_map = (
 		'NBN' => 'NBN',
 		'Prime' => 'PrimeN',
 		'SBS' => 'SBS-NSW',
-		'Sthn Cross TEN' => 'SC10-NSW',
+		'SC10' => 'SC10-NSW',
 	},
 	'264' => {	# NSW: Wagga Wagga
 		'ABC1' => 'ABC-NSW',
 		'Prime' => 'PrimeS',
 		'SBS' => 'SBS-NSW',
-		'TEN' => 'Ten-NSW',
+		'SC10' => 'SC10-NSW',
 		'WIN' => 'WIN-NSW',
 	},
 	'81' => {	# SA: Adelaide
@@ -341,7 +342,7 @@ my %s_to_o_map = (
 		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
 		'SCTV Central' => 'Seven-Mel',
-		'TEN' => 'Ten-Vic',
+		'SC10' => 'Ten-Vic',
 		'WIN' => 'WIN-Vic',
 	},
 	'66' => {	# NSW: Central Coast
@@ -352,7 +353,7 @@ my %s_to_o_map = (
 		'SBS' => 'SBS-NSW',
 		'Seven' => 'Seven-Syd',
 		'Sthn Cross TEN' => 'SC10-NSW',
-		'TEN' => 'Ten-NSW',
+		'TEN' => 'SC10-NSW',
 	},
 	'73' => {	# NSW: Sydney
 		'ABC1' => 'ABC-NSW',
@@ -360,7 +361,7 @@ my %s_to_o_map = (
 		'Nine' => 'Nine-Syd',
 		'SBS' => 'SBS-NSW',
 		'Seven' => 'Seven-Syd',
-		'TEN' => 'Ten-NSW',
+		'TEN' => 'SC10-NSW',
 		'TVS' => '31-Syd',
 	},
 	'101' => {	# WA: Perth
@@ -382,7 +383,7 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-Vic',
 		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
-		'TEN' => 'SC10-Vic',
+		'SC10' => 'SC10-Vic',
 		'WIN' => 'WIN-Vic',
 		'Imparja' => 'IMP',
 	},
@@ -390,14 +391,14 @@ my %s_to_o_map = (
 		'ABC1' => 'ABC-Vic',
 		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
-		'TEN' => 'SC10-Vic',
+		'SC10' => 'SC10-Vic',
 		'WIN' => 'WIN-Vic',
 	},
 	'268' => {	# VIC: Albury/Wodonga
 		'ABC1' => 'ABC-Vic',
 		'Prime' => 'Prime-Vic',
 		'SBS' => 'SBS-Vic',
-		'TEN' => 'SC10-Vic',
+		'SC10' => 'SC10-Vic',
 		'WIN' => 'WIN-Vic',
 	},
 	'PAY' => {	# Pay channels
