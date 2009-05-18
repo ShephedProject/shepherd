@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.14';
+my $version = '0.15';
 
 use strict;
 no strict 'refs';
@@ -238,7 +238,7 @@ sub configure_channels_guided
            "data for %s (%d free-to-air, %d HDTV, %d Pay-TV).\n\n".
 	   "Please associate each MythTV channel with a Shepherd guide data\n".
 	   "channel.\n\n",
-	   scalar(keys %$mythids),
+	   scalar(@$mythids),
 	   scalar(@allchannels),
 	   $REGIONS{$::region},
 	   scalar(@channellist), 
@@ -246,7 +246,7 @@ sub configure_channels_guided
 	   scalar(@paytv_channellist);
     
     my $display_mode = 0;
-    foreach my $ch (sort keys %$mythids)
+    foreach my $mch (@$mythids)
     {
 	my @table = $display_mode ? @paytvchannels : @sdchannels;
 	if ($want_paytv)
@@ -256,7 +256,6 @@ sub configure_channels_guided
 
 	&guided_configure_table(@table);
 
-	my $mch = $mythids->{$ch};
 	my $longname = $mch->{name};
 	$longname .= " ($mch->{callsign})" if ($mch->{callsign} and lc($mch->{callsign}) ne lc($longname));
 
@@ -286,7 +285,7 @@ sub configure_channels_guided
 	    my $xmltvid = '';
 	    if ($inp == 0)
 	    {
-		print "$ch -> (no guide data)\n";
+		print "$mch->{name} -> (no guide data)\n";
 	    }
 	    else
 	    {
@@ -307,10 +306,9 @@ sub configure_channels_guided
 		{
 		    $::opt_channels->{$target} = $xmltvid;
 		}
-		print "$ch -> $allchannels[$inp].\n";
+		print "$mch->{name} -> $allchannels[$inp].\n";
 	    }
-	    $mythids->{$ch}->{xmltvid} = $xmltvid;
-
+	    $mch->{xmltvid} = $xmltvid;
 	}
 	else
 	{
@@ -710,6 +708,12 @@ sub channel_selection
 
     my $mythids = &::retrieve_mythtv_channels;
 
+    my %mhash;
+    foreach my $ch (@$mythids)
+    {
+	$mhash{$ch->{'xmltvid'}} = $ch;
+    }
+
     print "\nYour region has " . scalar(@channellist) . " $type channels:\n " .
           join(', ', @channellist) . ".\n\n";
 
@@ -733,9 +737,9 @@ sub channel_selection
             $default = $old_channels->{$ch};
         }
         # If it looks like a channel in MythTV, suggest that.
-        elsif ($mythids->{$ch})
+        elsif ($mhash{$ch})
         {
-            $default = $mythids->{$ch}->{xmltvid};
+            $default = $mhash{$ch}->{xmltvid};
         }
         # Otherwise make up a name
         else
@@ -749,17 +753,17 @@ sub channel_selection
         printf "(%2d/%2d) \"%s\" (%s)\n", $c, scalar(@channellist), $ch, $status;
 
 	# Notify user if we found a matching MythTV channel
-        if ($mythids->{$ch})
+        if ($mhash{$ch})
         {
-	    my $channum = $mythids->{$ch}->{channum} || '-';
+	    my $channum = $mhash{$ch}->{channum} || '-';
             printf "        Looks like MythTV channel #%s: \"%s\" (%s)\n",
                    $channum,
-                   $mythids->{$ch}->{name},
-                   $mythids->{$ch}->{callsign};
-            if ($default ne $mythids->{$ch}->{xmltvid})
+                   $mhash{$ch}->{name},
+                   $mhash{$ch}->{callsign};
+            if ($default ne $mhash{$ch}->{xmltvid})
             {
                 printf "        Current ID is \"%s\" but MythTV Ch #%s is \"%s\"\n",
-                    $default, $channum, $mythids->{$ch}->{xmltvid};
+                    $default, $channum, $mhash{$ch}->{xmltvid};
             }
         }
 
@@ -828,9 +832,8 @@ sub update_mythtv_channels
 	my $dbh = &Shepherd::MythTV::open_connection;
 	exit unless ($dbh);
 	my $sth = $dbh->prepare("UPDATE channel SET xmltvid = ? WHERE name = ? AND channum = ? ");
-	foreach (keys %$mchans)
+	foreach my $mch (@$mchans)
 	{
-	    my $mch = $mchans->{$_};
 	    $sth->execute($mch->{xmltvid}, $mch->{name}, $mch->{channum});
 	}
 	&Shepherd::MythTV::close_connection;

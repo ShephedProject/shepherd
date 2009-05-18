@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.37';
+my $version = '1.3.38';
 
 # tv_grab_au
 # "Shepherd"
@@ -2422,7 +2422,7 @@ sub retrieve_mythtv_channels
 
         my $dbh = &Shepherd::MythTV::open_connection();
         return unless ($dbh); # end eval
-        $mchans = $dbh->selectall_hashref("SELECT name,callsign,channum,xmltvid FROM channel;", 'name');
+        $mchans = $dbh->selectall_arrayref("SELECT name,callsign,channum,xmltvid FROM channel;", { Slice => {} } );
         &Shepherd::MythTV::close_connection;
     };
     if ($@)
@@ -2438,7 +2438,7 @@ sub show_mythtv_mappings
     my ($show_xmltvids, $mchans) = @_;
 
     &log(sprintf "\nRegion %d. %d MythTV channels. %d Shepherd channels.\n\n",
-	$region, scalar(keys %$mchans), scalar(keys %$channels) + scalar(keys %$opt_channels));
+	$region, scalar(@$mchans), scalar(keys %$channels) + scalar(keys %$opt_channels));
     if ($show_xmltvids)
     {
 	&log("   #  MythTV Channel                 XMLTV ID             Shepherd Guide Data\n".
@@ -2453,20 +2453,20 @@ sub show_mythtv_mappings
     map { $xmltvids{$channels->{$_}} = $_ } keys %$channels;
     map { $xmltvids{$opt_channels->{$_}} = $_ } keys %$opt_channels;
     my %unmapped = %xmltvids;
-    foreach my $name (sort keys %$mchans)
+    foreach my $chan (@$mchans)
     {
-	my $mapped_to = $mchans->{$name}->{xmltvid} ? $xmltvids{$mchans->{$name}->{xmltvid}} || '-' : '-';
-	delete $unmapped{$mchans->{$name}->{xmltvid}} if ($mapped_to ne '-');
+	my $mapped_to = $chan->{'xmltvid'} ? $xmltvids{$chan->{'xmltvid'}} || '-' : '-';
+	delete $unmapped{$chan->{'xmltvid'}} if ($mapped_to ne '-');
 
-	my $longname = $name;
-        $longname .= " ($mchans->{$name}->{callsign})" if ($mchans->{$name}->{callsign} and lc($mchans->{$name}->{callsign}) ne lc($name));
-	my $channum = $mchans->{$name}->{channum};
+	my $longname = $chan->{'name'};
+        $longname .= " ($chan->{callsign})" if ($chan->{'callsign'} and lc($chan->{'callsign'}) ne lc($chan->{'name'}));
+	my $channum = $chan->{'channum'};
 	if ($show_xmltvids)
 	{
 	    &log(sprintf "%4s  %-30s %-20s <- %s\n",
 		         $channum,
 			 $longname,
-			 $mchans->{$name}->{xmltvid} || '-',
+			 $chan->{'xmltvid'} || '-',
 			 $mapped_to
 		        );
 	}
@@ -2481,8 +2481,8 @@ sub show_mythtv_mappings
     if (keys %unmapped)
     {
 	&log("\nWARNING! Unmapped guide data: " . join(', ', values %unmapped) . ".\n".
-	     "Shepherd is set to download guide data that no MythTV channel wants.\n".
-	     "Either map these to a MythTV channel, or do not subscribe to them.\n");
+	     "         Shepherd is set to download guide data that no MythTV channel wants.\n".
+	     "         Either map these to a MythTV channel, or do not subscribe to them!\n\n");
     }
 }
 
