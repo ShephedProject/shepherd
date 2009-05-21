@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.27';
+my $version = '2.28';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -645,11 +645,13 @@ sub configure
 {
 	print <<__EOM;
 Configuring...
-Before you can use the $nicename grabber, you must create a
-OzTivo account here:
-  http://minnie.tuhs.org/twiki/bin/view/TWiki/TWikiRegistration
+
+NOTE: This step is currently optional.
+
+You can create an OzTivo account here:
+  http://www.oztivo.net/twiki/bin/view/TWiki/TWikiRegistration
 ... and select some channels here:
-  http://minnie.tuhs.org/tivo-bin/tvguide.pl
+  http://www.oztivo.net/tivo-bin/tvguide.pl
 When you're done, enter your username and password here, to
 enable this grabber to retrieve your guide data automatically:
 Username?
@@ -833,7 +835,6 @@ my $enddate = sprintf('%04d-%02d-%02d', $year+1900, $mon+1, $mday);
 #	last modified date.
 #
 
-#my $datalist = get_url("http://$user:$pw\@minnie.tuhs.org/xmltv/datalist.xml.gz");
 my $datalist = get_url("http://xml.oztivo.net/xmltv/datalist.xml.gz");
 unless (defined($datalist)) {
 	die "\nError fetching data list xml file!\n";
