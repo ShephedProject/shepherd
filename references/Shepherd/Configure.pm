@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.15';
+my $version = '0.16';
 
 use strict;
 no strict 'refs';
@@ -53,7 +53,8 @@ sub configure
 	    exit 0;
 	}
 
-	&::call_prog($proggy, query_filename($proggy, $progtype) . " ". query_config($proggy, 'option_config'));
+	my $option_configure = (&::query_config($proggy, 'option_config') or '--configure');
+	&::call_prog($proggy, &::query_filename($proggy, $progtype) . " $option_configure");
 
 	exit 0;
     }
