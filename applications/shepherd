@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.38';
+my $version = '1.3.39';
 
 # tv_grab_au
 # "Shepherd"
@@ -66,6 +66,7 @@ our $debug = 0;
 our $region;
 our $channels;
 our $opt_channels;
+our $components = { };
 our $want_paytv_channels;
 our $pref_title_source;
 my $last_successful_run;
@@ -82,7 +83,6 @@ my $mirror_site;    # obsolete
 my $sources;
 my $last_successful_run_data;
 my $last_successful_runs;
-my $components = { };
 my $components_pending_install = { };
 my $config_file =   "$CWD/$progname.conf";
 my $channels_file = "$CWD/channels.conf";
