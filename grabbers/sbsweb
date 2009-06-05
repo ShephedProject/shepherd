@@ -9,7 +9,7 @@
 # has been coded to make adding any future channels easy.
 #
 
-my $version = '2.06';
+my $version = '3.00';
 
 use strict;
 use Getopt::Long;
@@ -27,7 +27,8 @@ use Encode;
 my $progname = "sbsweb";
 
 my $DATASOURCE = "sbs.com.au";
-
+my $URLS = {	'SBS ONE' => "http://www.$DATASOURCE/schedule/SBSONE",
+		'SBS TWO' => "http://www.$DATASOURCE/schedule/SBSTWO" };
 my $lang = 'en';
 my $debug = 0;
 my $channels;
@@ -38,7 +39,6 @@ my $shows;
 my $runtime = time;
 my $zerohr;
 my $loc;
-my $chanid;
 
 # ---------------------------------------------------------------------------
 # --- Setup
@@ -62,11 +62,13 @@ unless ($channels)
     print "ERROR: No channels requested. Please use --channels_file.\n";
     exit 33;
 }
-$chanid = $channels->{'SBS'};
 
 &set_region;
 
-&get_guide_data;
+foreach (keys %$channels)
+{
+    &get_guide_data($_);
+}
 
 &tidy_data;
 
@@ -85,10 +87,12 @@ exit;
 
 sub get_guide_data
 {
+    my $chan = shift;
+
     &log("Grabbing data for days " . $opt->{offset} .
          " - " . ($opt->{days} - 1) .
 	 ($opt->{output} ? " into " . $opt->{output} : '') .
-	 ".");
+	 "for channel $chan.");
 
     # Calculate midnight on day zero in epoch time
     my @today = localtime($runtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
@@ -106,22 +110,25 @@ sub get_guide_data
 	my $daystr = &POSIX::strftime("%Y-%m-%d", localtime($runtime + ($day * 86400)));
 	&log("Day $day: $daystr");
 
-	my $url = "http://www.$DATASOURCE/schedule/$daystr/$loc";
+	my $url = $URLS->{$chan} . "/$daystr/$loc";
 	my $guidedata = &Shepherd::Common::get_url($url);
 	exit 11 unless ($guidedata);
 
 	Encode::from_to($guidedata, "UTF-8", "iso-8859-1");
 
-	&parse_guide($guidedata, $day);
+	&parse_guide($guidedata, $day, $chan);
     }
     &log("Found " . &num_items($shows) . " shows on " . scalar(keys %$shows) . " channels.");
 }
 
 sub parse_guide
 {
-    my ($guidedata, $day) = @_;
+    my ($guidedata, $day, $chan) = @_;
 
     &log("Parsing guide page (Day $day).") if ($debug);
+
+    my $chanid = $channels->{$chan};
+
     my $tree = HTML::TreeBuilder->new;
     $tree->no_space_compacting(1);
     $tree->parse($guidedata);
@@ -564,14 +571,13 @@ sub read_channels_file
     }
     foreach (keys %$channels)
     {
-	unless ($_ eq 'SBS')
+	unless ($_ eq 'SBS ONE' or $_ eq 'SBS TWO')
 	{
 	    &log("Ignoring unsupported channel $_.");
 	    delete $channels->{$_};
 	}
     }
-    $chanid = $channels->{'SBS'};
-    unless (keys %$channels and $chanid)
+    unless (keys %$channels)
     {
 	&log("ERROR: No supported channels requested. Exiting.");
 	exit 22;
