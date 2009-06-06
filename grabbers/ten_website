@@ -8,16 +8,16 @@
 use strict;
 
 my $progname = "ten_website";
-my $version = "1.07";
+my $version = "2.00";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
 use Getopt::Long;
 use Data::Dumper;
 use Shepherd::Common;
-use XML::DOM;
-use XML::DOM::NodeList;
+use XML::Simple;
 use HTML::TreeBuilder;
+use Data::Dumper;
 
 #
 # global variables and settings
@@ -120,7 +120,19 @@ if (-r $opt->{channels_file}) {
 	die "WARNING: channels file $opt->{channels_file} could not be read\n";
 }
 
-die "TEN not listed as a channel in ".$opt->{channels_file}.", nothing to do!\n" if (!defined $channels->{TEN});
+foreach my $chan (keys %$channels)
+{
+    unless (grep($chan eq $_, ('TEN', 'ONE Digital', 'ONE HD', 'TEN HD')))
+    {
+	&log("Ignoring unsupported channel $_.");
+	delete $channels->{$_};
+    }
+}
+unless (keys %$channels)
+{
+    &log("ERROR: No supported channels requested. Exiting.");
+    exit 22;
+}
 
 if (defined $opt->{gaps_file}) {
 	if (-r $opt->{gaps_file}) {
@@ -130,19 +142,24 @@ if (defined $opt->{gaps_file}) {
 		die "WARNING: gaps file $opt->{gaps_file} could not be read: $!\n";
 	}
 
-	die "no TEN channel in gaps lineup, nothing to do!\n"
-	  unless ((defined $gaps) && (defined $gaps->{'TEN'}));
+	die "No supported channels in gaps lineup, nothing to do!" unless ($gaps and ($gaps->{TEN} or $gaps->{'TEN HD'}));
 }
 
 
 &read_cache unless (defined $opt->{no_cache});
 
-&get_summary_page;
+$stats{programmes} = 0;
+
+foreach (keys %$channels)
+{
+    &get_summary_page($_);
+}
+
 &get_detail_pages unless (defined $opt->{no_details});
 
-&write_xmltv;
-
 &write_cache unless (defined $opt->{no_cache});
+
+&write_xmltv;
 
 &print_stats;
 exit(0);
@@ -251,14 +268,18 @@ sub write_xmltv
 	  ( { 'source-info-name'   => "$progname $version",
 	      'generator-info-name' => "$progname $version"} );
 
-	$writer->write_channel( {'display-name' => [[ "TEN", $opt->{lang} ]], 'id' => $channels->{TEN} } ) if (defined $channels->{TEN});
-	$writer->write_channel( {'display-name' => [[ "TEN", $opt->{lang} ]], 'id' => $opt_channels->{TEN} } ) if (defined $opt_channels->{TEN});
+        foreach my $chan (keys %$channels)
+	{
+	    print "Writing channel $chan.\n";
+	    $writer->write_channel( {'display-name' => [[ $chan, $opt->{lang} ]], 'id' => $channels->{$chan} } );
+	}
 
 	foreach my $prog (@{($d->{progs})}) {
-		delete $prog->{link};
+		delete $prog->{'link'};
 
 		Shepherd::Common::cleanup($prog);
-		printf "DEBUG: programme xmltv: ".Dumper($prog) if (defined $opt->{debug});
+#		printf "DEBUG: programme xmltv: ".Dumper($prog) if (defined $opt->{debug});
+		printf "- %s (%s)\n", $prog->{title}->[0][0], $prog->{channel};
 		$writer->write_programme($prog);
 	}
 
@@ -269,6 +290,8 @@ sub write_xmltv
 
 sub get_summary_page
 {
+	my $channel = shift;
+
 	my $state = Shepherd::Common::which_state($opt->{region});
 
 	my $reg = "sydney";				# sydney
@@ -277,10 +300,11 @@ sub get_summary_page
 	$reg = "perth"		if ($state eq "WA");	# perth
 	$reg = "adelaide"	if ($state eq "SA");	# adelaide
 
-	&log("fetching summary page (".$reg.")");
-	$stats{programmes} = 0;
+	&log("Fetching summary page ($channel $reg)");
 
-	my $url = "http://ten.com.au/tv-schedule/full?location=".$reg."&uid=";
+	my $url = sprintf "http://ten.com.au/tv-schedule/full?location=%s%s&uid=", 
+			    $reg,
+			    $channel =~ /^ONE/ ? '&hd=1' : '';
 	my $tries = 5;
 	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
 	  Shepherd::Common::get_url(url => $url, retries => ($tries-1));
@@ -288,6 +312,7 @@ sub get_summary_page
 	$stats{failed_requests} += $failed_attempts;
 	$stats{slept_for} += $seconds_slept;
 	$stats{bytes_fetched} += $bytes_fetched;
+	my $prev_num_programmes = $stats{programmes};
 
 	if ((!$data) || (!$success)) {
 		&log("Failed to fetch '$url' after $tries attempts.\nAborting: likely format change or blocked!");
@@ -296,111 +321,91 @@ sub get_summary_page
 
 	$stats{http_successful_requests}++;
 
-	my $parser = new XML::DOM::Parser;
-        my $tree = $parser->parse($data);
-        my $guide = $tree->getElementsByTagName("tvguide");
-	my $progs = $guide->item(0)->getElementsByTagName("program");
-	for (my $i = 0; $i < $progs->getLength; $i++) {
-		my $p;
-		foreach my $field ("duration", "endTime", "is_series", "link", "program_name", "schedule_id", "series_id", "startTime") {
-			my $attr = $progs->item($i)->getAttributeNode($field);
-			$p->{$field} = $attr->getValue if (defined $attr);
-
-		}
-
-		if ((!defined $p->{startTime}) || (!defined $p->{endTime})) {
+	my $xml = new XML::Simple;
+        $data = $xml->XMLin($data);
+	foreach my $show (@{$data->{program}}) 
+	{
+		if (!$show->{startTime} or !$show->{endTime}) 
+		{
 			$stats{prog_bad_time}++;
 			next;
 		}
-		if (!defined $p->{program_name}) {
+		if (!$show->{program_name}) 
+		{
 			$stats{prog_no_title}++;
 			next;
 		}
 
-		my $prog_start = substr($p->{startTime},0,10);
-		my $prog_stop =  substr($p->{endTime},0,10);
+		my $prog_start = substr($show->{startTime},0,10);
+		my $prog_stop =  substr($show->{endTime},0,10);
 
 		# only fetch within start/end times specified.
-		if (($prog_stop < $starttime) || ($prog_start > $endtime)) {
+		if (($prog_stop < $starttime) || ($prog_start > $endtime)) 
+		{
 			$stats{prog_outside_window}++;
 			next;
 		}
 
 		# if microgap fetching only fetch within gaps
-		if (defined $opt->{gaps_file}) {
-			my $found_gap = 0;
-			foreach my $g (@{($gaps->{TEN})}) {
-				my ($s, $e) = split(/-/,$g);
-				if ((($s >= $prog_start) && ($s <= $prog_stop)) ||
-				    (($e >= $prog_start) && ($e <= $prog_stop)) ||
-				    (($s <= $prog_start) && ($e >= $prog_stop))) {
-					$found_gap = 1;
-				}
-			}
-			if (!$found_gap) {
+		if (defined $opt->{gaps_file}) 
+		{
+			unless (&is_within_gaps($gaps->{$channel}, $prog_start, $prog_stop))
+			{
 				$stats{gaps_skipped}++;
 				next;
 			}
 		}
 
 		my $prog;
-		$prog->{channel} = $channels->{TEN} if (defined $channels->{TEN});
-		$prog->{channel} = $opt_channels->{TEN} if (defined $opt_channels->{TEN});
+		$prog->{channel} = $channels->{$channel};
 		$prog->{start} = POSIX::strftime("%Y%m%d%H%M", localtime($prog_start));
 		$prog->{stop} =  POSIX::strftime("%Y%m%d%H%M", localtime($prog_stop));
-		$prog->{length} = ($p->{duration} * 60) if (defined $p->{duration});
-		$prog->{title} = [[ $p->{program_name}, $opt->{lang} ]];
-
-		my @categories;
-		push(@categories, [ "series", $opt->{lang} ] ) if ((defined $p->{is_series}) && ($p->{is_series} eq "true"));
-		if (defined $p->{link}) {
-			$prog->{link} = $p->{link};
-			if (($p->{link} =~ /id=Hillsong/) ||
-			    ($p->{link} =~ /id=This_Is_Your_Day_With_Benny_Hinn/) ||
-			    ($p->{link} =~ /id=Kenneth_Copeland/) ||
-			    ($p->{link} =~ /id=Life_Today_With_James_Robison/) ||
-			    ($p->{link} =~ /id=Christian_City_TV/)) {
-				push(@categories, [ "Religion", $opt->{lang} ] );
-			} elsif ($p->{link} =~ /id=Home_Shopping/) {
-				push(@categories, [ "Shopping", $opt->{lang} ] );
-			} elsif ($p->{link} =~ /id=Toasted_TV/) {
-				push(@categories, [ "Kids", $opt->{lang} ] );
-			}
-		}
-		$prog->{'category'} = [ @categories ] if ((scalar @categories) > 0);
-		# "schedule_id", "series_id"
+		$prog->{title} = [[ $show->{program_name}, $opt->{lang} ]];
+		$prog->{link} = $show->{link};
+		$prog->{link} =~ s/^\/tvguide_synopsis\.html\?id=//;
 
 		$d->{progs}->[$stats{programmes}] = $prog;
 		$stats{programmes}++;
+
+		&log(sprintf " %3d. %s", $stats{programmes}, $show->{program_name}) if ($opt->{debug});
 	}
 
-	&log(" summary returned data for ".$stats{programmes}." programmes");
+	&log(" summary returned data for ".($stats{programmes} - $prev_num_programmes)." programmes");
 }
 
 ##############################################################################
 
+
+# Use new URL which is heaps better for parsing & has great details:
+#
+#   http://ten.com.au/feeds/$STATE/$URL
+#
+# ...where $STATE is one of qw( nsw vic qld sa wa )
+# and $URL is the 'id' component of the guide 'link' field. (For example, 
+# 'Rugby_Spring_Tour_2008_2518335.xml'.)
+#
+# Interesting fields in main 'program' tag, set to '="true"' if they exist:
+# repeat,close-captioned,high-definition,widescreen,live
+#
 sub get_detail_pages
 {
 	my $prog_count;
 	$stats{used_detailed_cache} = 0;
 	&log("fetching up to ".$stats{programmes}." detail pages...");
 
+	my $state = lc(Shepherd::Common::which_state($opt->{region}));
 	for (my $i=0; $i < $stats{programmes}; $i++) {
 		my $url = $d->{progs}->[$i]->{link};
 		my $was_in_cache = 0;
 		$prog_count++;
-		next if ((!defined $url) || ($url eq ""));
 
 		# some descriptions all end up being the same.  just skip fetching details on these
-		if (($url =~ /id=Home_Shopping/) ||
-		    ($url =~ /id=Hillsong/) ||
-		    ($url =~ /id=This_Is_Your_Day_With_Benny_Hinn/) ||
-		    ($url =~ /id=Kenneth_Copeland/) ||
-		    ($url =~ /id=Life_Today_With_James_Robison/) ||
-		    ($url =~ /id=Christian_City_TV/) ||
-		    ($url =~ /id=Toasted_TV/)) {
-			$stats{skipped_detail_pages}++;
-			next;
+		my @skip_these = qw( Home_Shopping Hillsong This_Is_Your_Day_With_Benny_Hinn Kenneth_Copeland \
+				     Life_Today_With_James_Robison Christian_City_TV Toasted_TV );
+		my $id = $1 if $url =~ /^(.*)_\d+\.xml$/;
+		if (!$id or grep($id eq $_, @skip_these)) {
+		    $stats{skipped_detail_pages}++;
+		    next;
 		}
 
 		if (($prog_count % 10) == 1) {
@@ -408,7 +413,7 @@ sub get_detail_pages
 		}
 
 		if (!defined $data_cache->{prog_cache}->{$url}) {
-			my $fetch_url = "http://ten.com.au".$url;
+			my $fetch_url = "http://ten.com.au/feeds/$state/$url";
 			my $tries = 3;
 
 			&log("fetching prog ".$prog_count." [".$fetch_url."] ..") if (defined $opt->{debug} && $opt->{debug} > 1);
@@ -431,66 +436,98 @@ sub get_detail_pages
 
 				next;
 			}
-
 			$stats{http_successful_requests}++;
 
-			# parse details
-			my $tree = HTML::TreeBuilder->new_from_content($data);
+			my $xml = new XML::Simple;
+			$data = $xml->XMLin($data);
+			my $prog = $data->{program};
 
-			# prog description
-			my $prog_desc = $tree->look_down('_tag' => 'td', 'class' => 'bottom-row');
-			if (defined $prog_desc) {
-				my $prog_desc_text = $prog_desc->as_text();
-				if ($prog_desc_text ne "") {
-					$data_cache->{prog_cache}->{$url}->{desc} = [[ $prog_desc->as_text(), $opt->{lang} ]];
-					&log("  got desc '".$prog_desc->as_text()."'") if (defined $opt->{debug} && $opt->{debug} > 1);
-				}
-			}
+			print Dumper($data);
 
-			# closed captions
-			if ($data !~ /No closed captions/) {
-				$data_cache->{prog_cache}->{$url}->{subtitles} = [ { 'type' => 'teletext' } ];
-				&log("  got closed-captions") if (defined $opt->{debug} && $opt->{debug} > 1);
-			}
-
-			# HD
-#			if ($data !~ /Not high definition/) {
-				$data_cache->{prog_cache}->{$url}->{video}->{aspect} = "16:9";      # widescreen
-#				$data_cache->{prog_cache}->{$url}->{video}->{quality} = "HDTV" unless (defined $opt->{no_hdtv_flags});
-#				&log("  got HD") if (defined $opt->{debug} && $opt->{debug} > 1);
-#			}
-
-			# Rating
-			if ($data =~ /"Rated ([A-Z0-9a-z]+)"/) {
-				my $prog_rating = $1;
-				if ((defined $prog_rating) && ($prog_rating ne "")) {
-					my @ratings;
-					push(@ratings, [$prog_rating, 'ABA', undef]);
-					$data_cache->{prog_cache}->{$url}->{rating} = [ @ratings ];
-					&log("  got rating ".$prog_rating) if (defined $opt->{debug} && $opt->{debug} > 1);
-				}
-			}
+			my $show = $d->{progs}->[$i];
+			my %type;
+			$show->{'title'} = [[ $prog->{'program_name'}, $opt->{lang} ]];
+			$show->{'sub-title'} = [[ $prog->{'episode_name'}, $opt->{lang} ]] unless (ref $prog->{'episode_name'});
+			$show->{video}->{aspect} = "16:9" if ($prog->{widescreen});
+			$show->{video}->{quality} = "HDTV" if ($prog->{'high-definition'});
+			$show->{'previously-shown'} = { } if ($prog->{repeat});
+			$show->{'desc'} = [[ $prog->{'synopsis'}, $opt->{lang} ]] unless (ref $prog->{'synopsis'});
+			$show->{'language'} = [ $prog->{'language'}, $opt->{lang} ] unless (ref $prog->{language});
+			$type{live} = 1 if ($prog->{'live'});
+			$type{series} = 1 if ($prog->{'program_type'} eq 'Series');
+			$type{movie} = 1 if ($prog->{'program_type'} eq 'Movie');
+			my $rating = $prog->{'classification'};
+			$rating .= sprintf " (%s)", $prog->{'consumer_advice'} unless (ref $prog->{'consumer_advice'});
+			$show->{'rating'} = [[ $rating, 'ABA', undef ]];
 			
-			$tree->delete;
+
+			if ($prog->{actors} and !ref $prog->{actors})
+			{
+			    $show->{credits}{actor} = [ split(/,/, $prog->{actors}) ];
+			}
+			if ($prog->{director} and !ref $prog->{director})
+			{
+			    my @tmp = split(/,/, $prog->{director});
+			    print "DIRECTOR: @tmp.\n";
+			    $show->{credits}{director} = [ @tmp ] if (@tmp);
+			}
+			&Shepherd::Common::cleanup($show->{credits});
+
+			$show->{'country'} = [[ $prog->{'country'}, $opt->{lang} ]] unless (ref $prog->{'country'});
+			$show->{'date'} = $prog->{'prod_year'} unless (ref $prog->{'prod_year'});
+			$show->{'category'} = [ &Shepherd::Common::generate_category(
+			          $show->{'title'}[0][0], $prog->{'hww_genre'}, %type) ];
+			$show->{'channel'} = $d->{progs}->[$i]->{'channel'};
+
+			$d->{progs}->[$i] = $show;
+			$data_cache->{prog_cache}->{$url} = $show;
 		} else {
+			print "Using cache ($url).\n" if ($opt->{'debug'});
+			foreach (keys %{$data_cache->{prog_cache}->{$url}})
+			{
+			    next if ($_ eq 'channel' or $_ eq 'last_used');
+			    $d->{progs}->[$i]->{$_} = $data_cache->{prog_cache}->{$url}->{$_};
+			}
+
 			$stats{used_detailed_cache}++;
 			$was_in_cache = 1;
 		}
 		$data_cache->{prog_cache}->{$url}->{last_used} = time;
 
-		foreach my $field ("desc", "subtitles", "video", "rating") {
-			if (defined $data_cache->{prog_cache}->{$url}->{$field}) {
-				$d->{progs}->[$i]->{$field} = $data_cache->{prog_cache}->{$url}->{$field};
-			}
-		}
+#		printf "DEBUG: prog $i details: ".Dumper($d->{progs}->[$i]) if (defined $opt->{debug});
 
-		printf "DEBUG: prog $i details: ".Dumper($d->{progs}->[$i]) if (defined $opt->{debug});
-
-		unless ((defined $opt->{fast}) || ($was_in_cache)) {
+		unless ($opt->{fast} or  $was_in_cache) 
+		{
 			my $sleep_for = int(rand(3));
 			sleep $sleep_for;
 			$stats{slept_for} += $sleep_for;
 		}
 	}
 }
+
+
+########################################################################
+# Calculates whether a show's time window is within our wanted gaps.
+# 
+# EG: next unless (&is_within_gaps($gaps->{'TEN'}, $start, $stop);
+#
+# Arguments:
+#  channel_gaps:   relevent channel component of gaps file
+#  start:          start time in epoch format
+#  stop:           stop time in epoch format
+#
+sub is_within_gaps
+{
+    my ($channel_gaps, $start, $stop) = @_;
+
+    foreach my $gap (@$channel_gaps)
+    {
+        if ($gap =~ /(\d+)-(\d+)/)
+        {
+            return 1 if ($stop > $1 and $start < $2);
+        }
+    }
+    return 0;
+}
+
 
