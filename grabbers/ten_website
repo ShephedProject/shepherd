@@ -8,7 +8,7 @@
 use strict;
 
 my $progname = "ten_website";
-my $version = "2.00";
+my $version = "2.01";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -122,10 +122,10 @@ if (-r $opt->{channels_file}) {
 
 foreach my $chan (keys %$channels)
 {
-    unless (grep($chan eq $_, ('TEN', 'ONE Digital', 'ONE HD', 'TEN HD')))
+    unless (grep($chan eq $_, ('TEN', 'One Digital', 'One HD', 'TEN HD')))
     {
-	&log("Ignoring unsupported channel $_.");
-	delete $channels->{$_};
+	&log("Ignoring unsupported channel $chan.");
+	delete $channels->{$chan};
     }
 }
 unless (keys %$channels)
@@ -304,7 +304,7 @@ sub get_summary_page
 
 	my $url = sprintf "http://ten.com.au/tv-schedule/full?location=%s%s&uid=", 
 			    $reg,
-			    $channel =~ /^ONE/ ? '&hd=1' : '';
+			    $channel =~ /^One/ ? '&hd=1' : '';
 	my $tries = 5;
 	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
 	  Shepherd::Common::get_url(url => $url, retries => ($tries-1));
