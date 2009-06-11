@@ -8,7 +8,7 @@
 use strict;
 
 my $progname = "ten_website";
-my $version = "2.01";
+my $version = "2.02";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -31,6 +31,7 @@ my $data_cache;
 my $d;
 my $opt;
 
+my @supported_channels = ('TEN', 'One Digital', 'One HD', 'TEN HD');
 
 #
 # parse command line
@@ -122,7 +123,7 @@ if (-r $opt->{channels_file}) {
 
 foreach my $chan (keys %$channels)
 {
-    unless (grep($chan eq $_, ('TEN', 'One Digital', 'One HD', 'TEN HD')))
+    unless (grep($chan eq $_, @supported_channels))
     {
 	&log("Ignoring unsupported channel $chan.");
 	delete $channels->{$chan};
@@ -142,7 +143,7 @@ if (defined $opt->{gaps_file}) {
 		die "WARNING: gaps file $opt->{gaps_file} could not be read: $!\n";
 	}
 
-	die "No supported channels in gaps lineup, nothing to do!" unless ($gaps and ($gaps->{TEN} or $gaps->{'TEN HD'}));
+	die "No supported channels in gaps lineup, nothing to do!" unless ($gaps and grep ($gaps->{$_}, @supported_channels));
 }
 
 
