@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.29';
+my $version = '2.30';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -81,9 +81,39 @@ my %s_to_o_map = (
 		'Prime HD' => 'SevenHD', # no such thing yet
 		'Nine HD' => 'NineHD',
 		#'TEN HD' => 'TenHD',
-		'One HD' => 'One',	# no regional variations yet
-		'One Digital' => 'One',	# no regional variations yet
 		#'TEN HD'=>'TenHD-Vic',
+	},
+	'VIC' => {
+		'One HD' => 'One-Vic',
+		'One Digital' => 'One-Vic',
+	},
+	'NSW' => {
+		'One HD' => 'One-NSW',
+		'One Digital' => 'One-NSW',
+	},
+	'QLD' => {
+		'One HD' => 'One-Qld',
+		'One Digital' => 'One-Qld',
+	},
+	'WA' => {
+		'One HD' => 'One-WA',
+		'One Digital' => 'One-WA',
+	},
+	'SA' => {
+		'One HD' => 'One-SA',
+		'One Digital' => 'One-SA',
+	},
+	'NT' => {
+		'One HD' => 'One-Dar',
+		'One Digital' => 'One-Dar',
+	},
+	'ACT' => {
+		'One HD' => 'One-NSW',
+		'One Digital' => 'One-NSW',
+	},
+	'TAS' => {
+		'One HD' => 'One-Tas',
+		'One Digital' => 'One-Tas',
 	},
 	'67' => {	# NSW: Griffith
 		'ABC1' => 'ABC-NSW',
@@ -857,6 +887,9 @@ foreach my $sname ( keys(%$channels), keys(%$opt_channels) ) {
 	# First mapping found wins.
 	#
 	my $oname = $s_to_o_map{$region}->{$sname};
+	if (! defined($oname)) {
+		$oname = $s_to_o_map{&Shepherd::Common::which_state($region)}->{$sname};
+	}
 	if (! defined($oname)) {	# Try a National channel
 		$oname = $s_to_o_map{'National'}->{$sname};
 	}
