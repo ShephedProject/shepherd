@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.16';
+my $version = '0.17';
 
 use strict;
 no strict 'refs';
@@ -419,7 +419,7 @@ sub configure_channels_advanced
     if (&XMLTV::Ask::ask_boolean("\nDo you wish to include HDTV channels?")) 
     {
         #limit to ones in $channels and if 7HD remove 7HD and first 7
-        my @hd_channellist = grep(!/ABC2|SBS News|31/i, keys %$::channels);
+        my @hd_channellist = grep(!/ABC2|TEN|SBS TWO|31/i, keys %$::channels);
 
 	foreach my $hdchannel (keys %$::hd_to_sds) {
 		my $oldlength = scalar @hd_channellist;
@@ -610,7 +610,7 @@ sub fetch_channels
     return @channellist;
 }
 
-sub fetch_channels_foxtel
+sub fetch_channels_foxtel   # web parsing broken (http://www.foxtel.com.au/discover/channels/default.htm wrong format)
 {
     my $shh = shift;
     &::log("Fetching PayTV channel information...\n") unless ($shh);
@@ -638,7 +638,7 @@ sub fetch_channels_foxtel
     return @channellist;
 }
 
-sub fetch_channels_selectv
+sub fetch_channels_selectv   # web parsing broken
 {
     my $shh = shift;
     &::log("Fetching PayTV channel information...\n") unless ($shh);

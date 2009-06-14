@@ -16,7 +16,7 @@
 #  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.49";
+my $version = "0.50";
 
 $| = 1;
 print "$progname v$version\n";
@@ -35,12 +35,12 @@ use Data::Dumper;
 
 # Add overrides for HD - sometimes DBA doesn't always have the latest HD information about TV shows so set them here in the override
 my $hdoverride;
-$hdoverride->{TEN} = [
-	"The Handler",
-	"N.Y.P.D. Blue",
-	"The Office",
-	"Battlestar Galactica"
-	];
+# $hdoverride->{TEN} = [
+# 	"The Handler",
+# 	"N.Y.P.D. Blue",
+# 	"The Office",
+# 	"Battlestar Galactica"
+# 	];
 $hdoverride->{Nine} = [
 	"CSI: Crime Scene Investigation",
 	"Without a Trace"
@@ -54,19 +54,20 @@ $translation->{'CSI-Miami'} = 'CSI: Miami';
 
 # translations between website and what we know channels as
 my $chan_name_translations;
-$chan_name_translations->{"ABC"} = "ABC1HD";
+$chan_name_translations->{"ABC"} = "ABC HD";
 $chan_name_translations->{"Seven"} = "7HD";
 $chan_name_translations->{"Prime"} = "Prime HD";
 $chan_name_translations->{"Nine"} = "Nine HD";
-$chan_name_translations->{"Ten"} = "TEN HD";
-$chan_name_translations->{"SBS"} = "SBSHD";
+$chan_name_translations->{"One Digital"} = "One HD";
+$chan_name_translations->{"SBS"} = "SBS HD";
 
 my $hd_to_sds;
+@{$hd_to_sds->{"ABC HD"}} = ("ABC1");
 @{$hd_to_sds->{"7HD"}} = ("Seven","Southern Cross","SCTV Central","Central GTS/BKN","Golden West");
 @{$hd_to_sds->{"Prime HD"}} = ("Prime");
 @{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
-#@{$hd_to_sds->{"TEN HD"}} = ("TEN","Sthn Cross TEN","WIN TEN","TDT","DDT");
 @{$hd_to_sds->{"One HD"}} = ("One Digital");
+@{$hd_to_sds->{"SBS HD"}} = ("SBS ONE");
 
 
 my $sd_to_hd;
@@ -82,7 +83,7 @@ foreach my $hdchannel (keys %$hd_to_sds) {
 
 my $script_start_time = time;
 my %stats;
-my $channels, my $reverse_channels, my $detailed_reverse_channels, my $opt_channels, my %channel_xmlid_to_opt_channel_xmlid;
+my $channels, my $reverse_channels, my $detailed_reverse_channels, my $opt_channels, my %channel_xmlid_to_opt_channel_xmlid, my $hdwithsd;
 my $d, my $ar, my $sd, my $hd;
 my $gapchannel, my $gaplaststop;
 my $override_settings = { };
@@ -288,6 +289,7 @@ sub setup_channels
 					$channel_xmlid_to_opt_channel_xmlid{$channels->{$sdchannel}} =
 							$channels->{$hdchannel};
 					$hd->{$channels->{$sdchannel}} = undef;
+					$hdwithsd->{$channels->{$hdchannel}} = 1;
 					print "  '$hdchannel' with xmlid '$channels->{$hdchannel}'" .
 							" populated with programs provided by " .
 							"'$sdchannel' with xmlid '$channels->{$sdchannel}'\n";
@@ -421,7 +423,7 @@ sub lookup_website
 				if (defined $chan_name_translations->{$channame}) {
 					$currChan = $chan_name_translations->{$channame};
 				} else {
-					printf "** Found unknown channel '%s'! Ignored.\n", $channame;
+#					printf "** Found unknown channel '%s'! Ignored.\n", $channame;
 					$stats{unknown_channels}++;
 					$currChan = undef;
 				}
@@ -437,8 +439,8 @@ sub lookup_website
 					$progname =~ s/^HD Documentary:\s*/HD Docos: /;
 					$progname =~ s/\s*\([^(]+\)$//;	# (episode title)
 
-					printf "Channel: '%s', Date: '%s', Time: '%s', Prog: '%s'\n",
-						$currChan, $currDate, $progtime, $progname;
+#					printf "Channel: '%s', Date: '%s', Time: '%s', Prog: '%s'\n",
+#						$currChan, $currDate, $progtime, $progname;
 
 					# Apply manual translation if needed
 					if (defined($translation->{$progname})) {
@@ -454,12 +456,12 @@ sub lookup_website
 					$stats{parsed_hd_progs}++;
 				}
 				else {
-					printf "** Ignoring matched prog '%s' at '%s'\n",
-						$progname, $progtime;
+#					printf "** Ignoring matched prog '%s' at '%s'\n",
+#						$progname, $progtime;
 				}
 			}
 			else {
-				printf "** Ignoring text '%s'\n", $text;
+#				printf "** Ignoring text '%s'\n", $text;
 			}
 		}
 	}
@@ -511,8 +513,6 @@ sub programme_cb( $ )
 	# see if title matches a known hd program for this channel
 	my $channel = $reverse_channels->{$this_chan};
 	$channel = $sd_to_hd->{$channel} if defined $sd_to_hd->{$channel}; # if sd name, use hd name
-	$channel = "ABC1HD" if $channel eq "ABC1";
-	$channel = "SBSHD" if $channel eq "SBS";
 	foreach my $t (@{$d->{prog}->{$channel}}) {
 		if (canonicalizeTitles_match($t,$this_title)) {
 			# match!
@@ -538,7 +538,8 @@ sub programme_cb( $ )
 NOMATCH:
 	# process later argumenting high definition channel programmes
 	if (defined $reverse_channels->{$this_chan} &&
-			defined $hd_to_sds->{$reverse_channels->{$this_chan}}) {
+			defined $hd_to_sds->{$reverse_channels->{$this_chan}} &&
+			defined $hdwithsd->{$this_chan}) {
 		return if defined $this_title && $this_title eq "See main channel's listings for programming details";
 		# just because its on 7HD doesn't make it high definition
 		$ar->{$reverse_channels->{$this_chan}}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;
@@ -562,7 +563,8 @@ MATCH:
 
 	# process later argumenting high definition channel programmes
 	if (defined $reverse_channels->{$this_chan} &&
-			defined $hd_to_sds->{$reverse_channels->{$this_chan}}) {
+			defined $hd_to_sds->{$reverse_channels->{$this_chan}} &&
+			defined $hdwithsd->{$this_chan}) {
 		return if defined $this_title && $this_title eq "See main channel's listings for programming details";
 		$prog->{video}->{quality} = "HDTV" unless (defined $opt->{notag});
 		$ar->{$reverse_channels->{$this_chan}}->{Shepherd::Common::parse_xmltv_date($prog->{start})} = $prog;

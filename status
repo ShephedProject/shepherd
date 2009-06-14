@@ -1,8 +1,8 @@
-application     shepherd            1.3.39
+application     shepherd            1.3.40
 reference       channel_list        34
 reference       Shepherd/Common.pm  0.37
 reference       Shepherd/MythTV.pm  0.9
-reference       Shepherd/Configure.pm   0.16
+reference       Shepherd/Configure.pm   0.17
 grabber         rex                 5.0.0
 grabber         news                1.6
 grabber         abc_website         3.22
@@ -17,6 +17,6 @@ grabber         acctv_website       0.08-r1
 grabber         sbsweb              3.00
 reconciler      reconciler_mk2      0.42
 postprocessor   imdb_augment_data   0.46
-postprocessor   flag_aus_hdtv       0.49
+postprocessor   flag_aus_hdtv       0.50
 postprocessor   augment_timezone    0.21
 END
