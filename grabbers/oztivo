@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.30';
+my $version = '2.31';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -432,7 +432,7 @@ my %s_to_o_map = (
 		'WIN' => 'WIN-Vic',
 	},
 	'PAY' => {	# Pay channels
-		'111HITS' => 'HITS',
+		'111Hits' => 'HITS',
 		'ACC' => 'ACC',
 		# '????' => 'ADULT',
 		# '????' => 'ADULT1',
@@ -444,6 +444,7 @@ my %s_to_o_map = (
 		# '????' => 'AntennaGreek',
 		'AntennaPacific' => 'ANT',
 		# '????' => 'ARCADE',
+		'APAC' => 'A-PAC',
 		'Arena2' => 'ARNA+2',
 		'Arena' => 'ARNA',
 		# '????' => 'ART',
@@ -472,14 +473,14 @@ my %s_to_o_map = (
 		'CNN' => 'CNNI',
 		# '????' => 'CNNfn',
 		'CountryMusicChannel' => 'CMC',
-		'CrimeandInvestigationNetwork' => 'CRIME',
+		'CI' => 'CRIME',
 		# '????' => 'D4NEWS',
 		# '????' => 'DAAI',
 		# '????' => 'DIG',
 		# '????' => 'Digital4',
 		# '????' => 'DIG-jazz',
 		'DiscoveryChannel' => 'DISC',
-		'DiscoveryHomeandHealth' => 'HEALTH',
+		'DiscoveryHealth' => 'HEALTH',
 		'DiscoveryRealTime' => 'DISCRT',
 		'DiscoveryScience' => 'SCIENCE',
 		'DiscoveryTravel' => 'TRAVEL',

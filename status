@@ -6,7 +6,7 @@ reference       Shepherd/Configure.pm   0.17
 grabber         rex                 5.0.0
 grabber         news                1.6
 grabber         abc_website         3.22
-grabber         oztivo              2.30
+grabber         oztivo              2.31
 grabber         yahoo7web           0.40-r1
 grabber         foxtel_swf          2.00
 grabber         channelnsw_gov      0.8-r1
