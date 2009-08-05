@@ -27,7 +27,7 @@ print "Channels found to be not in the official list should almost always\n".
       "alone, as that simply means the channel was not available in this\n".
       "particular datasource--it might be available via a different grabber.\n\n";
 
-foreach my $region (keys %$region_channels)
+foreach my $region (sort { $a <=> $b } keys %$region_channels)
 {
     printf "Region %3d: ", $region;
 
@@ -59,7 +59,7 @@ foreach my $region (keys %$region_channels)
 	print " ? Official channel \"$chan\" not in online guide.\n";
     }
 
-    sleep 2;
+    sleep 1;
 }
 
 print "Done.\n";
