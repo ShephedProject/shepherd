@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.31';
+my $version = '2.32';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -75,45 +75,53 @@ my $pw;
 my %s_to_o_map = (
 	'National' => {	# National channel mappings, all timeshifted
 		'ABC2' => 'ABC2',
-		'SBS TWO' => 'SBS-NEWS',
 		'7HD' => 'SevenHD',
 		#'7HD'=>'SevenHD-Mel',
 		'Prime HD' => 'SevenHD', # no such thing yet
 		'Nine HD' => 'NineHD',
 		#'TEN HD' => 'TenHD',
 		#'TEN HD'=>'TenHD-Vic',
+		'GO!' => 'GO',
 	},
 	'VIC' => {
 		'One HD' => 'One-Vic',
 		'One Digital' => 'One-Vic',
+		'SBS TWO' => 'SBSTWO-Vic',
 	},
 	'NSW' => {
 		'One HD' => 'One-NSW',
 		'One Digital' => 'One-NSW',
+		'SBS TWO' => 'SBSTWO-NSW',
 	},
 	'QLD' => {
 		'One HD' => 'One-Qld',
 		'One Digital' => 'One-Qld',
+		'SBS TWO' => 'SBSTWO-Qld',
 	},
 	'WA' => {
 		'One HD' => 'One-WA',
 		'One Digital' => 'One-WA',
+		'SBS TWO' => 'SBSTWO-WA',
 	},
 	'SA' => {
 		'One HD' => 'One-SA',
 		'One Digital' => 'One-SA',
+		'SBS TWO' => 'SBSTWO-SA',
 	},
 	'NT' => {
 		'One HD' => 'One-Dar',
 		'One Digital' => 'One-Dar',
+		'SBS TWO' => 'SBSTWO-NT',
 	},
 	'ACT' => {
 		'One HD' => 'One-NSW',
 		'One Digital' => 'One-NSW',
+		'SBS TWO' => 'SBSTWO-NSW',
 	},
 	'TAS' => {
 		'One HD' => 'One-Tas',
 		'One Digital' => 'One-Tas',
+		'SBS TWO' => 'SBSTWO-Tas',
 	},
 	'67' => {	# NSW: Griffith
 		'ABC1' => 'ABC-NSW',
