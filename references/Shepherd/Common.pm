@@ -2,7 +2,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.37';
+my $version = '0.38';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -581,37 +581,48 @@ sub setup_ua
     my %cnf = @_;
     $cnf{debug} = 1 if (!defined $cnf{debug});
 
+    # App defaults
+    foreach my $k (keys %defaults) {
+	$cnf{$k} = $defaults{$k} unless (defined $cnf{$k});
+    }
+    # Defaults
+    $cnf{method} = 'GET' unless (defined $cnf{method});
+    $cnf{retries} = 2 unless (defined $cnf{retries});
+    $cnf{fake} = 1 unless (defined $cnf{fake});
+    $cnf{gzip} = 1 unless (defined $cnf{gzip});
+    $cnf{delay} = 0 unless (defined $cnf{delay});
+    $cnf{retry_delay} = 10 unless (defined $cnf{retry_delay} or $cnf{delay});
+    $cnf{debug} = 1 unless (defined $cnf{debug});
+                                     
     print "Establishing user agent.\n" if ($cnf{debug} > 3);
 
     $ua = LWP::UserAgent->new( keep_alive => 1 );
     $ua->env_proxy();
 
     my @agent_list = (
+	'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2 (.NET CLR 3.5.30729)',
 	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9) Gecko/2008061004 Firefox/3.0',
-	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9) Gecko/2008052906 Firefox/3.0',
 	'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.8.1.15) Gecko/20080623 Firefox/2.0.0.15',
 	'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.0) Gecko/2008061600 SUSE/3.0-0.2 Firefox/3.0',
-	'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9) Gecko/2008061015 Firefox/3.0',
 	'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9) Gecko/20080617 Firefox/3.0',
 	'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9) Gecko/2008061004 Firefox/3.0',
 
+	'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; .NET CLR 2.0.50727)',
 	'Mozilla/5.0 (Windows; U; MSIE 7.0; Windows NT 6.0; en-US)',
-	'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)',
-	'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
 	'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 1.1.4322)',
 	'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)',
-	'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)',
 
+	'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/530.5 (KHTML, like Gecko) Chrome/2.0.172.39 Safari/530.5',
 	'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/525.18 (KHTML, like Gecko) Version/3.1.1 Safari/525.17',
 	'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_4; en-us) AppleWebKit/525.18 (KHTML, like Gecko) Version/3.1.2 Safari/525.20.1',
 
+	'Opera/9.63 (Windows NT 5.1; U; en)',
 	'Opera/9.51 (Windows NT 6.0; U; en)',
 	'Opera/9.51 (Windows NT 5.1; U; en)'
     );
 
     my $agent = ($cnf{fake} ? $agent_list[int(rand($#agent_list+1))] : ($cnf{agent} ? $cnf{agent} : 'Shepherd'));
     $ua->agent($agent);
-		
     print "User Agent string set to \"" . $ua->agent() . "\".\n" if ($cnf{debug} > 3); 
 
     $ua->cookie_jar({}) if (defined $cnf{cookie_jar});
