@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.32';
+my $version = '2.33';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -481,7 +481,7 @@ my %s_to_o_map = (
 		'CNN' => 'CNNI',
 		# '????' => 'CNNfn',
 		'CountryMusicChannel' => 'CMC',
-		'CI' => 'CRIME',
+		'Crime' => 'CRIME',
 		# '????' => 'D4NEWS',
 		# '????' => 'DAAI',
 		# '????' => 'DIG',
