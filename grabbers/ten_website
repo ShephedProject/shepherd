@@ -8,7 +8,7 @@
 use strict;
 
 my $progname = "ten_website";
-my $version = "2.02";
+my $version = "2.03";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -397,6 +397,10 @@ sub get_detail_pages
 	my $state = lc(Shepherd::Common::which_state($opt->{region}));
 	for (my $i=0; $i < $stats{programmes}; $i++) {
 		my $url = $d->{progs}->[$i]->{link};
+		my $cache_key = $url 
+			. ":" . $d->{progs}->[$i]->{title}[0][0]
+			. ":" . $d->{progs}->[$i]->{start}
+			. ":" . $d->{progs}->[$i]->{stop};
 		my $was_in_cache = 0;
 		$prog_count++;
 
@@ -413,7 +417,7 @@ sub get_detail_pages
 			&log(" .. at programme ".$prog_count." of ".$stats{programmes}." (".$stats{used_detailed_cache}." from cache)");
 		}
 
-		if (!defined $data_cache->{prog_cache}->{$url}) {
+		if (!defined $data_cache->{prog_cache}->{"$cache_key"}) {
 			my $fetch_url = "http://ten.com.au/feeds/$state/$url";
 			my $tries = 3;
 
@@ -481,19 +485,19 @@ sub get_detail_pages
 			$show->{'channel'} = $d->{progs}->[$i]->{'channel'};
 
 			$d->{progs}->[$i] = $show;
-			$data_cache->{prog_cache}->{$url} = $show;
+			$data_cache->{prog_cache}->{"$cache_key"} = $show;
 		} else {
 			print "Using cache ($url).\n" if ($opt->{'debug'});
 			foreach (keys %{$data_cache->{prog_cache}->{$url}})
 			{
 			    next if ($_ eq 'channel' or $_ eq 'last_used');
-			    $d->{progs}->[$i]->{$_} = $data_cache->{prog_cache}->{$url}->{$_};
+			    $d->{progs}->[$i]->{$_} = $data_cache->{prog_cache}->{"$cache_key"}->{$_};
 			}
 
 			$stats{used_detailed_cache}++;
 			$was_in_cache = 1;
 		}
-		$data_cache->{prog_cache}->{$url}->{last_used} = time;
+		$data_cache->{prog_cache}->{"$cache_key"}->{last_used} = time;
 
 #		printf "DEBUG: prog $i details: ".Dumper($d->{progs}->[$i]) if (defined $opt->{debug});
 
