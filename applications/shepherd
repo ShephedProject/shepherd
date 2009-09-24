@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.40';
+my $version = '1.3.41';
 
 # tv_grab_au
 # "Shepherd"
@@ -2038,19 +2038,24 @@ sub delete
 sub component_set
 {
     my $compset = shift;
+
+    print "\nInvoked with --component-set\n".
+          "Format: --component-set <component>:<argument>\n".
+          "    EG: --component-set oztivo:region=101\n\n";
+
     my ($component, @args) = split(/:/,$compset);
     if (!defined $components->{$component}) {
-	&log("\nNo component called '$component'.\n");
+	&log("Error: No component called '$component'!\n");
 	return;
     }
     my $arg = join(":",@args);
 
     if ((!defined $arg) || ($arg eq "")) {
 	delete $components->{$component}->{default_cmdline};
-	&log("\nCleared default options for $component.\n");
+	&log("Cleared default options for $component.\n");
     } else {
 	$components->{$component}->{default_cmdline} = "--".join(":--",@args);
-	&log("\nSet default options for $component to: --".join(" --",@args)."\n");
+	&log("Set default options for $component to: --".join(" --",@args)."\n");
     }
 }
 
@@ -2641,7 +2646,7 @@ Configuration options:
     --disable <s>         Set component <s> (or "all") as not to be used
     --enable <s>          Set component <s> (or "all") as available for use
 
-    --component-set <s>   Set default parameter for component <s>
+    --component-set <s:s> Set component <s> default argument <s>
     --configure <s>       Setup component <s>
 
     --set-icons           Download channel icons and update MythTV to use them
