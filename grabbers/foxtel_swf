@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "2.00";
+my $version = "2.01";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -580,8 +580,8 @@ sub get_programs
 			my $prog_start = mktime(@t);
 			my $prog_stop = $prog_start + $new_length;
 
-			$new_start = POSIX::strftime("%Y%m%d%H%M", localtime($prog_start))." ".$prog_tz;
-			$new_stop =  POSIX::strftime("%Y%m%d%H%M", localtime($prog_stop))." ".$prog_tz;
+			$new_start = POSIX::strftime("%Y%m%d%H%M%S", localtime($prog_start))." ".$prog_tz;
+			$new_stop =  POSIX::strftime("%Y%m%d%H%M%S", localtime($prog_stop))." ".$prog_tz;
 			if ((defined $opt->{daynum}) and ( $prog_start < $first_start_time ))
 			  { print("Skipping, starts before requested time at $prog_ref->{'ns1:ScheduledDate'}\n"); next; }
 	} else {
@@ -704,8 +704,8 @@ sub get_programs
 			my $prog_start = mktime(@t);
 			my $prog_stop = $prog_start + $prog->{length};
 
-			$prog->{start} = POSIX::strftime("%Y%m%d%H%M", localtime($prog_start))." ".$prog_tz;
-			$prog->{stop} =  POSIX::strftime("%Y%m%d%H%M", localtime($prog_stop))." ".$prog_tz;
+			$prog->{start} = POSIX::strftime("%Y%m%d%H%M%S", localtime($prog_start))." ".$prog_tz;
+			$prog->{stop} =  POSIX::strftime("%Y%m%d%H%M%S", localtime($prog_stop))." ".$prog_tz;
 	} else {
 			$stats{skipped_prog_bad_starttime}++;
 			Shepherd::Common::log("unparsable date ".$prog_ref->{'ns1:ScheduledDate'})
