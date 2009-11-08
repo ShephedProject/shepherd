@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.17';
+my $version = '0.18';
 
 use strict;
 no strict 'refs';
@@ -260,10 +260,56 @@ sub configure_channels_guided
 	my $longname = $mch->{name};
 	$longname .= " ($mch->{callsign})" if ($mch->{callsign} and lc($mch->{callsign}) ne lc($longname));
 
+	my $default_str = "";
+	my $default_index = 0;
+	my $guide_index = 0;
+
+	# Determine if the current xmltvid for the channel in the database
+	# corresponds to a shephed channel, and if it does, offer that as
+	# the default.
+
+	foreach (@table)
+	{
+	    my $guide_xmltvid = $allchannels[$guide_index];
+	    $guide_xmltvid = lc "$guide_xmltvid.shepherd.au";
+	    $guide_xmltvid =~ s/ //g;
+
+	    if ($guide_xmltvid eq $mch->{xmltvid})
+	    {
+		$default_index = $guide_index;
+	    }
+
+	    $guide_index++;
+	}
+
+	if ($default_index == 0)
+	{
+	    my $munged_callsign = &munge($mch->{callsign});
+	    my $munged_name = &munge($mch->{name});
+
+	    ++$default_index until
+	    munge($table[$default_index]) eq $munged_callsign or
+	    munge($table[$default_index]) eq $munged_name or
+	    $default_index > $#table;
+	}
+
+	if ($default_index > $#table)
+	{
+	    $default_str = "0 (no guide)";
+	    $default_index = 0;
+	}
+	else
+	{
+	    $default_str = "$table[$default_index]";
+	    $default_index++;
+	    $default_str = "$default_index ($default_str)"
+	}
+
 	my $channum = $mch->{channum} || '-';
-	printf "MythTV channel %s: %s ? ",
-	       $channum,
-	       $longname;
+	printf "MythTV channel %s: %s [default=%s] ? ",
+               $channum,
+	       $longname,
+	       $default_str;
 	my $inp = <STDIN>;
 	chomp $inp;
 	if ($inp eq '?')
@@ -281,7 +327,13 @@ sub configure_channels_guided
 	    $display_mode = 1;
 	    redo;
 	}
-	elsif ($inp =~ /\d+/)
+
+	if ($inp eq "")
+	{
+	    $inp = "$default_index";
+	}
+
+	if ($inp =~ /\d+/)
 	{
 	    my $xmltvid = '';
 	    if ($inp == 0)
@@ -1141,6 +1193,51 @@ sub configure_mythtv
            "Your system will run mythfilldatabase on the $minute" . 
 	   "th minute of every hour,\n" .
            "which will trigger Shepherd (as tv_grab_au) with the --daily option.\n");
+}
+
+
+# Convert callsigns and channel names for matching.
+sub munge
+{
+    my $ret = $_[0];
+
+    # Convert to upercase.
+
+    $ret = uc($ret);
+
+    # Substitute numbers for words.
+
+    $ret =~s/12/TWELVE/g;
+    $ret =~s/11/ELEVEN/g;
+    $ret =~s/10/TEN/g;
+    $ret =~s/9/NINE/g;
+    $ret =~s/8/EIGHT/g;
+    $ret =~s/7/SEVEN/g;
+    $ret =~s/6/SIX/g;
+    $ret =~s/5/FIVE/g;
+    $ret =~s/4/FOUR/g;
+    $ret =~s/3/THREE/g;
+    $ret =~s/2/TWO/g;
+    $ret =~s/1/ONE/g;
+    $ret =~s/0/ZERO/g;
+
+    # Ignore "Digital"
+
+    $ret =~s/DIGITAL//g;
+
+    # Remove white space.
+
+    $ret =~s/[[:space:]]+//g;
+
+    # Make HDTV equivalent to HD
+
+    $ret =~s/HDTV/HD/g;
+
+    # Remove any non alphabetics.
+
+    $ret =~s/[^A-Z]//g;
+
+    return $ret;
 }
 
 

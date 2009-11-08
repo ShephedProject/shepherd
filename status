@@ -2,7 +2,7 @@ application     shepherd            1.3.42
 reference       channel_list        43
 reference       Shepherd/Common.pm  0.38
 reference       Shepherd/MythTV.pm  0.9
-reference       Shepherd/Configure.pm   0.17
+reference       Shepherd/Configure.pm   0.18
 grabber         rex                 5.0.0
 grabber         news                1.6
 grabber         abc_website         3.22
