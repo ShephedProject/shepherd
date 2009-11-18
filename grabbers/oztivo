@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.34';
+my $version = '2.35';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -469,7 +469,7 @@ my %s_to_o_map = (
 		# '????' => 'CANALSUR',
 		'CartoonNetwork' => 'CART',
 		'CBeebies' => 'CBEEB',
-		'ChannelV2' => 'V2',
+		'VHits' => 'V2',
 		'ChannelV' => 'V',
 		# '????' => 'Cinemax',
 		# '????' => 'CLUBV',
@@ -481,7 +481,7 @@ my %s_to_o_map = (
 		'CNBC' => 'CNBC',
 		'CNN' => 'CNNI',
 		# '????' => 'CNNfn',
-		'CountryMusicChannel' => 'CMC',
+		'CMC' => 'CMC',
 		'Crime' => 'CRIME',
 		# '????' => 'D4NEWS',
 		# '????' => 'DAAI',
@@ -596,9 +596,9 @@ my %s_to_o_map = (
 		# '????' => 'SENATE',
 		# '????' => 'ServiceNSW',
 		'showcase' => 'SHWC',
-		'SHOWTIME2' => 'SHW2',
+		'showtimetwo' => 'SHW2',
 		'SHOWTIMEGreats' => 'SHWGRTS',
-		'SHOWTIME' => 'SHOW',
+		'showtimepremiere' => 'SHOW',
 		'SkyNewsAustralia' => 'SKYN',
 		'SkyNewsBusiness' => 'SKYB',
 		'SkyRacing' => 'SKYR',
@@ -634,6 +634,25 @@ my %s_to_o_map = (
 		'WORLDMOVIES' => 'WMOV',
 		'W' => 'W',
 		# '????' => 'WZONE',
+		'13THSTREET' => '13THST',
+		'111HITS2' => 'HITS+2',
+		'Discovery2' => 'DISC+2',
+		'DiscoveryTurboMAX' => 'DTM',
+		'DiscTurboMAX2' => 'DTM+2',
+		'FMC' => 'FMC',
+		'LifestyleFOOD2' => 'FOOD+2',
+		'KidsCo' => 'KIDSCO',
+		'LifeStyleYOU' => 'LYOU',
+		'LifStyleYOU2' => 'LYOU+2',
+		'NATGEOWILD' => 'NGW',
+		'showtimeaction' => 'SACT',
+		'showtimecomedy' => 'SCOM',
+		'showtimedrama' => 'SDRA',
+		'showcasetwo' => 'SHWC+2',
+		'STARPICS1' => 'SPICS',
+		'STARPICS2' => 'SPICS+2',
+		'SCIFI2' => 'Sci-Fi+2',
+		'TheStyleNetwork' => 'STYLE',
 	}
 );
 
