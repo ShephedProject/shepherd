@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "2.01";
+my $version = "2.02";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -682,7 +682,7 @@ sub get_programs
   $ref = &soap_get_event_details(@event_list);	
   foreach my $prog_ref (@{($ref->{'ns1:EventDetail'})}) {
 	my $prog;
-		
+	
 	$prog->{title} = [[ $prog_ref->{'ns1:ProgramTitle'}, $opt->{lang} ]];
 	if ($prog->{title}->[0]->[0] =~ s/\s*(?:S(\d+)\s*)?Ep(\d+)(?:\s*&(?:amp;)?\s*\d+$)?//i) { # "S1 Ep5 &amp; 6"
 			my $xmltv_ns = ($1 ? ($1 - 1) : "") ." . ". ($2 ? ($2 - 1) : "") ." . "; # drops " & 6"
@@ -733,22 +733,34 @@ sub get_programs
 			}
 	}
 		
-		
-		
-	$prog->{rating} = [[ $prog_ref->{'ns1:ParentalRating'}, 'ABA', undef ]] if $prog_ref->{'ns1:ParentalRating'} ne "-";
+
+	# Program rating and consumer advice
+	if ($prog_ref->{'ns1:ParentalRating'} ne "-") {
+		if (defined $prog_ref->{'ns1:ConsumerAdvice'}) {
+			my $advice = $prog_ref->{'ns1:ConsumerAdvice'};
+			$advice =~ s/\s//g;
+			$prog->{rating} = [[ $prog_ref->{'ns1:ParentalRating'}." ".$advice, 'ABA', undef ]] ;
+		}
+		else {
+			$prog->{rating} = [[ $prog_ref->{'ns1:ParentalRating'}, 'ABA', undef ]] ;
+		}
+	}
+
 	$prog->{subtitles} = [ { 'type' => 'teletext' } ]
 			if (((defined $prog_ref->{'ns1:SubtitledInd'}) && ($prog_ref->{'ns1:SubtitledInd'} ne "false")) ||
 				((defined $prog_ref->{'ns1:ClosedCaptionInd'}) && ($prog_ref->{'ns1:ClosedCaptionInd'} ne "false")));
 	$prog->{video}->{aspect} = "16:9"
 			if ((defined $prog_ref->{'ns1:WidescreenInd'}) && ($prog_ref->{'ns1:WidescreenInd'} ne "false"));
+	$prog->{video}->{quality} = "HDTV"
+			if (defined $prog_ref->{'ns1:HDInd'} && ($prog_ref->{'ns1:HDInd'} ne "false"));
 		
 	if (defined $prog_ref->{'ns1:Audio'}) {
 			# try to match bad values like 'dolby stereo'
-		  	$prog->{audio}->{stereo} = 'mono' if ($prog_ref->{'ns1:Audio'} =~ /mono/);
-			$prog->{audio}->{stereo} = 'stereo' if ($prog_ref->{'ns1:Audio'} =~ /stereo/);
-			$prog->{audio}->{stereo} = 'dolby' if ($prog_ref->{'ns1:Audio'} =~ /dolby/);
-			$prog->{audio}->{stereo} = 'dolby digital' if ($prog_ref->{'ns1:Audio'} =~ /dolby digital/);
-			$prog->{audio}->{stereo} = 'surround' if ($prog_ref->{'ns1:Audio'} =~ /surround/);
+		  	$prog->{audio}->{stereo} = 'mono' if ($prog_ref->{'ns1:Audio'} =~ m/mono/i);
+			$prog->{audio}->{stereo} = 'stereo' if ($prog_ref->{'ns1:Audio'} =~ m/stereo/i);
+			$prog->{audio}->{stereo} = 'dolby' if ($prog_ref->{'ns1:Audio'} =~ m/dolby/i);
+			$prog->{audio}->{stereo} = 'dolby digital' if ($prog_ref->{'ns1:Audio'} =~ m/digital/i);
+			$prog->{audio}->{stereo} = 'surround' if ($prog_ref->{'ns1:Audio'} =~ m/surround/i);
 	}
 		
 	# get actors, directors and writers
@@ -850,16 +862,33 @@ sub get_programs
 		my $category = $d->{genres}->{$prog_ref->{'ns1:GenreCode'}}->{$prog_ref->{'ns1:SubGenreCode'}};
 		$prog->{category} = [[ $category , $opt->{lang} ]];
 
-		if ((defined $d->{channels}->{$prog_ref->{'ns1:ChannelId'}}->{category}) &&
-					(defined $d->{categories}->{$d->{channels}->{$prog_ref->{'ns1:ChannelId'}}->{category}})) {
-			my $ch_category = $d->{categories}->{$d->{channels}->{$prog_ref->{'ns1:ChannelId'}}->{category}};
-			push(@{$prog->{category}}, ['Movie', $opt->{lang}]) if $ch_category eq 'Movies';
-			push(@{$prog->{category}}, ['Sports', $opt->{lang}]) if $ch_category eq 'Sport';
-		}
+	      #more accurate than method below, gets movies on non-movie channels, and misses shows on movie channels
+		push(@{$prog->{category}}, ['Movie', $opt->{lang}]) if $d->{genres}->{$prog_ref->{'ns1:GenreCode'}}->{name} eq 'Movies';
+#		push(@{$prog->{category}}, ['Sports', $opt->{lang}]) if $d->{genres}->{$prog_ref->{'ns1:GenreCode'}}->{name} eq 'Sport';
+
+ 		if ((defined $d->{channels}->{$prog_ref->{'ns1:ChannelId'}}->{category}) &&
+ 					(defined $d->{categories}->{$d->{channels}->{$prog_ref->{'ns1:ChannelId'}}->{category}})) {
+ 			my $ch_category = $d->{categories}->{$d->{channels}->{$prog_ref->{'ns1:ChannelId'}}->{category}};
+# 			push(@{$prog->{category}}, ['Movie', $opt->{lang}]) if $ch_category eq 'Movies';
+ 			push(@{$prog->{category}}, ['Sports', $opt->{lang}]) if $ch_category eq 'Sport';
+ 		}
 
 	} else { $stats{skipped_categories}++; }
 
-	# TODO: get urls/weblinks
+	# get urls/weblinks
+	if (defined $prog_ref->{'ns1:WebLink'}) { 
+		if (ref($prog_ref->{'ns1:WebLink'}) eq "HASH") {
+			push(@{$prog->{url}}, $prog_ref->{'ns1:WebLink'}->{'ns1:Url'})
+		}
+		elsif (ref($prog_ref->{'ns1:WebLink'}) eq "ARRAY") {
+			my @webarray = @{$prog_ref->{'ns1:WebLink'}};
+			my $u = 0;
+			while ($u <= $#webarray) {
+  				push(@{$prog->{url}}, $webarray[$u]->{'ns1:Url'});
+				$u++;
+ 			}
+		}
+	}
 
 	# TODO: get star-rating/criticsRating
 
@@ -877,7 +906,11 @@ sub get_programs
 			$prog->{video}->{colour} = ($prog_ref->{'ns1:ColourType'} =~ /colour|color/i) ? "1" : "0";
 		}
 
-# TODO: get premiere
+	# get premiere
+	$prog->{premiere} = ["New Episode", $opt->{lang} ]
+			if (defined $prog_ref->{'ns1:NewEpisode'} && ($prog_ref->{'ns1:NewEpisode'} ne "false"));
+	$prog->{premiere} = ["Premiere", $opt->{lang} ]
+			if (defined $prog_ref->{'ns1:PremiereInd'} && ($prog_ref->{'ns1:PremiereInd'} ne "false"));
 
 	# <ContentWarning>als</ContentWarning>
 	# 'DSTInd' => 'true', 'ProgramAvailableInd' => 'true'
