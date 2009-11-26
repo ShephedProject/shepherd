@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.43';
+my $version = '1.3.44';
 
 # tv_grab_au
 # "Shepherd"
@@ -2131,12 +2131,15 @@ sub addsource
 	&log("\n*** WARNING: Source unreachable! ***\n\n");
     }
     &sources;
-    &log("\nPLEASE READ CAREFULLY!\n".
-	 "Adding a source allows the remote host to install, update\n".
-	 "and execute software on your system. This is a serious\n".
-	 "security risk, and we strongly recommend both that you\n".
-	 "take steps to limit the damage a malicious source could do.\n".
-	 "See: $wiki/Security\n");
+    &log("\n*** PLEASE READ CAREFULLY! ***\n".
+	 "Adding a source allows the remote host to install and execute\n".
+	 "software on your system. Each time Shepherd runs (except when\n".
+	 "invoked with --noupdate), it will ask this host for updates.\n".
+	 "This is a serious security risk, and we STRONGLY RECOMMEND that\n".
+	 "you take steps to limit the damage a malicious source could do\n".
+	 "to your system. For more information, see:\n".
+	 "   $wiki/Security\n" .
+	 "To remove a source, use \"--delsource <source>\".\n");
 }
 
 sub delsource 
