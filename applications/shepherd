@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.3.42';
+my $version = '1.3.43';
 
 # tv_grab_au
 # "Shepherd"
@@ -469,7 +469,17 @@ sub update_component
      }
 
     return $result if (defined $opt->{noupdate});
-    return 0 unless ($result);
+
+    my $was_reenabled = 0;
+    # If this component was centrally disabled, re-enable it.
+    if ($components->{$proggy}->{'disabled'} and $components->{$proggy}->{'disabled'} == 2)
+    {
+	&log("Centrally disabled component \"$proggy\" is now available again.\n");
+	&enable($proggy, 2);
+	$was_reenabled = 1;
+    }
+
+    return $was_reenabled unless ($result);
     install($proggy, $source, $latestversion, $progtype, $ver, $csum1, $csum2);
     return 1;
 }
@@ -594,14 +604,6 @@ sub install
     # the validity of channels (and migrate if necessary). Otherwise we won't
     # use the new data until next run.
     &check_channels if ($proggy eq 'channel_list');
-
-    # If this component was disabled automatically, re-enable it.
-    # But if it was disabled manually, leave it off.
-    my $d = $components->{$proggy}->{disabled};
-    if ($d and $d == 2)
-    {
-	enable($proggy);
-    }
 }
 
 sub test_proggy
@@ -718,7 +720,6 @@ sub enable_or_disable
 	return;
     }
     
-    
     return unless ($which eq 'enable' or $which eq 'disable');
 
     unless ($components->{$proggy}) 
@@ -748,7 +749,10 @@ sub enable_or_disable
 	$n ||= 1;
 	$components->{$proggy}->{disabled} = $n;
     }
-    $components->{$proggy}->{admin_status} = sprintf "manually %s on %s", $which . 'd', POSIX::strftime("%a%d%b%y", localtime(time));
+    $components->{$proggy}->{admin_status} = sprintf "%s %s on %s", 
+			(($n and $n == 2) ? 'centrally' : 'manually'),
+			$which . 'd', 
+			POSIX::strftime("%a%d%b%y", localtime(time));
 }
 
 sub check
