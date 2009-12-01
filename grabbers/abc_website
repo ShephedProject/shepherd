@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 
-# ABC1/ABC2 au_tv guide grabber - runs from "Shepherd" master grabber
+# ABC1/ABC2/ABC3 au_tv guide grabber - runs from "Shepherd" master grabber
 #  * written by ltd
-#  * uses ABC website for ABC1 and ABC2 data
+#  * uses ABC website for ABC1 ABC2 ABC3 data
 #  * when used in conjunction with Shepherd, shepherd can collect other channels
 #    using other grabbers
 #  * this does NOT use any config file - all settings are passed in from shepherd
@@ -18,11 +18,12 @@
 #    2.00  23nov06	simplified
 #    3.00  23may07      merged abc1/abc2 together again, abc_website now does both!
 #    3.04  12jun07	abc website format change
+#    3.23  01dec09	added abc3
 
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.22";
+my $version = "3.23";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -36,8 +37,10 @@ use Shepherd::Common;
 my $urls;
 $urls->{station_close}->{ABC1} = "http://www.abc.net.au/tv/guide/abctvweekguide.htm";
 $urls->{station_close}->{ABC2} = "http://www.abc.net.au/tv/guide/abc2weekguide.htm";
+$urls->{station_close}->{ABC3} = "http://www.abc.net.au/tv/guide/abc3weekguide.htm";
 $urls->{guide}->{ABC1} = "http://www.abc.net.au/tv/guide/";
 $urls->{guide}->{ABC2} = "http://www.abc.net.au/tv/guide/abc2";
+$urls->{guide}->{ABC3} = "http://www.abc.net.au/tv/guide/abc3";
 
 #
 # some initial cruft
@@ -110,7 +113,7 @@ GetOptions(
 
 if ($opt_version || $opt_desc) {
 	printf "%s %s\n",$progname,$version;
-	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for ABC1 and ABC2.",$progname if $opt_desc;
+	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for ABC1/ABC2/ABC3.",$progname if $opt_desc;
 	exit(0);
 }
 
@@ -137,7 +140,8 @@ die "WARNING: channels file $opt_channels_file could not be read: $!\n" if (!-r 
 local (@ARGV, $/) = ($opt_channels_file);
 no warnings 'all'; eval <>; die "$@" if $@;
 
-die "nothing to do; neither ABC1 nor ABC2 in channels lineup!\n" if ((!defined $channels->{ABC1}) && (!defined $channels->{ABC2}));
+die "nothing to do; neither ABC1 nor ABC2 nor ABC3 in channels lineup!\n"
+	if ((!defined $channels->{ABC1}) && (!defined $channels->{ABC2}) && (!defined $channels->{ABC3}));
 
 # check XMLTV version for HDTV compatability
 my @xmltv_version = split(/\./,$XMLTV::VERSION);
@@ -147,7 +151,7 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 	$stats{disabled_hdtv_flag}++;
 }
 
-&log(sprintf "Going to %s%s %s%d%s days%s of data for ABC1(%s), ABC2(%s) into %s (%s)",
+&log(sprintf "Going to %s%s %s%d%s days%s of data for ABC1(%s), ABC2(%s), ABC3(%s) into %s (%s)",
 	($opt_gaps_file ne "" ? "micro-gap " : ""),
 	($opt_cheap ? "verify (cache-validate)" : "grab"),
 	($opt_do_extra_days ? "somewhere between " : ""),
@@ -156,6 +160,7 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 	($opt_offset ? " (skipping first $opt_offset days)" : ""),
 	(defined $channels->{ABC1} ? "yes:$abc_region" : "no"),
 	(defined $channels->{ABC2} ? "yes" : "no"),
+	(defined $channels->{ABC3} ? "yes" : "no"),
 	$opt_outputfile,
 	($opt_no_cache ? "without caching" : "with caching"));
 
@@ -172,18 +177,14 @@ $writer_args{OUTPUT} = $fh;
 
 $writer = new XMLTV::Writer(%writer_args);
 $writer->start( { 'source-info-name'   => "$progname $version", 'generator-info-name' => "$progname $version"} );
-$writer->write_channel( { 'display-name' => [[ "ABC1", $lang ]], 'id' => $channels->{ABC1} } ) if (defined $channels->{ABC1});
-$writer->write_channel( { 'display-name' => [[ "ABC2", $lang ]], 'id' => $channels->{ABC2} } ) if (defined $channels->{ABC2});
 
-&get_station_close('ABC1', $urls->{station_close}->{ABC1});
-&get_station_close('ABC2', $urls->{station_close}->{ABC2});
-
-if (defined $channels->{ABC1}) {
-	&get_abc_data($channels->{ABC1}, $urls->{guide}->{ABC1},'ABC1');
+foreach my $ch ("ABC1","ABC2","ABC3") {
+	$writer->write_channel( { 'display-name' => [[ $ch, $lang ]], 'id' => $channels->{$ch} } ) if (defined $channels->{$ch});
 }
 
-if (defined $channels->{ABC2}) {
-	&get_abc_data($channels->{ABC2}, $urls->{guide}->{ABC2},'ABC2');
+foreach my $ch ("ABC1","ABC2","ABC3") {
+	&get_station_close($ch, $urls->{station_close}->{$ch});
+	&get_abc_data($channels->{$ch}, $urls->{guide}->{$ch},$ch);
 }
 
 &write_cache if ($opt_no_cache == 0);
