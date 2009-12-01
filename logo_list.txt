@@ -53,14 +53,14 @@ ICON    ABC3    frogman_hybrid	http://ash.ms/projects/channels/download/icons-fr
 ICON    ABC3    t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/abc3.png
 ICON    ABC3    t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc3.png
 
-ICON	ABC HDTV	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
-#ICON	ABC HDTV	tatey_blue	http://tatey.com/images/au_network_logos/abc-hd.png
-ICON    ABC HDTV  	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/abc-hd.png
-ICON	ABC HDTV	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/abc-hd.png
-ICON	ABC HDTV	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/abc-hd.png
-ICON	ABC HDTV	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/abc-hd.png
-ICON	ABC HDTV	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/abc-hd.png
-ICON	ABC HDTV	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc-hd.png
+ICON	ABC HD	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
+#ICON	ABC HD	tatey_blue	http://tatey.com/images/au_network_logos/abc-hd.png
+ICON    ABC HD 	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/abc-hd.png
+ICON	ABC HD	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/abc-hd.png
+ICON	ABC HD	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/abc-hd.png
+ICON	ABC HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/abc-hd.png
+ICON	ABC HD	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/abc-hd.png
+ICON	ABC HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc-hd.png
 
 
 ICON	Seven	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
@@ -197,29 +197,22 @@ ICON    WIN	t8_blue         http://ash.ms/projects/channels/download/icons-t8-bl
 ICON    WIN	t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/win.png
 
 
-ICON	Sthn Cross TEN	lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_ten.jpg
-ICON    Sthn Cross TEN  frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/southern-cross-ten.png
-ICON    Sthn Cross TEN  frogman_blue    http://ash.ms/projects/channels/download/icons-frogman-blue/png/southern-cross-ten.png
-ICON    Sthn Cross TEN  frogman_green   http://ash.ms/projects/channels/download/icons-frogman-green/png/southern-cross-ten.png
-ICON    Sthn Cross TEN  frogman_hybrid  http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/southern-cross-ten.png
-ICON    Sthn Cross TEN  t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/southern-cross-ten.png
-ICON    Sthn Cross TEN  t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/southern-cross-ten.png
+ICON	SC10	lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_ten.jpg
+ICON	SC10	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/southern-cross-ten.png
+ICON    SC10	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/southern-cross-ten.png
+ICON    SC10	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/southern-cross-ten.png
+ICON    SC10	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/southern-cross-ten.png
+ICON    SC10	t8_blue	http://ash.ms/projects/channels/download/icons-t8-blue/png/southern-cross-ten.png
+ICON    SC10	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/southern-cross-ten.png
 
-ICON	SC10 Wollongong	lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_ten.jpg
-ICON	SC10 Wollongong frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/southern-cross-ten.png
-ICON    SC10 Wollongong  frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/southern-cross-ten.png
-ICON    SC10 Wollongong  frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/southern-cross-ten.png
-ICON    SC10 Wollongong  frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/southern-cross-ten.png
-ICON    SC10 Wollongong  t8_blue	http://ash.ms/projects/channels/download/icons-t8-blue/png/southern-cross-ten.png
-ICON    SC10 Wollongong  t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/southern-cross-ten.png
 
-ICON    Southern Cross  lyngsat         http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_tv.jpg
-ICON    Southern Cross  frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/southern-cross-television.png
-ICON    Southern Cross  frogman_blue    http://ash.ms/projects/channels/download/icons-frogman-blue/png/southern-cross-television.png
-ICON    Southern Cross  frogman_green   http://ash.ms/projects/channels/download/icons-frogman-green/png/southern-cross-television.png
-ICON    Southern Cross  frogman_hybrid  http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/southern-cross-television.png
-ICON    Southern Cross  t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/southern-cross-television.png
-ICON    Southern Cross  t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/southern-cross-television.png
+ICON    SCTV  lyngsat         http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_tv.jpg
+ICON    SCTV  frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/southern-cross-television.png
+ICON    SCTV  frogman_blue    http://ash.ms/projects/channels/download/icons-frogman-blue/png/southern-cross-television.png
+ICON    SCTV  frogman_green   http://ash.ms/projects/channels/download/icons-frogman-green/png/southern-cross-television.png
+ICON    SCTV  frogman_hybrid  http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/southern-cross-television.png
+ICON    SCTV  t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/southern-cross-television.png
+ICON    SCTV  t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/southern-cross-television.png
 
 
 ICON    Prime	wikipedia       http://upload.wikimedia.org/wikipedia/en/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
