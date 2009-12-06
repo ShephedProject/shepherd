@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.18';
+my $version = '0.19';
 
 use strict;
 no strict 'refs';
@@ -1278,10 +1278,10 @@ sub set_icons
 	my $t;
 
 	foreach my $line (split/\n/,$icon_styles) {
-	    if ($line =~ /^THEME\t(.*)\t(.*)\t(.*)$/) {
+	    if ($line =~ /^THEME\s+(.*)\s+(.*)\s+(.*)$/) {
 		my ($theme_name, $theme_desc, $theme_preview_url) = ($1, $2, $3, $4);
 		printf " %-16s %-30s %s\n",$theme_name,$theme_desc,$theme_preview_url;
-	    } elsif ($line =~ /^ICON\t(.*)\t(.*)\t(.*)$/) {
+	    } elsif ($line =~ /^ICON\s+(.*)\s+(.*)\s+(.*)$/) {
 		my ($ch, $ch_theme, $url) = ($1, $2, $3);
 		my $themename = "$ch_theme [$url]";
 		$t->{ch}->{$ch}->{themes}->{$themename}->{url} = $url;
