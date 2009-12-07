@@ -1278,10 +1278,11 @@ sub set_icons
 	my $t;
 
 	foreach my $line (split/\n/,$icon_styles) {
-	    if ($line =~ /^THEME\s+(.*)\s+(.*)\s+(.*)$/) {
+	    $line =~ s/\t/    /g;
+	    if ($line =~ /^THEME\s{2,}(\S+)\s{2,}(.*)\s{2,}(.*)$/) {
 		my ($theme_name, $theme_desc, $theme_preview_url) = ($1, $2, $3, $4);
 		printf " %-16s %-30s %s\n",$theme_name,$theme_desc,$theme_preview_url;
-	    } elsif ($line =~ /^ICON\s+(.*)\s+(.*)\s+(.*)$/) {
+	    } elsif ($line =~ /^ICON\s+(.*?)\s{2,}(.*?)\s{2,}(.*)$/) {
 		my ($ch, $ch_theme, $url) = ($1, $2, $3);
 		my $themename = "$ch_theme [$url]";
 		$t->{ch}->{$ch}->{themes}->{$themename}->{url} = $url;
