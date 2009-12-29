@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '5.0.0';
+my $version  = '5.0.1';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -964,6 +964,12 @@ sub bad_parse
 sub is_outside_gaps
 {
   my ($ch, $start, $stop) = @_;
+
+  unless ($start and $stop)
+  {
+      print "ERROR: start time of $start and stop of $stop.\n";
+      return 1;	# skip it
+  }
 
   $start = udate_to_epoch($start);
   $stop = udate_to_epoch($stop);
