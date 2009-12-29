@@ -21,7 +21,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "1.110";
+my $version = "1.111";
 
 use XMLTV;
 use XML::DOM;
@@ -498,12 +498,18 @@ sub parse_xml_data
 			my %e;
 			foreach my $field ('title', 'subtitle', 'description_1', 'main_cast', 'year_released', 'rating',
 			  'genre', 'running_time', 'repeat', 'country', 'movie', 'premiere', 'final', 'captions',
-			  'warnings', 'colour', 'language', 'director', 'live', 'return') {
+			  'warnings', 'colour', 'language', 'director', 'live', 'return', 'show_type') {
 				eval { $e{$field} = $event->getElementsByTagName("$field")->item(0)->getFirstChild->getNodeValue; };
 			}
 			# other fields we dont pick up but exist in source xml data include:
 			#  other_title, description_2, genre_id, sub_category, highlight, ext_url, y7_url
 			# 'return' unseen
+
+			if (defined $e{show_type}) {
+			    if ($e{show_type} eq "Movie") {
+				$e{movie} = 1;
+			    }
+			}
 
 			my %video_details;
 			$video_details{'colour'} = 1 if $e{colour};
