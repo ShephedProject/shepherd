@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '5.0.1';
+my $version  = '5.1.0';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -247,7 +247,7 @@ sub get_guide_data
 
   for my $day ($opt->{offset} .. $opt->{days} - 1)
   {
-    $date = Ymd(DateCalc("today", "+ $day days"));
+    $date = Ymd(DateCalc("now", "+ $day days"));
     print "Day $day.\n" if ($debug);
 
     if (!$day)

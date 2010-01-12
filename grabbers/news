@@ -6,7 +6,7 @@
 # values changed. Should this grabber & Rex require modification, it'd
 # be worth merging the common code into a library or something.
 
-my $version  = '1.6';
+my $version  = '1.7';
 
 use strict;
 
@@ -152,7 +152,7 @@ sub get_guide_data
 
   for my $day ($opt->{offset} .. $opt->{days} - 1)
   {
-    $date = Ymd(DateCalc("today", "+ $day days"));
+    $date = Ymd(DateCalc("now", "+ $day days"));
     print "Day $day.\n" if ($debug);
 
     if (!$day)
@@ -1019,6 +1019,7 @@ sub expand_date
 {
   my $t = shift;
   $t =~ s/\./:/;
+  $t="$1:00$2 $3" if ($t =~ m:^(\d+)([ap]m)\s+(.*?)$:o);
   my $ret = ParseDate($t);
 
   # strip colons
