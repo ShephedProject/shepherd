@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '5.1.0';
+my $version  = '5.2.0';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -1150,6 +1150,7 @@ sub expand_date
 {
   my $t = shift;
   $t =~ s/\./:/;
+  $t="$1:00$2 $3" if ($t =~ m:^(\d+)([ap]m)\s+(.*?)$:o);
   my $ret = ParseDate($t);
 
   # --- append timezone and strip colons
