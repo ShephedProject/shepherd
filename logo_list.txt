@@ -66,7 +66,7 @@ ICON	ABC HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/p
 ICON	Seven	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
 ICON	Seven	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/7network_aus.jpg
 #ICON	Seven	tatey_blue	http://tatey.com/images/au_network_logos/seven.png
-ICON	Seven	frogman_plan	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/seven.png
+ICON	Seven	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/seven.png
 ICON	Seven	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/seven.png
 ICON	Seven	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/seven.png
 ICON	Seven	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/seven.png
@@ -102,7 +102,7 @@ ICON	Nine	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png
 
 ICON	Nine HD	standard	http://imagestore.ugbox.net/thumb/nine_53151871dd779ac2304e05ce9b2.jpg
 #ICON	Nine HD	tatey_blue	http://tatey.com/images/au_network_logos/nine-hd.png
-ICON	Nine HD frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/nine-hd.png
+ICON	Nine HD	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/nine-hd.png
 ICON	Nine HD	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/nine-hd.png
 ICON	Nine HD	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/nine-hd.png
 ICON	Nine HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/nine-hd.png
