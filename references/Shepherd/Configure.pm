@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.19';
+my $version = '0.21';
 
 use strict;
 no strict 'refs';
@@ -271,12 +271,15 @@ sub configure_channels_guided
 	foreach (@table)
 	{
 	    my $guide_xmltvid = $allchannels[$guide_index];
-	    $guide_xmltvid = lc "$guide_xmltvid.shepherd.au";
-	    $guide_xmltvid =~ s/ //g;
-
-	    if ($guide_xmltvid eq $mch->{xmltvid})
+	    if ($_ and $guide_xmltvid)
 	    {
-		$default_index = $guide_index;
+		$guide_xmltvid = lc "$guide_xmltvid.shepherd.au";
+		$guide_xmltvid =~ s/ //g;
+
+		if ($guide_xmltvid eq $mch->{xmltvid})
+		{
+		    $default_index = $guide_index;
+		}
 	    }
 
 	    $guide_index++;
