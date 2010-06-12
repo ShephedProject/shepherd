@@ -9,7 +9,7 @@
 # has been coded to make adding any future channels easy.
 #
 
-my $version = '3.00';
+my $version = '4.00';
 
 use strict;
 use Getopt::Long;
@@ -494,12 +494,19 @@ sub set_region
     # Not totally sure about these regions... is regional NSW 'Sydney'
     # or 'Regional'?
     my $state = Shepherd::Common::which_state($opt->{region});
-    my $loc = "SBS Regional";
-    $loc = "SBS Television"     if ($state eq "NSW");
-    $loc = "SBS Melbourne"      if ($state eq "VIC");
-    $loc = "SBS Queensland"     if ($state eq "QLD");
-    $loc = "SBS SA"             if ($state eq "SA" or $state eq 'NT' or $state eq 'TAS');
-    $loc = "SBS WA"             if ($state eq "WA");
+    $loc = 'SBS Sydney'	    if ($state eq 'NSW' or $state eq 'ACT');
+    $loc = 'SBS Melbourne'  if ($state eq 'VIC');
+    $loc = 'SBS Brisbane'   if ($state eq 'QLD');
+    $loc = 'SBS Adelaide'   if ($state eq 'SA');
+    $loc = 'SBS Darwin'	    if ($state eq 'NT');
+    $loc = 'SBS Tasmania'   if ($state eq 'TAS');
+    $loc = 'SBS Perth'	    if ($state eq 'WA');
+
+    unless ($loc)
+    {
+	&log("Error: No valid location? Using default/national times.");
+	$loc = '';
+    }
 
     &log("Location: $loc") if ($debug);
 }

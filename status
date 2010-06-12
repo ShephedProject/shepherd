@@ -14,7 +14,7 @@ grabber         southerncross_website   0.21
 grabber         ten_website         2.03
 grabber         citysearch          3.0.1-r5
 grabber         acctv_website       0.08-r1
-grabber         sbsweb              3.00
+grabber         sbsweb              4.00
 reconciler      reconciler_mk2      0.42
 postprocessor   imdb_augment_data   0.46
 postprocessor   flag_aus_hdtv       0.50
