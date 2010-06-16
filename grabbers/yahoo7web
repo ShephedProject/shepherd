@@ -7,7 +7,15 @@
 use strict;
 
 my $progname = "yahoo7web";
-my $version = "0.40";
+my $version = "0.99";
+# 
+# This grabber currently broken! v0.99 points at new source,
+# but still needs to be rewritten to parse new source format. 
+# The good news is that it doesn't need to request detail
+# pages one at a time any more.
+#
+# June 2010.
+#
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -343,13 +351,23 @@ sub get_summary_pages
 			# interested in anything from it anyway
 			next if ((defined $opt->{gaps_file}) && (!window_is_within_microgap($currtime,$currtime+(60*60*3))));
 
-			my $url = sprintf "http://au.tv.yahoo.com/tv-guide/?hour=%s&min=%s&date=%s&mon=%s&year=%s&tvrg=%s&next=%s",
-				POSIX::strftime("%H",localtime($starttime_midnight)),
-				POSIX::strftime("%M",localtime($starttime_midnight)),
-				POSIX::strftime("%d",localtime($starttime_midnight)),
-				POSIX::strftime("%m",localtime($starttime_midnight)),
-				POSIX::strftime("%Y",localtime($starttime_midnight)),
-				$opt->{region}, $currtime;
+# Format change!
+#
+# Datasource now offers lots of data with a single download, but in new format.
+#
+#			my $url = sprintf "http://au.tv.yahoo.com/tv-guide/?hour=%s&min=%s&date=%s&mon=%s&year=%s&tvrg=%s&next=%s",
+#				POSIX::strftime("%H",localtime($starttime_midnight)),
+#				POSIX::strftime("%M",localtime($starttime_midnight)),
+#				POSIX::strftime("%d",localtime($starttime_midnight)),
+#				POSIX::strftime("%m",localtime($starttime_midnight)),
+#				POSIX::strftime("%Y",localtime($starttime_midnight)),
+#				$opt->{region}, $currtime;
+
+			my $url = sprintf 'http://au.tv.yahoo.com/tv-guide/%d/%d/%d/%d/',
+				$opt->{'region'},
+				0, # Free-to-air
+				$day_num - 1,
+				$hr;
 
 			&log("fetching day $day_num summary page hour $hr ($url)");
 			&parse_summary_page($url, $day_num, $day_start);
@@ -400,7 +418,7 @@ sub parse_summary_page
 		exit 20 unless ($stats{summary_pages_with_progs})
 	}
 
-	my $tree_table = $tree->look_down('_tag' => 'table', 'id' => 'listing-table');
+	my $tree_table = $tree->look_down('_tag' => 'div', 'class' => 'bd');
 	if (!$tree_table) {
 		&log("Format change? No TV table in $url?");
 		exit 20 unless ($stats{summary_pages_with_progs});
@@ -408,10 +426,10 @@ sub parse_summary_page
 
 	my $progs_in_table = 0;
 
-	for my $tree_tr ($tree_table->look_down('_tag' => 'tr', 'class' => 'lt-listing-row')) {
+	for my $tree_tr ($tree_table->look_down('_tag' => 'li', 'class' => 'row channel')) {
 		# get channel
 		my $this_chan = "";
-		if (my $channel_td = $tree_tr->look_down('_tag' => 'td', 'class' => 'lt-channel')) {
+		if (my $channel_td = $tree_tr->look_down('_tag' => 'h3')) {
 			$this_chan = $channel_td->as_text();
 		}
 
@@ -439,7 +457,7 @@ sub parse_summary_page
 			next;
 		}
 
-		for my $tree_td ($tree_tr->look_down('_tag' => 'td', 'class' => 'lt-listing')) {
+		for my $tree_td ($tree_tr->look_down('_tag' => 'li', 'class' => 'item')) {
 			if (my $listing_div = $tree_td->look_down('_tag' => 'div')) {
 				next if ($listing_div->attr('class') !~ /^lt-listing-wrapper/i);
 
