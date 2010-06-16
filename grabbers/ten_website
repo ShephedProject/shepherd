@@ -8,7 +8,7 @@
 use strict;
 
 my $progname = "ten_website";
-my $version = "2.03";
+my $version = "2.10";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -337,8 +337,23 @@ sub get_summary_page
 			next;
 		}
 
-		my $prog_start = substr($show->{startTime},0,10);
-		my $prog_stop =  substr($show->{endTime},0,10);
+		# Alas, startTime and endTime fields appear to be 
+		# incorrect for non-EST locations (as at 16-Jun-10).
+		#
+		#my $prog_start = substr($show->{startTime},0,10);
+		#my $prog_stop =  substr($show->{endTime},0,10);
+
+		my @start_time_a = ( 0 );
+		$show->{'startDateText'} =~ /(\d+)-(\d+)-(\d+)/ 
+		    and $start_time_a[5] = $1 - 1900
+		    and $start_time_a[4] = $2 - 1
+		    and $start_time_a[3] = $3;
+		$show->{'startTimeText'} =~ /(\d+):(\d+)(\w+)/
+		    and $start_time_a[2] = ($3 eq 'AM' ? $1 : $1 + 12)
+		    and $start_time_a[1] = $2;
+
+		my $prog_start = POSIX::mktime(@start_time_a);
+		my $prog_stop = $prog_start + ($show->{'duration'} * 60);
 
 		# only fetch within start/end times specified.
 		if (($prog_stop < $starttime) || ($prog_start > $endtime)) 
@@ -368,7 +383,7 @@ sub get_summary_page
 		$d->{progs}->[$stats{programmes}] = $prog;
 		$stats{programmes}++;
 
-		&log(sprintf " %3d. %s", $stats{programmes}, $show->{program_name}) if ($opt->{debug});
+		&log(sprintf " %3d. %-40s (%s)", $stats{programmes}, $show->{program_name}, $prog->{start}) if ($opt->{debug});
 	}
 
 	&log(" summary returned data for ".($stats{programmes} - $prev_num_programmes)." programmes");
