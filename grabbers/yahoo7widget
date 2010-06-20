@@ -18,11 +18,12 @@
 #    1.80  22feb07	bugfix: stop throwing away multiple category data
 #    1.81  01mar07      more informative error on no connectivity
 #    2.00  19jun10	moved to JSON data format
+#    2.01  20jun10	add sub-title support in
 
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.0";
+my $version = "2.01";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -247,6 +248,7 @@ sub parse_json_data
 
 		$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $item->{title}->[0]->{0}, $opt->{lang} ]] if (defined $item->{title});
 		$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $item->{description_1}, $opt->{lang} ]] if (defined $item->{description_1});
+		$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $item->{subtitle}->[0]->{0}, $opt->{lang} ]] if (defined $item->{subtitle});
 
 		my %genre, my $category;
 		$genre{movie} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Movie"));
@@ -284,7 +286,7 @@ sub parse_json_data
 
 		# print out any unused fields
 		foreach my $field (keys %{($item)}) {
-			next if ($field =~ /(event_id|co_v_short|event_date|end_date|title|description_1|show_type|category|country|premiere|rating|warnings|main_cast|director|writer|year_released|repeat|captions|final|colour|running_time|language|genre|live)/); # parsed fields
+			next if ($field =~ /(event_id|co_v_short|event_date|end_date|title|subtitle|description_1|show_type|category|country|premiere|rating|warnings|main_cast|director|writer|year_released|repeat|captions|final|colour|running_time|language|genre|live)/); # parsed fields
 			next if ($field =~ /(program_id|series_id|genre_id|venue_id|y7_url|highlight)/); # ignored fields
 			next if (defined $d->{ignored_field}->{$field});
 			$d->{ignored_field}->{$field} = 1;
