@@ -23,7 +23,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.01";
+my $version = "2.02";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -44,6 +44,12 @@ my $input_xml;
 my $d;
 $| = 1;
 
+# map yahoo paytv names to what shepherd knows them as
+my %paytv_fixups = ( qw{ 111HITS 111Hits A-PAC AntennaPacific BloombergTELEVISION BloombergTelevision 
+	BOOMERANG Boomerang CBeebies Cbeebies DiscoveryHomeHealth DiscoveryHealth fashiontv FashionTV
+	HITS2 111HITS2 LifestyleFOODChannel2 LifestyleFOOD2 LifestyleYOU LifeStyleYOU LifestyleYOU2 LifStyleYOU2
+	STARPICS STARPICS1 THECOMEDYCHANNEL ComedyChannel THECOMEDYCHANNEL2 Comedy2 TSN TheStyleNetwork } );
+
 #
 # parse command line
 #
@@ -62,6 +68,7 @@ GetOptions(
 	'cachefile=s' => \$opt->{obsolete},
 	'output=s'	=> \$opt->{outputfile},
 	'fast'		=> \$opt->{fast},
+	'paytv'		=> \$opt->{paytv},
 	'warper'	=> \$opt->{warper},
 	'lang=s'	=> \$opt->{lang},
 	'obfuscate'	=> \$opt->{obfuscate},
@@ -99,9 +106,6 @@ $opt->{days} = 9 if $opt->{days} > 9;	# no data beyond 9 days
 
 my $starttime = $script_start_time;
 
-# normalize starttime to 3 hour window to help yahoo's squid cache entries
-$starttime -= ($starttime % (3*3600));
-
 # correct $starttime to remove gap between local and Eastern States time
 my $local_time_offset = POSIX::strftime("%z",localtime(time));
 # yahoo7widget times are always localtime on Eastern States ..
@@ -129,7 +133,10 @@ if (-r $opt->{channels_file}) {
 	die "WARNING: channels file $opt->{channels_file} could not be read\n";
 }
 
-for (my $currtime = $starttime; $currtime < $endtime; $currtime += (6*3600)) {
+&check_for_paytv;
+
+$starttime -= ($starttime % $d->{fetch_interval}); # normalize time window to help yahoo's squid cache entries
+for (my $currtime = $starttime; $currtime < $endtime; $currtime += $d->{fetch_interval}) {
 	# pace ourselves
 	if (($currtime != $starttime) && (!defined $opt->{fast})) {
 		my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
@@ -139,7 +146,11 @@ for (my $currtime = $starttime; $currtime < $endtime; $currtime += (6*3600)) {
 
 	# get data
 	my $tries = 5;
-	my $url = sprintf "http://au.tv.yahoo.com/tv-guide/data/%d/0/%d/%d/", $opt->{region}, $currtime,($currtime+(6*3600));
+	my $url = sprintf "http://au.tv.yahoo.com/tv-guide/data/%d/%d/%d/%d/",
+		$opt->{region},
+		($d->{want_paytv} > 0 ? "168" : "0"),
+		$currtime,
+		($currtime+$d->{fetch_interval});
 	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) = 
 	  Shepherd::Common::get_url(url => $url, retries => ($tries-1));
 
@@ -208,6 +219,13 @@ sub parse_json_data
 	my $decoded_data = decode_json($data);
 	foreach my $item (@{($decoded_data->{'tv'}->[0]->{'item'})}) {
 		my $channel = $item->{'co_v_short'};
+
+		if (ref($channel) ne "") { # paytv channels
+			$channel = $channel->[0]->{0};
+			$channel =~ s/(\s|\[|\]|\+|\&)//g; 
+			$channel = $paytv_fixups{$channel} if (defined $paytv_fixups{$channel});
+                }
+
 		if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
 			if (!defined $d->{ignored_channels}->{$channel}) {
 				$d->{ignored_channels}->{$channel} = 1;
@@ -364,3 +382,18 @@ sub write_data
 
 ######################################################################################################
 
+sub check_for_paytv
+{
+	$d->{want_paytv} = 0;
+	foreach my $ch ( qw( 111Hits ACC AdultsOnly960 AIR AnimalPlanet AntennaPacific Arena Arena2 APAC Aurora BBCKnowledge BBCWorldNews Bio BloombergTelevision Boomerang CartoonNetwork Cbeebies ChannelV CNBC CNN ComedyChannel Comedy2 CMC Crime DiscoveryChannel DiscoveryHD DiscoveryHealth DiscoveryScience DiscoveryTravel DisneyChannel E!Entertainment ESPN ESPNHD Eurosportnews EXPO FashionTV FOXClassics FOXClassics2 FOXNews FOXSPORTS1 FOXSPORTS2 FOXSPORTS3 FOXSPORTSNews FOX8 FOX82 FoxtelBoxOffice FUELTV Hallmark HOWTOChannel LifeStyleFOOD MainEvent MAX MOVIEEXTRA MOVIEGREATS MOVIEONE MOVIETWO MTV MTVClassic NatGeoAdventure NatGeoHD NationalGeographic NickJr Nickelodeon NITV Ovation PlayhouseDisney RAIITALIA SCIFI showcase SkyNewsAustralia SkyNewsBusiness SkyRacing TCM TheHistoryChannel TheLifeStyleChannel LifeStyle2 TheWeatherChannel TV1 TV12 TVN TVSN UKTV UKTV2 W W2 WORLDMOVIES 13THSTREET LifeStyleYOU TheStyleNetwork LifestyleFOOD2 LifStyleYOU2 111HITS2 SCIFI2 FoxSports1HD FoxSports2HD FoxSports3HD FOX8HD UKTVHD WHD ShowPremiereHD showcaseHD showtimeactionHD MOVIEONEHD STARPICS1HD STARPICS2HD showtimepremiere showtimetwo showtimeaction showtimecomedy showtimedrama FMC STARPICS1 STARPICS2 Eurosport Discovery2 NATGEOWILD DiscoveryTurboMAX DiscTurboMAX2 KidsCo VHits showcasetwo AnimalPlanet AntennaGreek BBCWorldNews BloombergTelevision CartoonNetwork CNN DiscoveryScience DiscoveryHealth DiscoveryTravel DiscoveryRealTime DisneyChannel E!Entertainment ERTGreek Eurosport FashionTV FMC MOVIEEXTRA MOVIEGREATS MOVIEONE MOVIETWO MTV MTVClassic NatGeoAdventure NationalGeographic Ovation PlayhouseDisney SkyRacing STARPICS1 TCM TVChileSpanish TVE )) {
+		$d->{want_paytv}++ if ((exists $channels->{$ch} || exists $opt_channels->{$ch}));
+	}
+
+	$d->{want_paytv}++ if (defined $opt->{paytv});
+	if ($d->{want_paytv} > 0) {
+		Shepherd::Common::log("going to gather paytv channels as we have ".$d->{want_paytv}." paytv channels matching.");
+		$d->{fetch_interval} = (3 * 3600);	# 3 hours (for now)
+	} else {
+		$d->{fetch_interval} = (6 * 3600);	# 6 hours
+	}
+}
