@@ -3,12 +3,12 @@ reference       channel_list        54
 reference       Shepherd/Common.pm  0.38
 reference       Shepherd/MythTV.pm  0.9
 reference       Shepherd/Configure.pm   0.21
-reference	Shepherd/json_pp.pm 0.1
+reference	Shepherd/json_pp.pm 0.2
 grabber         rex                 5.2.0
 grabber         news                1.7
 grabber         abc_website         3.23-r1
 grabber         oztivo              2.38
-grabber         yahoo7widget        2.10
+grabber         yahoo7widget        2.11
 grabber         foxtel_swf          2.03
 grabber         southerncross_website   0.21
 grabber         ten_website         2.10
