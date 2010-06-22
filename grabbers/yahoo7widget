@@ -19,18 +19,19 @@
 #    1.81  01mar07      more informative error on no connectivity
 #    2.00  19jun10	moved to JSON data format
 #    2.01  20jun10	add sub-title support in
+#    2.10  22jun10	experimental: drop JSON module for cut-down Shepherd::json_pp
 
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.03";
+my $version = "2.10";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
 use Getopt::Long;
 use Data::Dumper;
 use Shepherd::Common;
-use JSON 2.00;
+use Shepherd::json_pp;  # use JSON;
 
 #
 # some initial cruft
@@ -216,7 +217,9 @@ sub parse_json_data
 	    return;
 	}
 
-	my $decoded_data = decode_json($data);
+	# my $decoded_data = decode_json($data);
+	my $decoded_data = JSON::cut_down_PP::decode_json($data);
+
 	foreach my $item (@{($decoded_data->{'tv'}->[0]->{'item'})}) {
 		my $channel = $item->{'co_v_short'};
 
