@@ -23,14 +23,14 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.02";
+my $version = "2.03";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
 use Getopt::Long;
 use Data::Dumper;
 use Shepherd::Common;
-use JSON;
+use JSON 2.00;
 
 #
 # some initial cruft
