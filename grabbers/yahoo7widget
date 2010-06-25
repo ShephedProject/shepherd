@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.11";
+my $version = "2.12";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -272,12 +272,19 @@ sub parse_json_data
 		$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $item->{description_1}, $opt->{lang} ]] if (defined $item->{description_1});
 		$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $item->{subtitle}->[0]->{0}, $opt->{lang} ]] if (defined $item->{subtitle});
 
-		my %genre, my $category;
+		my %genre, my $category, my $category2;
 		$genre{movie} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Movie"));
 		$genre{live} = 1 if (defined $item->{live});
-		$genre{$item->{genre}} = 1 if (defined $item->{genre});
-		$category = $item->{'category'}->[0]->{'item'}->[0]->{0} if ((defined $item->{'category'}) && (defined $item->{'category'}->[0]->{'item'}->[0]->{0}));
+		$category = $item->{genre} if (defined $item->{genre});
+		if ((defined $item->{'category'}) && (defined $item->{'category'}->[0]->{'item'}->[0]->{0})) {
+			my $category2 = $item->{'category'}->[0]->{'item'}->[0]->{0};
+			$category = $category2 if (!defined $category);
+			$genre{$category2} = 1;
+		}
 		$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ &Shepherd::Common::generate_category($item->{title}->[0]->{0}, $category, %genre) ];
+		Shepherd::Common::log(sprintf "category: chose '%s' from '%s' and '%s' for '%s'",
+			$tv_guide->{$channel}->{data}->{$event_id}->{'category'}->[0]->[0], $category,
+			join(', ',keys %genre), $item->{title}->[0]->{0}) if (defined $opt->{debug});
 
 		$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[ map([$_,$opt->{lang}], split(/\//, $item->{country})) ] if (defined $item->{country});
 		$tv_guide->{$channel}->{data}->{$event_id}->{'premiere'} = 	[ 'premiere', $opt->{lang} ] if (defined $item->{'premiere'});
