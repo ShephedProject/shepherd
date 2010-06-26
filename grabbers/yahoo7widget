@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.12";
+my $version = "2.13";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -66,6 +66,7 @@ GetOptions(
 	'region=i'	=> \$opt->{region},
 	'days=i'	=> \$opt->{days},
 	'offset=i'	=> \$opt->{offset},
+	'paytvtimeoffset'	=> \$opt->{paytvoffset},
 	'channels_file=s' => \$opt->{channels_file},
 	'cachefile=s' => \$opt->{obsolete},
 	'output=s'	=> \$opt->{outputfile},
@@ -200,6 +201,8 @@ $0 [options]
 	--obfuscate		pretend to be a proxy servicing multiple clients
 	--lang=[s]		set language of xmltv output data (default $opt->{lang})
 
+	--paytvtimeoffset	apply an offset between current timezone and AEST for paytv channels
+
 EOF
 ;
 
@@ -222,23 +225,6 @@ sub parse_json_data
 	my $decoded_data = JSON::cut_down_PP::decode_json($data);
 
 	foreach my $item (@{($decoded_data->{'tv'}->[0]->{'item'})}) {
-		my $channel = $item->{'co_v_short'};
-
-		if (ref($channel) ne "") { # paytv channels
-			$channel = $channel->[0]->{0};
-			$channel =~ s/(\s|\[|\]|\+|\&)//g; 
-			$channel = $paytv_fixups{$channel} if (defined $paytv_fixups{$channel});
-                }
-
-		if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
-			if (!defined $d->{ignored_channels}->{$channel}) {
-				$d->{ignored_channels}->{$channel} = 1;
-				$stats{skipped_channels}++;
-				Shepherd::Common::log("ignoring unknown channel '$channel'");
-			}
-			next;
-		}
-
 		my $event_id = $item->{'event_id'};
 
 		# mandatory fields
@@ -255,6 +241,27 @@ sub parse_json_data
 			printf "WARNING: programme with event_id '$event_id' had an invalid end time of '$event_end'; skipped\n";
 			next;
 		}
+
+		my $channel = $item->{'co_v_short'};
+
+		if (ref($channel) ne "") { # paytv channels
+			$channel = $channel->[0]->{0};
+			$channel =~ s/(\s|\[|\]|\+|\&)//g; 
+			$channel = $paytv_fixups{$channel} if (defined $paytv_fixups{$channel});
+
+			$event_start -= $time_offset if (defined $opt->{paytvoffset});
+			$event_end -= $time_offset if (defined $opt->{paytvoffset});
+                }
+
+		if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
+			if (!defined $d->{ignored_channels}->{$channel}) {
+				$d->{ignored_channels}->{$channel} = 1;
+				$stats{skipped_channels}++;
+				Shepherd::Common::log("ignoring unknown channel '$channel'");
+			}
+			next;
+		}
+
 
 		$event_id = $event_start.":".$event_end.":".$event_id; # event_id actually isn't unique - so make it so
 
@@ -403,6 +410,7 @@ sub check_for_paytv
 	$d->{want_paytv}++ if (defined $opt->{paytv});
 	if ($d->{want_paytv} > 0) {
 		Shepherd::Common::log("going to gather paytv channels as we have ".$d->{want_paytv}." paytv channels matching.");
+		Shepherd::Common::log("offsetting paytv channels by ".($time_offset/60)." minutes due to --paytvoffset") if (defined $opt->{paytvoffset});
 		$d->{fetch_interval} = (3 * 3600);	# 3 hours (for now)
 	} else {
 		$d->{fetch_interval} = (6 * 3600);	# 6 hours
