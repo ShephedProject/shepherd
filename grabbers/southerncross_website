@@ -33,7 +33,7 @@
 use strict;
 
 my $progname = "southerncross_website";
-my $version = "0.21";
+my $version = "0.99";
 
 #use LWP::UserAgent;
 #use LWP::ConnCache;
@@ -278,7 +278,9 @@ sub set_region
 
   # From http://www.southerncrossbroadcasting.com.au/TVGuide
   my $channel;
-  my $url = "http://www.southerncrossbroadcasting.com.au/TVGuide/eguide.asp?ch=";
+#  my $url = "http://www.southerncrossbroadcasting.com.au/TVGuide/eguide.asp?ch=";
+  my $url = "http://www.scmedia.com.au/content/eguide.aspx?ch=";
+  
 
   # non "Sthn Cross TEN" has different page layout (all Capitals, (year))
 #  if ($region == 74) # NT - Darwin
@@ -558,14 +560,18 @@ sub parse_page
       if $opt->{debug};
 
   my @table_rows = $tree->find_by_tag_name('table');
-  if (@table_rows < 2) {
+  if (@table_rows < 1) {
     &log("Format has changed for url '$url'");
     $stats{bad_html}++;
     return ($progs, 0);
   }
 
   my $progs_in_day = 0;
-  my @tds = $table_rows[1]->find_by_tag_name('td'); # from second table
+  my @tds = $table_rows[0]->find_by_tag_name('td');
+  foreach (@tds)
+  {
+      print " - " . $_->as_trimmed_text() . "\n";
+  }
   my $td = shift @tds;
   my $text = $td->as_trimmed_text() if $td;
   while (@tds > 0) {
@@ -581,27 +587,26 @@ sub parse_page
     &log("parse_page debug: time      : $1:$2  " .
         POSIX::strftime("%Y%m%d%H%M", localtime($prog->{start}))) 
         if $opt->{debug};
-    $td = shift @tds || last;
-    $text = $td->as_trimmed_text();
 
-    next if (not $text); # title
-    my $b = $td->find_by_tag_name('b') || next;
-    my $title = $b->as_trimmed_text();
-    my $subtitle = $b->right();
-    $subtitle =~ s/ - // if $subtitle;
+    $td = shift @tds || last;
+    my $title = $td->as_trimmed_text();
+
+    $td = shift @tds || last;
+    my $rating = &Shepherd::Common::subrating($td->as_trimmed_text());
+    &log("parse_page debug: rating : $rating") if $opt->{debug};
+
+    $td = shift @tds || last;
+    $td = shift @tds || last;
+    my $text = $td->as_trimmed_text();
+
     # <b>Saturday Late Night Movie</b> - Run Lola Run
     # <b>Sunday Afternoon Premiere Movie</b> - Rat
     # <b>Sunday Afternoon Movie</b> - Evolution
-    my ($rating, %type);
+    my (%type);
     my $post_desc="";
-    if ($subtitle and $title =~ /^(Friday|Saturday|Sunday) .* Movie$/i) {
+    if ($title =~ /^(Friday|Saturday|Sunday) .* Movie$/i) {
       $type{movie} = 1;
       $type{premiere} = 1 if ($title =~ /Premiere/i);
-      &log("parse_page debug: Changing title $title to $subtitle") 
-          if $opt->{debug};
-      $post_desc .= "($title)";
-      $title = $subtitle;
-      $subtitle = undef;
     }
     # (Network Premiere)
     ## (Special Encore Presentation) # repeat of a (Network Premiere)
@@ -624,28 +629,10 @@ sub parse_page
         $type{repeat} = 1 if ($tag =~ /(^|\W)Repeat(\W|$)/i); # unseen
         $type{repeat} = 1 if ($tag =~ /(^|\W)Replay(\W|$)/i);
     }
-    $type{live} = 1 if ($subtitle and $subtitle =~ /live from/i);
     $prog->{title} = [[$title, $opt->{lang}]];
     &log("parse_page debug: title     : $title $post_desc") if ($opt->{debug});
-    if ($subtitle) {
-      $prog->{'sub-title'} = [[$subtitle, $opt->{lang}]];
-      &log("parse_page debug: sub-title : $subtitle") if $opt->{debug};
-    }
-    $td = shift @tds || goto PART;
-    $text = $td->as_trimmed_text();
 
-    if ($text) { # rating
-      $rating = $text;
-      &log("parse_page debug: rating    : $text") if $opt->{debug};
-    }
-    $td = shift @tds || goto PART;
-    $text = $td->as_trimmed_text();
-
-    if ($text eq chr(160)) { # &nbsp;
-      $td = shift @tds || goto PART;
-      $text = $td->as_trimmed_text();
-
-      if ($text) {
+    if ($text) {
         # - Live from Aurora 
         # Hosted by Mike Goldman & Bree Amer, this ... # how to parse all
         # Hosted by Mike Goldman, Ryan Fitzgerald and Bree Amer.
@@ -665,35 +652,8 @@ sub parse_page
         $prog->{'credits'}{'actor'} = [ split(/,|&amp;|&|\Wand\W/i, $cast) ] if $cast;
         $prog->{desc} = [[$text, $opt->{lang}]] if $text; # desc
         &log("parse_page debug: desc      : $text") if $opt->{debug};
-      }
-      $td = shift @tds || goto PART;
-      $text = $td->as_trimmed_text();
-
-      goto PART if ($text ne chr(160)); # &nbsp;
-      $td = shift @tds || goto PART;
-      $text = $td->as_trimmed_text();
     }
 
-    if ($text eq "" and not $td->attr('colspan')) {
-      $td = shift @tds || goto PART;
-      $text = $td->as_trimmed_text();
-
-      if ($text) { # verbose rating
-        $post_desc .= $text;
-        if ($rating) {
-          $rating .= " " . &Shepherd::Common::subrating($text);
-        } else {
-          $rating = &Shepherd::Common::subrating($text);
-        }
-        &log("parse_page debug: verbose rating : $text") if $opt->{debug};
-      }
-      $td = shift @tds || goto PART;
-      $text = $td->as_trimmed_text();
-
-      goto PART if ($text ne "" or $td->attr('colspan')); # &nbsp;
-      $td = shift @tds || goto PART;
-      $text = $td->as_trimmed_text();
-    }
   PART:
     my $category = category_from_title($title);
     $category = "Children" if !$category && $rating && $rating =~ /^(C|P)$/i;
