@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '5.2.0';
+my $version  = '6.0.0';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -412,7 +412,8 @@ sub download_show
   print "Downloading # $pid.\n" if ($debug);
   my $detailsdata = get_page($DATASOURCE_DETAIL .
                       '?action=session_info&event_id=' . $pid .
-                      '&sid=' . $sid . '&loc=grid');
+		      '&region_id=' . $opt->{'region'} . 
+                      '&sid=&loc=grid');
   $result = parse_details($detailsdata) if ($detailsdata);
   unless ($detailsdata and $result)
   {
@@ -793,7 +794,7 @@ sub parse_details
 
   my $tree = HTML::TreeBuilder->new_from_content($detailsdata);
 
-  $block = $tree->look_down('_tag' => 'span', 'class' => 'THIS PAGE');
+  $block = $tree->look_down('_tag' => 'span', 'class' => 'dsp_tilte');
   return bad_parse("Missing title") unless ($block);  # site is probably sending that block page
 
   $show->{'title'} = [[ strip_whitespace($block->as_text()), $lang ]];
