@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.38';
+my $version = '2.39';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -76,6 +76,7 @@ my %s_to_o_map = (
 	'National' => {	# National channel mappings, all timeshifted
 		'ABC2' => 'ABC2',
 		'ABC3' => 'ABC3',
+		'ABC News 24' => 'ABC-News24',
 		'7HD' => 'SevenHD',
 		#'7HD'=>'SevenHD-Mel',
 		'Prime HD' => 'SevenHD', # no such thing yet
