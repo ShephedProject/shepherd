@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.4.0';
+my $version = '1.4.1';
 
 # tv_grab_au
 # "Shepherd"
@@ -765,6 +765,8 @@ sub check
 	my $progtype = $components->{$proggy}->{type};
 	next if ($progtype eq 'application');
 	next if ($progtype eq 'reference' and $proggy !~ /^Shepherd\/.*\.pm$/);
+	next unless (defined $components->{$proggy}->{'type'});
+
 	my $try_count = 0;
 
 RETRY:
