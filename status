@@ -15,7 +15,7 @@ grabber         citysearch          3.0.1-r5
 grabber         acctv_website       0.08-r1
 grabber         sbsweb              4.00
 reconciler      reconciler_mk2      0.43
-postprocessor   imdb_augment_data   0.46
+postprocessor   imdb_augment_data   1.00
 postprocessor   flag_aus_hdtv       0.50
 postprocessor   augment_timezone    0.21
 END

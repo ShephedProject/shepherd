@@ -26,7 +26,7 @@
 use strict;
 
 my $progname = "imdb_augment_data";
-my $version = "0.46";
+my $version = "1.00";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -275,7 +275,7 @@ sub write_cache
 }
 
 ##############################################################################
-# use the online IMDb "power search" at http://www.imdb/List to try to find _1_ match
+# use the online IMDb "power search" at http://www.imdb.com/search/title to try to find _1_ match
 
 sub search_imdb_online
 {
@@ -287,8 +287,11 @@ sub search_imdb_online
 	}
 
 	Shepherd::Common::log("  online IMDb search for '$title' with $post_fields");
-	my $html_data =	Shepherd::Common::get_url(url => "http://www.imdb.com/List",
-			method => "POST", postvars => $post_fields);
+
+	my $html_data = Shepherd::Common::get_url(url => "http://www.imdb.com/search/title?$post_fields",
+	    #fake => 1,             # IMDB doesn't like Shepherd at all
+	    agent => "shepherd",    # IMDB doesn't like "Shepherd" so we lowercase
+	    method => "GET");
 
 	if (!$html_data) {
 		$stats{failed_online_imdb_lookup}++;
@@ -353,7 +356,7 @@ sub simple_search_imdb
     }
 
     &Shepherd::Common::log("  trying simple search for '$title' ($year)");
-    my $url = sprintf "http://us.imdb.com/find?q=%s;s=tt", &Shepherd::Common::urlify($title);
+    my $url = sprintf "http://www.imdb.com/find?q=%s&s=tt", &Shepherd::Common::urlify($title);
     my @response = &Shepherd::Common::get_url($url);
     my $html = $response[0];
 
@@ -392,7 +395,7 @@ sub simple_search_imdb
 	    {
 		foreach my $line (split(/<br>/, $block->as_HTML))
 		{
-		    if ($line =~ /^<a href="(\/title\/tt[0-9]+\/?)">(.*?)<\/a> \(((19|20)\d\d)\)(.*)/
+		    if ($line =~ /<a href="(\/title\/tt[0-9]+\/?)".*?>(.*?)<\/a> \(((19|20)\d\d)\)(.*)/
 			    and
 			(!$year or (abs($year - $3) <= 1))
 			    and
@@ -774,7 +777,7 @@ sub programme_cb( $ )
 	# (either via a cached previous search or via IMDb "power search")
 	#
 	my @search_fields;
-	push(@search_fields, "words=".Shepherd::Common::urlify($movie_title));
+	push(@search_fields, "title=".Shepherd::Common::urlify($movie_title));
 	push(@search_fields, "&countries=".Shepherd::Common::urlify($prog->{country}->[0][0]))
 	  if ((defined $prog->{country}) && (defined $prog->{country}->[0][0]));
 	push(@search_fields, "&year=".Shepherd::Common::urlify($prog->{date}))
@@ -792,7 +795,7 @@ sub programme_cb( $ )
 	my $found = 0;
 	while ((scalar(@search_fields) > 0) && (!$found)) {
 		if ($movie_subtitle) {
-			$post_fields = "words=".Shepherd::Common::urlify($movie_title." ".$movie_subtitle);
+		        $post_fields = "title=".Shepherd::Common::urlify($movie_title." ".$movie_subtitle);
 			$orig_post_fields = $post_fields;
 			push(@search_fields, $post_fields);
 		} else {
@@ -862,26 +865,28 @@ sub programme_cb( $ )
 	}
 
 	# Try the simple search if we have date info
-	if (!$found and $prog->{date}) {
-	    # cached?
-	    $post_fields = 'simple-'. &Shepherd::Common::urlify($movie_title) . '-'.$prog->{date};
-	    my $simple_search = $data_cache->{movie_id_lookup}->{$post_fields};
-	    if ($simple_search and $simple_search->{url}) {
-		if ($simple_search->{url} eq '-') {
-		    # negatively cached
-		    $stats{imdb_lookup_used_negative_cache_entry}++;
+	if (!$found) {
+	    if ($prog->{date}) {
+		# cached?
+		$post_fields = 'simple-'. &Shepherd::Common::urlify($movie_title) . '-'.$prog->{date};
+		my $simple_search = $data_cache->{movie_id_lookup}->{$post_fields};
+		if ($simple_search and $simple_search->{url}) {
+		    if ($simple_search->{url} eq '-') {
+			# negatively cached
+			$stats{imdb_lookup_used_negative_cache_entry}++;
+		    } else {
+			# positively cached
+			$stats{imdb_lookup_used_cache_entry}++;
+			$found = 1;
+		    }
+		    &Shepherd::Common::log(sprintf("  used (%s cache) search: ", ($found ? 'positive' : 'negative')) . $post_fields);
 		} else {
-		    # positively cached
-		    $stats{imdb_lookup_used_cache_entry}++;
-		    $found = 1;
+		    # not cached; look it up
+		    $found = &simple_search_imdb($movie_title, $prog->{date});
 		}
-		&Shepherd::Common::log(sprintf("  used (%s cache) search: ", ($found ? 'positive' : 'negative')) . $post_fields);
 	    } else {
-		# not cached; look it up
-		$found = &simple_search_imdb($movie_title, $prog->{date});
+		&Shepherd::Common::log("  no date info, not trying simple search") if ($opt->{debug});
 	    }
-	} else {
-	    &Shepherd::Common::log("  no date info, not trying simple search") if ($opt->{debug});
 	}
 
 	goto END if (!$found);
@@ -1188,7 +1193,7 @@ sub run_test
 	$opt->{fast} = 1;
 	Shepherd::Common::log("running test for: ".$opt->{test});
 
-	my $post_fields = "words=".Shepherd::Common::urlify($opt->{test});
+	my $post_fields = "title=".Shepherd::Common::urlify($opt->{test});
 	&search_imdb_online($opt->{test},$post_fields);
 
 	die "lookup unsuccessful\n"
