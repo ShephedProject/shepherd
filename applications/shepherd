@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.4.2';
+my $version = '1.4.3';
 
 # tv_grab_au
 # "Shepherd"
@@ -581,7 +581,7 @@ sub install
     $components->{$proggy}->{config} = $config;
     $components->{$proggy}->{source} = $source;
     $components->{$proggy}->{updated} = time;
-    $components->{$proggy}->{admin_status} = sprintf "updated from %s to %s", $oldver, $latestversion;
+    $components->{$proggy}->{admin_status} = sprintf "updated from v%s to v%s", ($oldver or 0), $latestversion;
     delete $components_pending_install->{$proggy} if (defined $components_pending_install->{$proggy});
 
     # if the update was for the main app, restart it
