@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.4.1';
+my $version = '1.4.2';
 
 # tv_grab_au
 # "Shepherd"
@@ -930,6 +930,9 @@ sub build_stats
 
 # versioncmp from Sort::Versions by Kenneth J. Albanowski
 sub versioncmp( $$ ) {
+
+    return -1 unless (@_ == 2 and $_[0] and $_[1]);
+
     my @A = ($_[0] =~ /([-.]|\d+|[^-.\d]+)/g);
     my @B = ($_[1] =~ /([-.]|\d+|[^-.\d]+)/g);
 
