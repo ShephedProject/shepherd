@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 
-# ABC1/ABC2/ABC3 au_tv guide grabber - runs from "Shepherd" master grabber
+# ABC1/ABC2/ABC3/ABC News 24 au_tv guide grabber - runs from "Shepherd" master grabber
 #  * written by ltd
-#  * uses ABC website for ABC1 ABC2 ABC3 data
+#  * uses ABC website for ABC1 ABC2 ABC3 ABC News 24 data
 #  * when used in conjunction with Shepherd, shepherd can collect other channels
 #    using other grabbers
 #  * this does NOT use any config file - all settings are passed in from shepherd
@@ -19,11 +19,12 @@
 #    3.00  23may07      merged abc1/abc2 together again, abc_website now does both!
 #    3.04  12jun07	abc website format change
 #    3.23  01dec09	added abc3
+#    4.00  14aug10	new website format, much redesign, added abc4/abchd/"ABC News 24"
 
 use strict;
 
 my $progname = "abc_website";
-my $version = "3.23";
+my $version = "4.00";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -35,12 +36,11 @@ use Shepherd::Common;
 # constants
 #
 my $urls;
-$urls->{station_close}->{ABC1} = "http://www.abc.net.au/tv/guide/abctvweekguide.htm";
-$urls->{station_close}->{ABC2} = "http://www.abc.net.au/tv/guide/abc2weekguide.htm";
-$urls->{station_close}->{ABC3} = "http://www.abc.net.au/tv/guide/abc3weekguide.htm";
-$urls->{guide}->{ABC1} = "http://www.abc.net.au/tv/guide/";
-$urls->{guide}->{ABC2} = "http://www.abc.net.au/tv/guide/abc2";
-$urls->{guide}->{ABC3} = "http://www.abc.net.au/tv/guide/abc3";
+$urls->{station_close}->{"ABC1"} = "http://www.abc.net.au/tv/guide/abc1-7day-guide.htm";
+$urls->{station_close}->{"ABC2"} = "http://www.abc.net.au/tv/guide/abc2-7day-guide.htm";
+$urls->{station_close}->{"ABC3"} = "http://www.abc.net.au/tv/guide/abc3-7day-guide.htm";
+$urls->{station_close}->{"ABC News 24"} = "http://www.abc.net.au/tv/guide/abcnews24-7day-guide.htm";
+$urls->{guide}->{"ABC"} = "http://www.abc.net.au/tv/guide/all/";
 
 #
 # some initial cruft
@@ -54,6 +54,14 @@ my $data_cache;
 my $override_settings = { };
 my $writer;
 $| = 1;
+
+my %webcache;
+my %chanID_to_divID = (
+	'ABC1'		=> 'epgAbc1',
+	'ABC2'		=> 'epgAbc2',
+	'ABC3'		=> 'epgAbc3',
+	'ABC News 24'	=> 'epgAbc4',
+);
 
 #
 # parse command line
@@ -113,7 +121,7 @@ GetOptions(
 
 if ($opt_version || $opt_desc) {
 	printf "%s %s\n",$progname,$version;
-	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for ABC1/ABC2/ABC3.",$progname if $opt_desc;
+	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for ABC1/ABC2/ABC3/ABC News 24.",$progname if $opt_desc;
 	exit(0);
 }
 
@@ -133,15 +141,19 @@ die "no channel file specified, see --help for instructions\n", if ($opt_channel
 
 # figure out region, "netw" is national
 my $abc_region = lc(Shepherd::Common::which_state($region));
-$urls->{guide}->{ABC1} .= $abc_region;
+$urls->{guide}->{ABC} .= $abc_region;
 
 # read channels file
 die "WARNING: channels file $opt_channels_file could not be read: $!\n" if (!-r $opt_channels_file);
 local (@ARGV, $/) = ($opt_channels_file);
 no warnings 'all'; eval <>; die "$@" if $@;
 
-die "nothing to do; neither ABC1 nor ABC2 nor ABC3 in channels lineup!\n"
-	if ((!defined $channels->{ABC1}) && (!defined $channels->{ABC2}) && (!defined $channels->{ABC3}));
+die "nothing to do; none of ABC1, ABC2, ABC3 or ABC News 24 in channels lineup!\n"
+	if (	(!defined $channels->{"ABC1"}) &&
+		(!defined $channels->{"ABC2"}) &&
+		(!defined $channels->{"ABC3"}) &&
+		(!defined $channels->{"ABC News 24"}) &&
+	1);
 
 # check XMLTV version for HDTV compatability
 my @xmltv_version = split(/\./,$XMLTV::VERSION);
@@ -151,16 +163,17 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 	$stats{disabled_hdtv_flag}++;
 }
 
-&log(sprintf "Going to %s%s %s%d%s days%s of data for ABC1(%s), ABC2(%s), ABC3(%s) into %s (%s)",
+&log(sprintf "Going to %s%s %s%d%s days%s of data for ABC1(%s), ABC2(%s), ABC3(%s) or ABC News 24(%s) into %s (%s)",
 	($opt_gaps_file ne "" ? "micro-gap " : ""),
 	($opt_cheap ? "verify (cache-validate)" : "grab"),
 	($opt_do_extra_days ? "somewhere between " : ""),
 	$opt_days,
 	($opt_do_extra_days ? " to 28" : ""),
 	($opt_offset ? " (skipping first $opt_offset days)" : ""),
-	(defined $channels->{ABC1} ? "yes:$abc_region" : "no"),
-	(defined $channels->{ABC2} ? "yes" : "no"),
-	(defined $channels->{ABC3} ? "yes" : "no"),
+	(defined $channels->{"ABC1"} ? "yes:$abc_region" : "no"),
+	(defined $channels->{"ABC2"} ? "yes" : "no"),
+	(defined $channels->{"ABC3"} ? "yes" : "no"),
+	(defined $channels->{"ABC News 24"} ? "yes" : "no"),
 	$opt_outputfile,
 	($opt_no_cache ? "without caching" : "with caching"));
 
@@ -178,13 +191,13 @@ $writer_args{OUTPUT} = $fh;
 $writer = new XMLTV::Writer(%writer_args);
 $writer->start( { 'source-info-name'   => "$progname $version", 'generator-info-name' => "$progname $version"} );
 
-foreach my $ch ("ABC1","ABC2","ABC3") {
+foreach my $ch ("ABC1","ABC2","ABC3","ABC News 24") {
 	$writer->write_channel( { 'display-name' => [[ $ch, $lang ]], 'id' => $channels->{$ch} } ) if (defined $channels->{$ch});
 }
 
-foreach my $ch ("ABC1","ABC2","ABC3") {
+foreach my $ch ("ABC1","ABC2", "ABC3","ABC News 24") {
 	&get_station_close($ch, $urls->{station_close}->{$ch});
-	&get_abc_data($channels->{$ch}, $urls->{guide}->{$ch},$ch);
+	&get_abc_data($channels->{$ch}, $urls->{guide}->{ABC},$ch);
 }
 
 &write_cache if ($opt_no_cache == 0);
@@ -340,12 +353,21 @@ DAYS:	while ($days_left > 0) {
 			next if (!$found_gap_match);	# no gaps for this day - skip!
 		}
 
+		# fetch this URL once, and cache it for later
+		# TODO: maybe we should cache the tree, to save processing
+		# at the expense of memory
 		my $url = sprintf "%s/%s.htm",$urlbase, POSIX::strftime("%Y%m/%Y%m%d",localtime($currtime));
 
 		my $tries = ($daynum > 7 ? 1 : 5);
 		&log((sprintf "Fetching %s summary data: day %d of %d",
 			$xmlid, $daynum, $opt_days ));
-		my $data = Shepherd::Common::get_url(url => $url, retries => ($tries-1));
+		my $data=$webcache{$url};
+		if (defined $data) {
+			&log("reusing previously fetched data for $url");
+		} else {
+			$data = Shepherd::Common::get_url(url => $url, retries => ($tries-1));
+			$webcache{$url}=$data;
+		}
 		my $tree;
 		$tree = HTML::TreeBuilder->new_from_content($data) if ($data);
 
@@ -365,54 +387,93 @@ DAYS:	while ($days_left > 0) {
 		my $seen_programmes = 0;
 		my $seen_pm = 0;
 
-		for ($tree->look_down('_tag' => 'div', 'id' => 'epgWrap')) {
-			foreach my $tree_tr ($_->look_down('_tag' => 'tr')) {
-				my $tree_tr_class = $tree_tr->attr('class');
-				next if ((!defined $tree_tr_class) || ($tree_tr_class !~ /alt/i));
+		# goes like this, for each channel:
+		#
+		# <div id="epgAbc1" class="epgRowWrap">
+		#   <li style="width: 955px; ">
+		#     <span class="itemTitle">
+		#       <a href=...>Lateline</a>
+		#     </span>
+		#     <span class="itemTime">12:20pm</span>
+		#     <span class="itemDesc">Current affairs program bla bla bla</span>
+		#   </li>
+		#   <li style="...">
+		#     ...
+		#   </li>
+		# </div>
+		#
+		# each <div id="epgAbcN" class="epgRowWrap"> is a channel
+		# each <li> is a programme
+		# each <span> is an attribute for the programme
+		#
+		# we need to extract $programme, $found_time, $progurl
 
-				if (my $tree_row = $tree_tr->look_down('_tag' => 'th')) {
-					if ($tree_row->as_text() =~ /^(\d+):(\d+)(.)m/) {
-						$timeattr[2] = $1; # hour
-						$timeattr[1] = $2; # min
+		my $divID=$chanID_to_divID{$chan_id};
+		if (!$divID) {
+			&log("failed to convert channel ID $chan_id to a <div> identifier");
+			die("failed to convert channel ID $chan_id to a <div> identifier");
+		}
 
-						if ($3 eq "p") {
-							# pm
-							$timeattr[2] += 12 if ($timeattr[2] != 12);
-							$seen_pm = 1;
+		for ($tree->look_down('_tag' => 'div', 'id' => $divID, 'class' => 'epgRowWrap')) {
+			# we have a channel
+			foreach my $tree_li ($_->look_down('_tag' => 'li')) {
+				# we have a programme
+				my %proghash;
+				my $programme;
+				my $progurl;
+				# scan through all the <span> entries looking for our data
+				foreach my $tree_span ($tree_li->look_down('_tag' => 'span')) {
+					# we have a programme attribute
+					my $tree_span_class = $tree_span->attr('class');
+					next if !defined $tree_span_class;
+					my $tree_span_value=$tree_span->as_text;
+					if ($tree_span_class eq "itemTitle") {
+						# have to get the link within the tag
+						# if it doesn't exist, must be "... Programs start at"
+						my $prog_a=$tree_span->look_down('_tag' => 'a');
+						next unless defined($prog_a);
+						$programme=$tree_span_value;
+						$progurl = $prog_a->attr('href');
+					}
+					$proghash{$tree_span_class}=$tree_span_value;
+				}
+				next unless $programme;
+
+				# we should now have all values we need
+				if ($proghash{itemTime} =~ /^(\d+):(\d+)(.)m/) {
+					$timeattr[2] = $1; # hour
+					$timeattr[1] = $2; # min
+
+					if ($3 eq "p") {
+						# pm
+						$timeattr[2] += 12 if ($timeattr[2] != 12);
+						$seen_pm = 1;
+					}
+					my $found_time = mktime(@timeattr);
+
+					# handle programmes that are after midnight
+					if (($seen_pm) && ($3 eq "a")) {
+						if ($timeattr[2] == 12) {
+							$found_time += (12*60*60); # 12:xx am
+						} else {
+							$found_time += (24*60*60);
 						}
-						my $found_time = mktime(@timeattr);
-
-						# handle programmes that are after midnight
-						if (($seen_pm) && ($3 eq "a")) {
-							if ($timeattr[2] == 12) {
-								$found_time += (12*60*60); # 12:xx am
-							} else {
-								$found_time += (24*60*60);
-							}
-						}
+					}
 							
-						if ($tree_tr->look_down('_tag' => 'td', 'class' => 'prg')) {
-							foreach my $prog ($tree_tr->look_down('_tag' => 'a')) {
-								my $programme = $prog->as_text();
-								my $progurl = $prog->attr('href');
-	
-								if ($progurl =~ /^\/tv\/guide\//) {
-									printf "day %d time '%s' (%s) prog: %s url: %s\n",
-										$daynum,$tree_row->as_text(),POSIX::strftime("%Y%m%d%H%M", localtime($found_time)),
-										$programme,$progurl if ($debug && $debug > 1);
+					if ($progurl =~ /^\/tv\/guide\//) {
+						printf "day %d time '%s' (%s) prog: %s url: %s\n",
+							#$daynum,$tree_row->as_text(),POSIX::strftime("%Y%m%d%H%M", localtime($found_time)),
+							$programme,$progurl if ($debug && $debug > 1);
 
-									$unprocessed_progname[$unprocessed_programmes] = $programme;
-									$unprocessed_starttime[$unprocessed_programmes] = $found_time;
-									$unprocessed_day[$unprocessed_programmes] = $daynum;
-									$unprocessed_url[$unprocessed_programmes] = "http://www.abc.net.au".$progurl;
-									$unprocessed_programmes++;
-									$seen_programmes++;
-								} else {
-									printf "ignoring prog %s because url %s is not a detail page\n",
-										$programme,$progurl if $debug;
-								}
-							}
-						}
+						$unprocessed_progname[$unprocessed_programmes] = $programme;
+						$unprocessed_starttime[$unprocessed_programmes] = $found_time;
+						$unprocessed_day[$unprocessed_programmes] = $daynum;
+						$unprocessed_url[$unprocessed_programmes] = "http://www.abc.net.au".$progurl;
+						$unprocessed_programmes++;
+						$seen_programmes++;
+					} else {
+						printf "ignoring prog %s because url %s is not a detail page\n",
+							$programme,$progurl if $debug;
 					}
 				}
 			}
@@ -551,7 +612,7 @@ DAYS:	while ($days_left > 0) {
 			$stats{used_cached_data}++;
 		} else {
 			if ((!$opt_cheap) && ($unprocessed_url[$i] ne "")) {
-				&get_one_abc_event($cache_key, $unprocessed_url[$i]);
+				&get_one_abc_event($cache_key, $unprocessed_url[$i], $unprocessed_progname[$i]);
 
 				if (($stats{portal_detail_pages} % 25) == 1) {
 					&log((sprintf "  .. at %s detail page %d of %d (used %d cached entries)",
@@ -595,7 +656,7 @@ DAYS:	while ($days_left > 0) {
 
 sub get_one_abc_event
 {
-	my ($cache_key, $url) = @_;
+	my ($cache_key, $url, $orig_title) = @_;
 
 	if ($stats{failed_to_fetch_portal_detail_page} >= 3 or $stats{failed_to_parse_portal_detail_page} >= 9)
 	{
@@ -613,70 +674,114 @@ sub get_one_abc_event
 	}
 	Shepherd::Common::log("get_one_abc_event ".$url) if ($debug);
 
-	if (my $inner_tree = $tree->look_down('_tag' => 'div', 'id' => 'prgTitle')) {
+	# Parse the page to get $full_title, $prog_genre_text, $prog_desc
+	# and:
+	#   $data_cache->{$cache_key}->{repeat} = 1;
+	#   $data_cache->{$cache_key}->{cc} = 1;
+	#   $data_cache->{$cache_key}->{hdtv} = 1;
+	#   $data_cache->{$cache_key}->{rating} = $1;
+	# Alas, nothing seems to be listing HDTV.
+	#
+	# page is of this form:
+	#
+	# <div id="maincontent">
+	#   <div id="prgTop">
+	#     <h1>Name of Programme - Subtitle</h1>
+	#     <div id="prgSubDetails">
+	#       <em id="prgGenre">Children's</em>
+	#       <em id="prgRepeat">Repeat</em>
+	#       <em id="prgCc">CC</em>
+	#       <em id="prgRating">PG</em>
+	#       <em id="prgDuration">15 mins</em>
+	#     </div>
+	#   </div>
+	#   <div id="prgContent">
+	#     <h3 id="aboutPrg>About the Program</h3>
+	#     <p>This program is about bla bla, bla bla.</p>
+	#   </div>
+	#   <div id="sideInfo">
+	#     <h4>Last Broadcast</h4>
+	#     <p>8:00am Thu, August 7 on ABC3</p>
+	#   </div>
+	# </div>
+
+	if (my $inner_tree = $tree->look_down('_tag' => 'div', 'id' => 'prgTop')) {
 		my $event_title = undef, my $event_subtitle = undef, my $event_description = undef, my $event_genre = undef;
+		my $event_repeat = undef, my $event_cc = undef, my $event_rating = undef;
 
 		if (my $prog_h1 = $inner_tree->look_down('_tag' => 'h1')) {
 			my $full_title = $prog_h1->as_HTML();
 			$full_title =~ s/(^<h1>|<\/h1>$)//g;
-			($event_title,$event_subtitle) = split(/&nbsp;-&nbsp;/,$full_title);
+			chomp($full_title);
+			$full_title =~ s/\n$//s;	# chomp doesn't seem to work
+			# TODO: check title shown here against the one from
+			# the overview, so as to avoid splitting on prognames
+			# with hiphens in them
+			($event_title,$event_subtitle) = split(/ - /,$full_title);
 
-			$event_title =~ s/(<[a-zA-Z0-9]+\>)//g;	# remove html tags
-			$event_title =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
-			Shepherd::Common::log(" - decoded title '".$event_title."'") if ($debug);
+			# If the title on this page matches the title
+			# on the parent page, we assume that the subtitle
+			# heuristics are correct (not a hiphenated title).
+			# Alas the event title sometimes contains url-escaped
+			# characters (such as &#39 for single quote) and
+			# so it will sometimes differ.  We need to unescape
+			# before comparing.
+			if (1 or $event_title eq $orig_title) {
 
-			if ($event_subtitle) {
-				$event_subtitle =~ s/(<[\/a-zA-Z0-9]+\>)//g;	# remove html tags
-				$event_subtitle =~ s/(^\n+|\n+$)//g;		# strip trailing/leading blank lines
-				$event_subtitle =~ s/(^\s+|\s+$)//g;		# strip trailing/leading blanks
+				$event_title =~ s/(<[a-zA-Z0-9]+\>)//g;	# remove html tags
+				$event_title =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
+				Shepherd::Common::log(" - decoded title '".$event_title."' (cf '".$orig_title."')") if ($debug);
+
 				if ($event_subtitle) {
-					$data_cache->{$cache_key}->{subtitle} = $event_subtitle;
-					Shepherd::Common::log(" - decoded subtitle '".$event_subtitle."'") if ($debug);
+					$event_subtitle =~ s/(<[\/a-zA-Z0-9]+\>)//g;	# remove html tags
+					$event_subtitle =~ s/(^\n+|\n+$)//g;		# strip trailing/leading blank lines
+					$event_subtitle =~ s/(^\s+|\s+$)//g;		# strip trailing/leading blanks
+					if ($event_subtitle) {
+						$data_cache->{$cache_key}->{subtitle} = $event_subtitle;
+						Shepherd::Common::log(" - decoded subtitle '".$event_subtitle."'") if ($debug);
+					}
 				}
+			} elsif (length $event_subtitle) {
+				&log("confused by hiphen in title: '$full_title'; event title '$event_title' is not the same as original title '$orig_title'");
 			}
 		}
 
-		if (my $prog_g = $inner_tree->look_down('_tag' => 'span', 'class' => 'smlTxt')) {
-			if (my $prog_genre_tag = $prog_g->look_down('_tag' => 'a')) {
-				my $prog_genre_text = $prog_genre_tag->as_text();
+		if (my $prog_sd = $inner_tree->look_down('_tag' => 'div', 'id' => 'prgSubDetails')) {
+			my %subdetails;
+			foreach my $em ($prog_sd->look_down('_tag' => 'em')) {
+				$subdetails{$em->attr('id')}=$em->as_text();
+			}
+			if (my $prog_genre_text = $subdetails{'prgGenre'}) {
 				$data_cache->{$cache_key}->{genre} = Shepherd::Common::translate_category($prog_genre_text);
 				Shepherd::Common::log(" - decoded genre '$prog_genre_text'") if ($debug);
 			}
 
-			my $other_text = $prog_g->as_text();
-			$other_text =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
-			$other_text =~ s/(^\s+|\s+$)//g;	# strip trailing/leading spaces
-
-			if ($other_text =~ /^(.*)CC(.*)$/) {
+			if ($subdetails{'prgCc'}) {
 				$data_cache->{$cache_key}->{cc} = 1;
-				Shepherd::Common::log(" - decoded CC from '$other_text'") if ($debug);
-				$other_text = $1.$2; # strip CC
+				Shepherd::Common::log(" - decoded CC") if ($debug);
 			}
 
-			if ($other_text =~ /^(.*)High(.*)$/) {
+			if ($subdetails{'prgHdtv'}) {
 				$data_cache->{$cache_key}->{hdtv} = 1;
-				Shepherd::Common::log(" - decoded HDTV from '$other_text'") if ($debug);
-				$other_text = $1.$2;
+				Shepherd::Common::log(" - decoded HDTV") if ($debug);
 			}
 
-			if ($other_text =~ /^(.*)Repeat(.*)$/) {
+			if ($subdetails{'prgRepeat'}) {
 				$data_cache->{$cache_key}->{repeat} = 1;
-				Shepherd::Common::log(" - decoded Repeat from '$other_text'") if ($debug);
-				$other_text = $1.$2; # strip Repeat
+				Shepherd::Common::log(" - decoded Repeat") if ($debug);
 			}
 
 			# any remaining text should be rating
-			if ($other_text =~ /\s+(.*)$/) {
-				my $rating_text = $1;
+			if (my $rating_text = $subdetails{'prgRating'}) {
 				$rating_text =~ s/[^\x20-\x7f]/ /g;
 				if ($rating_text =~ /^\s*(\w+)\s*$/) {
 					$data_cache->{$cache_key}->{rating} = $1;
-					Shepherd::Common::log(" - decoded Rating '".$1."' from '$other_text'") if ($debug);
+					Shepherd::Common::log(" - decoded Rating '$1'") if ($debug);
 				}
 			}
 		}
 
-		if (my $prog_desc = $tree->look_down('_tag' => 'div', 'class' => 'panelItemStory')) {
+		if (my $prog_desc = $tree->look_down('_tag' => 'div', 'class' => 'prgContent')) {
 			# gather description
 			foreach my $para ($prog_desc->look_down('_tag' => 'p')) {
 				$data_cache->{$cache_key}->{desc} .= $para->as_text() . "\n";
@@ -734,10 +839,10 @@ sub get_station_close
 			# <h2 class="notfirst">Monday,�July�2</h2>
 			return 1 if (lc($_[0]->tag) eq 'h2' and $_[0]->as_text() !~ /Day Guide/i);
 
-			# <td>2:00am</td><td>...programs start at 6.00am</td>
+			# <td>2:00am</td><td>... Programs start at 6.00am</td>
 			foreach my $item ($_[0]->content_list) {
 				next if ref $item;
-				return 1 if $item =~ /\.\.\.programs start at /i;
+				return 1 if $item =~ /\.\.\.\s*programs start at /i;
 			}
 
 			return 0;
