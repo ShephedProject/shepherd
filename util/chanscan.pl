@@ -14,8 +14,7 @@ use Shepherd::Common;
 my $region_channels;
 my $ua;
 my $DATASOURCE = 'http://www.yourtv.com.au';
-my $DATASOURCE_SETUP       = "$DATASOURCE/profile/index.cfm?action=saveRegions";
-my $URL = "$DATASOURCE/profile/ajax.cfm?cookies=1&action=channels&region_id=";
+my $URL = "$DATASOURCE/guide/ajax/channels/ChannelsFta.aspx?region_id=";
 
 &read_channels_list;
 
@@ -38,6 +37,7 @@ foreach my $region (sort { $a <=> $b } keys %$region_channels)
     print "$region_name\n";
     foreach my $tag ($tree->look_down('_tag' => 'label'))
     {
+	next if ($tag->attr('for') eq 'select-all-fta');
 	my $chan = $tag->as_text();
 	$chan =~ s/^\s+//;
 	$chan =~ s/\(.*?\)//;
@@ -78,11 +78,6 @@ sub setup_ua
 
   &Shepherd::Common::set_default('debug', 0);
   $ua = &Shepherd::Common::setup_ua( cookie_jar => 1 );
-
-  unless (&Shepherd::Common::get_url(url => $DATASOURCE_SETUP))
-  {
-      die "Can't get session cookie.";
- }
 }
 
 sub read_channels_list
