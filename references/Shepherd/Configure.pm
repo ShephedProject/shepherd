@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.21';
+my $version = '0.22';
 
 use strict;
 no strict 'refs';
@@ -433,6 +433,7 @@ sub guided_configure_table
 	$n = $i;
 	$n += $skip if ($n);
 	my $selection = &guided_configure_table_entry($chs[$i], $n);
+	$n += $skip if (!$n);
 	$selection .= &guided_configure_table_entry($chs[$i+$half], $n+$half) if ($i + $half < @chs);
 	$str .= "$selection\n";
 	$i++;
