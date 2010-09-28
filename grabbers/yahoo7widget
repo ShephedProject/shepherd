@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.15";
+my $version = "2.16";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -261,7 +261,7 @@ sub parse_json_data
 			if (!defined $d->{ignored_channels}->{$channel}) {
 				$d->{ignored_channels}->{$channel} = 1;
 				$stats{skipped_channels}++;
-				Shepherd::Common::log("ignoring unknown channel '$channel'");
+				Shepherd::Common::log("ignoring unwanted channel '$channel'");
 			}
 			next;
 		}

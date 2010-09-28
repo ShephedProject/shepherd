@@ -6,7 +6,7 @@ reference       Shepherd/Configure.pm   0.22
 reference	Shepherd/json_pp.pm 0.2
 grabber         news                1.7
 grabber         oztivo              2.40
-grabber         yahoo7widget        2.15
+grabber         yahoo7widget        2.16
 grabber         abc_website         4.00-r1
 grabber         rex                 7.0.0
 grabber         foxtel_swf          2.03
