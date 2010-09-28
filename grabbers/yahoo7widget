@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.14";
+my $version = "2.15";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -255,6 +255,7 @@ sub parse_json_data
 
 		# Hack; assuming this is a temporary typo
 		$channel = 'ABC News 24' if ($channel eq 'ABCNews24');
+		$channel = '7MATE' if ($channel eq '7mate');
 
 		if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
 			if (!defined $d->{ignored_channels}->{$channel}) {
