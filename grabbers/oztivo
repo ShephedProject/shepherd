@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.40';
+my $version = '2.41';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -86,6 +86,7 @@ my %s_to_o_map = (
 		'GO!' => 'GO',
 		'7TWO' => '7TWO',
 		'7TWO on Prime' => '7TWO',
+		'7MATE' => '7mate',
 	},
 	'VIC' => {
 		'One HD' => 'One-Vic',
