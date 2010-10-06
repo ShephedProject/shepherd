@@ -15,6 +15,7 @@ my $region_channels;
 my $ua;
 my $DATASOURCE = 'http://www.yourtv.com.au';
 my $URL = "$DATASOURCE/guide/ajax/channels/ChannelsFta.aspx?region_id=";
+my $DATASOURCE2 = 'http://au.tv.yahoo.com/tv-guide/';
 
 &read_channels_list;
 
@@ -41,7 +42,9 @@ foreach my $region (sort { $a <=> $b } keys %$region_channels)
     my $region_name = $h3->as_text();
     print "$region_name\n";
 #    print "Channels: " . join(', ', @{$region_channels->{$region}}) . ".\n";
-    my @found_channels;
+
+
+    my @yourtv_channels;
     foreach my $tag ($tree->look_down('_tag' => 'label'))
     {
 	next if ($tag->attr('for') eq 'select-all-fta');
@@ -50,27 +53,58 @@ foreach my $region (sort { $a <=> $b } keys %$region_channels)
 	$chan =~ s/\(.*?\)//;
 	$chan =~ s/\s+$//;
 
-	if (grep($chan eq $_, @found_channels))
-	{
-	    # print "Duplicate channel in online guide: $chan\n";
-	    next;
-	}
-	my @a = grep ($chan ne $_, @{$region_channels->{$region}});
-	if (@a == @{$region_channels->{$region}})
-	{
-	    print " ! Channel \"$chan\" not in official channel_list\n";
-	}
-	else
-	{
-	    # Channel OK: in both lists
-	    $region_channels->{$region} = [ @a ];
-	    push @found_channels, $chan;
-	    # print "OK: $chan.\n";
-	}
+	next if (grep($chan eq $_, @yourtv_channels));
+
+	push @yourtv_channels, $chan;
     }
+
+    my @yahoo_channels;
+
+    $content = &Shepherd::Common::get_url($DATASOURCE2 . $region . '/0/');
+    $tree = HTML::TreeBuilder->new_from_content($content);
+    foreach my $tag ($tree->look_down('_tag' => 'li', 'class' => 'row channel'))
+    {
+	my $h3 = $tag->look_down('_tag' => 'h3');
+	my $chan = $h3->as_text();
+#	print "Chan: $chan.\n";
+	push @yahoo_channels, $chan;
+    }
+
+    my @matched_channels;
     foreach my $chan (@{$region_channels->{$region}})
     {
-	print " ? Official channel \"$chan\" not in online guide.\n";
+	if (grep($chan eq $_, @matched_channels))
+	{
+	    print " & \"$chan\": Duplicated in channel_list\n";
+	    next;
+	}
+	my @a = grep ($chan ne $_, @yourtv_channels);
+	my @b = grep($chan ne $_, @yahoo_channels);
+
+	if (@a == @yourtv_channels and @b == @yahoo_channels)
+	{
+	    print " ? \"$chan\" unknown to both YourTV and Yahoo\n";
+	}
+	elsif (@a == @yourtv_channels)
+	{
+	    print " ? \"$chan\" unknown to YourTV\n";
+	}
+	elsif (@b == @yahoo_channels)
+	{
+	    print " ? \"$chan\" unknown to Yahoo\n";
+	}
+	@yourtv_channels = @a;
+	@yahoo_channels = @b;
+	push @matched_channels, $chan;
+    }
+    foreach my $chan (@yourtv_channels)
+    {
+	print " ! \"$chan\" in YourTV but not channels_list.\n";
+    }
+
+    foreach my $chan (@yahoo_channels)
+    {
+	print " ! \"$chan\" in Yahoo but not channels_list.\n";
     }
 
     sleep 1;
