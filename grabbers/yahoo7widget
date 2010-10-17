@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.19";
+my $version = "2.20";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -255,6 +255,7 @@ sub parse_json_data
 
 		# Hack; assuming this is a temporary typo
 		$channel = 'ABC News 24' if ($channel eq 'ABCNews24');
+		$channel = 'WIN GEM' if ($channel eq 'WINGEM');
 
 # Temp hack Oct 2010 when Seven-related channels gave bad data
 #		if (grep ($channel eq $_, ('Seven', 'Prime', '7mate', '7TWO', 'Prime HD', 'Seven HD')))
