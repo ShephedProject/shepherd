@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '7.0.0'; 
+my $version  = '8.0.0'; 
 
 # TODO: remove refresh_ua every 20 requests (maybe)
 
@@ -505,7 +505,7 @@ sub parse_guide
   my @channels_seen;
   my ($block, $line, $link, $title);
   my $c = 0;
-  foreach my $tag ($tree->look_down('_tag' => 'td', 'class' => 'venue'))
+  foreach my $tag ($tree->look_down('_tag' => 'td', 'class' => 'venue venue-collapse'))
   {
     # Some screens repeat channel name
     next if ($tag->left);
@@ -526,7 +526,7 @@ sub parse_guide
       next;
     }
     print "Channel: $curchan.\n" if ($debug);
-    $block = $tag->parent()->left();
+    $block = $tag->parent();
     foreach $line ($block->look_down('_tag' => 'td'))
     {
       my $lineclass = ($line->attr('class') or '');
