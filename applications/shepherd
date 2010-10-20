@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.4.3';
+my $version = '1.4.4';
 
 # tv_grab_au
 # "Shepherd"
@@ -1935,6 +1935,14 @@ sub check_lock
     &log("Lock failed.\n") unless ($lock);
 }
 
+sub check_other_instance
+{
+    if (!$lock)
+    {
+	&log("\n*** IN PROGRESS ***\nAnother instance of Shepherd is currently running.\n");
+    }
+}
+
 # Here we can specify which command-line options should call
 # subroutines of the same name. The field following each sub
 # name is a string that can contain a key for what action should
@@ -2577,6 +2585,7 @@ sub status
     &log("\nPreferred titles from grabber '$pref_title_source'\n") if ($pref_title_source);
     &log("\nWARNING: [!] against components above indicate TAINTED components.\n\n")
       if (defined $plugin_data->{tainted});
+    &check_other_instance;
 }
 
 sub history
@@ -2605,6 +2614,7 @@ sub history
 	$str .= $append;
     }
     &log("$str.\n");
+    &check_other_instance;
 }
 
 sub capabilities
