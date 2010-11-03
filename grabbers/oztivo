@@ -42,7 +42,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.44';
+my $version = '2.45';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -271,8 +271,9 @@ my %s_to_o_map = (
 	'85' => {	# SA: South East SA
 		'ABC1' => 'ABC-SA',
 		'SBS ONE' => 'SBS-SA',
-		'WIN TEN' => 'TEN-SA',
-		'WIN' => 'Win-Vic',
+		'WIN TEN' => 'Ten-SA',
+		'Seven' => 'WIN7-SA',
+		'WIN Nine' => 'Nine-SA'
 	},
 	'83' => {	# SA: Riverland
 		'ABC1' => 'ABC-SA',
@@ -456,7 +457,7 @@ my %s_to_o_map = (
 		 #'' => 'ADULT1',
 		 #'' => 'ADULT2',
 		 'AIR' => 'AIRACT',
-		 #'' => 'ALJA',
+		 'AlJazeera' => 'ALJA',
 		 'AnimalPlanet' => 'ANIMAL',
 		 'AntennaPacific' => 'ANT',
 		 'APAC' => 'A-PAC',
@@ -478,7 +479,7 @@ my %s_to_o_map = (
 		 'CartoonNetwork' => 'CART',
 		 'Cbeebies' => 'CBEEB',
 		 #'' => 'CCTV4',
-		 #'' => 'CCTV9',
+		 'CCTVNews' => 'CCTV9',
 		 'ChannelV' => 'V',
 		 #'' => 'Cinemax',
 		 #'' => 'CLUBV',
@@ -628,7 +629,7 @@ my %s_to_o_map = (
 		 'STARPICS2' => 'SPICS+2',
 		 #'STARPICS2HD' => '',
 		 #'' => 'StarWorld',
-		 #'' => 'STAS',
+		 'SetantaSports' => 'STAS',
 		 #'' => 'STC',
 		 #'' => 'STV1',
 		 'STVDIO' => 'STVDIO',
