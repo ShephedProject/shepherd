@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.20";
+my $version = "2.21";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -46,11 +46,16 @@ my $d;
 $| = 1;
 
 # map yahoo paytv names to what shepherd knows them as
-my %paytv_fixups = ( qw{ 111HITS 111Hits A-PAC AntennaPacific BloombergTELEVISION BloombergTelevision 
-	BOOMERANG Boomerang CBeebies Cbeebies DiscoveryHomeHealth DiscoveryHealth fashiontv FashionTV
-	HITS2 111HITS2 LifestyleFOODChannel2 LifestyleFOOD2 LifestyleYOU LifeStyleYOU LifestyleYOU2 LifStyleYOU2
-	MTVClassics MTVClassic STARPICS STARPICS1 THECOMEDYCHANNEL ComedyChannel THECOMEDYCHANNEL2 Comedy2
-	TSN TheStyleNetwork } );
+my %paytv_fixups = ( qw{
+        111HITS 111Hits 13THSTREET2 13thSTREET2 A-PAC APAC Bio. Bio BloombergTELEVISION BloombergTelevision 
+        BOOMERANG Boomerang CARTOONNETWORK CartoonNetwork BBCCBeebies Cbeebies CrimeInvestigation Crime DiscoveryHomeHealth DiscoveryHealth 
+        DiscoveryTurboMAX2 DiscTurboMAX2 EUROSPORTNEWS Eurosportnews fashiontv FashionTV FOXSPORTS1HD FoxSports1HD FOXSPORTS2HD FoxSports2HD 
+        FOXSPORTS3HD FoxSports3HD HITS2 111HITS2 TheLifeStyleChannel2 LifeStyle2 LifeStyleFOODChannel LifeStyleFOOD 
+        LifestyleFOODChannel2 LifestyleFOOD2 LifestyleYOU LifeStyleYOU LifestyleYOU2 LifStyleYOU2 MTVClassics MTVClassic MTVLive MTVNLive 
+        MTVLiveHD MTVNLiveHD NATGEOWILD NatGeoWild NATGEOWILDHD NatGeoWildHD NickJr. NickJr showtimepremiereHD ShowPremiereHD 
+        SKYNEWSBUSINESS SKYNewsBusiness SKYNEWSAUSTRALIA SKYNewsNational SkyRacing SKYRacing SkyRacing2 SKYRacing2 STARPICS STARPICS1 
+        THECOMEDYCHANNEL ComedyChannel THECOMEDYCHANNEL2 Comedy2 TheWORLDMOVIESChannel WORLDMOVIES UniversalChannel Universal 
+	} );
 
 #
 # parse command line
@@ -416,7 +421,22 @@ sub write_data
 sub check_for_paytv
 {
 	$d->{want_paytv} = 0;
-	foreach my $ch ( qw( 111Hits ACC AdultsOnly960 AIR AnimalPlanet AntennaPacific Arena Arena2 APAC Aurora BBCKnowledge BBCWorldNews Bio BloombergTelevision Boomerang CartoonNetwork Cbeebies ChannelV CNBC CNN ComedyChannel Comedy2 CMC Crime DiscoveryChannel DiscoveryHD DiscoveryHealth DiscoveryScience DiscoveryTravel DisneyChannel E!Entertainment ESPN ESPNHD Eurosportnews EXPO FashionTV FOXClassics FOXClassics2 FOXNews FOXSPORTS1 FOXSPORTS2 FOXSPORTS3 FOXSPORTSNews FOX8 FOX82 FoxtelBoxOffice FUELTV Hallmark HOWTOChannel LifeStyleFOOD MainEvent MAX MOVIEEXTRA MOVIEGREATS MOVIEONE MOVIETWO MTV MTVClassic NatGeoAdventure NatGeoHD NationalGeographic NickJr Nickelodeon NITV Ovation PlayhouseDisney RAIITALIA SCIFI showcase SkyNewsAustralia SkyNewsBusiness SkyRacing TCM TheHistoryChannel TheLifeStyleChannel LifeStyle2 TheWeatherChannel TV1 TV12 TVN TVSN UKTV UKTV2 W W2 WORLDMOVIES 13THSTREET LifeStyleYOU TheStyleNetwork LifestyleFOOD2 LifStyleYOU2 111HITS2 SCIFI2 FoxSports1HD FoxSports2HD FoxSports3HD FOX8HD UKTVHD WHD ShowPremiereHD showcaseHD showtimeactionHD MOVIEONEHD STARPICS1HD STARPICS2HD showtimepremiere showtimetwo showtimeaction showtimecomedy showtimedrama FMC STARPICS1 STARPICS2 Eurosport Discovery2 NATGEOWILD DiscoveryTurboMAX DiscTurboMAX2 KidsCo VHits showcasetwo AnimalPlanet AntennaGreek BBCWorldNews BloombergTelevision CartoonNetwork CNN DiscoveryScience DiscoveryHealth DiscoveryTravel DiscoveryRealTime DisneyChannel E!Entertainment ERTGreek Eurosport FashionTV FMC MOVIEEXTRA MOVIEGREATS MOVIEONE MOVIETWO MTV MTVClassic NatGeoAdventure NationalGeographic Ovation PlayhouseDisney SkyRacing STARPICS1 TCM TVChileSpanish TVE )) {
+	foreach my $ch ( qw(
+	        111Hits 111HITS2 13THSTREET 13thSTREET2 3DChannel ACC AdultsOnly960 AIR AnimalPlanet AntennaGreek AntennaPacific 
+	        APAC Arena Arena2 Aurora BBCKnowledge BBCKnowledgeHD BBCWorldNews Bio BloombergTelevision Boomerang CartoonNetwork 
+	        Cbeebies ChannelV CMC CNBC CNN Comedy2 ComedyChannel Crime Discovery2 DiscoveryChannel DiscoveryHD DiscoveryHealth 
+	        DiscoveryRealTime DiscoveryScience DiscoveryTravel DiscoveryTurboMAX DiscoveryWorldHD DiscTurboMAX2 DisneyChannel 
+	        E!Entertainment ERTGreek ESPN ESPNHD Eurosport Eurosportnews EXPO FashionTV FMC FOX8 FOX82 FOX8HD FOXClassics 
+	        FOXClassics2 FOXNews FOXSPORTS1 FoxSports1HD FOXSPORTS2 FoxSports2HD FOXSPORTS3 FoxSports3HD FOXSPORTSNews 
+	        FoxtelBoxOffice FUELTV Hallmark HOWTOChannel KidsCo LifeStyle2 LifeStyleFOOD LifestyleFOOD2 LifeStyleYOU LifStyleYOU2
+	        MAX MOVIEEXTRA MOVIEGREATS MOVIEONE MOVIEONEHD MOVIETWO MTV MTVClassic MTVHits MTVNLive MTVNLiveHD NatGeo2 
+	        NatGeoAdventure NatGeoAdventure2 NatGeoHD NATGEOWILD NatGeoWild NatGeoWildHD NationalGeographic Nickelodeon 
+	        NickJr NITV Ovation PlayhouseDisney RAIITALIA SCIFI SCIFI2 showcase showcaseHD showcasetwo ShowPremiereHD 
+	        showtimeaction showtimeactionHD showtimecomedy showtimedrama showtimepremiere showtimetwo SkyNewsAustralia SkyNewsBusiness
+	        SKYNewsBusiness SKYNewsNational SkyRacing SKYRacing SKYRacing2 SKYRacingWorld SPEED SPEEDHD STARPICS1 STARPICS1HD STARPICS2 
+	        STARPICS2HD STVDIO TCM TheHistoryChannel TheLifeStyleChannel TheStyleNetwork TheWeatherChannel TLC TLC2 TSN TV1 TV12 
+	        TVE TVN TVSN UKTV UKTV2 UKTVHD Universal VHits W W2 WHD WORLDMOVIES
+	 )) {
 		$d->{want_paytv}++ if ((exists $channels->{$ch} || exists $opt_channels->{$ch}));
 	}
 
