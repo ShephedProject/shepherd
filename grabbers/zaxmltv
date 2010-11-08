@@ -1,0 +1,100 @@
+#!/usr/bin/perl -w
+# 
+# simple grabber for Al Jazeera and CCTV data from http://zaxmltv.flash.za.org
+#
+
+use XMLTV;
+use Shepherd::Common;
+use POSIX qw(strftime mktime);
+
+#
+# global variables and settings
+#
+# supported Shepherd channels and the corresponding number @ zaxmltv
+
+my @supported = ("AlJazeera","CCTVNews");
+my %channels = (	
+    'AlJazeera' => "406",
+    'CCTVNews' =>"448"
+);
+
+$| = 1;
+my $writer;
+my $baseurl = "http://zaxmltv.flash.za.org";
+
+#
+# go go go!
+#
+
+my %stats;
+my $o;
+
+Shepherd::Common::program_begin(\$o, "zaxmltv grabber", "0.02", \%stats);
+&start_writing_xmltv();
+
+my ($channels, $opt_channels, $gaps) =();
+my $channel_xmlid; 
+
+($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, @supported);
+
+# first write the channel names and id's
+while (my ($name, $num) = each (%channels)) {
+     if ($channels->{$name} || $opt_channels->{$name}) {
+       $channel_xmlid = $channels->{$name} || $opt_channels->{$name};
+       $writer->write_channel( {'display-name' => [[ "$name", $o->{lang} ]], 'id' => $channel_xmlid } );
+     }else{
+       Shepherd::Common::log("ignoring unwanted channel $name");     
+     }
+}
+
+#now the actual program data for each channel
+while (my ($name, $num) = each (%channels)) {
+    if ($channels->{$name} || $opt_channels->{$name}) {
+       $channel_xmlid = $channels->{$name} || $opt_channels->{$name};
+       Shepherd::Common::log("grabbing data for $name - $channel_xmlid");
+       &get_data($num);
+    }
+}
+
+$writer->end();
+
+Shepherd::Common::program_end($o, %stats);
+exit(0);
+
+##############################################################################
+
+sub start_writing_xmltv
+{	
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($o->{outputfile}) {
+		my $fh = new IO::File(">$o->{outputfile}") || die "can't open $o->{outputfile}: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	$writer = new XMLTV::Writer(%writer_args);
+	$writer->start ( { 'source-info-name' => "$baseurl",'generator-info-name' => "$o->{program_name} v$o->{version_number}"} );
+}
+
+##############################################################################
+
+sub get_data
+{
+        my $num = $_[0];
+	my $data = &Shepherd::Common::get_url(url => $baseurl."/schedule/zaxmltv_get.php", postvars => "chanlist[]=$num");
+        if (!$data) {
+                 Shepherd::Common::log("Failed to get XML from '$baseurl'");
+                 $stats{failed_html_get}++;
+                 return 0;
+        }
+        my $listing = XMLTV::parse($data);
+        # strip the cruft from the source xml, we only want the programs.
+        my ($encoding, $credits, $ch, $progs) = @$listing;
+        foreach (@$progs) {
+                $_->{channel} = $channel_xmlid;
+                $writer->write_programme($_);
+        }
+                                                                                                                                 
+}
+
+##############################################################################
+
