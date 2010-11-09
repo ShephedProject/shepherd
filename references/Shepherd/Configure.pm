@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.22';
+my $version = '0.23';
 
 use strict;
 no strict 'refs';
@@ -826,9 +826,7 @@ sub channel_selection
 
 	# Don't subscribe by default when user has configured previously
 	# and ignored this channel, or if it's a FTA Channel 31 variant.
-	if (($status eq 'new' and keys %$old_channels)
-		or
-	    ($type eq 'Free to Air' and $ch =~ /31/))
+	if ($status eq 'new' and keys %$old_channels)
 	{        
 	    print "        If subscribing, suggest \"$default\".\n";
 	    $default = "";

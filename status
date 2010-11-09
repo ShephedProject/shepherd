@@ -2,7 +2,7 @@ application     shepherd            1.4.4
 reference       channel_list        68
 reference       Shepherd/Common.pm  0.38
 reference       Shepherd/MythTV.pm  0.9
-reference       Shepherd/Configure.pm   0.22
+reference       Shepherd/Configure.pm   0.23
 reference	Shepherd/json_pp.pm 0.2
 grabber         news                1.7
 grabber         oztivo              2.45
