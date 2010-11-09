@@ -66,11 +66,11 @@ ICON	ABC HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogma
 ICON	ABC HD	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/abc-hd.png
 ICON	ABC HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc-hd.png
 
-ICON	ABC News 24 frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/abc-news-24.png
-ICON	ABC News 24 frogman_blue    http://barstool.ash.ms/tv-channel-icons/icons-frogman-blue/png/abc-news-24.png
-ICON	ABC News 24 frogman_green   http://barstool.ash.ms/tv-channel-icons/icons-frogman-green/png/abc-news-24.png
-ICON	ABC News 24 t8_blue	    http://barstool.ash.ms/tv-channel-icons/icons-t8-blue/png/abc-news-24.png
-ICON	ABC News 24 yourtv	    http://contentserver.com.au/assets/275718_275459_compressed_abc_radio_24_smallest.gif
+ICON	ABC News 24	frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/abc-news-24.png
+ICON	ABC News 24	frogman_blue    http://barstool.ash.ms/tv-channel-icons/icons-frogman-blue/png/abc-news-24.png
+ICON	ABC News 24	frogman_green   http://barstool.ash.ms/tv-channel-icons/icons-frogman-green/png/abc-news-24.png
+ICON	ABC News 24	t8_blue	    http://barstool.ash.ms/tv-channel-icons/icons-t8-blue/png/abc-news-24.png
+ICON	ABC News 24	yourtv	    http://contentserver.com.au/assets/275718_275459_compressed_abc_radio_24_smallest.gif
 
 ICON	Seven	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
 ICON	Seven	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/7network_aus.jpg
