@@ -262,6 +262,9 @@ ICON    Prime HD  	frogman_hybrid  http://ash.ms/projects/channels/download/icon
 ICON    Prime HD  	t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/prime-hd.png
 ICON    Prime HD  	t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/prime-hd.png
 
+ICON    TVS		wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/d/df/TVS_Logo.svg/180px-TVS_Logo.svg.png
+ICON    TVS		yourtv		http://contentserver.com.au/assets/270229_tvs.gif
+
 ICON	Central GTS/BKN	lyngsat		http://www.lyngsat-logo.com/logo/tv/cc/central_gts_bkn.jpg
 ICON	NBN		lyngsat		http://www.lyngsat-logo.com/logo/tv/nn/nbn_au.jpg
 ICON	NBN		yourtv		http://contentserver.com.au/assets/270214_nbn.gif
