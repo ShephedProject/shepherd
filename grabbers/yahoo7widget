@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.22";
+my $version = "2.23";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -51,7 +51,7 @@ my %paytv_fixups = ( qw{
         BOOMERANG Boomerang CARTOONNETWORK CartoonNetwork BBCCBeebies Cbeebies CrimeInvestigation Crime DiscoveryHomeHealth DiscoveryHealth 
         DiscoveryTurboMAX2 DiscTurboMAX2 EUROSPORTNEWS Eurosportnews fashiontv FashionTV FOXSPORTS1HD FoxSports1HD FOXSPORTS2HD FoxSports2HD 
         FOXSPORTS3HD FoxSports3HD HITS2 111HITS2 TheLifeStyleChannel2 LifeStyle2 LifeStyleFOODChannel LifeStyleFOOD 
-        LifestyleFOODChannel2 LifestyleFOOD2 LifestyleYOU LifeStyleYOU LifestyleYOU2 LifStyleYOU2 MTVClassics MTVClassic MTVLive MTVNLive 
+        LifeStyleFOODChannel2 LifestyleFOOD2 LifestyleYOU LifeStyleYOU LifeStyleYOU2 LifStyleYOU2 MTVClassics MTVClassic MTVLive MTVNLive 
         MTVLiveHD MTVNLiveHD NATGEOWILD NatGeoWild NATGEOWILDHD NatGeoWildHD NickJr. NickJr showtimepremiereHD ShowPremiereHD 
         SKYNEWSBUSINESS SKYNewsBusiness SKYNEWSAUSTRALIA SKYNewsNational SkyRacing SKYRacing SkyRacing2 SKYRacing2 STARPICS STARPICS1 
         THECOMEDYCHANNEL ComedyChannel THECOMEDYCHANNEL2 Comedy2 TheWORLDMOVIESChannel WORLDMOVIES UniversalChannel Universal 
