@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.23";
+my $version = "2.24";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -71,7 +71,7 @@ GetOptions(
 	'region=i'	=> \$opt->{region},
 	'days=i'	=> \$opt->{days},
 	'offset=i'	=> \$opt->{offset},
-	'paytvtimeoffset'	=> \$opt->{paytvoffset},
+	'paytvtimeoffset:s'	=> \$opt->{paytvoffset},
 	'channels_file=s' => \$opt->{channels_file},
 	'cachefile=s' => \$opt->{obsolete},
 	'output=s'	=> \$opt->{outputfile},
@@ -115,7 +115,14 @@ $opt->{days} = 9 if $opt->{days} > 9;	# no data beyond 9 days
 my $starttime = $script_start_time;
 
 # correct $starttime to remove gap between local and Eastern States time
-my $local_time_offset = POSIX::strftime("%z",localtime(time));
+my $local_time_offset;
+
+if (!defined $opt->{paytvoffset} || !($opt->{paytvoffset} =~ m/(\+|-)\d{4}$/o))  {
+        $local_time_offset = POSIX::strftime("%z",localtime(time)); 
+} else { 
+        $local_time_offset = $opt->{paytvoffset}; 
+}
+
 # yahoo7widget times are always localtime on Eastern States ..
 $ENV{TZ}="Australia/Melbourne";
 my $melbourne_time_offset = POSIX::strftime("%z",localtime(time));
@@ -195,18 +202,19 @@ $progname $version
 
 $0 [options]
     options are as follows:
-	--region=N		set region for where to collect data from (default: $opt->{region})
-	--channels_file=file	where to get channel data from (MANDATORY)
-	--days=N		fetch 'n' days of data (default: $opt->{days})
-	--output=file		send xml output to file (default: "$opt->{outputfile}")
+	--region=N			set region for where to collect data from (default: $opt->{region})
+	--channels_file=file		where to get channel data from (MANDATORY)
+	--days=N			fetch 'n' days of data (default: $opt->{days})
+	--output=file			send xml output to file (default: "$opt->{outputfile}")
 
-	--fast			don't run slow - get data as quick as you can - not recommended
-	--debug			increase debug level
-	--warper		fetch data using WebWarper web anonymizer service
-	--obfuscate		pretend to be a proxy servicing multiple clients
-	--lang=[s]		set language of xmltv output data (default $opt->{lang})
+	--fast				don't run slow - get data as quick as you can - not recommended
+	--debug				increase debug level
+	--warper			fetch data using WebWarper web anonymizer service
+	--obfuscate			pretend to be a proxy servicing multiple clients
+	--lang=[s]			set language of xmltv output data (default $opt->{lang})
 
-	--paytvtimeoffset	apply an offset between current timezone and AEST for paytv channels
+	--paytvtimeoffset		apply an offset between current timezone and AEST for paytv channels
+	--paytvtimeoffset[="+HHMM"]	apply a difference of +HHMM and AEST for paytv channels ie +1030 (+- is mandatory)
 
 EOF
 ;
