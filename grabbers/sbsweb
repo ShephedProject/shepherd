@@ -9,7 +9,7 @@
 # has been coded to make adding any future channels easy.
 #
 
-my $version = '4.00';
+my $version = '4.01';
 
 use strict;
 use Getopt::Long;
@@ -460,7 +460,12 @@ sub write_xml
 	    }
 #	    print Dumper(\%p);
 	    $shows->{$ch}->{$s}->{start} = &POSIX::strftime("%Y%m%d%H%M", localtime($s));
-	    $writer->write_programme(\%p);
+            if(length($shows->{$ch}->{$s}->{title})) {
+               $writer->write_programme(\%p);
+            }else{
+                &log( "ignoring bad title data for program with start time" . $shows->{$ch}->{$s}->{start} ."\n");
+            }
+	    
 	}
     }
 
