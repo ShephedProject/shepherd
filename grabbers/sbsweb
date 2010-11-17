@@ -9,7 +9,7 @@
 # has been coded to make adding any future channels easy.
 #
 
-my $version = '4.01';
+my $version = '4.02';
 
 use strict;
 use Getopt::Long;
@@ -92,7 +92,7 @@ sub get_guide_data
     &log("Grabbing data for days " . $opt->{offset} .
          " - " . ($opt->{days} - 1) .
 	 ($opt->{output} ? " into " . $opt->{output} : '') .
-	 "for channel $chan.");
+	 " for channel $chan.");
 
     # Calculate midnight on day zero in epoch time
     my @today = localtime($runtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
