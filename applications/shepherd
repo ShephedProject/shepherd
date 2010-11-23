@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.4.4';
+my $version = '1.4.5';
 
 # tv_grab_au
 # "Shepherd"
@@ -2063,23 +2063,24 @@ sub component_set
 {
     my $compset = shift;
 
-    print "\nInvoked with --component-set\n".
-          "Format: --component-set <component>:<argument>\n".
-          "    EG: --component-set oztivo:region=101\n\n";
+    my $helpstr = "Format: --component-set <component>:<argument>[:<argument2>...]\n".
+                  "  e.g.: --component-set oztivo:region=101\n".
+		  "        --component-set oztivo:region=101:debug:config=default.conf\n\n";
 
     my ($component, @args) = split(/:/,$compset);
     if (!defined $components->{$component}) {
-	&log("Error: No component called '$component'!\n");
+	&log("\nError: No component called '$component'!\n$helpstr");
 	return;
     }
     my $arg = join(":",@args);
 
     if ((!defined $arg) || ($arg eq "")) {
 	delete $components->{$component}->{default_cmdline};
-	&log("Cleared default options for $component.\n");
+	&log("\n*** Cleared default options for $component. ***\n\n".
+	     "If you wish to set new options:\n$helpstr");
     } else {
 	$components->{$component}->{default_cmdline} = "--".join(":--",@args);
-	&log("Set default options for $component to: --".join(" --",@args)."\n");
+	&log("\nSet default options for $component to: --".join(" --",@args)."\n");
     }
 }
 
