@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.23';
+my $version = '0.24';
 
 use strict;
 no strict 'refs';
@@ -1145,7 +1145,7 @@ sub configure_mythtv
     chomp $mythfilldatabase;
 
     my $minute = ((localtime)[1] + 2) % 60;
-    my $job = "$minute * * * * nice $mythfilldatabase --graboptions '--daily'\n";
+    my $job = "$minute * * * * nice $mythfilldatabase --graboptions '--daily' > /dev/null\n";
 
     $newcron .= $job;
 
