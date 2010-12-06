@@ -8,8 +8,10 @@
 # Currently only good for the main SBS channel, not SBS News, but
 # has been coded to make adding any future channels easy.
 #
+# to test this file run like this:
+# perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '4.02';
+my $version = '4.03';
 
 use strict;
 use Getopt::Long;
@@ -524,6 +526,7 @@ sub get_command_line_options
 			    help
 			    debug
 			    output=s
+			    do-extra-days
 			    days=i
 			    offset=i
 			    region=i
@@ -547,6 +550,10 @@ sub set_defaults
 	'output' => &getcwd . '/output.xmltv',
 	'channels_file' => &getcwd . '/channels.conf'
     };
+
+    if (defined $opt->{'do-extra-days'}) {
+    $opt->{'days'} = 21;
+    }
 
     foreach (keys %$defaults)
     {
@@ -633,6 +640,8 @@ Command-line options:
 
   --region <n>           Grab data for region code <n>
   --days <n>             Grab <n> days of data (today being day 1)
+  --do-extra-days        Grab up to 21 days of data
+
   --offset <n>           Skip the first <n> days
 
   --debug                Print lots of debugging output
