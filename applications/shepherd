@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.4.5';
+my $version = '1.4.6';
 
 # tv_grab_au
 # "Shepherd"
@@ -177,6 +177,7 @@ print STDERR "$progname v$version ($^O)\n\n" unless ($opt->{quiet});
 
 exit if ($opt->{version});
 &help if ($opt->{help});
+&dev_help if ($opt->{'dev-help'});
 
 &check_user;
 &invoke_correctly;
@@ -1876,6 +1877,7 @@ sub get_command_line_options
 
   GetOptions($opt, qw(	config-file=s
 			help
+                        dev-help
 			configure:s
 			setpreftitle=s
 			clearpreftitle
@@ -2640,15 +2642,18 @@ sub help
 {
     print q{Info options:
     --help                Display this message
+    --dev-help            Display advanced options
     --version             Display version
     --status              Display status of various components
     --desc                Display detailed status of components
     --history             Display usage history
+    --check               Display check of all components
 
     --show-config         Show setup details
     --show-channels       Show subscribed channels
     --pending             Show any pending component installs
     --ancestry <s>        Show origin of recent guide data
+                          (for format, see "--ancestry help")
 
 Session options:
     --output <s>          Create output file <s> (default: output.xmltv)
@@ -2657,9 +2662,13 @@ Session options:
 
     --noupdate            Don't update; just grab data
     --update              Update only; don't grab data
+    --skipupdate          Skip update of Shepherd and components
+    --skippost            Skip postprocessing of data
 
     --mode <s>            Quality (default), Efficiency or Speed
     --daily               Exit unless 22 hours since last grab
+    --grabwith <s>        Grab with grabber <s> before trying other grabbers
+                          (e.g. --grabwith sbsweb,abc_website)
 
     --debug               Print debugging messages
     --quiet               Don't print anything except errors
@@ -2669,25 +2678,37 @@ Session options:
 
 Configuration options:
     --configure           Setup
-    --configure-mythtv    Create system symlink & cron job for MythTV
-
-    --check               Check all components
+    --configure-mythtv    Create symlink & cron job for MythTV
 
     --disable <s>         Set component <s> (or "all") as not to be used
     --enable <s>          Set component <s> (or "all") as available for use
 
-    --component-set <s:s> Set component <s> default argument <s>
-    --configure <s>       Setup component <s>
+    --component-set <s:s> Set default argument for component
+    --configure <s>       Configure component <s>
 
     --set-icons           Download channel icons and update MythTV to use them
     --setpreftitle <s>    Set preferred 'title' source as grabber <s>
     --clearpreftitle      Clear preferred 'title' source
     --reset               Remove all previous title translation data
+};
+    exit 0;
+}
+
+sub dev_help
+{
+    print q{Developer options:
+
+    These options are probably never useful to regular users.
+
+    --dontcallgrabbers    Don't call the grabbers, just process cached data
+    --list-chan-names     List official channel names
+    --delete <s>          Delete a Shepherd component
+    --randomize           Use weighted random method of grabber selection
 
     --sources             List Shepherd sources
     --addsource <s>[,p]   Add a Shepherd source (optional: priority #)
     --delsource <s>       Delete a Shepherd source (or 'all')
-};
+   };
     exit 0;
 }
 
