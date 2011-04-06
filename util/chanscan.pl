@@ -62,8 +62,9 @@ foreach my $region (sort { $a <=> $b } keys %$region_channels)
 
     $content = &Shepherd::Common::get_url($DATASOURCE2 . $region . '/0/');
     $tree = HTML::TreeBuilder->new_from_content($content);
-    foreach my $tag ($tree->look_down('_tag' => 'li', 'class' => 'row channel'))
+    foreach my $tag ($tree->look_down('_tag' => 'li'))
     {
+	next unless ($tag->attr('class') and $tag->attr('class') =~ /row channel/);
 	my $h3 = $tag->look_down('_tag' => 'h3');
 	my $chan = $h3->as_text();
 #	print "Chan: $chan.\n";
