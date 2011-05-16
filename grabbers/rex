@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '8.0.0'; 
+my $version  = '9.0.0'; 
 
 # TODO: remove refresh_ua every 20 requests (maybe)
 
@@ -559,7 +559,7 @@ sub parse_guide
 	elsif ($bitclass eq 'pname')
 	{
 	  $title = strip_whitespace($bit->as_text());
-          if (HTML::Entities::decode($bit->as_HTML()) =~ /program_id=(\d+)\&event_id=(\d+)/) 
+          if (HTML::Entities::decode($bit->as_HTML()) =~ /ShowPopup\((\d+), (\d+),/) 
           {
 	    $program_id = $1;
 	    $pid = $2;
