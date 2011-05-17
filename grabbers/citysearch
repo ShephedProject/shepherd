@@ -3,7 +3,7 @@
 # citysearch TV guide grabber
 #
 
-my $version = '3.0.1';
+my $version = '4.0.0';
 
 use strict;
 use Getopt::Long;
@@ -19,7 +19,7 @@ use Shepherd::Common;
 
 my $progname = "citysearch";
 
-my $DATASOURCE = "citysearch.com.au";
+my $DATASOURCE = "http://citysearch.com.au";
 
 my $lang = 'en';
 my $debug = 0;
@@ -109,7 +109,7 @@ sub get_guide_data
 
 	    &log("Time window $hr:00 - " . ($hr+3) . ":00");
 
-	    my $url = "$DATASOURCE/tvguide/$day/$hr:00";
+	    my $url = "$DATASOURCE/tvguide/$day/$hr:00?city=" . $opt->{'rname'};
 	    my $guidedata = &Shepherd::Common::get_url($url);
 	    exit 11 unless ($guidedata);
 
@@ -139,7 +139,7 @@ sub parse_guide
     $tree->parse($guidedata);
     $tree->eof;
 
-    foreach my $table ($tree->look_down(_tag => 'table', id => 'tvGuideTable'))
+    foreach my $table ($tree->look_down(_tag => 'table', class => 'tvGuideTable'))
     {
 	&log("Found table.") if ($debug);
 	foreach my $tr ($table->look_down(_tag => 'tr'))
@@ -147,16 +147,8 @@ sub parse_guide
 	    my $ctag = $tr->look_down(_tag => 'td', class => 'channel');
 	    next unless ($ctag);
 
-	    my $channame = $ctag->as_text();
-	    if ($ctag->as_HTML =~ /<span .*?>.*?<\/span>.*?<span .*?>(.*?)<\/span>/s)
-	    {
-		$channame = $1;
-	    }
-	    $channame =~ s/^ //g;
-	    $channame =~ s/ $//g;
-	    $channame =~ s/\n//g;
-#	    $channame = 'Prime Canberra/Sth Coast' if ($channame eq 'Prime' and $opt->{region} == 126);
-
+	    $ctag = $ctag->look_down(_tag => 'p', class => 'channelName');
+	    my $channame = $ctag->as_text;
 	    my $chanid = $channels->{$channame};
 	    unless ($chanid)
 	    {
@@ -213,7 +205,7 @@ sub parse_guide
 		    }
 		    $show->{title} = $atag->as_text();
 
-		    die "Missing pid: day $day hr $window chan $channame title $show->{title}" unless ($atag->attr('href') =~ m"/tv/viewTvProgram/tvReviews-(.*)");
+		    die "Missing pid: day $day hr $window chan $channame title $show->{title}" unless ($atag->attr('href') =~ m"/tvguide/viewTvProgram/tvReviews-(.*)");
 		    $show->{pid} = $1;
 
 		    #if ($showblock->as_HTML =~ /<span class="accessLink">(\w+)<\/span>/)
@@ -312,8 +304,10 @@ sub fetch_details
 {
     my $pid = shift;
 
-    my $url = "$DATASOURCE/tv/viewTvProgram/tvReviews-$pid";
+    my $url = "$DATASOURCE/tvpopup/tvReviews-$pid?city=".$opt->{'rname'};
     my $html = &Shepherd::Common::get_url($url);
+
+#    my $html = &Shepherd::Common::get_url(url => $url, referer => 'http://citysearch.com.au/tvguide/viewTvProgram/tvReviews-39204745-94-1');
     return $html;
 }
 
@@ -324,55 +318,56 @@ sub parse_details
     &log("Parsing \"$show->{title}\"") if ($debug);
     my $tree = HTML::TreeBuilder->new_from_content($html);
 
-    my $desc = $tree->look_down(_tag => 'p', class => 'teaser');
-    unless (defined $desc)
+    my $block = $tree->look_down(_tag => 'div', id => 'popupContent');
+    unless ($block)
     {
 	print "Dumping bad HTML:\n$html\n" if ($debug);
 	print "Can't parse details page! Title: $show->{title}\n";
 	exit 22;
     }
 
+    my $desc = $block->right();
     if ($desc)
     {
 	$desc = &strip_whitespace($desc->as_text);
 	$show->{desc} = $desc if ($desc);
-    }
+    } else { &log("Missing desc???\n"); }
 
-    my $div = $tree->look_down(_tag => 'div', class => 'contentDetails');
     my (%video, $category, %type);
-    foreach my $tr ($div->look_down(_tag => 'tr'))
+    foreach my $label ($block->look_down(_tag => 'label'))
     {
-	if ($tr->as_text =~ /(.*?):(.*)/)
+	if ($label->as_text =~ /(.*?):/)
 	{
+	    my $value = $label->right()->as_text;
 	    if ($1 eq 'Type')
 	    {
-		$category = &strip_whitespace($2);
+		$category = &strip_whitespace($value);
 	    }
 	    elsif ($1 eq 'Country')
 	    {
-		$show->{country} = $2;
+		$show->{country} = $value;
 	    }
 	    elsif ($1 eq 'Language')
 	    {
-		$show->{language} = $2;
+		$show->{language} = $value;
 	    }
 	    elsif ($1 eq 'Cast')
 	    {
-		foreach (split /, /, $2)
+		foreach (split /, /, $value)
 		{
 		    push @{$show->{credits}{actor}}, &strip_whitespace($_);
 		}
 	    }
 	    elsif ($1 eq 'Director')
 	    {
-		foreach (split /, /, $2)
+		foreach (split /, /, $value)
 		{
 		    push @{$show->{credits}{director}}, &strip_whitespace($_);
 		}
 	    }
 	    elsif ($1 eq 'Writer') # unseen
 	    {
-		foreach (split /, /, $2)
+		foreach (split /, /, $value)
 		{
 		    push @{$show->{credits}{writer}}, &strip_whitespace($_);
 		}
@@ -390,7 +385,7 @@ sub parse_details
 	    }
 	    elsif ($1 eq 'Format')
 	    {
-		foreach my $info (split /, /, $2)
+		foreach my $info (split /, /, $value)
 		{
 		    $info = &strip_whitespace($info);
 		    if ($info eq 'Closed Captions')
@@ -442,11 +437,11 @@ sub parse_details
 	    }
 	    elsif ($1 eq 'Rating')
 	    {
-		$show->{rating} = $2;
+		$show->{rating} = $value;
 	    }
 	    elsif ($1 eq 'Year')
 	    {
-		$show->{date} = $2;
+		$show->{date} = $value;
 	    }
 	    elsif ($1 eq 'Channel' or $1 eq 'Time')
 	    {
@@ -454,12 +449,12 @@ sub parse_details
 	    }
 	    else
 	    {
-		&log("Ignoring $1: $2") if ($debug);
+		&log("Ignoring $1: $value") if ($debug);
 	    }
 	}
 	else
 	{
-	    &log("Unknown field: " .$tr->as_text);
+	    &log("Unknown label: " .$label->as_text);
 	}
     }
     $show->{video} = { %video } if (%video);
@@ -656,8 +651,7 @@ sub set_region
 	exit 32;
     }
     $opt->{rname} = $regions{$opt->{region}};
-    $DATASOURCE = "http://$opt->{rname}.$DATASOURCE";
-    &log("Datasource: $DATASOURCE") if ($debug);
+    &log("Datasource: $DATASOURCE (". $opt->{'rname'} . ')') if ($debug);
 }
 
 
@@ -706,13 +700,15 @@ sub set_defaults
     }
 
     $opt->{'days'} = 7 if ($opt->{'days'} > 7);
-
+  
     &Shepherd::Common::set_defaults(
 	stats => \%stats,
 	delay => "1-5",
 	debug => $debug,
 	webwarper => $opt->{warper}
 	);
+
+    &Shepherd::Common::setup_ua( cookie_jar => 1 );
 
     # Initialize stats
     %stats = ( );
