@@ -82,6 +82,7 @@ exit(0);
 
 sub delete_old_files
 {
+    print "Deleting old files...\n";
 	chdir($store_dir) || die "can't chdir $store_dir: $!\n";
 	opendir(DIR, $store_dir) || die "can't opendir $store_dir: $!\n";
 	my @files = readdir(DIR);
@@ -123,6 +124,7 @@ sub read_config
 
 sub write_config
 {
+    print "Writing out config file...\n";
 	Storable::store($store, $stats_file);
 }
 
@@ -133,6 +135,7 @@ sub write_config
 sub set_default_values
 {
 	$store->{last_run} = 0 if (!defined $store->{last_run});
+	$store->{last_component_rebuild} ||= 0;
 
 	$store->{num_hours} = 1 if (!defined $store->{num_hours});
 	$store->{num_days} = 0 if (!defined $store->{num_days});
@@ -153,6 +156,8 @@ sub rollover_statistics
 {
 
     return unless ($store->{last_run});
+
+    print "Rolling over statistics...\n";
 
     my @llast = localtime($store->{last_run});
     my @lnow = localtime($starttime);
@@ -563,6 +568,7 @@ sub report_count_data
 	my ($template, $varname, $field, $reptype, $min_hits) = @_;
 	$reptype = "all" unless (defined $reptype);
 
+	print "  * report_count_data($varname, $field, $reptype)\n";
 	my @ret = ();
 	my @loop = ($reptype eq 'all' ?  ( 'hour', 'day', 'week', 'month' ) :  ( 'day', 'week' ));
 
@@ -778,6 +784,9 @@ sub graph_regions
 sub graph_missing_data
 {
     my ($template, $varname, $component) = @_;
+
+    # Disabled because it takes 10+ minutes to run!
+    return;
 
     my $day = 60*60*24; # 1 day
     my $interval = 60 * 60; # 1 hour
@@ -1011,6 +1020,7 @@ sub graph_count_data
 {
 	my ($template, $varname, $request, $gheight, $gwidth, $show_key, $min_hits, @fields) = @_;
 
+	print "  * graph_count_data($varname, $request)\n";
 	my @requests = split(/ /, $request);
 	my @graphs;
 
@@ -1091,12 +1101,14 @@ sub graph_count_data
 	{
 	    return \@graphs;
 	}
+	sleep 5;
 }
 
 ###############################################################################
 
 sub generate_reports
 {
+    print "Generating reports...\n- shepherd\n";
 	my $template = HTML::Template->new(filename => "$template_dir/server_daily_maint_main.tmpl");
 	$template->param(NOW => strftime "%a %b %e %H:%M:%S %Y %z", localtime($starttime));
 
@@ -1219,11 +1231,14 @@ sub generate_reports
 	# generate per-component statistics
 	#
 
+	return unless (time - $store->{last_component_rebuild} > 85000);
+	$store->{last_component_rebuild} = time;
+
 	foreach my $c (sort keys %clist) 
 	{
 
 		next if ($c eq 'shepherd'); # shouldn't be there; is sneaking in via parsing error
-
+		print "- component $c\n";
 		$template = HTML::Template->new(filename => "$template_dir/server_daily_maint_component.tmpl");
 		$template->param(NOW => "". localtime($starttime));
 		$template->param('NAME', $c);
@@ -1318,6 +1333,9 @@ if (0) {
 		open(F,">$graph_dir/$c.html") || die "couldn't open $graph_dir/$c for writing: $!\n";
 		$template->output(print_to => *F); 
 		close(F);
+
+		print "  * sleeping...\n";
+		sleep 10;
 	}
 }
 
