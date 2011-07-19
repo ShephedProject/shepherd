@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.4.6';
+my $version = '1.5.0';
 
 # tv_grab_au
 # "Shepherd"
@@ -1030,7 +1030,7 @@ sub invoke_correctly
     }
 }
 
-# if last run was successful and was less than 12 hours ago, refuse to run.
+# if last run was successful and was less than 22 hours ago, refuse to run.
 # there's really no point calling shepherd more frequently than this.
 sub check_last_run
 {
@@ -1039,16 +1039,10 @@ sub check_last_run
 
     &log(0,"\n".ucfirst($progname)." last ran successfully ".pretty_duration($last_ran_secs_ago)." ago.\n");
 
-    if ($opt->{'daily'} and $last_ran_secs_ago < 22*60*60)
-    {
-	&log("Exiting due to --daily option.\n");
-	exit 0;	    # so we don't show up as FAILED in MythTV
-    }
-
-    return if ($last_ran_secs_ago > (12*60*60));
+    return if ($last_ran_secs_ago > (22*60*60));
     return if ($opt->{dontcallgrabbers});
 
-    &log(2, "\nWARNING: ".ucfirst($progname)." is being run too frequently!!\n");
+    &log(2, "\nWARNING: ".ucfirst($progname)." is being run too frequently!\n");
 
     # enforce hard limit
     my $num_runs = 0;
@@ -2666,7 +2660,6 @@ Session options:
     --skippost            Skip postprocessing of data
 
     --mode <s>            Quality (default), Efficiency or Speed
-    --daily               Exit unless 22 hours since last grab
     --grabwith <s>        Grab with grabber <s> before trying other grabbers
                           (e.g. --grabwith sbsweb,abc_website)
 
