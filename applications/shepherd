@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.5.0';
+my $version = '1.5.1';
 
 # tv_grab_au
 # "Shepherd"
@@ -1042,8 +1042,6 @@ sub check_last_run
     return if ($last_ran_secs_ago > (22*60*60));
     return if ($opt->{dontcallgrabbers});
 
-    &log(2, "\nWARNING: ".ucfirst($progname)." is being run too frequently!\n");
-
     # enforce hard limit
     my $num_runs = 0;
     my $earliest_run = time;
@@ -1060,8 +1058,8 @@ sub check_last_run
     }
     if ($num_runs >= 30) {
 	&log(2, "\n*** ERROR: EXTREME OVERUSE ***\n\n".
-	    "Shepherd has run more than 30 times in the last 7 days! To avoid overloading\n".
-	    "datasources, Shepherd will now exit.\n\n".
+	    "Shepherd has run to completion more than 30 times in the last 7 days!\n".
+	    "To avoid overloading datasources, Shepherd will now exit.\n\n".
 	    "PLEASE NOTE: There is usually NO BENEFIT in running Shepherd more than once\n".
 	    "per day. Overuse can lead to datasources becoming unavailable for all users.\n\n".
 	    "TO AVOID THIS ERROR: Please do not run Shepherd more than once or twice per\n".
@@ -1074,19 +1072,33 @@ sub check_last_run
     }
 
     if (defined $opt->{notimetest}) {
-	&log(2, "\nAllowing normal operation due to '--notimetest' override, but please do NOT\n".
-		"make a habit of this. Overuse strains resources needed by all Shepherd users.\n\n");
+	&log(2, "\n** SPECIAL OPERATION **\n" .
+		"Shepherd thinks it doesn't need to compile new data, as it\n" .
+		"recently completed a successful run. Running anyway due to\n" .
+		"--notimetest option. Please do NOT make a habit of this, as\n" .
+		"it risks straining resources needed by all Shepherd users.\n\n");
+	&countdown(10);
 	return;
     }
 
-    &log(2, "Please don't run ".ucfirst($progname)." so frequently.\n".
-	"Re-using (existing cached) output for this run.\n\n".
-	"If you are experimenting/testing and really want ".ucfirst($progname)." to fetch fresh data,\n".
-	"do so using the --notimetest setting but please don't make a habit of this.\n\n");
+    if (defined $opt->{reoutput}) {
+	&log(2, "Returning cached output due to '--reoutput' flag.\n");
+	&output_data(1);
+	exit(0);
+    }
 
-    &countdown(10);
-
-    &output_data(1);
+    &log("!! Shepherd has successfully completed a run less than 22 hours ago.\n" .
+	 "!! Exiting to avoid wasting time and bandwidth.\n\n" .
+	 "If you wish Shepherd to re-output the data it gathered last run,\n" .
+	 "use the --reoutput option (e.g. 'tv_grab_au --reoutput'). To do this\n" .
+	 "via mythfilldatabase, use 'mythfilldatabase -- --reoutput'.\n\n" .
+	 "If you wish to force Shepherd to re-compile guide data from scratch,\n" .
+	 "even though you seem to already have fresh data, use the --notimetest\n" .
+	 "option (e.g. 'tv_grab_au --notimetest'). However, this should ONLY be\n".
+	 "used for testing. If you call Shepherd too often with --notimetest,\n" .
+	 "it will lock down and refuse to run, to prevent straining resources\n" .
+	 "needed by all Shepherd users.\n");
+	
     exit(0);
 }
 
@@ -1917,6 +1929,7 @@ sub get_command_line_options
 			delsource=s
 			mode=s
 			daily
+			reoutput
 		     ));
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
@@ -4758,7 +4771,7 @@ sub output_data
     }
 
     if (!$opt->{'output'} and !$opt->{'nooutput'}) {
-	&log("\nPrinting XMLTV output to STDOUT...\n");
+	&log("\nPrinting XMLTV output to STDOUT in 5 seconds...\n");
 	sleep 5;
 	my $fh = new IO::File("< $output_filename") || die "Can't open $output_filename for reading: $!";
 	print <$fh>;
