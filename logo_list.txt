@@ -22,7 +22,7 @@ THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
 # ICON : channel : theme name : [base_url]+url 
 #
 
-ICON	ABC1	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
+ICON	ABC1	standard	http://img43.imageshack.us/img43/735/abc86ce2a644c39d7ffd529.png
 ICON	ABC1	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/8/8e/ABC1.svg/180px-ABC1.svg.png
 ICON	ABC1	lyngsat		http://www.lyngsat-logo.com/logo/tv/aa/abc_tv_au.jpg
 #ICON	ABC1	tatey_blue	http://tatey.com/images/au_network_logos/abc.png
@@ -34,7 +34,7 @@ ICON	ABC1	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/ab
 ICON	ABC1	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc.png
 ICON	ABC1	yourtv		http://contentserver.com.au/assets/270208_abc-1.gif
 
-ICON	ABC2 / ABC4	standard	http://imagestore.ugbox.net/thumb/abc2_5c10eb48094ce03b5e46e8c0ec2.jpg
+ICON	ABC2 / ABC4	standard	http://img691.imageshack.us/img691/1412/abc25c10eb48094ce03b5e4.png
 ICON	ABC2 / ABC4	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/3/38/ABC2.svg/180px-ABC2.svg.png
 ICON	ABC2 / ABC4	lyngsat		http://www.lyngsat-logo.com/logo/tv/aa/abc2_au.jpg
 #ICON	ABC2 / ABC4	tatey_blue	http://tatey.com/images/au_network_logos/abc2.png
@@ -57,7 +57,7 @@ ICON    ABC3    t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/
 ICON    ABC3    t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc3.png
 ICON	ABC3	yourtv		http://contentserver.com.au/assets/270210_abc-3.gif
 
-ICON	ABC HD	standard	http://imagestore.ugbox.net/thumb/abc_86ce2a644c39d7ffd5290f55fa8a.jpg
+ICON	ABC HD	standard	http://img43.imageshack.us/img43/735/abc86ce2a644c39d7ffd529.png
 #ICON	ABC HD	tatey_blue	http://tatey.com/images/au_network_logos/abc-hd.png
 ICON    ABC HD 	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/abc-hd.png
 ICON	ABC HD	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/abc-hd.png
@@ -187,7 +187,7 @@ ICON	One Digital	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hyb
 ICON	One Digital	yourtv		http://contentserver.com.au/assets/270220_one.gif
 
 
-ICON	SBS ONE		standard	http://imagestore.ugbox.net/thumb/sbs_861c4b17d8fc1856b8142446ddf6.jpg
+ICON	SBS ONE		standard	http://img196.imageshack.us/img196/7526/sbs861c4b17d8fc1856b814.png
 ICON	SBS ONE		lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/sbs.jpg
 #ICON	SBS ONE		tatey_blue	http://tatey.com/images/au_network_logos/sbs.png
 ICON    SBS ONE         frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/sbs.png
@@ -207,7 +207,7 @@ ICON    SBS TWO         t8_blue		http://ash.ms/projects/channels/download/icons-
 ICON    SBS TWO         t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/sbs-two.png
 ICON	SBS TWO		yourtv		http://contentserver.com.au/assets/270225_sbs-two.gif
 
-ICON	SBS HD	standard	http://imagestore.ugbox.net/thumb/sbs_861c4b17d8fc1856b8142446ddf6.jpg
+ICON	SBS HD	standard	http://img196.imageshack.us/img196/7526/sbs861c4b17d8fc1856b814.png
 #ICON	SBS HD	tatey_blue	http://tatey.com/images/au_network_logos/sbs-hd.png
 ICON    SBS HD  frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/sbs-hd.png
 ICON	SBS HD	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/sbs-hd.png
