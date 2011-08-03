@@ -246,7 +246,7 @@ ICON    SCTV  t8_blue         http://ash.ms/projects/channels/download/icons-t8-
 ICON    SCTV  t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/southern-cross-television.png
 ICON	SCTV	yourtv		http://contentserver.com.au/assets/270226_sthncrosstv.gif
 
-ICON    Prime	wikipedia       http://upload.wikimedia.org/wikipedia/en/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
+ICON    Prime	wikipedia       http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
 ICON    Prime   frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/prime.png
 ICON    Prime  	frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/prime.png
 ICON    Prime  	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/prime.png
@@ -255,7 +255,7 @@ ICON    Prime  	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/
 ICON    Prime  	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/prime.png
 ICON	Prime	yourtv		http://contentserver.com.au/assets/270221_prime.gif
 
-ICON	Prime HD	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/a/aa/Prime_HD.JPG/180px-Prime_HD.JPG
+ICON	Prime HD	wikipedia	http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
 ICON	Prime HD	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/prime-hd.png
 ICON    Prime HD  	frogman_blue    http://ash.ms/projects/channels/download/icons-frogman-blue/png/prime-hd.png
 ICON    Prime HD  	frogman_green   http://ash.ms/projects/channels/download/icons-frogman-green/png/prime-hd.png
@@ -263,7 +263,7 @@ ICON    Prime HD  	frogman_hybrid  http://ash.ms/projects/channels/download/icon
 ICON    Prime HD  	t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/prime-hd.png
 ICON    Prime HD  	t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/prime-hd.png
 
-ICON    TVS		wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/d/df/TVS_Logo.svg/180px-TVS_Logo.svg.png
+ICON    TVS		wikipedia	http://upload.wikimedia.org/wikipedia/commons/thumb/d/df/TVS_Logo.svg/200px-TVS_Logo.svg.png
 ICON    TVS		yourtv		http://contentserver.com.au/assets/270229_tvs.gif
 
 ICON	Central GTS/BKN	lyngsat		http://www.lyngsat-logo.com/logo/tv/cc/central_gts_bkn.jpg
