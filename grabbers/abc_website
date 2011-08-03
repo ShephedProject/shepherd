@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "abc_website";
-my $version = "4.00";
+my $version = "4.10";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -37,7 +37,7 @@ use Shepherd::Common;
 #
 my $urls;
 $urls->{station_close}->{"ABC1"} = "http://www.abc.net.au/tv/guide/abc1-7day-guide.htm";
-$urls->{station_close}->{"ABC2"} = "http://www.abc.net.au/tv/guide/abc2-7day-guide.htm";
+$urls->{station_close}->{"ABC2 / ABC4"} = "http://www.abc.net.au/tv/guide/abc2-7day-guide.htm";
 $urls->{station_close}->{"ABC3"} = "http://www.abc.net.au/tv/guide/abc3-7day-guide.htm";
 $urls->{station_close}->{"ABC News 24"} = "http://www.abc.net.au/tv/guide/abcnews24-7day-guide.htm";
 $urls->{guide}->{"ABC"} = "http://www.abc.net.au/tv/guide/all/";
@@ -58,7 +58,7 @@ $| = 1;
 my %webcache;
 my %chanID_to_divID = (
 	'ABC1'		=> 'epgAbc1',
-	'ABC2'		=> 'epgAbc2',
+	'ABC2 / ABC4'	=> 'epgAbc2',
 	'ABC3'		=> 'epgAbc3',
 	'ABC News 24'	=> 'epgAbc4',
 );
@@ -121,7 +121,7 @@ GetOptions(
 
 if ($opt_version || $opt_desc) {
 	printf "%s %s\n",$progname,$version;
-	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for ABC1/ABC2/ABC3/ABC News 24.",$progname if $opt_desc;
+	printf "%s is a details-aware grabber that collects decent quality data using the ABC website for ABC1/ABC2/4/ABC3/ABC News 24.",$progname if $opt_desc;
 	exit(0);
 }
 
@@ -148,9 +148,9 @@ die "WARNING: channels file $opt_channels_file could not be read: $!\n" if (!-r 
 local (@ARGV, $/) = ($opt_channels_file);
 no warnings 'all'; eval <>; die "$@" if $@;
 
-die "nothing to do; none of ABC1, ABC2, ABC3 or ABC News 24 in channels lineup!\n"
+die "nothing to do; none of ABC1, ABC2 / ABC4, ABC3 or ABC News 24 in channels lineup!\n"
 	if (	(!defined $channels->{"ABC1"}) &&
-		(!defined $channels->{"ABC2"}) &&
+		(!defined $channels->{"ABC2 / ABC4"}) &&
 		(!defined $channels->{"ABC3"}) &&
 		(!defined $channels->{"ABC News 24"}) &&
 	1);
@@ -163,7 +163,7 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 	$stats{disabled_hdtv_flag}++;
 }
 
-&log(sprintf "Going to %s%s %s%d%s days%s of data for ABC1(%s), ABC2(%s), ABC3(%s) or ABC News 24(%s) into %s (%s)",
+&log(sprintf "Going to %s%s %s%d%s days%s of data for ABC1(%s), ABC2 / ABC4(%s), ABC3(%s) or ABC News 24(%s) into %s (%s)",
 	($opt_gaps_file ne "" ? "micro-gap " : ""),
 	($opt_cheap ? "verify (cache-validate)" : "grab"),
 	($opt_do_extra_days ? "somewhere between " : ""),
@@ -171,7 +171,7 @@ if (($xmltv_version[0] <= 0) && ($xmltv_version[1] <= "5") && ($xmltv_version[2]
 	($opt_do_extra_days ? " to 28" : ""),
 	($opt_offset ? " (skipping first $opt_offset days)" : ""),
 	(defined $channels->{"ABC1"} ? "yes:$abc_region" : "no"),
-	(defined $channels->{"ABC2"} ? "yes" : "no"),
+	(defined $channels->{"ABC2 / ABC4"} ? "yes" : "no"),
 	(defined $channels->{"ABC3"} ? "yes" : "no"),
 	(defined $channels->{"ABC News 24"} ? "yes" : "no"),
 	$opt_outputfile,
@@ -191,11 +191,11 @@ $writer_args{OUTPUT} = $fh;
 $writer = new XMLTV::Writer(%writer_args);
 $writer->start( { 'source-info-name'   => "$progname $version", 'generator-info-name' => "$progname $version"} );
 
-foreach my $ch ("ABC1","ABC2","ABC3","ABC News 24") {
+foreach my $ch ("ABC1","ABC2 / ABC4","ABC3","ABC News 24") {
 	$writer->write_channel( { 'display-name' => [[ $ch, $lang ]], 'id' => $channels->{$ch} } ) if (defined $channels->{$ch});
 }
 
-foreach my $ch ("ABC1","ABC2", "ABC3","ABC News 24") {
+foreach my $ch ("ABC1","ABC2 / ABC4", "ABC3","ABC News 24") {
 	&get_station_close($ch, $urls->{station_close}->{$ch});
 	&get_abc_data($channels->{$ch}, $urls->{guide}->{ABC},$ch);
 }
