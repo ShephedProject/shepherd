@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.5.1';
+my $version = '1.5.2';
 
 # tv_grab_au
 # "Shepherd"
@@ -1091,7 +1091,8 @@ sub check_last_run
 	 "!! Exiting to avoid wasting time and bandwidth.\n\n" .
 	 "If you wish Shepherd to re-output the data it gathered last run,\n" .
 	 "use the --reoutput option (e.g. 'tv_grab_au --reoutput'). To do this\n" .
-	 "via mythfilldatabase, use 'mythfilldatabase -- --reoutput'.\n\n" .
+	 "via mythfilldatabase, use 'mythfilldatabase -- --reoutput'. (Or,\n".
+	 "for older versions, 'mythfilldatabase --graboptions --reoutput'.)\n\n" .
 	 "If you wish to force Shepherd to re-compile guide data from scratch,\n" .
 	 "even though you seem to already have fresh data, use the --notimetest\n" .
 	 "option (e.g. 'tv_grab_au --notimetest'). However, this should ONLY be\n".
@@ -2667,9 +2668,10 @@ Session options:
     --days <n>            Retrieve <n> days of guide data
     --offset <n>          Skip first <n> days
 
-    --noupdate            Don't update; just grab data
-    --update              Update only; don't grab data
-    --skipupdate          Skip update of Shepherd and components
+    --reoutput            Don't grab fresh data; just return cache
+    --noupdate            Don't update Shepherd; just grab data
+    --update              Don't grab data; just update Shepherd
+    --skipupdate          Skip update of Shepherd
     --skippost            Skip postprocessing of data
 
     --mode <s>            Quality (default), Efficiency or Speed
