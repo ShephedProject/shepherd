@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 our $progname = 'shepherd';
-my $version = '1.5.2';
+my $version = '1.5.3';
 
 # tv_grab_au
 # "Shepherd"
@@ -227,6 +227,13 @@ if (&report_stats)
 
 unless ($opt->{update})
 {
+    if (defined $opt->{reoutput}) 
+    {
+	&log(2, "\nReturning cached output due to '--reoutput' flag.\n");
+	&output_data(1);
+	exit(0);
+    }
+
     &check_last_run;
     &calc_gmt_offset;
     &commence_stats;
@@ -1079,12 +1086,6 @@ sub check_last_run
 		"it risks straining resources needed by all Shepherd users.\n\n");
 	&countdown(10);
 	return;
-    }
-
-    if (defined $opt->{reoutput}) {
-	&log(2, "Returning cached output due to '--reoutput' flag.\n");
-	&output_data(1);
-	exit(0);
     }
 
     &log("!! Shepherd has successfully completed a run less than 22 hours ago.\n" .
