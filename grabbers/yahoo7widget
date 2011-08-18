@@ -24,7 +24,7 @@
 use strict;
 
 my $progname = "yahoo7widget";
-my $version = "2.25";
+my $version = "2.26";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -302,6 +302,11 @@ sub parse_json_data
 
 		$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = POSIX::strftime("%Y%m%d%H%M", localtime($event_start));
 		$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	POSIX::strftime("%Y%m%d%H%M", localtime($event_end));
+
+		# Hack for what seems to be a bug in the datasource:
+		# i.e. titles/sub-titles of "Law &Order" rather than "Law & Order".
+		$item->{title}->[0]->{0} =~ s/ \&(?=\S)/ \& /g if (defined $item->{title});
+		$item->{subtitle}->[0]->{0} =~ s/ \&(?=\S)/ \& /g if (defined $item->{subtitle});
 
 		$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $item->{title}->[0]->{0}, $opt->{lang} ]] if (defined $item->{title});
 		$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $item->{description_1}, $opt->{lang} ]] if (defined $item->{description_1});
