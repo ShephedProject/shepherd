@@ -2,7 +2,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.24';
+my $version = '0.25';
 
 use strict;
 no strict 'refs';
@@ -1005,13 +1005,15 @@ sub configure_mythtv
 	   "1. Create a symbolic link to Shepherd from tv_grab_au\n".
            "2. Register Shepherd with MythTV as the default grabber\n".
 	   "3. Turn off MythTV-driven scheduling of guide data updates\n".
-	   "4. Create a cron job to periodically run Shepherd.\n\n");
+           "4. Turn off EIT\n".
+	   "5. Create a cron job to periodically run Shepherd.\n\n");
 
-    # Check existence of symlink
+    # 1. Check existence of symlink
 
     my $me = "$::CWD/applications/shepherd/shepherd";
 
-    &::log("Setting up symlink...\n");
+    &::log("Step 1: Setting up symlink...\n".
+           "------\n");
 
     my $mapped = 0;
     my $symlink;
@@ -1074,11 +1076,11 @@ sub configure_mythtv
 
     &::log("Symlink established:\n");
     system("ls -l --color `which tv_grab_au`");
-    &::log("\n");
 
     # 2. Insert 'tv_grab_au' into mythconverg -> videosource
 
-    &::log("Registering Shepherd as tv_grab_au with MythTV.\n\n");
+    &::log("\nStep 2: Registering Shepherd as tv_grab_au with MythTV.\n".
+	     "------\n");
 
     # No eval because I want to bomb out if this fails:
     # no point creating cron jobs if they won't work.
@@ -1090,17 +1092,80 @@ sub configure_mythtv
     $dbh->do("UPDATE videosource SET xmltvgrabber='tv_grab_au'") 
         || die "Error updating MythTV database: ".$dbh->errstr;
 
-    &::log("Ok. Turning off MythTV-scheduled guide data updates...\n");
+    # 3. Disable MythTV auto guide updates
+
+    &::log("Registered.\n\n".
+	   "Step 3: Turning off MythTV-scheduled guide data updates...\n".
+           "------\n");
     $dbh->do("UPDATE settings SET data='0' WHERE value='MythFillEnabled'")
 	|| &::log("Warning: Unable to check/update MythFillEnabled setting: ".$dbh->errstr.".\n");
 
-    &Shepherd::MythTV::close_connection;
-
     &::log("MythTV database updated.\n\n");
 
-    # 3. Create cron job
+    # 4. Disable EIT
 
-    &::log("Creating cron job...\n\n");
+    &::log("Step 4: Disabling EIT...\n".
+	   "------\n" .
+	   "(Info: EIT is an over-the-air broadcast guide. It tends to be unreliable\n".
+	   "in Australia and should be disabled to prevent it overriding Shepherd.)\n\n");
+    
+    my $needs_update = 0;
+
+    my $data = $dbh->selectall_arrayref("SELECT cardid,dvb_eitscan FROM capturecard") ||
+		&::log("Database error: " . $dbh->errstr);
+    if ($data)
+    {
+	&::log(" Card ID      EIT Scanning\n".
+	       "--------------------------\n");
+	foreach (@$data)
+	{
+	    &::log(sprintf("%6d %14s\n", $_->[0], ($_->[1] ? 'ON' : 'Off')));
+	    $needs_update = 1 if ($_->[1]);
+	}
+    }
+
+    $data = $dbh->selectall_arrayref("SELECT chanid,channum,name,useonairguide FROM channel") ||
+		&::log("Database error: " . $dbh->errstr);
+    if ($data)
+    {
+	&::log("\n  ID   Channel                On-Air Guide (EIT)\n".
+	         "------------------------------------------------\n");
+	foreach (@$data)
+	{
+	    &::log(sprintf("%5d %4s  %-24s %4s\n", $_->[0], $_->[1], $_->[2], ($_->[3] ? 'ON' : 'Off')));
+	    $needs_update = 1 if ($_->[3]);
+	}   
+    }  
+
+    if ($needs_update)
+    {
+	&::log("\nShepherd would like to disable EIT where it is enabled above.\n");
+	if (&XMLTV::Ask::ask_boolean("Okay to disable EIT?", 1))
+	{
+	    $dbh->do("UPDATE capturecard SET dvb_eitscan='0' WHERE 1;") ||
+		    &::log("!! Database error: " . $dbh->errstr . "\n");
+	    $dbh->do("UPDATE channel SET useonairguide='0' WHERE 1;") ||
+	            &::log("!! Database error: " . $dbh->errstr . "\n");
+	    &::log("MythTV database updated to disable EIT. (May require mythbackend restart to take effect.)\n");
+	}
+	else
+	{
+	    &::log("Not updating MythTV database; EIT remains on.\n");
+	}
+    }
+    else
+    {
+	&::log("\nEIT seems to already be disabled; no need to update MythTV database.\n");
+    }
+
+    &::log("\nFinished with EIT.\n\n");
+
+    &Shepherd::MythTV::close_connection;
+
+    # 5. Create cron job
+
+    &::log("Step 5: Creating cron job...\n".
+	   "------\n");
     my $oldcronfile = "$::CWD/cron.bak";
 
     my $cmd = "crontab -l > $oldcronfile";
@@ -1145,7 +1210,7 @@ sub configure_mythtv
     chomp $mythfilldatabase;
 
     my $minute = ((localtime)[1] + 2) % 60;
-    my $job = "$minute * * * * nice $mythfilldatabase --graboptions '--daily' > /dev/null\n";
+    my $job = "$minute * * * * nice $mythfilldatabase > /dev/null\n";
 
     $newcron .= $job;
 
@@ -1166,35 +1231,36 @@ sub configure_mythtv
 	    "... with this:\n");
     }
     &::log("\n$newcron\n");
-    unless (&XMLTV::Ask::ask_boolean("Set your crontab as displayed above?", 1))
+    if (!&XMLTV::Ask::ask_boolean("Set your crontab as displayed above?", 1))
     {
-	&::log("Aborting.\n");
-	return;
+	&::log("Not setting cron job.\n");
     }
-
-    $cmd = "crontab $newcronfile";
-    $cmd = "sudo $cmd -u `whoami`" if ($no_permission);
-    system($cmd) and &::log("Failed?\n");
-
-    &::log("Done.\n");
-
-    if (&XMLTV::Ask::ask_boolean("Would you like to see your symlink " .
-	    "and cron job?", 1))
+    else
     {
-	my $cmd = "ls -l --color `which tv_grab_au`";
-	&::log("\n" . '$ ' . $cmd . "\n");
-	system($cmd);
-
-	$cmd = "crontab -l";
+	$cmd = "crontab $newcronfile";
 	$cmd = "sudo $cmd -u `whoami`" if ($no_permission);
-	&::log("\n" . '$ ' . $cmd . "\n");
-	system($cmd);
+	system($cmd) and &::log("Failed?\n");
+
+	&::log("Done.\n");
+
+	if (&XMLTV::Ask::ask_boolean("Would you like to see your symlink " .
+	    "and cron job?", 1))
+	{
+	    my $cmd = "ls -l --color `which tv_grab_au`";
+	    &::log("\n" . '$ ' . $cmd . "\n");
+	    system($cmd);
+
+	    $cmd = "crontab -l";
+	    $cmd = "sudo $cmd -u `whoami`" if ($no_permission);
+	    &::log("\n" . '$ ' . $cmd . "\n");
+	    system($cmd);
+	}
+
+	&::log("\nYour system will run mythfilldatabase on the $minute" . 
+	         "th minute of every hour.\n");
     }
 
-    &::log("\nSuccessfully configured MythTV.\n\n".
-           "Your system will run mythfilldatabase on the $minute" . 
-	   "th minute of every hour,\n" .
-           "which will trigger Shepherd (as tv_grab_au) with the --daily option.\n");
+    &::log("\nFinished configuring MythTV.\n\n");
 }
 
 
