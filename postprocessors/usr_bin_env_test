@@ -1,0 +1,93 @@
+#!/usr/bin/perl
+
+# A little test to see if users' systems can handle the more
+# portable '#!/usr/bin/env perl' shebang line rather than the
+# current '#!/usr/bin/perl'.
+
+use warnings;
+use strict;
+
+use IO::File;
+use Getopt::Long;
+
+my $progname = "usr_bin_env_test";
+my $version = "0.1";
+
+printf "%s v%s\n",$progname,$version;
+
+my $opt;
+GetOptions(
+	'version'		=> \$opt->{version},
+);
+
+exit if ($opt->{version});
+
+print "\nThis is a test component, designed to see whether your\n".
+      "system can happily migrate from '#!/usr/bin/perl' to\n".
+      "'#!/usr/bin/env perl'.\n\n";
+
+my $test_file = 'test_file.pl';
+
+print "Creating test file...\n";
+
+my $fh = new IO::File(">$test_file") || die "can't open $test_file for writing: $!";
+
+print $fh <<EOF
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+print "*** Output from test file: Success! ***";
+
+EOF
+;
+$fh->close;
+
+print "Setting test file as executable...\n";
+system "chmod a+x $test_file" || die "Couldn't set test file as executable: $!";
+
+print "Running test file...\n\n";
+
+local *TF;
+unless (open(TF, './' . $test_file . ' 2>&1|')) 
+{
+    print "Couldn't open test file: $!\n";
+    exit 1;
+}
+
+my $msg = '';
+while (<TF>) 
+{
+    print ": $_";
+    $msg .= $_;
+}
+close (TF);
+
+print "\n";
+
+if ($@)
+{
+    print "Some kind of error: $@\n";
+    exit 2;
+}
+
+if ($msg)
+{
+    chomp $msg;
+    $msg =~ s/(.*) at .*\/(.*)/$1 at $2/g;
+}
+if ($?) 
+{
+    printf "Test file exited with %d, output: >>>$msg<<<\n", $? >> 8;
+    exit 3;
+}
+
+print "It worked!\n";
+
+print "Deleting test file...\n";
+unlink $test_file;
+
+print "Finished.\n";
+
+exit 0;
