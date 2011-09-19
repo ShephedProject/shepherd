@@ -18,5 +18,4 @@ reconciler      reconciler_mk2      0.44
 postprocessor   imdb_augment_data   1.00
 postprocessor   flag_aus_hdtv       0.50
 postprocessor   augment_timezone    0.21
-postprocessor   usr_bin_env_test    0.1
 END
