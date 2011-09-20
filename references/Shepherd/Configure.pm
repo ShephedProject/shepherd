@@ -1,8 +1,7 @@
-#!/usr/bin/perl -w
 
 package Shepherd::Configure;
 
-my $version = '0.25';
+my $version = '0.26';
 
 use strict;
 no strict 'refs';

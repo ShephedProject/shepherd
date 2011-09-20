@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # sbsweb TV guide grabber
 #
@@ -11,9 +11,10 @@
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '4.03';
+my $version = '4.04';
 
 use strict;
+use warnings;
 use Getopt::Long;
 use POSIX;
 use Data::Dumper;

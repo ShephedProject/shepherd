@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 #
 # "News"
 #
@@ -6,9 +6,10 @@
 # values changed. Should this grabber & Rex require modification, it'd
 # be worth merging the common code into a library or something.
 
-my $version  = '1.7';
+my $version  = '1.8';
 
 use strict;
+use warnings;
 
 use Getopt::Long;
 use Date::Manip;

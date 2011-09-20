@@ -1,8 +1,7 @@
-#!/usr/bin/perl
 #
 # Shepherd::Common library
 
-my $version = '0.38';
+my $version = '0.39';
 
 #
 # This module provides some library functions for Shepherd components,

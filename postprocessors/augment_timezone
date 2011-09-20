@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 # Augment XMLTV start/stop times with the local timezone if MythTV's
 # TimeOffset setting is anything other than "None"
@@ -38,8 +38,9 @@
 
 
 use strict;
+use warnings;
 my $progname = "augment_timezone";
-my $version = "0.21";
+my $version = "0.22";
 
 use XMLTV;
 use POSIX qw(strftime mktime);

@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w
-
+#!/usr/bin/env perl
+#
 # "reconciler mk2": shepherd XMLTV data reconciler
 #  * to be used as a postprocessor for XMLTV data
 #  * takes the output from multiple XMLTV sources and combines them
@@ -91,11 +91,12 @@
 #   $title_xlate_table->{"$primary_title"}->{same}->{"$source"} = count
 
 use strict;
+use warnings;
 $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.44";
+my $version = "0.45";
 
 use LWP::UserAgent;
 use XMLTV;

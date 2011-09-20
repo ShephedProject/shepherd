@@ -1,8 +1,7 @@
-#!/usr/bin/perl
 #
 # Shepherd::MythTV library
 
-my $version = '0.9';
+my $version = '0.10';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.

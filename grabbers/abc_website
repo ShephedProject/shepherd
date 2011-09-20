@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 # ABC1/ABC2/ABC3/ABC News 24 au_tv guide grabber - runs from "Shepherd" master grabber
 #  * written by ltd
@@ -22,9 +22,10 @@
 #    4.00  14aug10	new website format, much redesign, added abc4/abchd/"ABC News 24"
 
 use strict;
+use warnings;
 
 my $progname = "abc_website";
-my $version = "4.10";
+my $version = "4.11";
 
 use XMLTV;
 use POSIX qw(strftime mktime);

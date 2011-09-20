@@ -1,6 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 use strict;
+use warnings;
 use XMLTV;
 use Shepherd::Common;
 use POSIX qw(strftime mktime);
@@ -23,7 +24,7 @@ my $prev_stop = undef;
 
 my %stats;
 my $o;
-Shepherd::Common::program_begin(\$o, "acctv_website", "0.08", \%stats);
+Shepherd::Common::program_begin(\$o, "acctv_website", "0.09", \%stats);
 
 my ($channels, $opt_channels, $gaps) = Shepherd::Common::read_channels($o, ("ACC"));
 my $channel_xmlid = $channels->{ACC} || $opt_channels->{ACC};

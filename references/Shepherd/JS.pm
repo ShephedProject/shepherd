@@ -1,4 +1,3 @@
-#!/usr/bin/perl
 #
 # Shepherd::JS library
 #
@@ -13,7 +12,7 @@ package Shepherd::JS;
 
 use JavaScript;
 
-my $version = '0.1';
+my $version = '0.2';
 
 my $jsc;
 my $debug = 0;

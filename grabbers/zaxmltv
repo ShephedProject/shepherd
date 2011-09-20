@@ -1,7 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 # 
 # simple grabber for Al Jazeera and CCTV data from http://zaxmltv.flash.za.org
 #
+
+use warnings;
 
 use XMLTV;
 use Shepherd::Common;
@@ -29,7 +31,7 @@ my $baseurl = "http://zaxmltv.flash.za.org";
 my %stats;
 my $o;
 
-Shepherd::Common::program_begin(\$o, "zaxmltv grabber", "0.02", \%stats);
+Shepherd::Common::program_begin(\$o, "zaxmltv grabber", "0.03", \%stats);
 &start_writing_xmltv();
 
 my ($channels, $opt_channels, $gaps) =();

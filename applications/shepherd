@@ -1,7 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.5.3';
+my $version = '1.6.0';
 
 # tv_grab_au
 # "Shepherd"
@@ -28,6 +28,7 @@ BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 use strict;
 no strict 'refs';
+use warnings;
 use lib 'references';
 
 # ---------------------------------------------------------------------------

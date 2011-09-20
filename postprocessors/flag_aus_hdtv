@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # flag_aus_hdtv
 
@@ -16,7 +16,7 @@
 #  May 2008
 
 my $progname = "flag_aus_hdtv";
-my $version = "0.50";
+my $version = "0.51";
 
 $| = 1;
 print "$progname v$version\n";

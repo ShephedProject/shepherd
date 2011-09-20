@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 # foxtel_swf australian paytv grabber
 #  * grabs data from www.foxtel.com.au
@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "2.03";
+my $version = "2.04";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;

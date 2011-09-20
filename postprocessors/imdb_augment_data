@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 # IMDb XMLTV data augmenter  <ltd@interlink.com.au>
 #
@@ -24,9 +24,10 @@
 #                       as per trac ticket #31
 
 use strict;
+use warnings;
 
 my $progname = "imdb_augment_data";
-my $version = "1.00";
+my $version = "1.01";
 
 use XMLTV;
 use POSIX qw(strftime mktime);

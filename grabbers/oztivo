@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 # vi: ts=4 sw=4
 #
 # OzTivo Programme Guide Grabber for Shepherd
@@ -11,6 +11,7 @@
 # http://www.oztivo.net/xmltv	XML files main machine (will be removed end of June 2008)
 
 use strict;
+use warnings;
 
 use Getopt::Long;
 use Shepherd::Common;
@@ -42,7 +43,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.47';
+my $version = '2.48';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;

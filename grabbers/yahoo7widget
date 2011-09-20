@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 # yahoo7_widget au_tv guide grabber - runs from "Shepherd" master grabber
 #  * written by ltd
@@ -22,9 +22,10 @@
 #    2.10  22jun10	experimental: drop JSON module for cut-down Shepherd::json_pp
 
 use strict;
+use warnings;
 
 my $progname = "yahoo7widget";
-my $version = "2.26";
+my $version = "2.27";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
