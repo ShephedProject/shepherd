@@ -13,7 +13,7 @@ grabber         foxtel_swf          2.04
 grabber         acctv_website       0.09
 grabber         sbsweb              4.04
 grabber         zaxmltv             0.03
-reconciler      reconciler_mk2      0.45
+reconciler      reconciler_mk2      0.46
 postprocessor   imdb_augment_data   1.01
 postprocessor   flag_aus_hdtv       0.51
 postprocessor   augment_timezone    0.22
