@@ -8,7 +8,7 @@
 #   cd (webserver_directory_with_tree_checked_out)
 #   generate_status_csum < status > status.csum
 
-use Digest::SHA1;
+use Digest::SHA;
 
 while (<>) {
 	chop;
@@ -29,10 +29,8 @@ exit(0);
 sub print_csum
 {
 	my $fname = shift;
-	my $sha1 = Digest::SHA1->new();
+	my $sha = Digest::SHA->new();
 
-	open (FILE, $fname) or die "Unable to read file $fname: $!";
-	$sha1->addfile(FILE) or die "Unable to add file $fname to SHA1 hash: $!";
-	close FILE;
-	printf "\t%s",$sha1->hexdigest;
+	$sha->addfile($fname) or die "Unable to add file $fname to SHA hash: $!";
+	printf "\t%s",$sha->hexdigest;
 }

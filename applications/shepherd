@@ -48,7 +48,7 @@ our $wiki = 'http://svn.whuffy.com/wiki';
 &require_module("Date::Manip");
 &require_module("Algorithm::Diff");
 &require_module("List::Compare");
-&require_module("Digest::SHA1");
+&require_module("Digest::SHA");
 &require_module("Fcntl");
 
 # ---------------------------------------------------------------------------
@@ -496,7 +496,7 @@ sub update_component
 sub csum_file
 {
     my $file = shift;
-    my $sha1 = Digest::SHA1->new();
+    my $sha1 = Digest::SHA->new();
 
     open(F,"<$file") || return -1;
     $sha1->addfile(*F);
@@ -1669,9 +1669,9 @@ sub fetch_file
 
 	# check the checksum
 	if (defined $csum) {
-	    my $sha1 = Digest::SHA1->new();
-	    $sha1->add($response->content);
-	    my $rcsum = $sha1->hexdigest;
+	    my $sha = Digest::SHA->new();
+	    $sha->add($response->content);
+	    my $rcsum = $sha->hexdigest;
 	    if ($rcsum ne $csum) {
 		&log("$url corrupt: expected checksum $csum but got ".$rcsum."\n");
 		return undef;
