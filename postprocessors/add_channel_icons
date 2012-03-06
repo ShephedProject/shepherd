@@ -3,16 +3,13 @@
 use strict;
 use warnings;
 my $progname = "add_channel_icons";
-my $version = "0.1";
+my $version = "0.2";
 
 use XMLTV;
-use XMLTV::Ask;
 use POSIX qw(strftime mktime);
 use Getopt::Long;
 use IO::File;
 use Shepherd::Common;
-
-use Data::Dumper;
 
 $| = 1;
 
@@ -88,8 +85,6 @@ if (!$theme or $theme eq 'none')
 }
 
 &load_logo_list($t);
-
-#print Dumper($t);
 
 my %writer_args = ( encoding => 'ISO-8859-1' );
 my $fh = new IO::File(">".$opt->{output_file}) || die "can't open $opt->{output_file} for writing: $!";
