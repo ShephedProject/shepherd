@@ -2,7 +2,7 @@ application     shepherd            1.7.0
 reference       channel_list        91
 reference       Shepherd/Common.pm  0.39
 reference       Shepherd/MythTV.pm  0.10
-reference       Shepherd/Configure.pm   0.26
+reference       Shepherd/Configure.pm   0.27
 reference	Shepherd/json_pp.pm 0.2
 grabber         news                1.8
 grabber         oztivo              2.49
@@ -16,4 +16,5 @@ reconciler      reconciler_mk2      0.46
 postprocessor   imdb_augment_data   1.01
 postprocessor   flag_aus_hdtv       0.51
 postprocessor   augment_timezone    0.22
+postprocessor	add_channel_icons   0.1
 END

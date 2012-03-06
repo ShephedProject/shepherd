@@ -1,0 +1,235 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+my $progname = "add_channel_icons";
+my $version = "0.1";
+
+use XMLTV;
+use XMLTV::Ask;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use IO::File;
+use Shepherd::Common;
+
+use Data::Dumper;
+
+$| = 1;
+
+my $t;
+my $theme;
+
+our $icon_styles;
+our $options;
+
+my $opt = { };
+$opt->{output_file} =	"output.xmltv";
+$opt->{debug} =			0;
+$opt->{cache_file} =	"$progname.cache";
+
+# parse command line
+GetOptions(
+	'theme=s'		=> \$opt->{theme},
+	'set-theme:s'		=> \$opt->{'set-theme'},
+	'output=s'		=> \$opt->{output_file},
+
+	'region=i'		=> \$opt->{region},		# ignored
+	'days=i'		=> \$opt->{days},		# ignored
+	'offset=i'		=> \$opt->{offset},		# ignored
+	'timezone=s'		=> \$opt->{timezone},		# ignored
+	'channels_file=s'	=> \$opt->{channels_file},	# ignored
+	'config-file=s'		=> \$opt->{configfile},		# ignored
+
+	'help'			=> \$opt->{help},
+	'verbose'		=> \$opt->{help},
+	'version'		=> \$opt->{version},
+	'ready'			=> \$opt->{ready},
+	'desc'			=> \$opt->{desc},
+	'v'			=> \$opt->{version});
+
+printf "%s v%s\n",$progname,$version;
+
+exit if ($opt->{'version'});
+
+if ($opt->{'help'})
+{
+    print <<EOF
+Usage: $progname [--theme theme] inputfile.xmltv
+
+Options:
+ --set-theme          Get a list of icon themes to choose from
+ --set-theme <theme>  Set a theme for future runs
+ --theme <theme>      Use a specific theme this time only
+
+ --output <file>      Default: output.xmltv
+EOF
+;
+    exit;
+}
+
+$options = &Shepherd::Common::read_cache($opt->{cache_file});
+
+if (ref $options and defined $options->{'theme'})
+{
+    $theme = $options->{'theme'};
+    print "Saved theme: $theme\n";
+}
+if ($opt->{'theme'})
+{
+    $theme = $opt->{'theme'};
+    print "Command-line option: theme: $theme\n";
+}
+
+&set_icons if (defined $opt->{'set-theme'});
+
+if (!$theme or $theme eq 'none')
+{
+    print "No theme wanted.\n";
+}
+
+&load_logo_list($t);
+
+#print Dumper($t);
+
+my %writer_args = ( encoding => 'ISO-8859-1' );
+my $fh = new IO::File(">".$opt->{output_file}) || die "can't open $opt->{output_file} for writing: $!";
+$writer_args{OUTPUT} = $fh;
+
+my $writer = new XMLTV::Writer(%writer_args);
+$writer->start( {
+	'source-info-name' => "$progname $version",
+	'generator-info-name' => "$progname $version"} );
+
+foreach my $file (@ARGV) {
+	printf " - parsing: %s\n", ($file eq "-" ? "(from-stdin, hit control-D to finish)" : $file);
+	XMLTV::parsefiles_callback(undef, undef, \&channel_cb,\&programme_cb, $file);
+}
+
+$writer->end();
+
+printf "\nFinished parsing, output in $opt->{output_file}\n";
+
+exit(0);
+
+sub channel_cb( $ )
+{
+	my $c = shift;
+	
+	if ($theme and $theme ne 'none')
+	{
+	    my $channel_name = $c->{'display-name'}->[0]->[0];
+	    printf " * Channel $channel_name: "; 
+
+	    if (defined $t->{$channel_name})
+	    {
+		my $wanted_theme = $theme;
+		unless (defined $t->{$channel_name}->{'themes'}->{$wanted_theme})
+		{
+		    print "No $wanted_theme icon available: will use default: ";
+		    $wanted_theme = $t->{$channel_name}->{'first_theme'};
+		}
+		my $theme_url = $t->{$channel_name}->{'themes'}->{$wanted_theme}->{'url'};
+		$c->{'icon'} = [ { src => $theme_url } ];
+		print "$wanted_theme\n";
+	    }
+	    else
+	    {
+		print "--- no icons ---\n";
+	    }
+	}
+
+	$writer->write_channel($c);
+}
+
+sub programme_cb( $ )
+{
+	my $prog = shift;
+
+	print ".";
+
+	$writer->write_programme($prog);
+}
+
+sub load_logo_list
+{
+    # fetch icon styles
+    $icon_styles = &Shepherd::Common::get_url('http://www.whuffy.com/shepherd/logo_list.txt');
+    exit 1 unless ($icon_styles);
+
+    foreach my $line (split/\n/,$icon_styles) 
+    {
+	$line =~ s/\t/    /g;
+	if ($line =~ /^THEME\s{2,}(\S+)\s{2,}(.*)\s{2,}(.*)$/) 
+	{
+#	    my ($theme_name, $theme_desc, $theme_preview_url) = ($1, $2, $3, $4);
+#	    printf " %-16s %-30s %s\n",$theme_name,$theme_desc,$theme_preview_url;
+	} 
+	elsif ($line =~ /^ICON\s+(.*?)\s{2,}(.*?)\s{2,}(.*)$/) 
+	{
+	    my ($ch, $themename, $url) = ($1, $2, $3);
+	    $t->{$ch}->{themes}->{$themename}->{url} = $url;
+	    $t->{$ch}->{first_theme} = $themename if (!defined $t->{$ch}->{first_theme});
+	    $t->{$ch}->{count}++;
+	}
+    }
+}
+
+sub set_icons
+{
+    &load_logo_list;
+
+    exit 1 unless ($icon_styles);
+
+    print   "\n #  Theme Name       Theme Description              Theme Preview URL\n".
+            " ---------------- ------------------------------ ------------------------------\n".
+            " 0  none             No theme\n";
+
+    my @themes = ( 'none');
+
+    foreach my $line (split/\n/,$icon_styles) 
+    {
+        $line =~ s/\t/    /g;
+        if ($line =~ /^THEME\s{2,}(\S+)\s{2,}(.*)\s{2,}(.*)$/) 
+        {
+            my ($theme_name, $theme_desc, $theme_preview_url) = ($1, $2, $3, $4);
+            printf "%2d  %-16s %-30s %s\n",scalar(@themes),$theme_name,$theme_desc,$theme_preview_url;
+            push @themes, $theme_name;
+        } 
+    }
+
+    my $chosen_theme;
+    if ($opt->{'set-theme'} and grep($opt->{'set-theme'} eq $_, @themes))
+    {
+	$chosen_theme = $opt->{'set-theme'};
+    }
+    else
+    {
+	my $chosen_theme_id = &ask(@themes);
+	$chosen_theme = $themes[$chosen_theme_id];
+    }
+ 
+    $options->{'theme'} = $chosen_theme;
+
+    &Shepherd::Common::write_cache($opt->{cache_file}, $options);
+    print "Set MythTV icon theme to $chosen_theme.\n";
+    exit 1;
+}
+
+sub ask
+{
+    my (@themes) = @_;
+
+    print "Choose an icon theme [0 - " . (scalar(@themes) - 1) . "] ?\n ";
+    my $r = <STDIN>;
+    unless ($r and $r =~ /^\d+$/ and $r >= 0 and $r < scalar(@themes))
+    {
+	return &ask(@themes);
+    }
+    print "\n";
+    return $r;
+}
+
+
+
+
+

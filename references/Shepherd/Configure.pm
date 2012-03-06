@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.26';
+my $version = '0.27';
 
 use strict;
 no strict 'refs';
@@ -1314,122 +1314,14 @@ sub munge
 
 sub set_icons
 {
-    print "\n\nPopulating Channel Icons.\n\n";
 
-    eval
-    {
-        use lib 'references';
-        require Shepherd::MythTV;
+    &::call_prog('add_channel_icons', &::query_filename('add_channel_icons', 'postprocessor') . ' --set-theme');
 
-        my $dbh = &Shepherd::MythTV::open_connection;
-        exit unless ($dbh);
-
-	-d "$::CWD/icons" or mkdir "$::CWD/icons" or die "Cannot create directory $::CWD/icons: $!";
-
-	# fetch icon styles
-	print "Contacted database.\n\nFetching icon styles ... ";
-	my $icon_styles = &::fetch_file('http://www.whuffy.com/shepherd/logo_list.txt');
-	exit 1 unless ($icon_styles);
-
-	print "Done\n\n".
-	      "There are (typically) multiple themes available for each channel.\n".
-	      "For each channel you will be asked which theme graphic you'd like for\n".
-	      "each channel icon\n".
-	      "Aesthetically, you probably want all channel graphics sourced from a single\n".
-	      "theme, but you can choose individual graphics for each if you choose.\n\n".
-	      "The following themes are available. Please browse the URL of each theme\n".
-	      "to see if you like the general style:\n\n".
-	      " Theme Name       Theme Description              Theme Preview URL\n".
-	      " ---------------- ------------------------------ ------------------------------\n";
-
-	my $t;
-
-	foreach my $line (split/\n/,$icon_styles) {
-	    $line =~ s/\t/    /g;
-	    if ($line =~ /^THEME\s{2,}(\S+)\s{2,}(.*)\s{2,}(.*)$/) {
-		my ($theme_name, $theme_desc, $theme_preview_url) = ($1, $2, $3, $4);
-		printf " %-16s %-30s %s\n",$theme_name,$theme_desc,$theme_preview_url;
-	    } elsif ($line =~ /^ICON\s+(.*?)\s{2,}(.*?)\s{2,}(.*)$/) {
-		my ($ch, $ch_theme, $url) = ($1, $2, $3);
-		my $themename = "$ch_theme [$url]";
-		$t->{ch}->{$ch}->{themes}->{$themename}->{url} = $url;
-
-		$t->{ch}->{$ch}->{themes}->{$themename}->{fname} = $ch_theme."_".$ch;
-		if ($url =~ /\/([a-zA-Z0-9\.\_]+)$/) {
-		    $t->{ch}->{$ch}->{themes}->{$themename}->{fname} = $ch_theme."_".$1;
-		}
-
-		$t->{ch}->{$ch}->{first_theme} = $themename if (!defined $t->{ch}->{$ch}->{first_theme});
-		$t->{ch}->{$ch}->{count}++;
-	    }
-	}
-
-	print "\nFor each channel, choose the icon theme you would like to use:\n";
-	foreach my $ch (sort keys %{($t->{ch})}) {
-	    next if ((!defined $::channels->{$ch}) && (!defined $::opt_channels->{$ch}));
-	    my $xmlid = $::channels->{$ch};
-	    $xmlid = $::opt_channels->{$ch} if (defined $::opt_channels->{$ch});
-
-	    printf "\n\n$ch: [%s]\n",$xmlid;
-
-	    # verify that channel is in database
-	    my ($chan_id,$curr_icon) = $dbh->selectrow_array("SELECT chanid,icon FROM channel WHERE xmltvid LIKE '".$xmlid."'");
-	    if (!$chan_id) {
-		print "  Skipped - not in channels database.\n";
-		next;
-	    } else {
-		print "Icon currently set to: $curr_icon\n";
-	    }
-
-	    # let user choose the icon theme they want. if there is only one choice, choose it for them
-	    my $chosen_theme = "";
-	    if (($t->{ch}->{$ch}->{count} == 1) && ($curr_icon eq "none")) {
-		$chosen_theme = $t->{ch}->{$ch}->{first_theme};
-		print "Only one theme and icon not currently set, using: $chosen_theme\n";
-	    } else {
-		$chosen_theme = &XMLTV::Ask::ask_choice("Choose theme:",
-		    ($curr_icon eq "none" ? $t->{ch}->{$ch}->{first_theme} : "current icon ($curr_icon)"),
-		    "current icon ($curr_icon)", "none",
-		    sort keys %{($t->{ch}->{$ch}->{themes})});
-	    }
-
-	    if (($chosen_theme ne "") && ($chosen_theme !~ /^current/)) {
-		my $fname;
-		if ($chosen_theme eq "none") {
-		    $fname = "none";
-		} else {
-		    # always re-fetch icons even if we already had them.
-		    # this simplifies the case if a download was corrupt.
-		    my $url = $t->{ch}->{$ch}->{themes}->{$chosen_theme}->{url};
-		    $fname = "$::CWD/icons/".$t->{ch}->{$ch}->{themes}->{$chosen_theme}->{fname};
-
-		    print "Fetching $url .. ";
-		    if (!(&::fetch_file($url, $fname, 1))) {
-			print "Failed.\n";
-			next;
-		    }
-		    print "done.\n";
-		}
-
-		# update database
-		print "Updating database to $fname .. ";
-		$dbh->do("UPDATE channel SET icon='".$fname."' WHERE chanid LIKE $chan_id") ||
-		die "could not update database channel icon: ".$dbh->errstr;
-		print "done.\n";
-	    }
-	}
-
-	print "\n\nAll done.\n".
-	      "You will need to restart both mythbackend and mythfrontend for any icon changes to appear.\n\n";
-
-        &Shepherd::MythTV::close_connection;
-        &::log("Successfully set MythTV icons.\n");
-    };
-    if ($@)
-    {
-        &::log("Error trying to access MythTV database: $@\n");
-        return undef;
-    }
+    &::log("Your icon theme choice will be sent to MythTV when Shepherd completes\n" .
+	   "its next full run. They won't show up in MythTV until then.\n\n" .
+	   "Shepherd may use default icons for some channels if your preferred theme\n" .
+	   "does not have one available.\n\n" .
+	   "Done.\n");
 }
 
 
