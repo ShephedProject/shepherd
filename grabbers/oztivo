@@ -43,7 +43,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.49';
+my $version = '2.50';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -78,57 +78,69 @@ my %s_to_o_map = (
 		'ABC2 / ABC4' => 'ABC2',
 		'ABC3' => 'ABC3',
 		'ABC News 24' => 'ABC-News24',
-		'7HD' => 'SevenHD',
 		#'7HD'=>'SevenHD-Mel',
 		'Prime HD' => 'SevenHD', # no such thing yet
 		'Nine HD' => 'NineHD',
 		#'TEN HD' => 'TenHD',
 		#'TEN HD'=>'TenHD-Vic',
 		'GO!' => 'GO',
-		'7TWO' => '7TWO',
-		'7TWO on Prime' => '7TWO',
 		'7mate' => '7mate',
-		'GEM' => 'GEM',
+		'ELEVEN' => 'ELEVEN',
 	},
 	'VIC' => {
 		'ONE' => 'One-Vic',
 		'One Digital' => 'One-Vic',
 		'SBS TWO' => 'SBSTWO-Vic',
+		'7TWO' => '7TWO-Vic',
+		'GEM' => 'GEM-Vic',
 	},
 	'NSW' => {
 		'ONE' => 'One-NSW',
 		'One Digital' => 'One-NSW',
 		'SBS TWO' => 'SBSTWO-NSW',
+		'7TWO' => '7TWO-NSW',
+		'GEM' => 'GEM-NSW',
 	},
 	'QLD' => {
 		'ONE' => 'One-Qld',
 		'One Digital' => 'One-Qld',
 		'SBS TWO' => 'SBSTWO-Qld',
+		'7TWO' => '7TWO-Qld',
+		'GEM' => 'GEM-Qld',
 	},
 	'WA' => {
 		'ONE' => 'One-WA',
 		'One Digital' => 'One-WA',
 		'SBS TWO' => 'SBSTWO-WA',
+		'7TWO' => '7TWO-WA',
+		'GEM' => 'GEM-WA',
 	},
 	'SA' => {
 		'ONE' => 'One-SA',
 		'One Digital' => 'One-SA',
 		'SBS TWO' => 'SBSTWO-SA',
+		'7TWO' => '7TWO-SA',
+		'GEM' => 'GEM-SA',
 	},
 	'NT' => {
 		'ONE' => 'One-Dar',
 		'One Digital' => 'One-Dar',
 		'SBS TWO' => 'SBSTWO-NT',
+		'7TWO' => '7TWO-NT',
 	},
 	'ACT' => {
 		'ONE' => 'One-NSW',
 		'One Digital' => 'One-NSW',
 		'SBS TWO' => 'SBSTWO-NSW',
+		'7TWO' => '7TWO-ACT',
+		'GEM' => 'GEM-ACT',
 	},
 	'TAS' => {
 		'ONE' => 'One-Tas',
 		'One Digital' => 'One-Tas',
 		'SBS TWO' => 'SBSTWO-Tas',
+		'7TWO' => '7TWO-Tas',
+		'GEM' => 'GEM-Tas',
 	},
 	'67' => {	# NSW: Griffith
 		'ABC1' => 'ABC-NSW',
@@ -324,6 +336,7 @@ my %s_to_o_map = (
 		'Prime' => 'PrimeN',
 		'SBS ONE' => 'SBS-NSW',
 		'SC10' => 'SC10-NSW',
+		'ONE' => 'One-Newc',
 	},
 	'69' => {	# NSW: Tamworth
 		'ABC1' => 'ABC-NSW',
