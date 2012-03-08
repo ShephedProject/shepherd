@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.27';
+my $version = '0.28';
 
 use strict;
 no strict 'refs';
@@ -164,19 +164,22 @@ sub configure_channels_guided
        
     print "\n* Guided Channel Selection *\n";
 
-    print "\nHigh Definition TV (HDTV)\n".
-          "Most Australian TV networks broadcast at least some\n".
-          "programmes in HDTV each week, but for the most part\n".
-          "either upsample SD to HD or play a rolling demonstration\n".
-          "HD clip when they don't have the programme in HD format.\n\n".
-          "If you have a HDTV capable system and are interested in\n".
-          "having Shepherd's postprocessors populate HDTV content\n".
-          "then Shepherd will need to know the XMLTV IDs for the HD\n".
-          "channels also.  HD related SD channels are required.\n",
-          "The 7HD, Nine HD and One HD channels are populated\n",
-          "with programs from the first related SD channel.\n",
-          "$::wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n\n";
-    my $want_hdtv = &XMLTV::Ask::ask_boolean("Do you have High-Definition (HDTV)?");
+    # I believe this is now obsolete. Commenting out; will remove completely
+    # if that proves the case. 08-MAR-12.
+    # print "\nHigh Definition TV (HDTV)\n".
+    #      "Most Australian TV networks broadcast at least some\n".
+    #      "programmes in HDTV each week, but for the most part\n".
+    #      "either upsample SD to HD or play a rolling demonstration\n".
+    #      "HD clip when they don't have the programme in HD format.\n\n".
+    #      "If you have a HDTV capable system and are interested in\n".
+    #      "having Shepherd's postprocessors populate HDTV content\n".
+    #      "then Shepherd will need to know the XMLTV IDs for the HD\n".
+    #      "channels also.  HD related SD channels are required.\n",
+    #      "The 7HD, Nine HD and One HD channels are populated\n",
+    #      "with programs from the first related SD channel.\n",
+    #      "$::wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n\n";
+    #my $want_hdtv = &XMLTV::Ask::ask_boolean("Do you have High-Definition (HDTV)?");
+    my $want_hdtv = 0;
 
     my (@channellist, @hd_channellist, @paytv_channellist);
 
