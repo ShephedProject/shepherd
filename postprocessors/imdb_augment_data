@@ -27,7 +27,7 @@ use strict;
 use warnings;
 
 my $progname = "imdb_augment_data";
-my $version = "1.01";
+my $version = "1.02";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -562,7 +562,7 @@ sub get_imdb_movie_online
 	while (my $img_tag = $tp->get_tag('img')) {
 		next if (!$img_tag->[1]{alt});
 		last if ($img_tag->[1]{alt} =~ /^poster not submitted/i);
-		if ($img_tag->[1]{alt} =~ /^$title$/i) {
+		if ($img_tag->[1]{alt} =~ /^$title Poster$/i) {
 			$data_cache->{movie_lookup}->{$movie_url}->{cover} = $img_tag->[1]{src};
 			Shepherd::Common::log(" - parsed cover_url ".$img_tag->[1]{src}) if ($opt->{debug});
 			last;
@@ -660,11 +660,42 @@ sub get_imdb_movie_online
 	&imdb_scalar_parser($html_data, "h5", "original air date","trimmed","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{airdate});
 	&imdb_scalar_parser($html_data, "h5", "plot summary","","h5","a", undef, \$data_cache->{movie_lookup}->{$movie_url}->{summary});
 
-	if (defined $data_cache->{movie_lookup}->{$movie_url}->{rating}) {
-		# don't use a rating unless its numeric
-		if ($data_cache->{movie_lookup}->{$movie_url}->{rating} !~ /^\d+/) {
-			delete $data_cache->{movie_lookup}->{$movie_url}->{rating};
+	# A quick hack to provide star-ratings, because they don't seem to be working.
+	# (Possibly none of this is working.)
+	# Max March 2012.
+	my $tree = HTML::TreeBuilder->new_from_content($html_data);
+	my $tag;
+
+	unless (defined $data_cache->{movie_lookup}->{$movie_url}->{rating})
+	{
+	    if ($tag = $tree->look_down( '_tag' => 'div', 'class' => 'star-box-giga-star'))
+	    {
+		my $rating = $tag->as_text();
+		$rating =~ s/^ +//;
+		$rating =~ s/ +$//;
+		$data_cache->{movie_lookup}->{$movie_url}->{rating} = "$rating/10";
+	    }
+	    if ($tag = $tree->look_down( '_tag' => 'a', 'href' => 'criticreviews'))
+	    {
+		my $rating = $tag->as_text();
+		if ($rating =~ /(\d+\/\d+)/)
+		{
+		    $data_cache->{movie_lookup}->{$movie_url}->{xtrarating} = $1;
 		}
+	    }
+	}
+
+	unless (defined $data_cache->{movie_lookup}->{$movie_url}->{plot})
+	{
+	    foreach $tag ($tree->look_down( '_tag' => 'h2' ))
+	    {
+		if ($tag->as_text eq 'Storyline')
+		{
+		    my $plot = $tag->right()->as_text();
+		    $plot =~ s/\. Written by.*/./;
+		    $data_cache->{movie_lookup}->{$movie_url}->{plot} = $plot;
+		}
+	    }
 	}
 
 	#
@@ -1050,15 +1081,23 @@ sub programme_cb( $ )
 	push (@{($prog->{url})},$movie_url) if (!$found_url);
 	push (@{($prog->{url})},$imdb->{cover}) if (($imdb->{cover}) && (!$found_cover));
 
+	# quick hack by Max to get working again, March 2012.
 	if ($imdb->{rating}) {
-		my ($rating,$votes) = split(/ /,$imdb->{rating});
-		if ($rating =~ /[\d\.\s]+\/[\d\.\s]+/) {
-			# If there's already a star-rating, average the scores
-			if (ref $prog->{'star-rating'} && $prog->{'star-rating'}->[0] =~ /[\d\.\s]+\/[\d\.\s]+/) {
-				$rating = sprintf "%.1f/10", (eval($rating) + eval($prog->{'star-rating'}->[0])) * 5;
-			}
-			$prog->{'star-rating'} = [ $rating ];
+	        $prog->{'star-rating'} = [ ] unless (ref $prog->{'star-rating'});
+		push @{$prog->{'star-rating'}}, [ $imdb->{rating}, "IMDB.com", undef ];
+		if ($imdb->{xtrarating})
+		{
+		    push @{$prog->{'star-rating'}}, [ $imdb->{xtrarating}, "Metacritic", undef ];
 		}
+
+#		my ($rating,$votes) = split(/ /,$imdb->{rating});
+#		if ($rating =~ /[\d\.\s]+\/[\d\.\s]+/) {
+#			# If there's already a star-rating, average the scores
+#			if (ref $prog->{'star-rating'} && $prog->{'star-rating'}->[0] =~ /[\d\.\s]+\/[\d\.\s]+/) {
+#				$rating = sprintf "%.1f/10", (eval($rating) + eval($prog->{'star-rating'}->[0])) * 5;
+#			}
+#			$prog->{'star-rating'} = [ $rating ];
+#		}
 	}
 
 	if ($imdb->{languages}) {
