@@ -1,5 +1,5 @@
 application     shepherd            1.7.0
-reference       channel_list        91
+reference       channel_list        92
 reference       Shepherd/Common.pm  0.39
 reference       Shepherd/MythTV.pm  0.10
 reference       Shepherd/Configure.pm   0.28
