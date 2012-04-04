@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.28';
+my $version = '0.29';
 
 use strict;
 no strict 'refs';
@@ -238,15 +238,15 @@ sub configure_channels_guided
     my @paytvchannels = ((undef) x scalar(@sdchannels), (@paytv_channellist));
 
     printf "\nYour MythTV has %d channels. Shepherd offers %d channels of guide\n".
-           "data for %s (%d free-to-air, %d HDTV, %d Pay-TV).\n\n".
+           "data for %s (%d free-to-air, %d Pay TV, %d simulcast/HDTV).\n\n".
 	   "Please associate each MythTV channel with a Shepherd guide data\n".
 	   "channel.\n\n",
 	   scalar(@$mythids),
 	   scalar(@allchannels),
 	   $REGIONS{$::region},
 	   scalar(@channellist), 
-	   scalar(@hd_channellist), 
-	   scalar(@paytv_channellist);
+	    scalar(@paytv_channellist),
+	   scalar(@hd_channellist);
     
     my $display_mode = 0;
     foreach my $mch (@$mythids)
@@ -462,19 +462,20 @@ sub configure_channels_advanced
     &::check_channel_xmltvids;
 
     my $old_opt_channels = $::opt_channels;
-    print "\nHigh Definition TV (HDTV)\n".
-          "Most Australian TV networks broadcast at least some\n".
-          "programmes in HDTV each week, but for the most part\n".
-          "either upsample SD to HD or play a rolling demonstration\n".
-          "HD clip when they don't have the programme in HD format.\n\n".
-          "If you have a HDTV capable system and are interested in\n".
-          "having Shepherd's postprocessors populate HDTV content\n".
-          "then Shepherd will need to know the XMLTV IDs for the HD\n".
-          "channels also.  HD related SD channels are required.\n",
-          "The 7HD, Nine HD and One HD channels are populated\n",
-          "with programs from the first related SD channel.\n",
-          "$::wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
-    if (&XMLTV::Ask::ask_boolean("\nDo you wish to include HDTV channels?")) 
+#    print "\nHigh Definition TV (HDTV)\n".
+#          "Most Australian TV networks broadcast at least some\n".
+#          "programmes in HDTV each week, but for the most part\n".
+#          "either upsample SD to HD or play a rolling demonstration\n".
+#          "HD clip when they don't have the programme in HD format.\n\n".
+#          "If you have a HDTV capable system and are interested in\n".
+#          "having Shepherd's postprocessors populate HDTV content\n".
+#          "then Shepherd will need to know the XMLTV IDs for the HD\n".
+#          "channels also.  HD related SD channels are required.\n",
+#          "The 7HD, Nine HD and One HD channels are populated\n",
+#          "with programs from the first related SD channel.\n",
+#          "$::wiki/FAQ#MyhighdefinitionHDchannelsaremissingprograms\n";
+#    if (&XMLTV::Ask::ask_boolean("\nDo you wish to include HDTV channels?")) 
+    if (0)
     {
         #limit to ones in $channels and if 7HD remove 7HD and first 7
         my @hd_channellist = grep(!/ABC2|TEN|SBS TWO|31/i, keys %$::channels);
