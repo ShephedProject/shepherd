@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.29';
+my $version = '0.40';
 
 use strict;
 no strict 'refs';
@@ -375,17 +375,20 @@ sub configure_channels_guided
 	}
     }
 
-    foreach (keys %$::opt_channels)
-    {
-	if (defined $::opt_channels->{$_} && $_ =~ /HD$/) {
-	    my $sd = $_;
-	    $sd =~ s/HD$//;
-	    if (!defined $::channels->{$sd}) {
-		print "No corresponding SD channel for a HD channel.  '$_' needs '$sd'.  Please try again.\n";
-		exit;
-	    }
-	}
-    }
+#    Removed by Max (17-Apr-2012) as part of a slow deletion of
+#    $opt_channels (no longer necessary for HDTV).
+#
+#    foreach (keys %$::opt_channels)
+#    {
+#	if (defined $::opt_channels->{$_} && $_ =~ /HD$/) {
+#	    my $sd = $_;
+#	    $sd =~ s/HD$//;
+#	    if (!defined $::channels->{$sd}) {
+#		print "No corresponding SD channel for a HD channel.  '$_' needs '$sd'.  Please try again.\n";
+#		exit;
+#	    }
+#	}
+#    }
 
     foreach (keys %$::channels)
     {
