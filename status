@@ -12,7 +12,7 @@ grabber         rex                 9.1.0
 grabber         acctv_website       0.09
 grabber         sbsweb              4.04
 grabber         zaxmltv             0.03
-reconciler      reconciler_mk2      0.46
+reconciler      reconciler_mk2      0.47
 postprocessor   imdb_augment_data   1.02
 postprocessor   augment_timezone    0.22
 postprocessor	add_channel_icons   0.2
