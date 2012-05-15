@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.47";
+my $version = "0.48";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -894,6 +894,7 @@ sub match_stoplist_override
 		'Doctor Who' => ["Confidential"], 
 		'Stargate' => [ "Universe", "SG.*1", "Atlantis", "Infinity" ],
 		'Criminal Minds' => [ 'Suspect Behavior', 'Suspect Behaviour' ],
+		'Once Upon a Time' => [ 'in .*' ],
 		};
 
 	foreach my $stop1 (keys %$canonical_stop_list_exceptions) {
