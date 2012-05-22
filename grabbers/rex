@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '9.1.0'; 
+my $version  = '9.2.0'; 
 
 # TODO: remove refresh_ua every 20 requests (maybe)
 
@@ -990,6 +990,14 @@ sub set_defaults
     {
       $opt->{$_} = $defaults->{$_};
     }
+  }
+
+  if ($opt->{'days'} > 7)
+  {
+      # Due to URL scheme of '/guide/wed/night', we cannot grab
+      # more than 7 days (including today).
+      print "Restricting to 7 days: rex will return bad data if asked for day 8.\n";
+      $opt->{'days'} = 7;
   }
 
   Shepherd::Common::set_defaults(
