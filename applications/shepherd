@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.6.0';
+my $version = '1.7.1';
 
 # tv_grab_au
 # "Shepherd"
@@ -2802,21 +2802,54 @@ sub grab_data
 		 ($find_microgaps ? 'microgaps within ' : '') .
 		 display_best_timeslice());
 
-	    if ($timeslice->{start} != 0)
+	    # Shepherd internally considers Today == Day 0, but 
+	    # grabbers expect Today == Day 1, so add 1.
+	    my $n = $timeslice->{stop} + 1;
+
+	    # Don't ask the grabber for more than it can provide. This is not
+	    # prevented earlier because we only checked whether the grabber can
+	    # return SOME data within the desired window.
+	    if ($n > query_config($grabber, 'max_days'))
 	    {
+		$n = query_config($grabber, 'max_days');
+	    }
+
+	    # Can we use --offset?
+	    if ($timeslice->{start} != 0 and query_config($grabber, 'option_days_offset'))
+	    {
+		# We want to skip the first X days. We calculate X by taking the
+		# start day that we want, which is $timeslice->{start}, adding 1
+		# to convert from Shepherd's "today is day 0" system, then deducting
+		# 1 because we want to skip until the day before this. So:
+		my $offset = $timeslice->{start};
+
 		$comm .= " " . 
 			 query_config($grabber, 'option_days_offset') .
 			 " " .
-			 $timeslice->{start};
+			 $offset;
+
+		# 'option_days_offset' / 'option_offset_eats_days'
+		#
+		# Grabbers that can skip the first X days of data have the
+		# 'option_days_offset' flag set in their .conf files.
+		#
+		# Of those grabbers that support --offset, there are two
+		# slightly different interpretations:
+		#
+		# --offset 2 --days 3
+		# Interpretation 1: Grab data for day 3 only.
+		# Interpretation 2: Grab data for days 3-6 (i.e. skip 2 days,
+		#                   then grab 3 more).
+		#
+		# Most grabbers follow interpretation 1, and they have
+		# 'option_offset_eats_days' set to indicate this.
+		
+		if (!query_config($grabber, 'option_offset_eats_days'))
+		{
+		    $n -= $offset;
+		}
 	    }
 
-	    my $n = $timeslice->{stop} + 1;
-	    if ($timeslice->{start} != 0 
-		    and 
-		!query_config($grabber, 'option_offset_eats_days'))
-	    {
-		$n -= $timeslice->{start};
-	    }
 	    $comm .= " " .
 		     query_config($grabber, 'option_days') .
 		     " " . 
