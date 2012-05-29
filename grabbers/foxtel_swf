@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "3.00";
+my $version = "4.00";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -1058,12 +1058,16 @@ sub soap_get_event_details
 {
 	my (@event_list) = @_;
 	my $data, my $postvars;
-	
+
 	$postvars = $d->{common_post_start}.
 		"<s:GetEventDetailsIn>".
-			"<s:StateId>".$d->{state}->{id}."</s:StateId>";
+		"<s:Bouquet>".
+		"<s:BouquetId xmlns:types=\"http://epg.foxtel.com.au/schema\">".$d->{bouquet}->{bouquet_id}."</s:BouquetId>".
+		"<s:SubBouquetId xmlns:types=\"http://epg.foxtel.com.au/schema\">".$d->{bouquet}->{subbouquet_id}."</s:SubBouquetId>".
+		"</s:Bouquet>".
+		"<s:StateId>".$d->{state}->{id}."</s:StateId>";
 	foreach my $event_id (@event_list) {
-		$postvars .= "<s:EventId>".$event_id."</s:EventId>";
+	    $postvars .= "<s:EventId>".$event_id."</s:EventId>";
 	}
 	$postvars .= "</s:GetEventDetailsIn>".
 		$d->{common_post_end};

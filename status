@@ -12,6 +12,7 @@ grabber         rex                 9.2.0
 grabber         acctv_website       0.09
 grabber         sbsweb              4.04
 grabber         zaxmltv             0.03
+grabber         foxtel_swf          4.00
 reconciler      reconciler_mk2      0.48
 postprocessor   imdb_augment_data   1.02
 postprocessor   augment_timezone    0.22
