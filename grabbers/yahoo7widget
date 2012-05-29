@@ -25,7 +25,7 @@ use strict;
 use warnings;
 
 my $progname = "yahoo7widget";
-my $version = "2.27";
+my $version = "2.28";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -46,17 +46,51 @@ my $input_xml;
 my $d;
 $| = 1;
 
-# map yahoo paytv names to what shepherd knows them as
-my %paytv_fixups = ( qw{
-        111HITS 111Hits 13THSTREET2 13thSTREET2 A-PAC APAC Bio. Bio BloombergTELEVISION BloombergTelevision 
-        BOOMERANG Boomerang CARTOONNETWORK CartoonNetwork BBCCBeebies Cbeebies CrimeInvestigation Crime DiscoveryHomeHealth DiscoveryHealth 
-        DiscoveryTurboMAX2 DiscTurboMAX2 EUROSPORTNEWS Eurosportnews fashiontv FashionTV FOXSPORTS1HD FoxSports1HD FOXSPORTS2HD FoxSports2HD 
-        FOXSPORTS3HD FoxSports3HD HITS2 111HITS2 TheLifeStyleChannel2 LifeStyle2 LifeStyleFOODChannel LifeStyleFOOD 
-        LifeStyleFOODChannel2 LifestyleFOOD2 LifestyleYOU LifeStyleYOU LifeStyleYOU2 LifStyleYOU2 MTVClassics MTVClassic MTVLive MTVNLive 
-        MTVLiveHD MTVNLiveHD NATGEOWILD NatGeoWild NATGEOWILDHD NatGeoWildHD NickJr. NickJr showtimepremiereHD ShowPremiereHD 
-        SKYNEWSBUSINESS SKYNewsBusiness SKYNEWSAUSTRALIA SKYNewsNational SkyRacing SKYRacing SkyRacing2 SKYRacing2 STARPICS STARPICS1 
-        THECOMEDYCHANNEL ComedyChannel THECOMEDYCHANNEL2 Comedy2 TheWORLDMOVIESChannel WORLDMOVIES UniversalChannel Universal 
-	} );
+# Map yahoo paytv names to what shepherd knows them as.
+# Format: 'yahoo7widget name' => 'official name'
+my %paytv_fixups = (
+    '111HITS' => '111Hits',
+    '13THSTREET2' => '13thSTREET2',
+    'A-PAC' => 'APAC',
+    'Bio.' => 'Bio',
+    'BloombergTELEVISION' => 'BloombergTelevision',
+    'BOOMERANG' => 'Boomerang',
+    'CARTOONNETWORK' => 'CartoonNetwork',
+    'BBCCBeebies' => 'Cbeebies',
+    'CrimeInvestigation' => 'Crime',
+    'DiscoveryHomeHealth' => 'DiscoveryHealth',
+    'DiscoveryTurboMAX2' => 'DiscTurboMAX2',
+    'EUROSPORTNEWS' => 'Eurosportnews',
+    'fashiontv' => 'FashionTV',
+    'FOXSPORTS1HD' => 'FoxSports1HD',
+    'FOXSPORTS2HD' => 'FoxSports2HD',
+    'FOXSPORTS3HD' => 'FoxSports3HD',
+    'HITS2' => '111HITS2' ,
+    'TheLifeStyleChannel2' => 'LifeStyle2',
+    'LifeStyleFOODChannel' => 'LifeStyleFOOD',
+    'LifeStyleFOODChannel2' => 'LifestyleFOOD2',
+    'LifestyleYOU' => 'LifeStyleYOU',
+    'LifeStyleYOU2' => 'LifStyleYOU2',
+    'MTVClassics' => 'MTVClassic',
+    'MTVLive' => 'MTVNLive',
+    'MTVLiveHD' => 'MTVNLiveHD',
+    'NATGEOWILD' => 'NatGeoWild',
+    'NATGEOWILDHD' => 'NatGeoWildHD',
+    'NickJr.' => 'NickJr',
+    'showtimepremiereHD' => 'ShowPremiereHD',
+    'SKYNEWSBUSINESS' => 'SKYNewsBusiness',
+    'SKYNEWSAUSTRALIA' => 'SKYNewsNational',
+    'SkyRacing' => 'SKYRacing',
+    'SkyRacing2' => 'SKYRacing2',
+    'STARPICS' => 'STARPICS1',
+    'THECOMEDYCHANNEL' => 'ComedyChannel',
+    'THECOMEDYCHANNEL2' => 'Comedy2',
+    'TheWORLDMOVIESChannel' => 'WORLDMOVIES',
+    'UniversalChannel' => 'Universal',
+    'FOXFOOTY' => 'FOX FOOTY',
+    'FOXFOOTYHD' => 'FOX FOOTY HD',
+    'ESPN2HD' => 'ESPN2 HD',
+);
 
 #
 # parse command line
