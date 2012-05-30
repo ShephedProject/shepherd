@@ -1,0 +1,378 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+my $progname = "metacritic";
+my $version = "1.0";
+
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use Data::Dumper;
+use HTML::TreeBuilder;
+use Shepherd::Common;
+
+$| = 1;
+
+my $opt = { };
+$opt->{output_file} =		"output.xmltv";
+$opt->{debug} =			0;
+$opt->{min_duration} =		65;	# 65 mins
+$opt->{max_duration} =		240;	# 4 hours
+$opt->{skip_categories} = 	"Infotainment,Shopping,Business and Finance,Game Show,News,Parliament,Current Affairs,sports,Sport,Weather,Reality,live";
+
+my %stats;
+my $start_time = time;
+my $cache = { };
+
+GetOptions(
+	'region=i'		=> \$opt->{region},		# ignored
+	'days=i'		=> \$opt->{days},		# ignored
+	'offset=i'		=> \$opt->{offset},		# ignored
+	'timezone=s'		=> \$opt->{timezone},		# ignored
+	'channels_file=s' 	=> \$opt->{channels_file},	# ignored
+	'config-file=s'		=> \$opt->{configfile},		# ignored
+
+	'min_duration=i' 	=> \$opt->{min_duration},
+	'max_duration=i' 	=> \$opt->{max_duration},
+	'skip_categories=s'	=> \$opt->{skip_categories},
+
+	'output=s'		=> \$opt->{output_file},
+	'debug+'		=> \$opt->{debug},
+	'help'			=> \$opt->{help},
+	'verbose'		=> \$opt->{help},
+	'version'		=> \$opt->{version},
+	'ready'			=> \$opt->{ready},
+	'desc'			=> \$opt->{desc},
+	'v'			=> \$opt->{version});
+
+printf "%s v%s\n",$progname,$version;
+
+if ($opt->{version} or $opt->{desc} or $opt->{help} or $opt->{ready} or !@ARGV) 
+{
+    printf "Augments data from www.metacritic.com\n" if $opt->{desc};
+
+    printf "$progname is ready for operation.\n" if ($opt->{ready});
+
+    if ($opt->{help} or !@ARGV) 
+    {
+	print<<EOF
+usage: $progname [options] [FILES...]
+
+Supported options include:
+  --min_duration={min} ignore programs under {min} duration (default: $opt->{min_duration} min)
+  --max_duration={min} ignore programs over {min} duration (default: $opt->{max_duration} min)
+  --skip_categories={list} don't try to look up programmes in these categories (default: $opt->{skip_categories})
+
+  --output={file}      send final XMLTV output to {file} (default: $opt->{output_file})
+  --debug              enable debugging
+
+  --help
+  --version
+
+EOF
+;
+    }
+    exit(0);
+}
+
+# set defaults
+&Shepherd::Common::set_default("debug", ((defined $opt->{debug} && $opt->{debug} > 0) ? 2 : 0));
+&Shepherd::Common::set_default("stats", \%stats);
+&Shepherd::Common::set_default("retry_delay", 10);
+&Shepherd::Common::set_default("delay", int(rand(4) + 3)) unless (defined $opt->{fast});
+&Shepherd::Common::set_default('fake' => 0);
+
+my %writer_args = ( encoding => 'ISO-8859-1' );
+my $fh = new IO::File(">".$opt->{output_file}) 
+    or die "can't open $opt->{output_file} for writing: $!";
+$writer_args{OUTPUT} = $fh;
+
+my $writer = new XMLTV::Writer(%writer_args);
+$writer->start( {
+	'source-info-url' => "http://www.metacritic.com",
+	'source-info-name' => "$progname $version",
+	'generator-info-name' => "$progname $version"
+    } );
+
+foreach my $file (@ARGV) 
+{
+    &Shepherd::Common::log((sprintf "Parsing: %s",
+		($file eq "-" ? "(from-stdin, hit control-D to finiah)" : $file)));
+    &XMLTV::parsefiles_callback(\&encoding_cb, \&credits_cb,
+		\&channel_cb,\&programme_cb, $file);
+}
+
+$writer->end();
+&Shepherd::Common::log("Finished parsing, output in $opt->{output_file}");
+
+&Shepherd::Common::print_stats($progname, $version, $start_time, %stats);
+
+exit(0);
+
+##############################################################################
+
+sub find_show
+{
+	my ($title) = @_;
+
+	$title =~ s/ /-/g;
+	$title =~ s/://g;
+	$title =~ s/ \& / /g;
+	$title = lc($title);
+
+	if (exists $cache->{$title})
+	{
+	    &Shepherd::Common::log("  using cache") if ($opt->{debug});
+	    return $cache->{$title};
+	}
+
+	$cache->{$title} = &Shepherd::Common::get_url(url => "http://www.metacritic.com/movie/$title/details",
+	    agent => "shepherd",
+	    method => "GET",
+	    retries => 0,
+	    debug => $opt->{debug},
+	);
+
+	return $cache->{$title};
+}
+
+##############################################################################
+
+sub encoding_cb( $ )
+{
+	my $e = shift;
+	# printf "got encoding ".Dumper($e);
+}
+	
+##############################################################################
+
+sub credits_cb( $ )
+{
+	my $c = shift;
+	# printf "got credits ".Dumper($c);
+}
+
+##############################################################################
+
+sub channel_cb( $ )
+{
+	my $c = shift;
+	# printf "got channel ".Dumper($c);
+	$writer->write_channel($c);
+}
+
+##############################################################################
+
+sub programme_cb( $ )
+{
+    my $prog = shift;
+
+    $stats{programmes}++;
+
+    my $skip = 0;
+
+    my $movie_title;
+    if ($prog->{title} and $prog->{title}->[0] and $prog->{title}->[0]->[0])
+    {
+	$movie_title = $prog->{title}->[0]->[0];
+
+	if ($movie_title =~ /^close$/i or $movie_title =~ /^station close$/i) 
+	{
+	    $stats{skipped_due_to_category}++;
+	    $skip = 1;
+	}
+    }
+    else
+    {
+	$skip = 1;
+    }
+
+    unless ($skip)
+    {
+	&Shepherd::Common::log("- $movie_title") if ($opt->{debug});
+    }
+
+    my $prog_year = $prog->{date};
+    if (!$prog_year)
+    {
+	# we want to be able to verify it's the right movie
+	&Shepherd::Common::log("  skipping: no year") if ($opt->{debug});
+	$skip = 1;
+    }
+    elsif ($prog_year < 2000)
+    {
+	# metacritic has no data on older movies
+	&Shepherd::Common::log("  skipping: earlier than 2000") if ($opt->{debug});
+	$skip = 1;
+    }
+
+    if (!$skip and defined $prog->{category}) 
+    {
+	foreach my $prog_category (@{($prog->{category})}) 
+	{
+	    foreach my $prog_cat2 (@$prog_category) 
+	    {
+		foreach my $skip_category (split(/,/,$opt->{skip_categories})) 
+		{
+		    if (lc($prog_cat2) eq lc($skip_category)) 
+		    {
+			$stats{skipped_due_to_category}++;
+			$skip = 1;
+			last;
+		    }
+		}
+	    }
+	}
+    }
+
+    # print "got programme ".Dumper($prog);
+
+    #
+    # only lookup if  min_duration < prog_duration > min_duration
+    #
+    my $t1 = &Shepherd::Common::parse_xmltv_date($prog->{start});
+    my $t2 = &Shepherd::Common::parse_xmltv_date($prog->{stop});
+    if (!$t1 or !$t2) 
+    {
+	$stats{excluded_couldnt_parse_time}++;
+	$skip = 1;
+    }
+    else
+    {
+	my $prog_duration = (($t2 - $t1) / 60);
+	if ($prog_duration < $opt->{min_duration}) 
+	{
+	    $stats{excluded_prog_too_short}++;
+	    $skip = 1;
+	}
+	elsif ($prog_duration > $opt->{max_duration}) 
+	{
+	    $stats{excluded_prog_too_long}++;
+	    $skip = 1;
+	}
+    }
+
+    if (!$skip)
+    {
+	$stats{included_for_lookup}++;
+
+	my $html = &find_show($movie_title);
+	if (!$html)
+	{
+	    &Shepherd::Common::log("  failed to find show") if ($opt->{debug});
+	}
+	else
+	{
+
+	    my $tree = HTML::TreeBuilder->new_from_content($html);
+
+	    # verify that it's the correct show!
+	    my $date;
+	    my $block = $tree->look_down('_tag' => 'li', 'class' => 'summary_detail release_data');
+	    if ($block and $block->as_text() =~ /, ([\d]{4})$/)
+	    {
+		$date = $1;
+	    }
+	    if ($prog_year != $date)
+	    {
+		&Shepherd::Common::log("  skipping show, is year $date, should be $prog_year") if ($opt->{debug})
+	    }
+	    else
+	    {
+		if ($opt->{debug})
+		{
+		    &Shepherd::Common::log("  match: augmenting data");
+		}
+		else
+		{
+		    &Shepherd::Common::log("- $movie_title: found data");
+		}
+
+
+		#
+		# augment data
+		#
+
+		# Description
+
+		my $prog_desc;
+		if (!defined $prog->{desc} or !defined $prog->{desc}->[0] or !defined $prog->{desc}->[0]->[0])
+		{
+		    $prog_desc = '';
+		}
+		else
+		{
+		    $prog_desc = $prog->{desc}->[0]->[0];
+		}
+
+		my $block = $tree->look_down('_tag' => 'div', 'class' => 'summary_detail product_summary');
+		if ($block)
+		{
+		    my $desc = $block->as_text();
+		    $desc =~ s/^Summary:\s*//;
+
+		    &Shepherd::Common::log("  Metacritic desc: $desc") if ($opt->{debug});
+
+		    if ($desc and length($desc) > 20 and length($prog_desc) < 20)
+		    {
+			$prog_desc = $desc;
+		    }
+		}
+
+		# Ratings
+
+		my $critic_rating;
+		my $user_rating;
+
+		$block = $tree->look_down('_tag' => 'div', 'class' => 'metascore_wrap feature_metascore');
+		if ($block)
+		{
+		    my $span = $block->look_down('_tag' => 'span', 'class' => 'score_value');
+		    if ($span)
+		    {
+			$critic_rating = $span->as_text();
+		    }
+		}
+
+		$block = $tree->look_down('_tag' => 'div', 'class' => 'userscore_wrap feature_userscore');
+		if ($block)
+		{
+		    my $span = $block->look_down('_tag' => 'span', 'class' => 'score_value');
+		    if ($span)
+		    {
+			$user_rating = $span->as_text();
+		    }   
+		}
+
+		if ($critic_rating) 
+		{
+		    $prog->{'star-rating'} = [ ] unless (ref $prog->{'star-rating'});
+		    &Shepherd::Common::log("  Metascore: $critic_rating / 100");
+		    push @{$prog->{'star-rating'}}, [ "$critic_rating/100", "Metacritic Metascore", undef ];
+		}
+		if ($user_rating)
+		{
+		    $prog->{'star-rating'} = [ ] unless (ref $prog->{'star-rating'});
+
+		    &Shepherd::Common::log("  User Score: $user_rating / 10");
+
+		    push @{$prog->{'star-rating'}}, [ "$user_rating/10", "Metacritic User Score", undef ];
+		}
+
+#		print "prog now ".Dumper($prog) if ($critic_rating);
+
+	    }
+	}
+
+	&Shepherd::Common::cleanup($prog);
+
+#	print "prog now ".Dumper($prog);
+
+    }
+    $writer->write_programme($prog);
+}
+
+##############################################################################
+
