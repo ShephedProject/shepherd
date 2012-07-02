@@ -3,7 +3,7 @@
 # "News"
 #
 
-my $version  = '2.0';
+my $version  = '3.0';
 
 use strict;
 use warnings;
@@ -29,7 +29,8 @@ my $progname = "News";
 my $lang = "en";
 
 my $DATASOURCE             = "http://guides.news.com.au";
-my $DATASOURCE_SETUP       = "$DATASOURCE/television/profile/?action=saveProfile";
+my $DATASOURCE_SETUP       = "$DATASOURCE/television/profile/";
+my $DATASOURCE_CHANNEL_LIST= "$DATASOURCE/television/profile/ajax.cfm?";
 my $DATASOURCE_GUIDE       = "$DATASOURCE/television/guide/";
 my $DATASOURCE_GUIDE_TODAY = "$DATASOURCE/television/guide/?action=restofday";
 my $DATASOURCE_DETAIL      = "$DATASOURCE/television/guide/";
@@ -93,11 +94,8 @@ if ($opt->{'show-channels'})
   exit 0;
 }
 
-if ($debug or $opt->{'show-config'})
-{
-  show_config();
-  exit 0 if ($opt->{'show-config'});
-}
+show_config();
+exit 0 if ($opt->{'show-config'});
 
 restore_cache();
 
@@ -381,8 +379,55 @@ sub refresh_ua
 
   $ua = Shepherd::Common::setup_ua( cookie_jar => 1 );
 
+  # Get list of 'venue IDs', which are the source's
+  # internal channel ID numbers.
+
+  print "Looking for venue IDs...\n" if ($debug);
+
+  my $html = &get_page(url => $DATASOURCE_CHANNEL_LIST, retries => 4, postvars => [ 'action' => 'channels', 'region_id' => $opt->{'region'}, 'showsub' => '0' ]);
+  unless ($html)
+  {
+      print "Unable to fetch channel list. Exiting.\n";
+      die "Unable to fetch channel list (no network?)";
+  }
+
+  my @venue_ids;
+  my $tree = HTML::TreeBuilder->new_from_content($html);
+  my %clist = %$channels;
+  foreach my $tag ($tree->look_down('_tag' => 'label'))
+  {
+      my $channel_name = &strip_whitespace($tag->as_text);
+      if ($channels->{$channel_name})
+      {
+	  # We want this channel
+	  $tag->as_HTML =~ /venue_id__(\d+)/;
+	  push @venue_ids, $1;
+
+	  delete $clist{$channel_name};
+      }
+  }
+
+  unless (@venue_ids)
+  {
+      print "No wanted channels found? Exiting.\n";
+      die "No wanted channels found.";
+  }
+
+  if (keys %clist)
+  {
+      print "\n!!! WARNING! Could not find venue IDs for channels: " . join(', ', keys %clist) . ".\n\n";
+  }
+
+  print "Venue IDs: " . join(',', @venue_ids) . "\n" if ($debug);
+
   # Set region/service cookie
-  unless (get_page(url => $DATASOURCE_SETUP, retries => 4, postvars => [ 'fta_region_id' => $opt->{'region'} ]))
+  my $postvars = [ 'action' => 'saveProfile', 'fta_region_id' => $opt->{'region'} ];
+  foreach (@venue_ids)
+  {
+      push @$postvars, 'venue_id', $_;
+  }
+
+  unless (&get_page(url => $DATASOURCE_SETUP, retries => 4, postvars => $postvars ))
   {
       print "Unable to fetch profile page. No network? Exiting.\n";
       print stats(1);
