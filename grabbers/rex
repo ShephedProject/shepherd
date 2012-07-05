@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '9.2.0'; 
+my $version  = '9.2.1'; 
 
 # TODO: remove refresh_ua every 20 requests (maybe)
 
@@ -789,6 +789,14 @@ sub parse_details
 	  elsif ($str eq 'Widescreen')
 	  {
 	      $video{'aspect'} = '16:9';
+	  }
+	  elsif ($str eq 'High Definition')
+	  {
+	      $video{'quality'} = 'HDTV';
+	  }
+	  elsif ($str eq 'Black & White')
+	  {
+	      $video{'colour'} = 'no';
 	  }
 	  else
 	  {
