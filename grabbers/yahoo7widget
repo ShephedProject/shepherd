@@ -25,7 +25,7 @@ use strict;
 use warnings;
 
 my $progname = "yahoo7widget";
-my $version = "2.28";
+my $version = "2.29";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -292,13 +292,18 @@ sub parse_json_data
 
 		my $channel = $item->{'co_v_short'};
 
-		if (ref($channel) ne "") { # paytv channels
+		if (ref($channel) eq "ARRAY") { # paytv channels
+
 			$channel = $channel->[0]->{0};
 			$channel =~ s/(\s|\[|\]|\+|\&)//g; 
 			$channel = $paytv_fixups{$channel} if (defined $paytv_fixups{$channel});
 
-			$event_start -= $time_offset if (defined $opt->{paytvoffset});
-			$event_end -= $time_offset if (defined $opt->{paytvoffset});
+			# Yahoo7 guide is broken in non daylight savings states (QLD at least) returning FTA
+			# without DLS and Foxtel with DLS. Only apply offset if switch is set and in opt_channels
+			if (defined $opt_channels->{$channel}) {
+			    $event_start -= $time_offset if (defined $opt->{paytvoffset});
+			    $event_end -= $time_offset if (defined $opt->{paytvoffset});
+			}
                 }
 
 		# Hack; assuming this is a temporary typo
