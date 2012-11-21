@@ -1,7 +1,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.10';
+my $version = '0.20';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -30,6 +30,7 @@ my $version = '0.10';
 package Shepherd::MythTV;
 
 use DBI;
+use XML::Simple;
 
 my $dbh;
 my $db;
@@ -54,7 +55,8 @@ sub find_database_settings_file
 
 sub standard_mysql_locations
 {
-    return "/usr/local/share/mythtv/mysql.txt".
+    return "/etc/mythtv/config.xml".
+	   ":/usr/local/share/mythtv/mysql.txt".
            ":/usr/share/mythtv/mysql.txt".
 	   ":$ENV{HOME}/.mythtv/mysql.txt".
 	   ":/home/mythtv/.mythtv/mysql.txt".
@@ -71,21 +73,52 @@ sub setup
     $cfgfile = &find_database_settings_file() unless ($cfgfile);
     return unless ($cfgfile);
 
-    unless (open(F,"<$cfgfile")) 
-    {
-	print "ERROR: Couldn't read $cfgfile: $!\n";
-	return undef;
-    }
-
     print "Reading MythTV DB settings from: $cfgfile\n";
     $db->{cfgfile} = $cfgfile;
 
-    while (<F>) 
+    if ($cfgfile =~ /\.xml$/)
     {
-	chomp;
-	$db->{$1} = $2 if ($_ =~ /^(DB.*?)=(.*)/);
+	my $xs = XML::Simple->new();
+	my $xml = $xs->XMLin($cfgfile);
+
+	my $fieldnames = { 
+	    # Name we store => Name of field in config.xml
+	    'DBName' => 'DatabaseName',
+	    'DBHostName' => 'Host',
+	    'DBUserName' => 'UserName',
+	    'DBPassword' => 'Password',
+	    'DBPort' => 'Port',
+	    'DBPingHost' => 'PingHost',
+	};
+
+	foreach my $field (keys %$fieldnames)
+	{
+	    $db->{$field} = (
+		# Format as described by:
+		# http://code.mythtv.org/trac/browser/mythtv/mythtv/contrib/config_files/config.xml
+		$xml->{'Database'}->{$fieldnames->{$field}}
+		    or
+		# Format that actually seems to be used
+		$xml->{'UPnP'}->{'MythFrontend'}->{'DefaultBackend'}->{$field}
+	    );
+	}
     }
-    close(F);
+    else
+    {
+	unless (open(F,"<$cfgfile")) 
+	{
+	    print "ERROR: Couldn't read $cfgfile: $!\n";
+	    return undef;
+	}
+
+	while (<F>) 
+	{
+	    chomp;
+	    $db->{$1} = $2 if ($_ =~ /^(DB.*?)=(.*)/);
+	}
+	close(F);
+    }
+
     return 1;
 }
 
