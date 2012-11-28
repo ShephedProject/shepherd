@@ -1,7 +1,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.20';
+my $version = '0.30';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -29,6 +29,9 @@ my $version = '0.20';
 
 package Shepherd::MythTV;
 
+use strict;
+use warnings;
+
 use DBI;
 use XML::Simple;
 
@@ -36,87 +39,87 @@ my $dbh;
 my $db;
 my @tried;
 
-sub find_database_settings_file
-{
-    my $cfgfile = shift;
-
-    $cfgfile = &standard_mysql_locations unless ($cfgfile);
-
-    foreach my $f (split(/:/,$cfgfile)) 
-    {
-	next if (grep ($f eq $_, @tried));
-	return $f if ((-f $f) && (-r $f));
-    }
-
-    print "\nWARNING: Could not find valid MythTV mysql.txt config file!\n".
-          "Looked in: $cfgfile\n";
-    return undef;
-}
-
-sub standard_mysql_locations
-{
-    return "/etc/mythtv/config.xml".
-	   ":/usr/local/share/mythtv/mysql.txt".
-           ":/usr/share/mythtv/mysql.txt".
-	   ":$ENV{HOME}/.mythtv/mysql.txt".
-	   ":/home/mythtv/.mythtv/mysql.txt".
-	   ":/root/.mythtv/mysql.txt".
-	   ":/etc/mythtv/mysql.txt";
-}
-
+#
 # Find MythTV database settings
 # 
 sub setup
 {
     my $cfgfile = shift;
 
-    $cfgfile = &find_database_settings_file() unless ($cfgfile);
-    return unless ($cfgfile);
+    my @settings_files = (( $cfgfile ) or (  
+	"/etc/mythtv/config.xml",
+	"/usr/local/share/mythtv/mysql.txt",
+	"/usr/share/mythtv/mysql.txt",
+	"$ENV{HOME}/.mythtv/mysql.txt",
+	"/home/mythtv/.mythtv/mysql.txt",
+	"/root/.mythtv/mysql.txt",
+	"/etc/mythtv/mysql.txt",
+    ));
 
-    print "Reading MythTV DB settings from: $cfgfile\n";
-    $db->{cfgfile} = $cfgfile;
-
-    if ($cfgfile =~ /\.xml$/)
+    local *F;
+    my $success = 0;
+    foreach $cfgfile (@settings_files)
     {
-	my $xs = XML::Simple->new();
-	my $xml = $xs->XMLin($cfgfile);
+	next if (grep ($_ eq $cfgfile, @tried));
+	print "Looking for MythTV DB connection info in $cfgfile.\n";
+	next unless (-f $cfgfile);
 
-	my $fieldnames = { 
-	    # Name we store => Name of field in config.xml
-	    'DBName' => 'DatabaseName',
-	    'DBHostName' => 'Host',
-	    'DBUserName' => 'UserName',
-	    'DBPassword' => 'Password',
-	    'DBPort' => 'Port',
-	    'DBPingHost' => 'PingHost',
-	};
-
-	foreach my $field (keys %$fieldnames)
+	if ($cfgfile =~ /\.xml$/)
 	{
-	    $db->{$field} = (
-		# Format as described by:
-		# http://code.mythtv.org/trac/browser/mythtv/mythtv/contrib/config_files/config.xml
-		$xml->{'Database'}->{$fieldnames->{$field}}
-		    or
-		# Format that actually seems to be used
-		$xml->{'UPnP'}->{'MythFrontend'}->{'DefaultBackend'}->{$field}
-	    );
+	    my $xs = XML::Simple->new();
+	    my $xml = $xs->XMLin($cfgfile);
+
+	    if ($xml)
+	    {
+		my $fieldnames = { 
+		    # Name we store => Name of field in config.xml
+		    'DBName' => 'DatabaseName',
+		    'DBHostName' => 'Host',
+		    'DBUserName' => 'UserName',
+		    'DBPassword' => 'Password',
+		    'DBPort' => 'Port',
+		    'DBPingHost' => 'PingHost',
+		};
+
+		foreach my $field (keys %$fieldnames)
+		{
+		    $db->{$field} = (
+			# Format as described by:
+			# http://code.mythtv.org/trac/browser/mythtv/mythtv/contrib/config_files/config.xml
+			$xml->{'Database'}->{$fieldnames->{$field}}
+			    or
+			# Format that actually seems to be used
+			$xml->{'UPnP'}->{'MythFrontend'}->{'DefaultBackend'}->{$field}
+		    );
+		}
+	    }
+	}
+	elsif (open(F,$cfgfile)) 
+	{
+	    while (<F>) 
+	    {
+		chomp;
+		$db->{$1} = $2 if ($_ =~ /^(DB.*?)=(.*)/);
+	    }
+	    close(F);
+	}
+	if ($db->{DBName} and $db->{DBHostName} and $db->{DBUserName} and $db->{DBPassword})
+	{
+	    $success = 1;
+	    $db->{cfgfile} = $cfgfile;
+	    print "Using MythTV DB settings from: $cfgfile\n";
+	    last;
+	}
+	else
+	{
+	    $db = { };
 	}
     }
-    else
-    {
-	unless (open(F,"<$cfgfile")) 
-	{
-	    print "ERROR: Couldn't read $cfgfile: $!\n";
-	    return undef;
-	}
 
-	while (<F>) 
-	{
-	    chomp;
-	    $db->{$1} = $2 if ($_ =~ /^(DB.*?)=(.*)/);
-	}
-	close(F);
+    unless ($success)
+    {
+	print "ERROR: Could not find info to establish database connection to MythTV.\n";
+	return undef;
     }
 
     return 1;
