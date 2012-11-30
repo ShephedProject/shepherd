@@ -1,7 +1,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.30';
+my $version = '0.31';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -67,7 +67,12 @@ sub setup
 	if ($cfgfile =~ /\.xml$/)
 	{
 	    my $xs = XML::Simple->new();
-	    my $xml = $xs->XMLin($cfgfile);
+	    my $xml = eval { $xs->XMLin($cfgfile) };
+	    if ($@)
+	    {
+		print "Error from XML::Simple: $@\n";
+	    }
+	    next unless (ref $xml);
 
 	    if ($xml)
 	    {
