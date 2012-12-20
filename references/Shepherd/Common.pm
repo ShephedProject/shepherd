@@ -1,7 +1,7 @@
 #
 # Shepherd::Common library
 
-my $version = '0.40';
+my $version = '1.00';
 
 #
 # This module provides some library functions for Shepherd components,
