@@ -1,7 +1,7 @@
 #
 # Shepherd::Common library
 
-my $version = '1.00';
+my $version = '1.10';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -596,8 +596,8 @@ sub setup_ua
                                      
     print "Establishing user agent.\n" if ($cnf{debug} > 3);
 
-    $ua = LWP::UserAgent->new( keep_alive => 1 );
-    $ua->ssl_opts(verify_hostname => 0);
+    $ua = LWP::UserAgent->new( keep_alive => 1, ssl_opts => { verify_hostname => 0 } );
+
     $ua->env_proxy();
 
     my @agent_list = (
