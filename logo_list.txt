@@ -361,6 +361,8 @@ ICON	SBS TWO	t8_yellow	http://barstool.ash.ms//tv-channel-icons/icons-t8-yellow/
 ICON    SBS TWO         t8_hybrid	http://barstool.ash.ms/tv-channel-icons/icons-t8-hybrid/png-myth/sbs-two.png
 ICON	SBS TWO		yourtv		http://contentserver.com.au/assets/270225_sbs-two.gif
 
+ICON	NITV	standard	http://www.safilm.com.au/library/NITVLOGOCOLOUR.jpg
+
 ICON	SBS HD	standard	http://img196.imageshack.us/img196/7526/sbs861c4b17d8fc1856b814.png
 ICON	SBS HD	frogman_hybrid	http://barstool.ash.ms/tv-channel-icons/icons-frogman-hybrid/png-myth/sbs-hd.png
 ICON	SBS HD	frogman_black	http://barstool.ash.ms//tv-channel-icons/icons-frogman-black/png-myth/sbs.png

@@ -5,13 +5,13 @@
 # Good data, usually 14-21 days, but has a lot of variability
 # in titles & subtitles.
 #
-# Currently only good for the main SBS channel, not SBS News, but
+# Currently only good for SBS ONE, SBS TWO and NITV, not SBS News, but
 # has been coded to make adding any future channels easy.
 #
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '4.04';
+my $version = '4.10';
 
 use strict;
 use warnings;
@@ -31,7 +31,8 @@ my $progname = "sbsweb";
 
 my $DATASOURCE = "sbs.com.au";
 my $URLS = {	'SBS ONE' => "http://www.$DATASOURCE/schedule/SBSONE",
-		'SBS TWO' => "http://www.$DATASOURCE/schedule/SBSTWO" };
+		'SBS TWO' => "http://www.$DATASOURCE/schedule/SBSTWO",
+		'NITV'    => "http://www.$DATASOURCE/schedule/NITV" };
 my $lang = 'en';
 my $debug = 0;
 my $channels;
@@ -591,7 +592,7 @@ sub read_channels_file
     }
     foreach (keys %$channels)
     {
-	unless ($_ eq 'SBS ONE' or $_ eq 'SBS TWO')
+	unless (exists $URLS->{$_})
 	{
 	    &log("Ignoring unsupported channel $_.");
 	    delete $channels->{$_};
