@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.7.1';
+my $version = '1.7.2';
 
 # tv_grab_au
 # "Shepherd"
@@ -3116,7 +3116,7 @@ sub choose_grabber
 
 	    if ($opt->{randomize})
 	    {
-		&log(sprintf "%22s %6.1f%% %9s %s\n",
+		&log(sprintf "%22s %6.1f%% %8d %s\n",
 			    $_, 
 			    ($total ? 100* $score / $total : 0), 
 			    "$score pts",
@@ -3124,7 +3124,7 @@ sub choose_grabber
 	    }
 	    else
 	    {
-		&log(sprintf "%22s %4s pts %s\n",
+		&log(sprintf "%22s %8d pts %s\n",
 			    $_, 
 			    $score,
 			    $cstr);
@@ -3322,41 +3322,53 @@ sub score_grabbers
 
 	$dq -= 0.8 if (!&query_config($grabber, 'has_subtitles'));
 
-	my $catbonus = 1;
-	$catbonus = 3 if ($cat == 2);
+	my $cachebonus = 0;
 	if ($grabber =~ /\[cache\]/)
 	{
 	    # Bonus is on a sliding scale between 1 and 2 depending on 
 	    # % of required data in cache
-	    $catbonus += $hits / $timeslice->{chandays};
+	    $cachebonus += $hits / $timeslice->{chandays};
 	}
 
-	my $mult;
-	if ($opt->{mode} and lc($opt->{mode}) eq 'efficiency')
+	my $score = 0;
+	if ($hits)
 	{
-	    $mult = $dq ** $catbonus;
+	    if ($opt->{mode} and lc($opt->{mode}) eq 'efficiency')
+	    {
+		$score += 1000 * ($cat - 1);
+		$score += 400 * ($dq - 1);
+		$score += 10 * $cachebonus;
+		$score += $hits;
+		$score -= 0.2 * $hits if (&query_config($grabber, 'has_noncritical_gaps'));
+	    }
+	    elsif ($opt->{mode} and lc($opt->{mode} eq 'speed'))
+	    {
+		$score += 2000 * ($cat - 1);
+		$score += 100 * ($dq - 1);
+		$score += 10 * $cachebonus;
+		$score += $hits;
+		$score -= 0.1 * $hits if (&query_config($grabber, 'has_noncritical_gaps'));
+	    }
+	    else	# Quality mode
+	    {
+		$score += 1000 * ($dq - 1);
+		$score += 500 * ($cat - 1);
+		$score += 10 * $cachebonus;
+		$score += $hits;
+		$score -= 0.2 * $hits if (&query_config($grabber, 'has_noncritical_gaps'));
+	    }
 	}
-	elsif ($opt->{mode} and lc($opt->{mode} eq 'speed'))
+
+	if ($debug)
 	{
-	    $mult = ($catbonus ** $catbonus) * $dq / 2;
-	}
-	else	# Quality mode
-	{
-	    $mult = ($dq ** $dq) * $catbonus / 2;
-	}
-
-	$mult *= 0.9 if (query_config($grabber, 'has_noncritical_gaps'));
-
-	my $score = int($hits * $mult);
-
-	my $str = sprintf "Grabber %s can supply %d chandays",
-			  $grabber, $hits;
-	$str .= sprintf(" at x%.1f (cat: %d, DQ: %d): %d pts",
-			    $mult,
+	    my $str = sprintf "Grabber %s can supply %d chandays", $grabber, $hits;
+	    $str .= sprintf(" (cat: %d, DQ: %d, cache: %.1f): %d pts",
 			    $cat,
 			    $dq,
+			    $cachebonus,
 			    $score) if ($hits);
-#	&log(1, "$str.\n");
+	    &log(1, "$str.\n");
+	}
 
 	if ($score and query_config($grabber, 'option_anon_socks') and !defined $plugin_data->{tor_pid}) 
 	{
