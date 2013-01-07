@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.7.2';
+my $version = '1.7.3';
 
 # tv_grab_au
 # "Shepherd"
@@ -3322,22 +3322,19 @@ sub score_grabbers
 
 	$dq -= 0.8 if (!&query_config($grabber, 'has_subtitles'));
 
-	my $cachebonus = 0;
+	my $score = 0;
 	if ($grabber =~ /\[cache\]/)
 	{
 	    # Bonus is on a sliding scale between 1 and 2 depending on 
 	    # % of required data in cache
-	    $cachebonus += $hits / $timeslice->{chandays};
+	    $score = $hits;
 	}
-
-	my $score = 0;
-	if ($hits)
+	elsif ($hits)
 	{
 	    if ($opt->{mode} and lc($opt->{mode}) eq 'efficiency')
 	    {
 		$score += 1000 * ($cat - 1);
 		$score += 400 * ($dq - 1);
-		$score += 10 * $cachebonus;
 		$score += $hits;
 		$score -= 0.2 * $hits if (&query_config($grabber, 'has_noncritical_gaps'));
 	    }
@@ -3345,7 +3342,6 @@ sub score_grabbers
 	    {
 		$score += 2000 * ($cat - 1);
 		$score += 100 * ($dq - 1);
-		$score += 10 * $cachebonus;
 		$score += $hits;
 		$score -= 0.1 * $hits if (&query_config($grabber, 'has_noncritical_gaps'));
 	    }
@@ -3353,7 +3349,6 @@ sub score_grabbers
 	    {
 		$score += 1000 * ($dq - 1);
 		$score += 500 * ($cat - 1);
-		$score += 10 * $cachebonus;
 		$score += $hits;
 		$score -= 0.2 * $hits if (&query_config($grabber, 'has_noncritical_gaps'));
 	    }
@@ -3362,10 +3357,9 @@ sub score_grabbers
 	if ($debug)
 	{
 	    my $str = sprintf "Grabber %s can supply %d chandays", $grabber, $hits;
-	    $str .= sprintf(" (cat: %d, DQ: %d, cache: %.1f): %d pts",
+	    $str .= sprintf(" (cat: %d, DQ: %d): %d pts",
 			    $cat,
 			    $dq,
-			    $cachebonus,
 			    $score) if ($hits);
 	    &log(1, "$str.\n");
 	}
