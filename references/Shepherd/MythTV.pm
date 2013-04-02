@@ -1,7 +1,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.31';
+my $version = '0.32';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -47,6 +47,7 @@ sub setup
     my $cfgfile = shift;
 
     my @settings_files = (( $cfgfile ) or (  
+	"$ENV{HOME}/.mythtv/config.xml",
 	"/etc/mythtv/config.xml",
 	"/usr/local/share/mythtv/mysql.txt",
 	"/usr/share/mythtv/mysql.txt",
