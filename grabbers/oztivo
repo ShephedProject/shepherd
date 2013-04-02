@@ -43,7 +43,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.50';
+my $version = '2.51';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -90,55 +90,55 @@ my %s_to_o_map = (
 	'VIC' => {
 		'ONE' => 'One-Vic',
 		'One Digital' => 'One-Vic',
-		'SBS TWO' => 'SBSTWO-Vic',
+		'SBS 2' => 'SBSTWO-Vic',
 		'7TWO' => '7TWO-Vic',
 		'GEM' => 'GEM-Vic',
 	},
 	'NSW' => {
 		'ONE' => 'One-NSW',
 		'One Digital' => 'One-NSW',
-		'SBS TWO' => 'SBSTWO-NSW',
+		'SBS 2' => 'SBSTWO-NSW',
 		'7TWO' => '7TWO-NSW',
 		'GEM' => 'GEM-NSW',
 	},
 	'QLD' => {
 		'ONE' => 'One-Qld',
 		'One Digital' => 'One-Qld',
-		'SBS TWO' => 'SBSTWO-Qld',
+		'SBS 2' => 'SBSTWO-Qld',
 		'7TWO' => '7TWO-Qld',
 		'GEM' => 'GEM-Qld',
 	},
 	'WA' => {
 		'ONE' => 'One-WA',
 		'One Digital' => 'One-WA',
-		'SBS TWO' => 'SBSTWO-WA',
+		'SBS 2' => 'SBSTWO-WA',
 		'7TWO' => '7TWO-WA',
 		'GEM' => 'GEM-WA',
 	},
 	'SA' => {
 		'ONE' => 'One-SA',
 		'One Digital' => 'One-SA',
-		'SBS TWO' => 'SBSTWO-SA',
+		'SBS 2' => 'SBSTWO-SA',
 		'7TWO' => '7TWO-SA',
 		'GEM' => 'GEM-SA',
 	},
 	'NT' => {
 		'ONE' => 'One-Dar',
 		'One Digital' => 'One-Dar',
-		'SBS TWO' => 'SBSTWO-NT',
+		'SBS 2' => 'SBSTWO-NT',
 		'7TWO' => '7TWO-NT',
 	},
 	'ACT' => {
 		'ONE' => 'One-NSW',
 		'One Digital' => 'One-NSW',
-		'SBS TWO' => 'SBSTWO-NSW',
+		'SBS 2' => 'SBSTWO-NSW',
 		'7TWO' => '7TWO-ACT',
 		'GEM' => 'GEM-ACT',
 	},
 	'TAS' => {
 		'ONE' => 'One-Tas',
 		'One Digital' => 'One-Tas',
-		'SBS TWO' => 'SBSTWO-Tas',
+		'SBS 2' => 'SBSTWO-Tas',
 		'7TWO' => '7TWO-Tas',
 		'GEM' => 'GEM-Tas',
 	},
