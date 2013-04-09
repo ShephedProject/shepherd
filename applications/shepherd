@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.7.3';
+my $version = '1.8.0';
 
 # tv_grab_au
 # "Shepherd"
@@ -235,6 +235,12 @@ unless ($opt->{update})
 	exit(0);
     }
 
+    if (defined $opt->{'refill-mythtv'})
+    {
+	&refill_mythtv;
+	exit(0);
+    }
+
     &check_last_run;
     &calc_gmt_offset;
     &commence_stats;
@@ -261,6 +267,11 @@ unless ($opt->{update})
     }
     &write_config_file;
     &stop_tor;
+
+    if (defined $opt->{'refresh-mythtv'})
+    {
+	&refill_mythtv(1);
+    }
 }
 
 &log("Done.\n");
@@ -1925,6 +1936,8 @@ sub get_command_line_options
 			list-chan-names
 			set-icons
 			configure-mythtv
+			refill-mythtv
+			refresh-mythtv
 			ancestry=s
 			history
 			sources
@@ -2215,6 +2228,63 @@ sub configure_mythtv
 {
     require Shepherd::Configure;
     &Shepherd::Configure::configure_mythtv;
+}
+
+sub refill_mythtv
+{
+    my ($refresh) = @_;
+
+    my $t = time;
+    if (!$refresh and (!$last_successful_run or $t - $last_successful_run > (24 * 3600)))
+    {
+	if ($last_successful_run)
+	{
+	    &log("\nWARNING: Last successful run was " . 
+		&pretty_duration($t - $last_successful_run) .
+		" ago, which is a pretty long time.\n");
+	}
+	else
+	{
+	    &log("\nWARNING: Shepherd doesn't seem to have ever run successfully,\n" .
+		 "so we may have no guide data to feed to MythTV.\n");
+	}
+	&log("You may want to run 'tv_grab_au --refresh-mythtv' instead, to\n" .
+	     "generate fresh guide data.\n");
+	&countdown(10);
+    }
+    my $mythtv_version;
+    &log("\nAttempting to figure out your version of mythfilldatabase...\n");
+    my $result = `mythfilldatabase --version`;
+    if ($result =~ /MythTV Version.*?v([\.0-9]+)/)
+    {
+	$mythtv_version = $1;
+    }
+    else
+    {
+	&log("Couldn't understand the response from 'mythfilldatabase --version'.\n" .
+		"Please report this to the Shepherd mailing list.\n");
+	exit(0);
+    }
+    &log("MythTV version seems to be $mythtv_version\n");
+    $result = &versioncmp('0.25', $mythtv_version);
+    my $mythfilldatabase_exec;
+    if ($result <= 0)
+    {
+	$mythfilldatabase_exec = 'mythfilldatabase --update --file --sourceid 1 --xmlfile ';
+    }
+    else
+    {
+	$mythfilldatabase_exec = 'mythfilldatabase --update --file 1 ';
+    }
+    &log("We think your version of mythfilldatabase accepts XMLTV files in the format:\n" .
+	 "    $mythfilldatabase_exec <file>\n\n" .
+	"Trying now...\nExecuting: $mythfilldatabase_exec $output_filename\n\n".
+	"-------------------mythfilldatabase output---------------------\n");
+    sleep 1;
+    system("$mythfilldatabase_exec $output_filename");
+    &log("-----------------end mythfilldatabase output-------------------\n\n" .
+	 "Shepherd: Hopefully your guide data has now been loaded into MythTV.\n" .
+	 "          If not, please report it to the Shepherd mailing list.\n");
 }
 
 sub ancestry
@@ -2671,6 +2741,9 @@ Session options:
     --offset <n>          Skip first <n> days
 
     --reoutput            Don't grab fresh data; just return cache
+    --refill-mythtv       Don't grab fresh data; load cache into MythTV
+    --refresh-mythtv      Grab fresh data, then load into MythTV
+
     --noupdate            Don't update Shepherd; just grab data
     --update              Don't grab data; just update Shepherd
     --skipupdate          Skip update of Shepherd
