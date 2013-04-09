@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.8.0';
+my $version = '1.8.1';
 
 # tv_grab_au
 # "Shepherd"
@@ -238,6 +238,12 @@ unless ($opt->{update})
     if (defined $opt->{'refill-mythtv'})
     {
 	&refill_mythtv;
+	exit(0);
+    }
+
+    if (defined $opt->{'reoutput-mythtv'})
+    {
+	&refill_mythtv(undef, 1);
 	exit(0);
     }
 
@@ -1101,8 +1107,15 @@ sub check_last_run
     }
 
     &log("!! Shepherd has successfully completed a run less than 22 hours ago.\n" .
-	 "!! Exiting to avoid wasting time and bandwidth.\n\n" .
-	 "If you wish Shepherd to re-output the data it gathered last run,\n" .
+	 "!! Exiting to avoid wasting time and bandwidth.\n\n");
+
+    if (defined $opt->{'refresh-mythtv'})
+    {
+	&log("Please try 'tv_grab_au --refill-mythtv' instead, to use cached data.\n");
+    }
+    else
+    {
+	&log("If you wish Shepherd to re-output the data it gathered last run,\n" .
 	 "use the --reoutput option (e.g. 'tv_grab_au --reoutput'). To do this\n" .
 	 "via mythfilldatabase, use 'mythfilldatabase -- --reoutput'. (Or,\n".
 	 "for older versions, 'mythfilldatabase --graboptions --reoutput'.)\n\n" .
@@ -1112,7 +1125,7 @@ sub check_last_run
 	 "used for testing. If you call Shepherd too often with --notimetest,\n" .
 	 "it will lock down and refuse to run, to prevent straining resources\n" .
 	 "needed by all Shepherd users.\n");
-	
+    }
     exit(0);
 }
 
@@ -1946,6 +1959,7 @@ sub get_command_line_options
 			mode=s
 			daily
 			reoutput
+			reoutput-mythtv
 		     ));
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
@@ -2232,7 +2246,7 @@ sub configure_mythtv
 
 sub refill_mythtv
 {
-    my ($refresh) = @_;
+    my ($refresh, $reoutput) = @_;
 
     my $t = time;
     if (!$refresh and (!$last_successful_run or $t - $last_successful_run > (24 * 3600)))
@@ -2267,24 +2281,52 @@ sub refill_mythtv
     }
     &log("MythTV version seems to be $mythtv_version\n");
     $result = &versioncmp('0.25', $mythtv_version);
-    my $mythfilldatabase_exec;
+    my ($mythfilldatabase_exec, $mythfilldatabase_exec2);
     if ($result <= 0)
     {
-	$mythfilldatabase_exec = 'mythfilldatabase --update --file --sourceid 1 --xmlfile ';
+	if ($reoutput)
+	{
+	    $mythfilldatabase_exec = 'mythfilldatabase -- --reoutput';
+	}
+	else
+	{
+	    $mythfilldatabase_exec = "mythfilldatabase --update --file --sourceid 1 --xmlfile $output_filename";
+	}
     }
     else
     {
-	$mythfilldatabase_exec = 'mythfilldatabase --update --file 1 ';
+	if ($reoutput)
+	{
+	    $mythfilldatabase_exec2 = "mythfilldatabase --graboptions '--reoutput'";
+	}
+	else
+	{
+	    $mythfilldatabase_exec = "mythfilldatabase --update --file 1 $output_filename";
+	}
     }
-    &log("We think your version of mythfilldatabase accepts XMLTV files in the format:\n" .
-	 "    $mythfilldatabase_exec <file>\n\n" .
-	"Trying now...\nExecuting: $mythfilldatabase_exec $output_filename\n\n".
+    &log("Trying now...\nExecuting: $mythfilldatabase_exec\n\n".
 	"-------------------mythfilldatabase output---------------------\n");
     sleep 1;
-    system("$mythfilldatabase_exec $output_filename");
-    &log("-----------------end mythfilldatabase output-------------------\n\n" .
-	 "Shepherd: Hopefully your guide data has now been loaded into MythTV.\n" .
-	 "          If not, please report it to the Shepherd mailing list.\n");
+    $result = system("$mythfilldatabase_exec");
+    &log("-----------------end mythfilldatabase output-------------------\n\n");
+    if ($result)
+    {
+	&log("Hmm, that didn't seem to work (got a non-zero exit value!).\n");
+	if ($reoutput)
+	{
+	    &log("Consider trying 'tv_grab_au --refill-mythtv', which does the same\n" .
+		 "thing, only using mythfilldatabase's --file option.\n\n");
+	 }
+	 else
+	 {
+	     &log("Consider trying 'tv_grab_au --reoutput-mythtv', which does the same\n" .
+		 "thing, only by feeding output directly to MythTV. This requires\n" .
+		 "that MythTV be already configured to use Shepherd as its default\n" .
+		 "grabber, however.\n\n");
+	 }
+     }
+     &log("Shepherd: Hopefully your guide data has now been loaded into MythTV.\n" .
+	  "          If not, please report it to the Shepherd mailing list.\n");
 }
 
 sub ancestry
@@ -2733,16 +2775,17 @@ sub help
     --show-channels       Show subscribed channels
     --pending             Show any pending component installs
     --ancestry <s>        Show origin of recent guide data
-                          (for format, see "--ancestry help")
+                          (See "--ancestry help")
 
 Session options:
-    --output <s>          Create output file <s> (default: output.xmltv)
+    --output <s>          Create file <s> (default: ~/.shepherd/output.xmltv)
     --days <n>            Retrieve <n> days of guide data
     --offset <n>          Skip first <n> days
 
     --reoutput            Don't grab fresh data; just return cache
-    --refill-mythtv       Don't grab fresh data; load cache into MythTV
-    --refresh-mythtv      Grab fresh data, then load into MythTV
+    --reoutput-mythtv     Don't grab fresh data; feed cache to MythTV
+    --refill-mythtv       Don't grab fresh data; feed cache to MythTV via --file
+    --refresh-mythtv      Grab fresh data, then feed to MythTV via --file
 
     --noupdate            Don't update Shepherd; just grab data
     --update              Don't grab data; just update Shepherd
@@ -2761,7 +2804,7 @@ Session options:
 
 Configuration options:
     --configure           Setup
-    --configure-mythtv    Create symlink & cron job for MythTV
+    --configure-mythtv    Create symlink & cron job to feed data to MythTV
 
     --disable <s>         Set component <s> (or "all") as not to be used
     --enable <s>          Set component <s> (or "all") as available for use
