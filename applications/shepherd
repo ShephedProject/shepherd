@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.8.1';
+my $version = '1.8.2';
 
 # tv_grab_au
 # "Shepherd"
@@ -2262,8 +2262,8 @@ sub refill_mythtv
 	    &log("\nWARNING: Shepherd doesn't seem to have ever run successfully,\n" .
 		 "so we may have no guide data to feed to MythTV.\n");
 	}
-	&log("You may want to run 'tv_grab_au --refresh-mythtv' instead, to\n" .
-	     "generate fresh guide data.\n");
+	&log("You may want to run 'tv_grab_au --refresh-mythtv' instead, to generate\n" .
+	     "fresh guide data.\n");
 	&countdown(10);
     }
     my $mythtv_version;
@@ -2272,14 +2272,14 @@ sub refill_mythtv
     if ($result =~ /MythTV Version.*?v([\.0-9]+)/)
     {
 	$mythtv_version = $1;
+	&log("MythTV version seems to be $mythtv_version\n");
     }
     else
     {
 	&log("Couldn't understand the response from 'mythfilldatabase --version'.\n" .
-		"Please report this to the Shepherd mailing list.\n");
-	exit(0);
+		"Assuming a version prior to 0.25.\n");
+	$mythtv_version = '0.24';
     }
-    &log("MythTV version seems to be $mythtv_version\n");
     $result = &versioncmp('0.25', $mythtv_version);
     my ($mythfilldatabase_exec, $mythfilldatabase_exec2);
     if ($result <= 0)
@@ -2315,18 +2315,18 @@ sub refill_mythtv
 	if ($reoutput)
 	{
 	    &log("Consider trying 'tv_grab_au --refill-mythtv', which does the same\n" .
-		 "thing, only using mythfilldatabase's --file option.\n\n");
-	 }
-	 else
-	 {
-	     &log("Consider trying 'tv_grab_au --reoutput-mythtv', which does the same\n" .
-		 "thing, only by feeding output directly to MythTV. This requires\n" .
-		 "that MythTV be already configured to use Shepherd as its default\n" .
-		 "grabber, however.\n\n");
-	 }
-     }
-     &log("Shepherd: Hopefully your guide data has now been loaded into MythTV.\n" .
-	  "          If not, please report it to the Shepherd mailing list.\n");
+		"thing, only using mythfilldatabase's --file option.\n\n");
+	}
+	else
+	{
+	    &log("Consider trying 'tv_grab_au --reoutput-mythtv', which does the same\n" .
+		"thing, only by feeding output directly to MythTV. This requires\n" .
+		"that MythTV be already configured to use Shepherd as its default\n" .
+		"grabber, however.\n\n");
+	}
+    }
+    &log("Shepherd: Hopefully your guide data has now been loaded into MythTV.\n" .
+	"          If not, please report it to the Shepherd mailing list.\n");
 }
 
 sub ancestry
