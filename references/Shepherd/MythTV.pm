@@ -1,7 +1,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.32';
+my $version = '0.40';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -34,6 +34,7 @@ use warnings;
 
 use DBI;
 use XML::Simple;
+use Sort::Versions;
 
 my $dbh;
 my $db;
@@ -191,6 +192,41 @@ sub close_connection
     undef $dbh;
 }
 
+# Returns MythTV version on this system.
+# If sent optional argument, returns an integer comparing the
+# two versions with Sort::Versions:
+#   1     MythTV version is higher than the version specified
+#   0     MythTV version is the same as the version specified
+#  -1     MythTV version is lower than the version specified
+sub mythtv_version
+{
+    my ($compare_to_version) = @_;
+
+    my $mythtv_version;
+
+    print "\nAttempting to figure out your version of mythfilldatabase...\n";
+
+    my $result = `mythfilldatabase --version`;
+    if ($result =~ /MythTV Version.*?v([\.\w\-]+)/)
+    {
+	$mythtv_version = $1;
+	print "MythTV version seems to be $mythtv_version\n";
+    }
+    else
+    {
+	print "Couldn't understand the response from 'mythfilldatabase --version'.\n" .
+	    "Assuming a version prior to 0.25.\n";
+	$mythtv_version = '0.24';
+    }
+    unless (defined $compare_to_version)
+    {
+	return $mythtv_version;
+    }
+
+    return &Sort::Versions::versioncmp($mythtv_version, $compare_to_version);
+}
+
 die "No DBI mysql support, please install!\n" if !grep /mysql/, DBI->available_drivers;
 
 1;
+
