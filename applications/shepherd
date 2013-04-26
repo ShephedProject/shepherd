@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.8.2';
+my $version = '1.8.3';
 
 # tv_grab_au
 # "Shepherd"
@@ -50,6 +50,7 @@ our $wiki = 'http://svn.whuffy.com/wiki';
 &require_module("List::Compare");
 &require_module("Digest::SHA");
 &require_module("Fcntl");
+our $have_Sort_Versions = &soft_require_module("Sort::Versionsa");
 
 # ---------------------------------------------------------------------------
 # --- Global Variables
@@ -809,6 +810,11 @@ RETRY:
 	}
     }
 
+    unless ($have_Sort_Versions)
+    {
+	&log("\n! Missing optional recommended module: Sort::Versions\n");
+    }
+
     &test_tor;
 }
 
@@ -955,7 +961,16 @@ sub build_stats
 # -----------------------------------------
 
 # versioncmp from Sort::Versions by Kenneth J. Albanowski
-sub versioncmp( $$ ) {
+#
+# We should really use the proper module, but we'll leave
+# the old copied code here for people who don't have it.
+#
+sub versioncmp( $$ ) 
+{
+    if ($have_Sort_Versions)
+    {
+	return &Sort::Versions::versioncmp(@_);
+    }
 
     return -1 unless (@_ == 2 and $_[0] and $_[1]);
 
@@ -1017,6 +1032,18 @@ sub require_module
     }
 
     import $mod @imports;
+}
+
+sub soft_require_module
+{
+    my ($mod, $flag_ref) = @_;
+
+    my $modname = $mod . ".pm";
+    $modname =~ s/::/\//g;
+
+    eval { require $modname; };
+    return 0 if ($@);	# Failed
+    return 1;
 }
 
 # check that user isn't root, warn them if they are!
