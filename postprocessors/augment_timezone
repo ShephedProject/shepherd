@@ -36,11 +36,18 @@
 #  Since this seems to happen across all ABC1 data from all grabbers (i.e. all
 #  data sources get this wrong), fix it up in this postprocessor
 
+# April 2013:
+#  MythTV now REQUIRES timezone-stamped data:
+#    http://code.mythtv.org/cgit/mythtv/commit/?id=ff5ab27842c522f9e054876a8eb69a51b8c86a2e
+#  So we can no longer supply unstamped data as "local time." That will be
+#  considered UTC instead. The fix: for MythTV 0.27+, augment_timezone will add timezones
+#  to all data, regardless of MythTV's "TimeOffset".
+#
 
 use strict;
 use warnings;
 my $progname = "augment_timezone";
-my $version = "0.22";
+my $version = "0.30";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -79,8 +86,19 @@ GetOptions(
 printf "%s v%s\n",$progname,$version;
 
 # Check if Shepherd::MythTV is working
-my $mythtv_access;
-unless ($opt->{timeoffset})
+my ($mythtv_access, $mythtv_ignores_timeoffset);
+if ($opt->{timeoffset})
+{
+    print "\nTimezone specified via --timeoffset option: \"" . $opt->{timeoffset} . "\".\n" .
+	  "Will not attempt to calculate whether this is correct.\n\n";
+    if ($opt->{timeoffset} eq "None")
+    {
+	print "!!! WARNING: Timezone is specified as \"None\". This means we will not\n" .
+	      "add timezones to data. MythTV versions 0.27+ REQUIRE timezones, and will\n" .
+	      "be out by 8-11 hours without them.\n\n";
+    }
+}
+else
 {
     eval { require Shepherd::MythTV; };
     if ($@)
@@ -91,6 +109,22 @@ unless ($opt->{timeoffset})
 	      "Reason: $@\n";
     } else {
 	$mythtv_access = 1;
+	eval {
+	    if (&Shepherd::MythTV::mythtv_version("0.27") >= 0)
+	    {
+		$mythtv_ignores_timeoffset = 1;
+	    }
+	};
+	if ($@)
+	{
+	    print "\n\n!!! WARNING: Could not determine your MythTV version!\n" .
+	          "You are probably running an older version of Shepherd::MythTV. Please\n".
+		  "run 'tv_grab_au --update' to see if you need to update something.\n".
+		  "(Possibly you need to install the perl module 'Sort::Versions'.)\n\n" .
+		  "Due to problem above, assuming a version of MythTV EARLIER than 0.27.\n" .
+		  "If your MythTV is 0.27 or later and we do not add timestamps, your\n" .
+		  "show times may be out by 8-11 hours.\n\n";
+	}
     }
 }
 
@@ -122,19 +156,29 @@ EOF
 	exit(0);
 }
 
-if (!$opt->{timeoffset} and $mythtv_access) {
-	# Specify a non-standard location for mysql.txt
-	Shepherd::MythTV::setup($opt->{mysql_file}) if ($opt->{mysql_file});
-
-	my $sql = "SELECT data FROM settings WHERE value LIKE 'TimeOffset'";
-	($opt->{timeoffset}) = Shepherd::MythTV::query($sql);
-	if ($opt->{timeoffset})
+if (!$opt->{timeoffset} and $mythtv_access) 
+{
+	if ($mythtv_ignores_timeoffset)
 	{
+	    $opt->{timeoffset} = 'Auto';
+	    print "\nThis version of MythTV ignores TimeOffset: assuming \"Auto\".\n" .
+	          "Will add timestamps to all data.\n\n";
+	}
+	else
+	{
+	    # Specify a non-standard location for mysql.txt
+	    &Shepherd::MythTV::setup($opt->{mysql_file}) if ($opt->{mysql_file});
+
+	    my $sql = "SELECT data FROM settings WHERE value LIKE 'TimeOffset'";
+	    ($opt->{timeoffset}) = &Shepherd::MythTV::query($sql);
+	    if ($opt->{timeoffset})
+	    {
 		printf "         MythTV's TimeOffset is \"%s\".\n", $opt->{timeoffset};
-	} else {
+	    } else {
 		print  "         No valid response from MythTV.\n".
 		       "         Assuming MythTV's timezone is \"None\".\n".
 		       "         *** If this is wrong, guide data may be in wrong timezone! ***\n\n";
+	    }
 	}
 }
 
