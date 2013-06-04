@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.8.3';
+my $version = '1.8.4';
 
 # tv_grab_au
 # "Shepherd"
@@ -50,7 +50,7 @@ our $wiki = 'http://svn.whuffy.com/wiki';
 &require_module("List::Compare");
 &require_module("Digest::SHA");
 &require_module("Fcntl");
-our $have_Sort_Versions = &soft_require_module("Sort::Versionsa");
+our $have_Sort_Versions = &soft_require_module("Sort::Versions");
 
 # ---------------------------------------------------------------------------
 # --- Global Variables
