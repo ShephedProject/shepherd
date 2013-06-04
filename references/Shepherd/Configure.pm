@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.30';
+my $version = '0.31';
 
 use strict;
 no strict 'refs';
@@ -1090,8 +1090,27 @@ sub configure_mythtv
 
     # No eval because I want to bomb out if this fails:
     # no point creating cron jobs if they won't work.
-    use lib 'references';
-    require Shepherd::MythTV;
+    eval
+    {
+	use lib 'references';
+	require Shepherd::MythTV;
+    };
+    if ($@)
+    {
+	print	"\n!!! ERROR !!!\n" .
+		"Unable to load reference Shepherd::MythTV.\n" .
+		"<<<<<< output from Shepherd/MythTV.pm was as follows:\n" .
+		"$@\n" .
+		">>>>>> end output from Shepherd/MythTV.pm\n" .
+		"Cannot configure MythTV.\n";
+	if ($@ =~ /Sort\/Versions/)
+	{
+	    print "You probably need the \"Sort::Versions\" Perl module.\n" .
+		  "On Ubuntu, Sort::Versions is available via the command:\n" .
+		  "   sudo apt-get install libsort-versions-perl\n";
+	}
+	return;
+    }
 
     my $dbh = &Shepherd::MythTV::open_connection();
     return unless ($dbh);

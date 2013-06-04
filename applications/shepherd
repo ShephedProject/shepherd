@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.8.4';
+my $version = '1.8.5';
 
 # tv_grab_au
 # "Shepherd"
@@ -790,6 +790,12 @@ sub check
 
     foreach my $proggy (sort keys %$components) {
 	my $progtype = $components->{$proggy}->{type};
+	if (!$progtype)
+	{
+	    my $reason = $components->{$proggy}->{admin_status} || '';
+	    printf "\n!!! %s: NOT INSTALLED! %s\n\n", $proggy, $reason;
+	    next;
+	}
 	next if ($progtype eq 'application');
 	next if ($progtype eq 'reference' and $proggy !~ /^Shepherd\/.*\.pm$/);
 	next unless (defined $components->{$proggy}->{'type'});
@@ -813,6 +819,7 @@ RETRY:
     unless ($have_Sort_Versions)
     {
 	&log("\n! Missing optional recommended module: Sort::Versions\n");
+	&log("! This may be required for full integration with MythTV.\n");
     }
 
     &test_tor;
