@@ -11,7 +11,7 @@
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '4.10';
+my $version = '5.00';
 
 use strict;
 use warnings;
@@ -20,9 +20,10 @@ use POSIX;
 use Data::Dumper;
 use IO::File;
 use XMLTV;
-use HTML::TreeBuilder;
 use Shepherd::Common;
 use Encode;
+use JSON;
+use HTML::Entities;
 
 # ---------------------------------------------------------------------------
 # --- Global Variables
@@ -30,9 +31,7 @@ use Encode;
 my $progname = "sbsweb";
 
 my $DATASOURCE = "sbs.com.au";
-my $URLS = {	'SBS ONE' => "http://www.$DATASOURCE/schedule/SBSONE",
-		'SBS TWO' => "http://www.$DATASOURCE/schedule/SBSTWO",
-		'NITV'    => "http://www.$DATASOURCE/schedule/NITV" };
+my $URL = "http://$DATASOURCE/guide";
 my $lang = 'en';
 my $debug = 0;
 my $channels;
@@ -69,10 +68,7 @@ unless ($channels)
 
 &set_region;
 
-foreach (keys %$channels)
-{
-    &get_guide_data($_);
-}
+&get_guide_data($_);
 
 &tidy_data;
 
@@ -91,161 +87,117 @@ exit;
 
 sub get_guide_data
 {
-    my $chan = shift;
-
     &log("Grabbing data for days " . $opt->{offset} .
          " - " . ($opt->{days} - 1) .
-	 ($opt->{output} ? " into " . $opt->{output} : '') .
-	 " for channel $chan.");
+	 ($opt->{output} ? " into " . $opt->{output} : ''));
 
-    # Calculate midnight on day zero in epoch time
-    my @today = localtime($runtime); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
-    $zerohr = $runtime - (($today[0]) + ($today[1]*60) + ($today[2]*60*60));
+    print "Channels wanted: " . join (", ", keys %{$channels}) . ".\n";
 
-    my $startday = $opt->{offset};
-    unless (!$startday and $today[2] > 5)
+    if ($opt->{offset} > 0)
     {
-	$startday--;
-	&log("Fetching previous day's page for pre-5AM shows.");
+	$opt->{offset}--;
+	&log("Fetching previous day to get pre-5AM data.\n");
     }
 
-    for my $day ($startday .. ($opt->{days} - 1))
+    for my $day ($opt->{offset} .. $opt->{days} - 1)
     { 
 	my $daystr = &POSIX::strftime("%Y-%m-%d", localtime($runtime + ($day * 86400)));
 	&log("Day $day: $daystr");
 
-	my $url = $URLS->{$chan} . "/$daystr/$loc";
+	my $url = "$URL/day/$daystr/location/$loc";
 	my $guidedata = &Shepherd::Common::get_url($url);
 	exit 11 unless ($guidedata);
 
 	Encode::from_to($guidedata, "UTF-8", "iso-8859-1");
 
-	&parse_guide($guidedata, $day, $chan);
+	&parse_guide($guidedata, $day, $daystr);
     }
     &log("Found " . &num_items($shows) . " shows on " . scalar(keys %$shows) . " channels.");
 }
 
 sub parse_guide
 {
-    my ($guidedata, $day, $chan) = @_;
+    my ($guidedata, $day, $daystr) = @_;
 
     &log("Parsing guide page (Day $day).") if ($debug);
 
-    my $chanid = $channels->{$chan};
-
-    my $tree = HTML::TreeBuilder->new;
-    $tree->no_space_compacting(1);
-    $tree->parse($guidedata);
-    $tree->eof;
-
-    my $last_hr = 0;
-    my $am_pm = 0;
-    my $content = $tree->look_down(_tag => 'div', id => 'content');
-    foreach my $block ($content->look_down(_tag => 'ul', class => 'tv_schedule'))
+    my $decoded_json;
+    foreach my $line (split /^/, $guidedata)
     {
-	my $show;
-	foreach my $li ($block->look_down(_tag => 'li'))
+	if ($line =~ /^\s*tv:(\s*\[\{.*),/)
 	{
-	    my $start = $li->look_down(_tag => 'span', class => 'tv_schedule_time');
-	    if ($start)
-	    {
-		if ($show->{start})
-		{
-		    $shows->{$chanid}->{$show->{start}} = $show;
-		    $stats{'shows'}++;
-		    $show = undef;
-		}
-
-		my ($hr, $min) = split(/:/, $start->as_text);
-
-		# Times are 12hr clocks: if this hour is less than the last hour
-		# we saw, we must have rolled over AM/PM. So add 12 hours to
-		# the actual time.
-		$am_pm += 12 if ($hr + $am_pm < $last_hr);
-		$hr += $am_pm;
-		$last_hr = $hr;
-
-		$show->{start} = $zerohr + ($day * 86400) + ($hr * 3600) + ($min * 60);
-		$show->{channel} = $chanid;
-	    }
-	    my $title = $li->look_down(_tag => 'a', class => 'leftpad');
-	    if ($title)
-	    {
-		$show->{title} = $title->as_text;
-		push (@{$show->{category}}, 'News') if ($show->{title} =~ /News/);
-	    }
-	    my $desc = $li->look_down(_tag => 'div', class => 'tv_schedule_item_description');
-	    if ($desc)
-	    {
-		$desc = $desc->look_down(_tag => 'p')->as_text;
-		$desc =~ s/ +$//; # Remove trailing spaces
-		if ($desc =~ /\(Rpt\)/)
-		{
-		    $show->{'previously-shown'} = { };
-		}
-		if ($desc =~ /\bCC\b/)
-		{
-		    push @{$show->{'subtitles'}}, 'teletext';
-		}
-		if ($desc =~ /\bWS\b/)
-		{
-		    $show->{video}->{aspect} = '16:9';
-		}
-		if ($desc =~ s/^Movie: //)
-		{
-		    push @{$show->{category}}, 'movie';
-		}
-		if ($desc =~ /\(Sport\)/)
-		{
-		    push @{$show->{category}}, 'sports';
-		}
-		if ($desc =~ /\((Thriller|Documentary|Drama|[^\(]+ Series)\)/)
-		{
-		    my $cat = $1;
-		    $cat =~ s/ Series$//;
-		    push @{$show->{category}}, $cat;
-		}
-		if ($desc =~ / \(([12]\d\d\d)\) /)
-		{
-		    $show->{date} = $1;
-		}
-		if ($desc =~ /\b(G|PG|M|MA)\b/)
-		{
-		    $show->{rating} = $1;
-		}
-		if ($desc =~ /Directed by (.*?)(?: and| \(|[,\.])/)
-		{
-		    $show->{credits}{director} = [ $1 ];
-		}
-		if ($desc =~ / [sS]tar(?:s|ring) (.*?),? and (.*?)\./)
-		{
-		    $show->{credits}{actor} = [ split(/, /, $1), $2 ];
-		}
-		if ($desc =~ / \(From (.*?), in (.*?)\) /)
-		{
-		    my ($country, $language) = ($1, $2);
-
-		    $country = 'USA' if ($country eq 'the US');
-		    $country = 'UK' if ($country eq 'the UK');
-		    $show->{country} = $country;
-
-		    my @parts = split (/,/, $language);
-		    $show->{language} = $parts[0];
-		    my $lastpart = $parts[scalar(@parts)-1];
-		    if ($lastpart =~ /^ *(.*) subtitles$/)
-		    {
-			push @{$show->{'subtitles'}}, split(/ and /, $1);
-		    }
-		}
-		$desc =~ s/ +$//; # Remove trailing spaces
-
-		$show->{desc} = $desc;
-	    }
+	    $line = '{ "tv": ' . $1 . '}';
+#	    print "This line:\n$line\n";
+	    $decoded_json = &JSON::decode_json($line);
+#	    print Dumper($decoded_json);
+	    last;
 	}
-	$shows->{$chanid}->{$show->{start}} = $show;
-	$stats{'shows'}++;
     }
-    $tree->delete;
+    unless ($decoded_json)
+    {
+	&log("ERROR: Unable to parse $daystr (Day $day)!");
+	exit 11;
+    }
+
+    my @channels = @{$decoded_json->{'tv'}};
+    foreach my $chan (@channels)
+    {
+	my $channel_name = $chan->{name};
+
+	# Correct differences between Shepherd-official names and SBS names
+	$channel_name = 'SBS TWO' if ($channel_name eq 'SBS 2');
+
+	print "Channel: $channel_name\n";
+	my $chanid = $channels->{$channel_name};
+	unless ($chanid)
+	{
+	    print "Don't want this channel: Skipping.\n";
+	    next;
+	}
+	print "$channel_name:\n";
+	foreach my $listing (@{$chan->{programs}})
+	{
+	    $stats{'shows'}++;
+
+	    my $show = { };
+	    $show->{title} = &HTML::Entities::decode($listing->{programTitle});
+	    print "- " . $show->{title} . "\n";
+
+
+	    $show->{start} = $listing->{playtime};
+	    $show->{channel} = $chanid;
+	    $show->{stop} = $listing->{endtime};
+	    $show->{length} = $listing->{duration} * 60;
+	    $show->{desc} = &Shepherd::Common::cleanup($listing->{longSynopsis}) || &Shepherd::Common::cleanup($listing->{shortSynopsis});
+	    $show->{desc} = &HTML::Entities::decode($show->{desc});
+
+	    push (@{$show->{category}}, 'News') if ($show->{title} =~ /News/);
+	    $show->{'previously-shown'} = { } if ($listing->{isRepeat});
+
+	    push @{$show->{'subtitles'}}, 'teletext' if ($listing->{closedCaption});
+
+	    $show->{video}->{aspect} = '16:9' if ($show->{desc} =~ / WS /);
+	    $show->{rating} = $listing->{classification} unless ($listing->{classification} eq 'NC');
+
+	    if ($show->{desc} =~ /Directed by (.*?)(?: and| \(|[,\.])/)
+	    {
+		$show->{credits}{director} = [ $1 ];
+	    }
+	    if ($show->{desc} =~ / [sS]tar(?:s|ring) (.*?),? and (.*?)\./)
+	    {
+		$show->{credits}{actor} = [ split(/, /, $1), $2 ];
+	    }
+	    $show->{country} = $listing->{countryOfOrigin} if (&Shepherd::Common::cleanup($listing->{countryOfOrigin}));
+	    $show->{language} = $listing->{language} if ($listing->{language});
+
+	    $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}, $listing->{genre}, { }) ];
+	    $show->{'episode-num'} = [[ $listing->{episodeNo}, 'onscreen' ]] if ($listing->{episodeNo});
+
+	    $shows->{$chanid}->{$show->{start}} = $show;
+	}
+
+#	print Dumper($shows);
+    }
 }
 
 # 1. Calculate stop times
@@ -500,16 +452,8 @@ sub strip_whitespace
 
 sub set_region
 {
-    # Not totally sure about these regions... is regional NSW 'Sydney'
-    # or 'Regional'?
-    my $state = Shepherd::Common::which_state($opt->{region});
-    $loc = 'SBS Sydney'	    if ($state eq 'NSW' or $state eq 'ACT');
-    $loc = 'SBS Melbourne'  if ($state eq 'VIC');
-    $loc = 'SBS Brisbane'   if ($state eq 'QLD');
-    $loc = 'SBS Adelaide'   if ($state eq 'SA');
-    $loc = 'SBS Darwin'	    if ($state eq 'NT');
-    $loc = 'SBS Tasmania'   if ($state eq 'TAS');
-    $loc = 'SBS Perth'	    if ($state eq 'WA');
+    # By coincidence, SBS uses the exact same state names that we do.
+    $loc = Shepherd::Common::which_state($opt->{region});
 
     unless ($loc)
     {
@@ -589,14 +533,6 @@ sub read_channels_file
     {
 	print "ERROR: No channels requested. Please use --channels_file.\n";
 	exit 33;
-    }
-    foreach (keys %$channels)
-    {
-	unless (exists $URLS->{$_})
-	{
-	    &log("Ignoring unsupported channel $_.");
-	    delete $channels->{$_};
-	}
     }
     unless (keys %$channels)
     {
