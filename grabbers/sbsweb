@@ -11,7 +11,7 @@
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '5.00';
+my $version = '5.01';
 
 use strict;
 use warnings;
@@ -91,7 +91,7 @@ sub get_guide_data
          " - " . ($opt->{days} - 1) .
 	 ($opt->{output} ? " into " . $opt->{output} : ''));
 
-    print "Channels wanted: " . join (", ", keys %{$channels}) . ".\n";
+    &log("Channels wanted: " . join (", ", keys %{$channels}) . ".");
 
     if ($opt->{offset} > 0)
     {
@@ -102,7 +102,7 @@ sub get_guide_data
     for my $day ($opt->{offset} .. $opt->{days} - 1)
     { 
 	my $daystr = &POSIX::strftime("%Y-%m-%d", localtime($runtime + ($day * 86400)));
-	&log("Day $day: $daystr");
+	&log("Day $day: $daystr ($loc)");
 
 	my $url = "$URL/day/$daystr/location/$loc";
 	my $guidedata = &Shepherd::Common::get_url($url);
@@ -127,9 +127,7 @@ sub parse_guide
 	if ($line =~ /^\s*tv:(\s*\[\{.*),/)
 	{
 	    $line = '{ "tv": ' . $1 . '}';
-#	    print "This line:\n$line\n";
 	    $decoded_json = &JSON::decode_json($line);
-#	    print Dumper($decoded_json);
 	    last;
 	}
     }
@@ -143,25 +141,20 @@ sub parse_guide
     foreach my $chan (@channels)
     {
 	my $channel_name = $chan->{name};
-
-	# Correct differences between Shepherd-official names and SBS names
-	$channel_name = 'SBS TWO' if ($channel_name eq 'SBS 2');
-
-	print "Channel: $channel_name\n";
 	my $chanid = $channels->{$channel_name};
 	unless ($chanid)
 	{
-	    print "Don't want this channel: Skipping.\n";
+	    &log("Ignoring channel $channel_name: not requested by user.") if ($opt->{debug});
 	    next;
 	}
-	print "$channel_name:\n";
+	&log("Channel: $channel_name");
 	foreach my $listing (@{$chan->{programs}})
 	{
 	    $stats{'shows'}++;
 
 	    my $show = { };
 	    $show->{title} = &HTML::Entities::decode($listing->{programTitle});
-	    print "- " . $show->{title} . "\n";
+	    &log("- " . $show->{title}) if ($opt->{debug});
 
 
 	    $show->{start} = $listing->{playtime};
@@ -177,7 +170,11 @@ sub parse_guide
 	    push @{$show->{'subtitles'}}, 'teletext' if ($listing->{closedCaption});
 
 	    $show->{video}->{aspect} = '16:9' if ($show->{desc} =~ / WS /);
-	    $show->{rating} = $listing->{classification} unless ($listing->{classification} eq 'NC');
+
+	    if ($listing->{'rating'} and $listing->{'rating'} ne 'NC')
+	    {
+		$show->{'rating'} = [ [ $listing->{'rating'}, 'ABA', undef] ];
+	    }
 
 	    if ($show->{desc} =~ /Directed by (.*?)(?: and| \(|[,\.])/)
 	    {
@@ -195,8 +192,6 @@ sub parse_guide
 
 	    $shows->{$chanid}->{$show->{start}} = $show;
 	}
-
-#	print Dumper($shows);
     }
 }
 
@@ -414,7 +409,6 @@ sub write_xml
 		     ($shows->{$ch}->{$s}->{'sub-title'} ?
 		      ' ("' . $shows->{$ch}->{$s}->{'sub-title'} . '")' : ''));
 	    }
-#	    print Dumper(\%p);
 	    $shows->{$ch}->{$s}->{start} = &POSIX::strftime("%Y%m%d%H%M", localtime($s));
             if(length($shows->{$ch}->{$s}->{title})) {
                $writer->write_programme(\%p);
