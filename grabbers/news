@@ -3,7 +3,7 @@
 # "News"
 #
 
-my $version  = '3.0';
+my $version  = '3.1';
 
 use strict;
 use warnings;
@@ -850,9 +850,9 @@ sub bad_parse
   my $msg = shift;
   print "Parsing error: $msg.\n";
   $stats{failed_parses}++;
-  if ($stats{failed_parses} > 4 and !scalar(keys %$precache))
+  if ($stats{failed_parses} >= 5 and $stats{failed_parses} >= $stats{detail_pages})
   {
-      print "ERROR! Unable to parse any shows! Looks like a major problem. " .
+      print "ERROR! Unable to parse shows! Looks like a major problem. " .
 	    "Exiting.\n";
       print stats(1);
       die "Major parsing error";
