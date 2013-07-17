@@ -3,7 +3,7 @@
 # "News"
 #
 
-my $version  = '3.1';
+my $version  = '3.2';
 
 use strict;
 use warnings;
@@ -533,7 +533,7 @@ sub timestats
 sub get_page
 {
   my $ret = Shepherd::Common::get_url(@_);
-  if ($stats{successful_requests} and $stats{failed_requests} > ($stats{successful_requests} * 5))
+  if ($stats{successful_requests} and $stats{failed_requests} > $stats{successful_requests})
   {
       printf "Exiting: %d failed network requests vs %d successes.\n",
              $stats{failed_requests}, $stats{successful_requests};
