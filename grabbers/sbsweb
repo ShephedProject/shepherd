@@ -11,7 +11,7 @@
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '5.01';
+my $version = '5.02';
 
 use strict;
 use warnings;
@@ -138,6 +138,7 @@ sub parse_guide
     }
 
     my @channels = @{$decoded_json->{'tv'}};
+    $channels->{'SBS ONE'} = $channels->{'SBS HD'};
     foreach my $chan (@channels)
     {
 	my $channel_name = $chan->{name};
@@ -161,7 +162,8 @@ sub parse_guide
 	    $show->{channel} = $chanid;
 	    $show->{stop} = $listing->{endtime};
 	    $show->{length} = $listing->{duration} * 60;
-	    $show->{desc} = &Shepherd::Common::cleanup($listing->{longSynopsis}) || &Shepherd::Common::cleanup($listing->{shortSynopsis});
+	    $show->{desc} = $listing->{longSynopsis} || $listing->{shortSynopsis};
+	    &Shepherd::Common::cleanup(\$show->{desc}) if $show->{desc};
 	    $show->{desc} = &HTML::Entities::decode($show->{desc});
 
 	    push (@{$show->{category}}, 'News') if ($show->{title} =~ /News/);
@@ -184,7 +186,7 @@ sub parse_guide
 	    {
 		$show->{credits}{actor} = [ split(/, /, $1), $2 ];
 	    }
-	    $show->{country} = $listing->{countryOfOrigin} if (&Shepherd::Common::cleanup($listing->{countryOfOrigin}));
+	    $show->{country} = $listing->{countryOfOrigin} if ($listing->{countryOfOrigin});
 	    $show->{language} = $listing->{language} if ($listing->{language});
 
 	    $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}, $listing->{genre}, { }) ];
@@ -242,6 +244,13 @@ sub tidy_data
 			    ")") if ($debug);
 			$shows->{$ch}->{$s}->{title} = $title;
 		    }
+		}
+		if ($shows->{$ch}->{$s}->{title} =~ /(.*) - New Series/i)
+		{
+		    &log("Stripping annotation from title (" .
+			 $shows-{$ch}->{$s}->{title} .
+			 ")") if ($debug);
+		    $shows->{$ch}->{$s}->{title} = $1;
 		}
 		unless (($shows->{$ch}->{$s}->{'sub-title'}))
 		{
