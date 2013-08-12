@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.8.5';
+my $version = '1.8.6';
 
 # tv_grab_au
 # "Shepherd"
@@ -267,6 +267,7 @@ unless ($opt->{update})
 	&output_data;
 	&finalize_stats;
 	&report_stats;
+	&describe_components_used;
     }
     else
     {
@@ -961,6 +962,11 @@ sub build_stats
     }
 
     return $postvars;
+}
+
+sub describe_components_used
+{
+    &log("\nComponent summary: $components_used\n\n");
 }
 
 # -----------------------------------------
