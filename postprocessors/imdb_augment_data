@@ -27,7 +27,7 @@ use strict;
 use warnings;
 
 my $progname = "imdb_augment_data";
-my $version = "1.02";
+my $version = "1.03";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -312,7 +312,7 @@ sub search_imdb_online
 			my $text = $tp->get_trimmed_text();
 			my $showname = $title;
 			$showname = "$1, The" if ($showname =~ /^The (.*)/i);	# format to match search results
-			next unless ($text =~ /^$showname \(((19|20)\d\d)\)$/i); # ignore partial & approximate matches
+			next unless ($text =~ /^$title \(((19|20)\d\d)\)$/i); # ignore partial & approximate matches
 			my $found_year = $1;
 			if (!$movie_year || !$found_year || (abs($movie_year - $found_year) <= 1) ) {
 				$urls{$url}++; # store as a hash since imdb sometimes gives dups
