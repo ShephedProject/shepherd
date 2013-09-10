@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.48";
+my $version = "0.49";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -1304,7 +1304,7 @@ sub choose_title
 
 	# 3. do we already have any titles in our list here in our 'preferred title' list?
 	my $found_index = -1;
-	foreach my $i (0..$num_titles) {
+	foreach my $i (0..($num_titles-1)) {
 		if (defined $title_xlate_table->{(lc($titles[$i]))}) {
 			$found_index = $i;
 			last;
