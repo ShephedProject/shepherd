@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.31';
+my $version = '0.32';
 
 use strict;
 no strict 'refs';
@@ -1056,7 +1056,7 @@ sub configure_mythtv
 	if (@delete_me)
 	{
 	    &::log("\nShepherd would like to DELETE the following file(s):\n\n");
-	    system ("ls -l --color @delete_me");
+	    system ("ls -l @delete_me");
 	    &::log("\n");
 	}
 	if (!$mapped)
@@ -1081,7 +1081,7 @@ sub configure_mythtv
     }
 
     &::log("Symlink established:\n");
-    system("ls -l --color `which tv_grab_au`");
+    system("ls -l `which tv_grab_au`");
 
     # 2. Insert 'tv_grab_au' into mythconverg -> videosource
 
@@ -1271,7 +1271,7 @@ sub configure_mythtv
 	if (&XMLTV::Ask::ask_boolean("Would you like to see your symlink " .
 	    "and cron job?", 1))
 	{
-	    my $cmd = "ls -l --color `which tv_grab_au`";
+	    my $cmd = "ls -l `which tv_grab_au`";
 	    &::log("\n" . '$ ' . $cmd . "\n");
 	    system($cmd);
 
