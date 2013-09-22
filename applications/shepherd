@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.8.6';
+my $version = '1.8.7';
 
 # tv_grab_au
 # "Shepherd"
@@ -1038,9 +1038,14 @@ sub require_module
 
     eval { require $modname; };
     if ($@) {
-	&log("\nERROR:\nMandatory module '$mod' not found.\n\n" .
-	     "Please see the Wiki at ".$wiki."/Installation\n" .
-	     "for details on how to install this module.\n", 1);
+	my $ubuntu_package_name = lc $modname;
+	$ubuntu_package_name =~ s/\//-/g;
+	$ubuntu_package_name =~ s/\.pm//;
+	&log("\n!!! ERROR: Mandatory module '$mod' not found.\n\n" .
+	     "    On Ubuntu distributions, you may be able to install\n" .
+	     "    this with the command:\n\n" .
+	     "    sudo apt-get install lib" . $ubuntu_package_name . "-perl\n\n" .
+	     "For more help, see the Wiki at ".$wiki."/Installation\n", 1);
 	exit(1);
     }
 
