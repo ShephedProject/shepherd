@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.32';
+my $version = '0.40';
 
 use strict;
 no strict 'refs';
@@ -121,6 +121,7 @@ sub configure
     &::write_config_file;
     &::write_channels_file;
     &update_mythtv_channels($mchans) if ($mchans);
+    &create_symlink();
 
     print "\nMythTV Integration\n\n".
           "If you run MythTV, Shepherd can register itself as the default grabber\n".
@@ -998,6 +999,76 @@ sub list_chan_names_diff
     return $channel_support_exceptions;
 }
 
+sub create_symlink
+{
+    # 1. Check existence of symlink
+
+    my $me = "$::CWD/applications/shepherd/shepherd";
+
+    my $mapped = 0;
+    my $symlink;
+    my @delete_me;
+    foreach my $path (split/:/, $ENV{PATH})
+    {
+        my $tv_grab_au = "$path/tv_grab_au";
+
+        # Figure out an appropriate symlink.
+        # (We'll use /usr/bin/tv_grab_au, but only if 
+        # /usr/bin/ is in PATH.)
+        $symlink = $tv_grab_au unless ($symlink && $symlink eq '/usr/bin/tv_grab_au');
+
+        if (-e $tv_grab_au)
+        {
+            if (-l $tv_grab_au)
+            {
+                my $link = readlink($tv_grab_au);
+                if ($link and $link eq $me)
+                {
+                    &::log("Symlink $tv_grab_au is correctly mapped to $me.\n");
+                    $mapped = $tv_grab_au;
+                    last;
+                }
+            }
+            push @delete_me, $tv_grab_au;
+        }
+    }
+
+    &::log("\n");
+
+    if (!$mapped or @delete_me)
+    {
+        if (@delete_me)
+        {
+            &::log("\nShepherd would like to DELETE the following file(s):\n\n");
+            system ("ls -l @delete_me");
+            &::log("\n");
+        }
+        if (!$mapped)
+        {
+            &::log("Shepherd would like to CREATE the following symlink:\n\n".
+                " $symlink -> $me\n\n");
+        }
+
+        my $response = &XMLTV::Ask::ask_boolean(
+            ucfirst(
+                ($mapped ? '' : ( 'create symlink ' . (@delete_me ? 'and ' : ''))) .
+                (@delete_me ? 'delete ' . scalar(@delete_me) . ' file(s)' : '')) .
+            '?', 1);
+        unless ($response)
+        {
+            &::log("Aborting.\n");
+            return;
+        }
+
+        system("sudo rm @delete_me") if (@delete_me);
+        system("sudo ln -s $me $symlink") unless ($mapped);
+    }
+
+    &::log("Symlink established:\n");
+    system("ls -l `which tv_grab_au`");
+
+}
+
 # ------------------------------
 # -   MythTV Integration       -
 # ------------------------------
@@ -1016,72 +1087,9 @@ sub configure_mythtv
 
     # 1. Check existence of symlink
 
-    my $me = "$::CWD/applications/shepherd/shepherd";
-
     &::log("Step 1: Setting up symlink...\n".
-           "------\n");
-
-    my $mapped = 0;
-    my $symlink;
-    my @delete_me;
-    foreach my $path (split/:/, $ENV{PATH})
-    {
-	my $tv_grab_au = "$path/tv_grab_au";
-
-	# Figure out an appropriate symlink.
-	# (We'll use /usr/bin/tv_grab_au, but only if 
-	# /usr/bin/ is in PATH.)
-	$symlink = $tv_grab_au unless ($symlink && $symlink eq '/usr/bin/tv_grab_au');
-
-	if (-e $tv_grab_au)
-	{
-	    if (-l $tv_grab_au)
-	    {
-		my $link = readlink($tv_grab_au);
-		if ($link and $link eq $me)
-		{
-		    &::log("Symlink $tv_grab_au is correctly mapped to $me.\n");
-		    $mapped = $tv_grab_au;
-		    last;
-		}
-	    }
-	    push @delete_me, $tv_grab_au;
-	}
-    }
-
-    &::log("\n");
-
-    if (!$mapped or @delete_me)
-    {
-	if (@delete_me)
-	{
-	    &::log("\nShepherd would like to DELETE the following file(s):\n\n");
-	    system ("ls -l @delete_me");
-	    &::log("\n");
-	}
-	if (!$mapped)
-	{
-	    &::log("Shepherd would like to CREATE the following symlink:\n\n".
-		" $symlink -> $me\n\n");
-	}
-
-	my $response = &XMLTV::Ask::ask_boolean(
-	    ucfirst(
-		($mapped ? '' : ( 'create symlink ' . (@delete_me ? 'and ' : ''))) .
-		(@delete_me ? 'delete ' . scalar(@delete_me) . ' file(s)' : '')) .
-	    '?', 1);
-	unless ($response)
-	{
-	    &::log("Aborting.\n");
-	    return;
-	}
-
-	system("sudo rm @delete_me") if (@delete_me);
-	system("sudo ln -s $me $symlink") unless ($mapped);
-    }
-
-    &::log("Symlink established:\n");
-    system("ls -l `which tv_grab_au`");
+	   "------\n");
+    &create_symlink();
 
     # 2. Insert 'tv_grab_au' into mythconverg -> videosource
 
