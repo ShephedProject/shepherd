@@ -15,7 +15,7 @@ grabber         zaxmltv             0.03
 grabber         foxtel_swf          4.00
 reconciler      reconciler_mk2      0.49
 postprocessor   imdb_augment_data   1.03
-postprocessor   metacritic          1.0
+postprocessor   metacritic          1.1
 postprocessor   augment_timezone    0.30
 postprocessor	add_channel_icons   0.2
 END

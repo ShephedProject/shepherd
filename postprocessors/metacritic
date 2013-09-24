@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 my $progname = "metacritic";
-my $version = "1.0";
+my $version = "1.1";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -118,7 +118,7 @@ sub find_show
 	my ($title) = @_;
 
 	$title =~ s/ /-/g;
-	$title =~ s/://g;
+	$title =~ s/[:']//g;
 	$title =~ s/ \& / /g;
 	$title = lc($title);
 
@@ -265,100 +265,110 @@ sub programme_cb( $ )
 	}
 	else
 	{
-
 	    my $tree = HTML::TreeBuilder->new_from_content($html);
 
 	    # verify that it's the correct show!
-	    my $date;
-	    my $block = $tree->look_down('_tag' => 'li', 'class' => 'summary_detail release_data');
-	    if ($block and $block->as_text() =~ /, ([\d]{4})$/)
+	    if ($tree->look_down('_tag' => 'div', 'class' => 'error_msg'))
 	    {
-		$date = $1;
-	    }
-	    if ($prog_year != $date)
-	    {
-		&Shepherd::Common::log("  skipping show, is year $date, should be $prog_year") if ($opt->{debug})
+		&Shepherd::Common::log("  404 Not found") if ($opt->{debug});
 	    }
 	    else
 	    {
-		if ($opt->{debug})
+		my $date;
+		my $block = $tree->look_down('_tag' => 'li', 'class' => 'summary_detail release_data');
+		if ($block and $block->as_text() =~ /, ([\d]{4})\b/)
 		{
-		    &Shepherd::Common::log("  match: augmenting data");
+		    $date = $1;
+		}
+		if (!$date)
+		{
+		    &Shepherd::Common::log("  skipping show, could not establish date" . $block->as_HTML()) if ($opt->{debug});
+		}
+		elsif ($prog_year != $date)
+		{
+		    &Shepherd::Common::log("  skipping show, is year $date, should be $prog_year") if ($opt->{debug})
 		}
 		else
 		{
-		    &Shepherd::Common::log("- $movie_title: found data");
-		}
-
-
-		#
-		# augment data
-		#
-
-		# Description
-
-		my $prog_desc;
-		if (!defined $prog->{desc} or !defined $prog->{desc}->[0] or !defined $prog->{desc}->[0]->[0])
-		{
-		    $prog_desc = '';
-		}
-		else
-		{
-		    $prog_desc = $prog->{desc}->[0]->[0];
-		}
-
-		my $block = $tree->look_down('_tag' => 'div', 'class' => 'summary_detail product_summary');
-		if ($block)
-		{
-		    my $desc = $block->as_text();
-		    $desc =~ s/^Summary:\s*//;
-
-		    &Shepherd::Common::log("  Metacritic desc: $desc") if ($opt->{debug});
-
-		    if ($desc and length($desc) > 20 and length($prog_desc) < 20)
+		    if ($opt->{debug})
 		    {
-			$prog_desc = $desc;
+			&Shepherd::Common::log("  match: augmenting data");
 		    }
-		}
-
-		# Ratings
-
-		my $critic_rating;
-		my $user_rating;
-
-		$block = $tree->look_down('_tag' => 'div', 'class' => 'metascore_wrap feature_metascore');
-		if ($block)
-		{
-		    my $span = $block->look_down('_tag' => 'span', 'class' => 'score_value');
-		    if ($span)
+		    else
 		    {
-			$critic_rating = $span->as_text();
+			&Shepherd::Common::log("- $movie_title: found data");
 		    }
-		}
 
-		$block = $tree->look_down('_tag' => 'div', 'class' => 'userscore_wrap feature_userscore');
-		if ($block)
-		{
-		    my $span = $block->look_down('_tag' => 'span', 'class' => 'score_value');
-		    if ($span)
+
+		    #
+		    # augment data
+		    #
+
+		    # Description
+
+		    my $prog_desc;
+		    if (!defined $prog->{desc} or !defined $prog->{desc}->[0] or !defined $prog->{desc}->[0]->[0])
 		    {
-			$user_rating = $span->as_text();
-		    }   
-		}
+			$prog_desc = '';
+		    }
+		    else
+		    {
+			$prog_desc = $prog->{desc}->[0]->[0];
+		    }
 
-		if ($critic_rating) 
-		{
-		    $prog->{'star-rating'} = [ ] unless (ref $prog->{'star-rating'});
-		    &Shepherd::Common::log("  Metascore: $critic_rating / 100");
-		    push @{$prog->{'star-rating'}}, [ "$critic_rating/100", "Metacritic Metascore", undef ];
-		}
-		if ($user_rating)
-		{
-		    $prog->{'star-rating'} = [ ] unless (ref $prog->{'star-rating'});
+		    my $block = $tree->look_down('_tag' => 'div', 'class' => 'summary_detail product_summary');
+		    if ($block)
+		    {
+			my $desc = $block->as_text();
+			$desc =~ s/^Summary:\s*//;
 
-		    &Shepherd::Common::log("  User Score: $user_rating / 10");
+			&Shepherd::Common::log("  Metacritic desc: $desc") if ($opt->{debug});
 
-		    push @{$prog->{'star-rating'}}, [ "$user_rating/10", "Metacritic User Score", undef ];
+			if ($desc and length($desc) > 20 and length($prog_desc) < 20)
+			{
+			    $prog_desc = $desc;
+			}
+		    }
+
+		    # Ratings
+
+		    my $critic_rating;
+		    my $user_rating;
+
+		    $block = $tree->look_down('_tag' => 'div', 'class' => 'metascore_wrap feature_metascore');
+		    if ($block)
+		    {
+			my $span = $block->look_down('_tag' => 'span', 'class' => 'score_value');
+			if ($span)
+			{
+			    $critic_rating = $span->as_text();
+			}
+		    }
+
+		    $block = $tree->look_down('_tag' => 'div', 'class' => 'userscore_wrap feature_userscore');
+		    if ($block)
+		    {
+			my $span = $block->look_down('_tag' => 'span', 'class' => 'score_value');
+			if ($span)
+			{
+			    $user_rating = $span->as_text();
+			}   
+		    }
+
+		    if ($critic_rating) 
+		    {
+			$prog->{'star-rating'} = [ ] unless (ref $prog->{'star-rating'});
+			&Shepherd::Common::log("  Metascore: $critic_rating / 100");
+			push @{$prog->{'star-rating'}}, [ "$critic_rating/100", "Metacritic Metascore", undef ];
+		    }
+		    if ($user_rating)
+		    {
+			$prog->{'star-rating'} = [ ] unless (ref $prog->{'star-rating'});
+
+			&Shepherd::Common::log("  User Score: $user_rating / 10");
+
+			push @{$prog->{'star-rating'}}, [ "$user_rating/10", "Metacritic User Score", undef ];
+		    }
 		}
 
 #		print "prog now ".Dumper($prog) if ($critic_rating);
