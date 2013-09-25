@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.8.8';
+my $version = '1.9.0';
 
 # tv_grab_au
 # "Shepherd"
@@ -72,6 +72,7 @@ our $components = { };
 our $want_paytv_channels;
 our $pref_title_source;
 my $last_successful_run;
+my $last_successful_refresh;
 our $hd_to_sds;
 
 # 
@@ -264,7 +265,7 @@ unless ($opt->{update})
     if ($any_data)
     {
 	&postprocess_data unless ($opt->{skippost});
-	&output_data;
+	&output_data();
 	&finalize_stats;
 	&report_stats;
 	&describe_components_used;
@@ -884,11 +885,14 @@ sub finalize_stats
 
     unless ($opt->{dontcallgrabbers})
     {
-	$last_successful_run = time;
-	my $total_wanted = $plugin_data->{$progname}->{total_duration} + $plugin_data->{$progname}->{total_missing};
-	$last_successful_run_data = ($total_wanted ? 100* $plugin_data->{$progname}->{total_duration} / $total_wanted : 0);
-
-	$last_successful_runs->{$last_successful_run} = $last_successful_run_data;
+	unless ($opt->{'autorefresh'})
+	{
+	    $last_successful_run = time;
+	    my $total_wanted = $plugin_data->{$progname}->{total_duration} + $plugin_data->{$progname}->{total_missing};
+	    $last_successful_run_data = ($total_wanted ? 100* $plugin_data->{$progname}->{total_duration} / $total_wanted : 0);
+	    $last_successful_runs->{$last_successful_run} = $last_successful_run_data;
+	}
+	$last_successful_refresh = time;
     }
 }
 
@@ -1101,14 +1105,19 @@ sub invoke_correctly
     }
 }
 
-# if last run was successful and was less than 22 hours ago, refuse to run.
-# there's really no point calling shepherd more frequently than this.
+# If the last run was successful and was less than 22 hours ago, refuse to run.
+# There's really no point calling shepherd more frequently than this.
+#
+# However, as of v1.9.0, we also do a "refresh" of the current day by default
+# if it's been less than 22 hours since the last full run, but more than 4 hours
+# since the last refresh. A refresh just updates the current day.
+#
 sub check_last_run
 {
     return if (!defined $last_successful_run);
     my $last_ran_secs_ago = time - $last_successful_run;
 
-    &log(0,"\n".ucfirst($progname)." last ran successfully ".pretty_duration($last_ran_secs_ago)." ago.\n");
+    &log(0,"\n".ucfirst($progname)." last successfully completed a full run ".pretty_duration($last_ran_secs_ago)." ago.\n");
 
     return if ($last_ran_secs_ago > (22*60*60));
     return if ($opt->{dontcallgrabbers});
@@ -1152,8 +1161,50 @@ sub check_last_run
 	return;
     }
 
-    &log("!! Shepherd has successfully completed a run less than 22 hours ago.\n" .
-	 "!! Exiting to avoid wasting time and bandwidth.\n\n");
+    &log("!! Will not re-run since last full run was less than 22 hours ago.\n");
+
+    if (!$last_successful_refresh or $last_successful_refresh < $last_successful_run)
+    {
+	$last_successful_refresh = $last_successful_run;
+    }
+    my $last_refreshed_secs_ago = time - $last_successful_refresh;
+    if ($last_successful_refresh != $last_successful_run)
+    {
+	&log("\nShepherd last successfully refreshed " . &pretty_duration($last_refreshed_secs_ago) . " ago.\n");
+    }
+    if ($last_refreshed_secs_ago > (4*60*60))
+    {
+	if ($opt->{'days'} and $days != 1)
+	{
+	    &log("!! Will not autorefresh due to user-supplied '--days' option.\n");
+	}
+	elsif ($opt->{'noautorefresh'})
+	{
+	    &log("!! Will not autorefresh due to '--noautorefresh' option.\n");
+	}
+	elsif ((localtime)[2] >= 23)
+	{
+	    &log("!! Will not autorefresh due to lateness of current time (11PM+).\n");
+	}
+	else
+	{
+	    &log("\n*** Autorefreshing today's data! ***\n");
+	    $days = $opt->{'days'} = 1;
+	    $opt->{'autorefresh'} = 1;
+	    unless ($opt->{'output'})
+	    {
+		$output_filename = "$CWD/refresh.xmltv";
+		&test_output_file();
+	    }
+	    return;
+	}
+    }
+    else
+    {
+	&log("!! Last refresh was less than 4 hours ago.\n");
+    }
+
+    &log("\n!! Exiting to avoid wasting time and bandwidth.\n\n");
 
     if (defined $opt->{'refresh-mythtv'})
     {
@@ -1161,7 +1212,7 @@ sub check_last_run
     }
     else
     {
-	&log("If you wish Shepherd to re-output the data it gathered last run,\n" .
+	&log("If you wish Shepherd to re-output the data it gathered last full run,\n" .
 	 "use the --reoutput option (e.g. 'tv_grab_au --reoutput'). To do this\n" .
 	 "via mythfilldatabase, use 'mythfilldatabase -- --reoutput'. (Or,\n".
 	 "for older versions, 'mythfilldatabase --graboptions --reoutput'.)\n\n" .
@@ -1911,8 +1962,8 @@ sub read_file
 sub write_config_file
 {
     write_file($config_file, 'configuration', 
-	[$region,  $pref_title_source,  $want_paytv_channels,  $sysid,  $last_successful_run, $last_successful_run_data, $last_successful_runs, $sources, $components,  $components_pending_install,  $pending_messages ],
-	["region", "pref_title_source", "want_paytv_channels", "sysid", "last_successful_run", "last_successful_run_data", "last_successful_runs", 'sources', "components", "components_pending_install", "pending_messages" ]);
+	[$region,  $pref_title_source,  $want_paytv_channels,  $sysid,  $last_successful_run, $last_successful_run_data, $last_successful_runs, $last_successful_refresh, $sources, $components,  $components_pending_install,  $pending_messages ],
+	["region", "pref_title_source", "want_paytv_channels", "sysid", "last_successful_run", "last_successful_run_data", "last_successful_runs", 'last_successful_refresh', 'sources', "components", "components_pending_install", "pending_messages" ]);
 }
 
 sub write_channels_file
@@ -2006,6 +2057,7 @@ sub get_command_line_options
 			daily
 			reoutput
 			reoutput-mythtv
+			noautorefresh
 		     ));
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
@@ -2751,7 +2803,13 @@ sub status
 	    $str .= sprintf " and acquired %2.2f%% of data",
 	                    $last_successful_run_data;
 	}
-	&log("\n$str.\n");
+	$str .= ".\n";
+	if ($last_successful_refresh and $last_successful_refresh != $last_successful_run)
+	{
+	    $str .= sprintf "Shepherd last autorefreshed %s ago.\n", 
+			    &pretty_duration(time - $last_successful_refresh);
+	}
+	&log($str);
     }
     &log("\nPreferred titles from grabber '$pref_title_source'\n") if ($pref_title_source);
     &log("\nWARNING: [!] against components above indicate TAINTED components.\n\n")
@@ -2770,6 +2828,13 @@ sub history
     &log(sprintf "\nShepherd has run successfully %d times in the last %d days.\n\n",
 		 scalar(keys %$last_successful_runs),
 		 int((time - $all_runs[0]) / 86400));
+    if ($last_successful_refresh and $last_successful_refresh != $last_successful_run)
+    {
+	&log(sprintf "Shepherd last successfully autorefreshed %s ago (%s).\n\n",
+		&pretty_duration(time - $last_successful_refresh),
+		&pretty_date($last_successful_refresh));
+    }
+
     my $str;
     foreach my $when (sort {$b <=> $a} keys (%{$last_successful_runs})) 
     {
@@ -2809,13 +2874,13 @@ sub description
 sub help
 {
     print q{Info options:
-    --help                Display this message
+    --help                Hello!
     --dev-help            Display advanced options
     --version             Display version
-    --status              Display status of various components
-    --desc                Display detailed status of components
+    --status              Display status
+    --desc                Display detailed status
     --history             Display usage history
-    --check               Display check of all components
+    --check               Verify current installation
 
     --show-config         Show setup details
     --show-channels       Show subscribed channels
@@ -2824,8 +2889,8 @@ sub help
                           (See "--ancestry help")
 
 Session options:
-    --output <s>          Create file <s> (default: ~/.shepherd/output.xmltv)
-    --days <n>            Retrieve <n> days of guide data
+    --output <file>       Specify an output file (default: ~/.shepherd/output.xmltv)
+    --days <n>            Retrieve <n> days of data
     --offset <n>          Skip first <n> days
 
     --reoutput            Don't grab fresh data; just return cache
@@ -2834,17 +2899,18 @@ Session options:
     --refresh-mythtv      Grab fresh data, then feed to MythTV via --file
 
     --noupdate            Don't update Shepherd; just grab data
-    --update              Don't grab data; just update Shepherd
-    --skipupdate          Skip update of Shepherd
-    --skippost            Skip postprocessing of data
+    --update              Update Shepherd but don't grab data
+    --skipupdate          Don't update Shepherd or verify components; just grab data
+    --skippost            Don't run any postprocessors on data
+    --noautorefresh       Don't switch to autorefresh mode (i.e. "--days 1")
 
     --mode <s>            Quality (default), Efficiency or Speed
-    --grabwith <s>        Grab with grabber <s> before trying other grabbers
+    --grabwith <s>        Run grabber(s) <s> before any others
                           (e.g. --grabwith sbsweb,abc_website)
 
     --debug               Print debugging messages
     --quiet               Don't print anything except errors
-    --notquiet            Don't be --quiet
+    --notquiet            Override --quiet
     --nolog               Don't write a logfile
     --nonotify            Don't report anonymous usage statistics
 
@@ -2943,8 +3009,10 @@ sub grab_data
 
 	my $iteration = query_iteration($grabber);
 
-	my $output = sprintf "%s/grabbers/%s/output-%d.xmltv", 
-			     $CWD, $grabber, $iteration;
+	my $output = sprintf "%s/grabbers/%s/%s-%d.xmltv", 
+			     $CWD, $grabber, 
+			     ($opt->{'autorefresh'} ? 'refresh' : 'output'),
+			     $iteration;
 
 	my $comm = "$CWD/grabbers/$grabber/$grabber " .
 	           "--region $region " .
@@ -4839,7 +4907,8 @@ sub call_data_processor
 
     &log("\nSHEPHERD: Using $data_processor_type: $data_processor_name\n");
 
-    my $output = sprintf "%s/%ss/%s/output.xmltv",$CWD,$data_processor_type,$data_processor_name;
+    my $out = ($opt->{'autorefresh'} ? 'refresh' : 'output');
+    my $output = sprintf "%s/%ss/%s/%s.xmltv",$CWD,$data_processor_type,$data_processor_name, $out;
     my $comm = sprintf "%s/%ss/%s/%s",$CWD,$data_processor_type,$data_processor_name,$data_processor_name;
     $comm .= " --region $region" .
              " --channels_file $channels_file" .
@@ -4933,7 +5002,7 @@ sub output_data
     my $reuse_cached_output = shift;
     $reuse_cached_output = 0 if (!defined $reuse_cached_output);
     
-    my $output_cache_copy = "$CWD/output.xmltv";
+    my $output_cache_copy = $output_filename;
 
     if ($reuse_cached_output) {
 	# re-use existing cached output
@@ -4961,21 +5030,24 @@ sub output_data
 
 	&log("Final output stored in $output_filename.\n");
 
-	# copy final output to our cache copy as well
-	if ($output_filename ne $output_cache_copy) {
-	    unlink($output_cache_copy);
-	    open(F1,"<$output_filename");
-	    open(F2,">$output_cache_copy");
-	    while (<F1>) {
-		print F2 $_;
+	unless ($opt->{'autorefresh'})
+	{
+	    # copy final output to our cache copy as well
+	    if ($output_filename ne $output_cache_copy) {
+		unlink($output_cache_copy);
+		open(F1,"<$output_filename");
+		open(F2,">$output_cache_copy");
+		while (<F1>) {
+		    print F2 $_;
+		}
+		close(F1);
+		close(F2);
 	    }
-	    close(F1);
-	    close(F2);
+	    &log("Cached output stored in $output_cache_copy.\n");
 	}
-	&log("Cached output stored in $output_cache_copy.\n");
     }
 
-    if (!$opt->{'output'} and !$opt->{'nooutput'}) {
+    if (!$opt->{'nooutput'} and ($reuse_cached_output or !$opt->{'output'})) {
 	&log("\nPrinting XMLTV output to STDOUT in 5 seconds...\n");
 	sleep 5;
 	my $fh = new IO::File("< $output_filename") || die "Can't open $output_filename for reading: $!";
