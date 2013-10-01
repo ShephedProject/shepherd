@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.0';
+my $version = '1.9.1';
 
 # tv_grab_au
 # "Shepherd"
@@ -1174,7 +1174,7 @@ sub check_last_run
     }
     if ($last_refreshed_secs_ago > (4*60*60))
     {
-	if ($opt->{'days'} and $days != 1)
+	if ($opt->{'days'} and $days != 1 and !$opt->{allowautorefresh})
 	{
 	    &log("!! Will not autorefresh due to user-supplied '--days' option.\n");
 	}
@@ -2058,6 +2058,7 @@ sub get_command_line_options
 			reoutput
 			reoutput-mythtv
 			noautorefresh
+			allowautorefresh
 		     ));
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
@@ -2902,7 +2903,7 @@ Session options:
     --update              Update Shepherd but don't grab data
     --skipupdate          Don't update Shepherd or verify components; just grab data
     --skippost            Don't run any postprocessors on data
-    --noautorefresh       Don't switch to autorefresh mode (i.e. "--days 1")
+    --noautorefresh       Don't switch to autorefresh mode (which is "--days 1")
 
     --mode <s>            Quality (default), Efficiency or Speed
     --grabwith <s>        Run grabber(s) <s> before any others
