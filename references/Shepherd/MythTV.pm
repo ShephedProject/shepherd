@@ -1,7 +1,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.40';
+my $version = '0.41';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -207,16 +207,27 @@ sub mythtv_version
     print "\nAttempting to figure out your version of mythfilldatabase...\n";
 
     my $result = `mythfilldatabase --version`;
-    if ($result =~ /MythTV Version.*?v([\.\w\-]+)/)
+    if ($result =~ /^MythTV Version.*?v([\.\w\-]+)/m)
     {
 	$mythtv_version = $1;
+    }
+    elsif ($result =~ /^MythTV Branch.*?[v\/]([\.\w\-]+)/m)
+    {
+	$mythtv_version = $1;
+    }
+    elsif ($result =~ /^Library API.*?(0\.[\w\.\-]+)/m)
+    {
+	$mythtv_version = $1; 
+    }
+    if ($mythtv_version)
+    {
 	print "MythTV version seems to be $mythtv_version\n";
     }
     else
     {
 	print "Couldn't understand the response from 'mythfilldatabase --version'.\n" .
-	    "Assuming a version prior to 0.25.\n";
-	$mythtv_version = '0.24';
+	    "Assuming a bleeding-edge version.\n";
+	$mythtv_version = '0.99';
     }
     unless (defined $compare_to_version)
     {
