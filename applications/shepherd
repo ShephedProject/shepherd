@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.1';
+my $version = '1.9.2';
 
 # tv_grab_au
 # "Shepherd"
@@ -2380,7 +2380,7 @@ sub refill_mythtv
 	$mythtv_version = '0.24';
     }
     $result = &versioncmp('0.25', $mythtv_version);
-    my ($mythfilldatabase_exec, $mythfilldatabase_exec2);
+    my $mythfilldatabase_exec;
     if ($result <= 0)
     {
 	if ($reoutput)
@@ -2396,7 +2396,7 @@ sub refill_mythtv
     {
 	if ($reoutput)
 	{
-	    $mythfilldatabase_exec2 = "mythfilldatabase --graboptions '--reoutput'";
+	    $mythfilldatabase_exec = "mythfilldatabase --graboptions '--reoutput'";
 	}
 	else
 	{
