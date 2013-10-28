@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.3';
+my $version = '1.9.4';
 
 # tv_grab_au
 # "Shepherd"
@@ -2416,7 +2416,7 @@ sub refill_mythtv
 		    "to run ALL of the following commands yourself to update your\n" .
 		    "guide data. I will run the first one now but this will NOT update\n" .
 		    "any channels you have on the other sources! Alternately,\n" .
-		    "try feeding MythTV via the --reoutput command instead.\n\n");
+		    "try feeding MythTV with 'tv_grab_au --reoutput-mythtv' instead.\n\n");
 		foreach my $sid (@sources)
 		{
 		    my $str = $mythfilldatabase_exec;
