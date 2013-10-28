@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.2';
+my $version = '1.9.3';
 
 # tv_grab_au
 # "Shepherd"
@@ -2347,6 +2347,8 @@ sub refill_mythtv
 {
     my ($refresh, $reoutput) = @_;
 
+    require Shepherd::MythTV;
+
     my $t = time;
     if (!$refresh and (!$last_successful_run or $t - $last_successful_run > (24 * 3600)))
     {
@@ -2365,35 +2367,28 @@ sub refill_mythtv
 	     "fresh guide data.\n");
 	&countdown(10);
     }
-    my $mythtv_version;
-    &log("\nAttempting to figure out your version of mythfilldatabase...\n");
-    my $result = `mythfilldatabase --version`;
-    if ($result =~ /MythTV Version.*?v([\.0-9]+)/)
-    {
-	$mythtv_version = $1;
-	&log("MythTV version seems to be $mythtv_version\n");
-    }
-    else
-    {
-	&log("Couldn't understand the response from 'mythfilldatabase --version'.\n" .
-		"Assuming a version prior to 0.25.\n");
-	$mythtv_version = '0.24';
-    }
-    $result = &versioncmp('0.25', $mythtv_version);
     my $mythfilldatabase_exec;
-    if ($result <= 0)
+    if (&Shepherd::MythTV::mythtv_version('0.25') >= 0)
     {
+	# v0.25 or newer
 	if ($reoutput)
 	{
 	    $mythfilldatabase_exec = 'mythfilldatabase -- --reoutput';
 	}
+	elsif (&Shepherd::MythTV::mythtv_version('0.27') >= 0)
+	{
+	    # MythTV v0.27 deprecates '--update', wants '--only-update-guide'
+	    $mythfilldatabase_exec = "mythfilldatabase --only-update-guide --file --sourceid 1 --xmlfile $output_filename";
+	}
 	else
 	{
+	    # MythTV v0.25+ require '--file --sourceid <SOURCEID>', not '--file <SOURCEID>'
 	    $mythfilldatabase_exec = "mythfilldatabase --update --file --sourceid 1 --xmlfile $output_filename";
 	}
     }
     else
     {
+	# v0.24 or older
 	if ($reoutput)
 	{
 	    $mythfilldatabase_exec = "mythfilldatabase --graboptions '--reoutput'";
@@ -2403,10 +2398,44 @@ sub refill_mythtv
 	    $mythfilldatabase_exec = "mythfilldatabase --update --file 1 $output_filename";
 	}
     }
-    &log("Trying now...\nExecuting: $mythfilldatabase_exec\n\n".
+    if ($mythfilldatabase_exec =~ /--(file|sourceid) 1/)
+    {
+	my @sources = &Shepherd::MythTV::mythtv_sources();
+	if (@sources > 0)
+	{
+	    &log("\nYou seem to have MythTV channels on MythTV Source IDs: " .   
+		join(", ", @sources) . "\n");
+	    if ($sources[0] != 1)
+	    {
+		$mythfilldatabase_exec =~ s/--(file|sourceid) 1/--$1 $sources[0]/;
+	    }
+	    if (@sources > 1)
+	    {
+		&log("\n**********************************\nPLEASE NOTE!!!\n" .
+		    "Your MythTV has channels on multiple Sources. You may need\n" .
+		    "to run ALL of the following commands yourself to update your\n" .
+		    "guide data. I will run the first one now but this will NOT update\n" .
+		    "any channels you have on the other sources! Alternately,\n" .
+		    "try feeding MythTV via the --reoutput command instead.\n\n");
+		foreach my $sid (@sources)
+		{
+		    my $str = $mythfilldatabase_exec;
+		    $str =~ s/--(file|sourceid) (\d)/--$1 $sid/; 
+		    &log("  $str\n");
+		}
+		&log("\n**********************************\n");
+	    }
+	}
+	else
+	{
+	    &log("Couldn't figure out your MythTV Source IDs.\n");
+	}
+    }
+
+    &log("Trying now...\n\nExecuting: $mythfilldatabase_exec\n\n".
 	"-------------------mythfilldatabase output---------------------\n");
     sleep 1;
-    $result = system("$mythfilldatabase_exec");
+    my $result = system("$mythfilldatabase_exec");
     &log("-----------------end mythfilldatabase output-------------------\n\n");
     if ($result)
     {
@@ -2418,6 +2447,27 @@ sub refill_mythtv
 	}
 	else
 	{
+	    &log("Checking if you have multiple MythTV Sources setup, which would have\n" .
+		"caused this problem...\n");
+	    my @sources = &Shepherd::MythTV::mythtv_sources();
+	    &log("You seem to have MythTV channels on MythTV Source IDs: " .
+		join(", ", @sources) . "\n");
+	    if (!@sources or (@sources == 1 and $sources[0] == 1))
+	    {
+		&log("Everything looks OK... don't know what the problem was.\n");
+	    }
+	    else
+	    {
+		&log("Please try executing the following commands:\n");
+		foreach my $sid (@sources)
+		{
+		    next if ($sid == 1);
+		    my $str = $mythfilldatabase_exec;
+		    $str =~ s/--(file|sourceid) 1/--$1 $sid/;
+		    &log("\n   $str\n");
+		}
+		&log("Also: ");
+	    }
 	    &log("Consider trying 'tv_grab_au --reoutput-mythtv', which does the same\n" .
 		"thing, only by feeding output directly to MythTV. This requires\n" .
 		"that MythTV be already configured to use Shepherd as its default\n" .
@@ -2425,7 +2475,8 @@ sub refill_mythtv
 	}
     }
     &log("Shepherd: Hopefully your guide data has now been loaded into MythTV.\n" .
-	"          If not, please report it to the Shepherd mailing list.\n");
+	"          If not, please report it to the Shepherd mailing list,\n" .
+	"          including all of the above output.\n");
 }
 
 sub ancestry

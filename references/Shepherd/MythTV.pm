@@ -1,7 +1,7 @@
 #
 # Shepherd::MythTV library
 
-my $version = '0.41';
+my $version = '0.42';
 
 # This module provides some library functions for Shepherd components,
 # relieving them of the need to duplicate functionality.
@@ -235,6 +235,23 @@ sub mythtv_version
     }
 
     return &Sort::Versions::versioncmp($mythtv_version, $compare_to_version);
+}
+
+# 
+# Return an array of MythTV Source IDs
+#
+sub mythtv_sources
+{
+    my $dbh = &open_connection();
+    return unless ($dbh);
+    my $sth = $dbh->prepare("SELECT sourceid FROM channel WHERE xmltvid<>'' GROUP BY sourceid");
+    $sth->execute();
+    my @sources;
+    while (my ($sid) = $sth->fetchrow_array())
+    {
+	push @sources, $sid;
+    }
+    return @sources;
 }
 
 die "No DBI mysql support, please install!\n" if !grep /mysql/, DBI->available_drivers;
