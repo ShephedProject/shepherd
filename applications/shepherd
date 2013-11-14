@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.4';
+my $version = '1.9.5';
 
 # tv_grab_au
 # "Shepherd"
@@ -5052,9 +5052,8 @@ sub test_output_file
 sub output_data
 {
     my $reuse_cached_output = shift;
-    $reuse_cached_output = 0 if (!defined $reuse_cached_output);
     
-    my $output_cache_copy = $output_filename;
+    my $output_cache_copy = sprintf "%s/%s.xmltv", $CWD, ($opt->{'autorefresh'} ? 'refresh' : 'output');
 
     if ($reuse_cached_output) {
 	# re-use existing cached output
@@ -5082,21 +5081,18 @@ sub output_data
 
 	&log("Final output stored in $output_filename.\n");
 
-	unless ($opt->{'autorefresh'})
-	{
-	    # copy final output to our cache copy as well
-	    if ($output_filename ne $output_cache_copy) {
-		unlink($output_cache_copy);
-		open(F1,"<$output_filename");
-		open(F2,">$output_cache_copy");
-		while (<F1>) {
-		    print F2 $_;
-		}
-		close(F1);
-		close(F2);
+	# copy final output to our cache copy as well
+	if ($output_filename ne $output_cache_copy and !$reuse_cached_output) {
+	    unlink($output_cache_copy);
+	    open(F1,"<$output_filename");
+	    open(F2,">$output_cache_copy");
+	    while (<F1>) {
+		print F2 $_;
 	    }
-	    &log("Cached output stored in $output_cache_copy.\n");
+	    close(F1);
+	    close(F2);
 	}
+	&log("Cached output stored in $output_cache_copy.\n");
     }
 
     if (!$opt->{'nooutput'} and ($reuse_cached_output or !$opt->{'output'})) {
