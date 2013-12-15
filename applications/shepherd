@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.5';
+my $version = '1.9.6';
 
 # tv_grab_au
 # "Shepherd"
@@ -5065,6 +5065,7 @@ sub output_data
 	&log("Re-using existing output $output_filename\n");
     }
     else {
+	&log("Storing final output in $output_filename.\n");
 	my %writer_args = ( encoding => 'ISO-8859-1' );
 	my $fh = new IO::File(">$output_filename") || die "Can't open $output_filename for writing: $!";
 	$writer_args{OUTPUT} = $fh;
@@ -5079,20 +5080,23 @@ sub output_data
 	$writer->end();
 	$fh->close;
 
-	&log("Final output stored in $output_filename.\n");
-
 	# copy final output to our cache copy as well
-	if ($output_filename ne $output_cache_copy and !$reuse_cached_output) {
+	if (&Cwd::realpath($output_filename) ne &Cwd::realpath($output_cache_copy) and !$reuse_cached_output) {
+	    &log("Making copy of output for cache in $output_cache_copy.\n");
 	    unlink($output_cache_copy);
-	    open(F1,"<$output_filename");
-	    open(F2,">$output_cache_copy");
-	    while (<F1>) {
-		print F2 $_;
+	    if (open(F1,"<$output_filename") and open(F2,">$output_cache_copy")) {
+		while (<F1>) {
+		    print F2 $_;
+		}
+		close(F1);
+		close(F2);
+	    } else {
+		&log("ERROR: Unable to copy data from $output_filename to $output_cache_copy: $!\n");
 	    }
-	    close(F1);
-	    close(F2);
 	}
-	&log("Cached output stored in $output_cache_copy.\n");
+	else {
+	    &log("Cached output is stored in $output_cache_copy.\n");
+	}
     }
 
     if (!$opt->{'nooutput'} and ($reuse_cached_output or !$opt->{'output'})) {
