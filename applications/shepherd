@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.6';
+my $version = '1.9.7';
 
 # tv_grab_au
 # "Shepherd"
@@ -37,7 +37,7 @@ use lib 'references';
 
 our $wiki = 'http://svn.whuffy.com/wiki';
 
-&require_module("Cwd", qw(realpath));
+&require_module("Cwd");
 &require_module("LWP::UserAgent");
 &require_module("Getopt::Long");
 &require_module("Data::Dumper");
@@ -1028,7 +1028,7 @@ sub versioncmp( $$ )
 sub get_full_path
 {
     my $path = shift;
-    my $real = realpath($path);
+    my $real = &Cwd::realpath($path);
     return $path if (!$real);
     return $real;
 }
@@ -5058,11 +5058,11 @@ sub output_data
     if ($reuse_cached_output) {
 	# re-use existing cached output
 	$input_postprocess_file = $output_cache_copy;
+	&log("Using cached data from $output_cache_copy\n");
     }
 
-    if ($output_filename eq $input_postprocess_file) {
+    if (&Cwd::realpath($output_filename) eq &Cwd::realpath($input_postprocess_file)) {
 	# nothing to do - the input is the same as the output
-	&log("Re-using existing output $output_filename\n");
     }
     else {
 	&log("Storing final output in $output_filename.\n");
