@@ -1,12 +1,11 @@
 application     shepherd            1.9.7
-reference       channel_list        109
+reference       channel_list        110
 reference       Shepherd/Common.pm  1.10
 reference       Shepherd/MythTV.pm  0.42
 reference       Shepherd/Configure.pm   0.40
 reference	Shepherd/json_pp.pm 0.2
-grabber         oztivo              2.51
+grabber         oztivo              2.52
 grabber         yahoo7widget        2.30
-grabber         abc_website         4.11
 grabber         sbsweb              5.02
 grabber         rex                 9.2.1
 grabber         acctv_website       0.09
