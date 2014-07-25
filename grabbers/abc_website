@@ -1,12 +1,5 @@
 #!/usr/bin/env perl
 
-
-
-# NOTE 23-July-2014: This grabber is broken because of a format change in
-# details pages.
-
-
-
 # ABC/ABC2/ABC3/ABC News 24 au_tv guide grabber - runs from "Shepherd" master grabber
 #  * written by ltd
 #  * uses ABC website for ABC ABC2 ABC3 ABC News 24 data
@@ -27,12 +20,13 @@
 #    3.04  12jun07	abc website format change
 #    3.23  01dec09	added abc3
 #    4.00  14aug10	new website format, much redesign, added abc4/abchd/"ABC News 24"
+#    5.00  15jul14      new website format
 
 use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "4.12";
+my $version = "5.00";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -200,10 +194,12 @@ $writer = new XMLTV::Writer(%writer_args);
 $writer->start( { 'source-info-name'   => "$progname $version", 'generator-info-name' => "$progname $version"} );
 
 foreach my $ch ("ABC","ABC2 / ABC4","ABC3","ABC News 24") {
+	next unless ($channels->{$ch});
 	$writer->write_channel( { 'display-name' => [[ $ch, $lang ]], 'id' => $channels->{$ch} } ) if (defined $channels->{$ch});
 }
 
 foreach my $ch ("ABC","ABC2 / ABC4", "ABC3","ABC News 24") {
+        next unless ($channels->{$ch});
 	&get_station_close($ch, $urls->{station_close}->{$ch});
 	&get_abc_data($channels->{$ch}, $urls->{guide}->{ABC},$ch);
 }
@@ -367,11 +363,11 @@ DAYS:	while ($days_left > 0) {
 		my $url = sprintf "%s/%s.htm",$urlbase, POSIX::strftime("%Y%m/%Y%m%d",localtime($currtime));
 
 		my $tries = ($daynum > 7 ? 1 : 5);
-		&log((sprintf "Fetching %s summary data: day %d of %d",
-			$xmlid, $daynum, $opt_days ));
+		&log((sprintf "Fetching summary data: day %d of %d: %s",
+			$daynum, $opt_days, $xmlid ));
 		my $data=$webcache{$url};
 		if (defined $data) {
-			&log("reusing previously fetched data for $url");
+			&log("- reusing previously fetched data for $url");
 		} else {
 			$data = Shepherd::Common::get_url(url => $url, retries => ($tries-1));
 			$webcache{$url}=$data;
@@ -468,7 +464,7 @@ DAYS:	while ($days_left > 0) {
 						}
 					}
 
-					if ($progurl =~ /^\/tv\/guide\//) {
+					if ($progurl =~ /^\/tv\/programs\//) {
 						printf "day %d time '%s' (%s) prog: %s url: %s\n",
 							#$daynum,$tree_row->as_text(),POSIX::strftime("%Y%m%d%H%M", localtime($found_time)),
 							$programme,$progurl if ($debug && $debug > 1);
@@ -655,6 +651,12 @@ DAYS:	while ($days_left > 0) {
 			}
 		}
 
+		unless ($prog->{channel})
+		{
+		    use Data::Dumper;
+		    print "About to write and no channel key! " . Dumper($prog) . "\n";
+		}
+
 		Shepherd::Common::cleanup($prog);
 		$writer->write_programme($prog);
 	}
@@ -666,14 +668,39 @@ sub get_one_abc_event
 {
 	my ($cache_key, $url, $orig_title) = @_;
 
-	if ($stats{failed_to_fetch_portal_detail_page} >= 3 or $stats{failed_to_parse_portal_detail_page} >= 9)
+	if ($stats{failed_to_fetch_portal_detail_page} >= 300 or $stats{failed_to_parse_portal_detail_page} >= 900)
 	{
 		&log("skipping detail page because too many failures.");
 		return;
 	}
 
+	# Transform URL from something like this:
+	# 
+	# http://www.abc.net.au/tv/programs/new-adventures-of-peter-pan/#episode/ZX6218A005S00
+	# 
+	# ... to something like this:
+	# 
+	# http://www.abc.net.au/tv/programs/new-adventures-of-peter-pan/episode-ZX6218A-ZX6218A005S00.htm?_=1406256543487
+	#
+	# Because the first one is just a wrapper page that makes an AJAX call to the second one
+	# to actually fetch the details.
+	#
+	if ($url =~ m"(.*?)/#episode/(\w+)")
+	{
+	    my $root_url = $1;
+	    my $episode_id = $2;
+	    my $short_episode_id = substr($episode_id, 0, 7);
+
+	    $url = $root_url . '/episode-' . $short_episode_id . '-' . $episode_id . '.htm?_=' . $script_start_time . '001';
+	}
+	else
+	{
+	    &log("No episode data available.") if ($debug);
+	    return;
+	}
+	
 	my $seen_programme = 0;
-	my $data = Shepherd::Common::get_url(url => $url);
+	my $data = Shepherd::Common::get_url(url => $url, retries => 0);
 	my $tree = HTML::TreeBuilder->new_from_content($data) if ($data);
 	if (!defined $tree) {
 		&log("failed to fetch $url; skipping");
@@ -713,101 +740,58 @@ sub get_one_abc_event
 	#   </div>
 	# </div>
 
-	if (my $inner_tree = $tree->look_down('_tag' => 'div', 'id' => 'prgTop')) {
-		my $event_title = undef, my $event_subtitle = undef, my $event_description = undef, my $event_genre = undef;
-		my $event_repeat = undef, my $event_cc = undef, my $event_rating = undef;
+	sleep 1;
+	my $event_title = undef, my $event_subtitle = undef, my $event_description = undef, my $event_genre = undef;
+	my $event_repeat = undef, my $event_cc = undef, my $event_rating = undef;
 
-		if (my $prog_h1 = $inner_tree->look_down('_tag' => 'h1')) {
-			my $full_title = $prog_h1->as_HTML();
-			$full_title =~ s/(^<h1>|<\/h1>$)//g;
-			chomp($full_title);
-			$full_title =~ s/\n$//s;	# chomp doesn't seem to work
-			# TODO: check title shown here against the one from
-			# the overview, so as to avoid splitting on prognames
-			# with hiphens in them
-			($event_title,$event_subtitle) = split(/ - /,$full_title);
+	if (my $prog_sd = $tree->look_down('_tag' => 'div', 'class' => 'carouselItem')) {
 
-			# If the title on this page matches the title
-			# on the parent page, we assume that the subtitle
-			# heuristics are correct (not a hiphenated title).
-			# Alas the event title sometimes contains url-escaped
-			# characters (such as &#39 for single quote) and
-			# so it will sometimes differ.  We need to unescape
-			# before comparing.
-			if (1 or $event_title eq $orig_title) {
+	    if (my $h3_heading = $prog_sd->look_down('_tag' => 'h3', 'class' => 'carouselEpHeading')) {
+		$data_cache->{$cache_key}->{subtitle} = $h3_heading->as_text();
+		Shepherd::Common::log(" - decoded subtitle '" . $data_cache->{$cache_key}->{subtitle} . "'") if ($debug);
+	    }
 
-				$event_title =~ s/(<[a-zA-Z0-9]+\>)//g;	# remove html tags
-				$event_title =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
-				Shepherd::Common::log(" - decoded title '".$event_title."' (cf '".$orig_title."')") if ($debug);
-
-				if ($event_subtitle) {
-					$event_subtitle =~ s/(<[\/a-zA-Z0-9]+\>)//g;	# remove html tags
-					$event_subtitle =~ s/(^\n+|\n+$)//g;		# strip trailing/leading blank lines
-					$event_subtitle =~ s/(^\s+|\s+$)//g;		# strip trailing/leading blanks
-					if ($event_subtitle) {
-						$data_cache->{$cache_key}->{subtitle} = $event_subtitle;
-						Shepherd::Common::log(" - decoded subtitle '".$event_subtitle."'") if ($debug);
-					}
-				}
-			} elsif (length $event_subtitle) {
-				&log("confused by hiphen in title: '$full_title'; event title '$event_title' is not the same as original title '$orig_title'");
-			}
+	    my %subdetails;
+	    if (my $prog_more = $prog_sd->look_down('_tag' => 'span', 'class' => 'epMoreDetails')) {
+		foreach my $span ($prog_more->look_down('_tag' => 'span')) {
+		    my $attr = $span->attr('class');
+		    next if ($attr eq 'epShare');
+		    $attr =~ s/^ep//;
+		    $subdetails{$attr} = $span->as_text();
+		}
+		if ($subdetails{'Genre'}) {
+		    $data_cache->{$cache_key}->{genre} = Shepherd::Common::translate_category($subdetails{'Genre'});
+		    Shepherd::Common::log(" - decoded genre '$subdetails{'Genre'}'") if ($debug);
 		}
 
-		if (my $prog_sd = $inner_tree->look_down('_tag' => 'div', 'id' => 'prgSubDetails')) {
-			my %subdetails;
-			foreach my $em ($prog_sd->look_down('_tag' => 'em')) {
-				$subdetails{$em->attr('id')}=$em->as_text();
-			}
-			if (my $prog_genre_text = $subdetails{'prgGenre'}) {
-				$data_cache->{$cache_key}->{genre} = Shepherd::Common::translate_category($prog_genre_text);
-				Shepherd::Common::log(" - decoded genre '$prog_genre_text'") if ($debug);
-			}
-
-			if ($subdetails{'prgCc'}) {
-				$data_cache->{$cache_key}->{cc} = 1;
-				Shepherd::Common::log(" - decoded CC") if ($debug);
-			}
-
-			if ($subdetails{'prgHdtv'}) {
-				$data_cache->{$cache_key}->{hdtv} = 1;
-				Shepherd::Common::log(" - decoded HDTV") if ($debug);
-			}
-
-			if ($subdetails{'prgRepeat'}) {
-				$data_cache->{$cache_key}->{repeat} = 1;
-				Shepherd::Common::log(" - decoded Repeat") if ($debug);
-			}
-
-			# any remaining text should be rating
-			if (my $rating_text = $subdetails{'prgRating'}) {
-				$rating_text =~ s/[^\x20-\x7f]/ /g;
-				if ($rating_text =~ /^\s*(\w+)\s*$/) {
-					$data_cache->{$cache_key}->{rating} = $1;
-					Shepherd::Common::log(" - decoded Rating '$1'") if ($debug);
-				}
-			}
+		if ($subdetails{'ClosedCaption'}) {
+		    $data_cache->{$cache_key}->{cc} = 1;
+		    Shepherd::Common::log(" - decoded CC") if ($debug);
 		}
 
-		if (my $prog_desc = $tree->look_down('_tag' => 'div', 'class' => 'prgContent')) {
-			# gather description
-			foreach my $para ($prog_desc->look_down('_tag' => 'p')) {
-				$data_cache->{$cache_key}->{desc} .= $para->as_text() . "\n";
-				Shepherd::Common::log("added desc '".$para->as_text()."'") if ($debug);
-			}
+		if (my $rating_text = $subdetails{'Rating'}) {
+		    $rating_text =~ s/[^\x20-\x7f]/ /g;
+		    if ($rating_text =~ /^\s*(\w+)\s*$/) {
+			$data_cache->{$cache_key}->{rating} = $1;
+			Shepherd::Common::log(" - decoded Rating '$1'") if ($debug);
+		    }
 		}
 
-		if (defined $data_cache->{$cache_key}->{desc}) {
-			$data_cache->{$cache_key}->{desc} =~ s/(^\n|\n$)//g;		# strip trailing/leading blank lines
-			$data_cache->{$cache_key}->{desc} =~ s/(^\s+|\s+$)//g;		# strip trailing/leading spaces
-			delete $data_cache->{$cache_key}->{desc} if ($data_cache->{$cache_key}->{desc} eq "");
-		}
+	    }
 
-		$seen_programme++;
-		$stats{added_cached_data}++;
+	    if (my $p_synopsis = $prog_sd->look_down('_tag' => 'p', 'class' => 'epSynopsis')) {
+		my $synopsis = $p_synopsis->as_text();
+		$synopsis =~ s/(^\n|\n$)//g;            # strip trailing/leading blank lines
+		$synopsis =~ s/(^\s+|\s+$)//g;          # strip trailing/leading spaces
+		$data_cache->{$cache_key}->{desc} = $synopsis;
+		Shepherd::Common::log(" - added desc '$synopsis'") if ($debug);
+	    }
 
-		&write_cache if (($opt_no_cache == 0) &&
-		  (($stats{added_cached_data} % 30) == 0)); # incrementally write
+	    $seen_programme++;
+	    $stats{added_cached_data}++;
+
+	    &write_cache if (($opt_no_cache == 0) &&
+		(($stats{added_cached_data} % 30) == 0)); # incrementally write
 	}
 
 	$tree->delete;
@@ -884,7 +868,7 @@ sub get_station_close
 
 		# look ahead to see if a time element is next
 		if (@elements == 0 or lc($elements[0]->tag) eq 'h2') {
-			&log("station close time for $chan_id on $timeattr[3]/$timeattr[4] is not found, deleteing old time.") if $debug;
+			&log("station close time for $chan_id on $timeattr[3]/$timeattr[4] is not found, deleting old time.") if $debug;
 			delete $data_cache->{$cache_key};
 			next;
 		}
