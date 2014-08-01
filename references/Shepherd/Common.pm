@@ -1,7 +1,7 @@
 #
 # Shepherd::Common library
 
-my $version = '1.10';
+my $version = '1.20';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -13,7 +13,6 @@ my $version = '1.10';
 
 package Shepherd::Common;
 
-use Net::SSL;
 use LWP::UserAgent;
 use HTTP::Request;
 use HTTP::Request::Common;
