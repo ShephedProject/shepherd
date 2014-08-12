@@ -1,7 +1,7 @@
 #
 # Shepherd::Common library
 
-my $version = '1.20';
+my $version = '1.30';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -14,6 +14,7 @@ my $version = '1.20';
 package Shepherd::Common;
 
 use LWP::UserAgent;
+use LWP::Protocol::https;
 use HTTP::Request;
 use HTTP::Request::Common;
 use Compress::Zlib;
