@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.49";
+my $version = "0.50";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -261,7 +261,9 @@ GetOptions(
 	'version'		=> \$opt->{version},
 	'ready'			=> \$opt->{ready},
 	'desc'			=> \$opt->{desc},
-	'v'			=> \$opt->{version});
+	'v'			=> \$opt->{version},
+	'change-title-translation:s%' => \$opt->{'change-title-translation'},
+    );
 
 printf "%s v%s\n",$progname,$version;
 
@@ -334,6 +336,8 @@ if ((defined $opt->{old_config_file}) && (-r $opt->{old_config_file})) {
 &show_settings;
 
 &fill_in_channels if ($opt->{channels_file});
+
+&change_title_translation if ($opt->{'change-title-translation'});
 
 foreach my $file (@ARGV) {
 	$datafile = $file;
@@ -2159,3 +2163,91 @@ sub reconcile
 	}
 }
 
+sub change_title_translation
+{
+    my $h = $opt->{'change-title-translation'};
+
+    if (!$h or !ref $h or ref $h ne 'HASH')
+    {
+	print "Incorrect format. Should be --change-title-translation \"old name\"=\"new name\"\n";
+	exit;
+    }
+
+    my ($from) = keys %$h;
+    my $to = $h->{$from};
+
+    my $key = lc $from;
+
+#    print "\nCurrent information on show \"$from\": " . Dumper($title_xlate_table->{$key});
+
+    my @alts;
+    my $alt;
+    if ($title_xlate_table->{$key}->{alternate})
+    {
+	@alts = keys %{$title_xlate_table->{$key}->{alternate}};
+	$alt = $title_xlate_table->{$key}->{alternate}->{$to} if ($to);
+
+	print "\nAlternate names seen for this show: " . join(', ', map { '"' . $_ . '"' } @alts) . ".\n";
+
+	if ($alt)
+	{
+	    print "Switching names...\n";
+	    my %alt_hash = %{$title_xlate_table->{$key}->{alternate}};
+	    delete $alt_hash{$to};
+	    $alt_hash{$title_xlate_table->{$key}->{translation}} = {
+		'last_seen_in_secondary' => $title_xlate_table->{$key}->{last_seen_in_primary},
+		'secondary' => $title_xlate_table->{$key}->{same},
+	    };
+	    my %same_hash = %{$title_xlate_table->{$key}->{same}};
+	    my $new_key = lc $to;
+	    my $total_seens = 0;
+	    foreach (keys %{$alt->{secondary}})
+	    {
+		$total_seens += $alt->{secondary}->{$_};
+	    }
+	    my $new_hash = {
+		'seen_in_primary' => $total_seens,
+		'translated' => $title_xlate_table->{$key}->{translated},
+		'last_seen_in_primary' => $alt->{last_seen_in_secondary},
+		'same' => { %{$alt->{secondary}} },
+		'alternate' => { %alt_hash },
+		'translation' => $to,
+	    };
+#	    print "Change to this!\n";
+#	    print Dumper($new_hash);
+
+	    delete $title_xlate_table->{$key};
+	    $title_xlate_table->{$new_key} = $new_hash;
+            
+	    write_config_file();
+
+	    print "Show name successfully changed to \"$to\"!\n" .
+		  "\n *** READ THIS ***\n" .
+	          "  1. You may need to change your PVR's recording rules now to catch this new title.\n" .
+		  "  2. This change will take effect the next time Shepherd completes a full run.\n" .
+		  "     To push the new show name into your PVR immediately (which is recommended), do this:\n" .
+		  "       tv_grab_au --dontcallgrabbers --notimetest\n" .
+		  "     This will make Shepherd efficiently reprocess the raw data it gathered last run.\n\n";
+	}
+	elsif ($to)
+	{
+	    print "\n!!! Your new title has not been seen for this show in any datasource. If you use\n" .
+		  "    it, Shepherd may not correctly identify the show by this title in the future.\n" .
+#		  "    To proceed anyway, use the --force option.\n\n"
+		  '';
+	}
+	else
+	{
+	    print "\nTo use one of these as the show title instead, use:\n" .
+		  "  --change-title-translation \"$from\"=\"<new title>\"\n" .
+		  "For example:\n" .
+		  "  --change-title-translation \"$from\"=\"" . $alts[0] . "\"\n";
+	}
+    }
+    else
+    {
+	print "\nSorry, no alternate names have ever been seen for \"$from\"!\n";
+    }
+
+    exit;
+}

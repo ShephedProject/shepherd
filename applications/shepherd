@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.7';
+my $version = '1.9.8';
 
 # tv_grab_au
 # "Shepherd"
@@ -2059,6 +2059,8 @@ sub get_command_line_options
 			reoutput-mythtv
 			noautorefresh
 			allowautorefresh
+			list-title-translations
+			change-title-translation:s%
 		     ));
   $debug = $opt->{debug};
   $days = $opt->{days} if ($opt->{days});
@@ -2112,13 +2114,15 @@ sub process_setup_commands
 			'configure-mythtv' => '',
 			'pending' => '',
 			ancestry => '',
-			sources => ''
+			sources => '',
+			'list-title-translations' => '',
+			'change-title-translation' => '',
 		    );
 
     my ($run, $write_flag, $status_flag);
     foreach my $func (keys %routines)
     {
-	if ($opt->{$func})
+	if (defined $opt->{$func})
 	{
 	    $run = 1;
 	    my $sub = $func;
@@ -2329,6 +2333,76 @@ sub list_chan_names
 {
     require Shepherd::Configure;
     &Shepherd::Configure::list_chan_names;
+}
+
+sub list_title_translations
+{
+    my $fn = "$CWD/reconcilers/reconciler_mk2/reconciler_mk2.alt_title.log";
+    if (-e $fn)
+    {
+	print "\nDisplaying title translation log: $fn\n";
+	system("less $fn");
+	print "\nThis output is from the file:\n  $fn\n" .
+	    "You can find older log files like this in the same directory.\n\n" .
+	    "To edit a title translation, do this:\n" .
+	    "   tv_grab_au --change-title-translation \"<wrong name>\"=\"<right name>\"\n" .
+	    "For more help and examples: tv_grab_au --change-title-translation\n";
+	exit;
+    }
+    else
+    {
+	print "ERROR: No log found for title translations!\n" .
+	      "It should exist here: $fn\n";
+    }
+}
+
+sub change_title_translation
+{
+    my ($a) = @_;
+
+    my ($from, $to);
+    if ($a and ref $a and ref $a eq 'HASH')
+    {
+	($from) = keys %$a;
+	$to = $a->{$from};
+    }
+
+    if (!$from)
+    {
+	print "\nShepherd often confronts a situation where the same show is listed under different\n" .
+	      "names in different data sources. These must be reconciled, or else your PVR will\n" .
+	      "think they are separate shows and not record them all. Shepherd guesses at which\n" .
+	      "is the correct, \"official\" title, but sometimes it gets it wrong and translates\n" .
+	      "show names in a sub-optimal way -- e.g. listing \"Brooklyn Nine-Nine (New Series\n" .
+	      "Premiere)\" for every episode instead of just \"Brooklyn Nine-Nine\".\n\n" .
+	      "If this is happening to you, you can tell Shepherd what you want the show\n" .
+	      "to be called. *** Note: ensure your PVR is set to record this name! ***\n\n" .
+	      "Usage:\n" .
+	      "  tv_grab_au --change-title-translation\n" .
+	      "                    Display this help page\n\n" .
+	      "  tv_grab_au --change-title-translation \"<current show name>\"\n" .
+	      "  tv_grab_au --change-title-translation \"Brooklyn Nine-Nine (New Series Premiere)\"\n" .
+	      "                    Display possible alternate titles for this show\n\n" .
+	      "  tv_grab_au --change-title-translation \"<current show name>\"=\"<new show name>\"\n" .
+	      "  tv_grab_au --change-title-translation \"Brooklyn Nine-Nine (New Series Premiere)\"=\"Brooklyn Nine-Nine\"\n" .
+	      "                    Change the show's official name\n\n" .
+	      "  tv_grab_au --list-title-translations\n" .
+	      "                    List all known show titles\n\n";
+	exit;
+    }
+
+    if ($to)
+    {
+	print "\nChanging preferred show title from \"$from\" to \"$to\"\n";
+    }
+    else
+    {
+	print "\nLooking up show \"$from\"...\n";
+    }
+    my $comm = "$CWD/reconcilers/reconciler_mk2/reconciler_mk2 --no-log --change-title-translation \"$from\"=\"$to\"";
+    call_prog('reconciler_mk2', $comm, 1, 0, 1, 'reconciler');
+
+    exit;
 }
 
 sub set_icons
@@ -2980,6 +3054,13 @@ Configuration options:
     --setpreftitle <s>    Set preferred 'title' source as grabber <s>
     --clearpreftitle      Clear preferred 'title' source
     --reset               Remove all previous title translation data
+
+    --list-title-translations
+                          Show how Shepherd is choosing between "official"
+			  and unofficial names for shows
+    --change-title-translation '<from>' '<to>'
+                          Change a show's "official" name
+		    
 };
     exit 0;
 }
