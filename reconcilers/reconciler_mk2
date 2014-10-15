@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.51";
+my $version = "0.52";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -220,6 +220,7 @@ my $title_history;	# cached
 
 my %amp = ( nbsp => ' ', qw{ amp & lt < gt > apos ' quot " } );
 
+my $canonical_stop_list_exceptions;
 
 #
 # parse command line
@@ -338,6 +339,8 @@ if ((defined $opt->{old_config_file}) && (-r $opt->{old_config_file})) {
 &fill_in_channels if ($opt->{channels_file});
 
 &change_title_translation if ($opt->{'change-title-translation'});
+
+&setup_canonical_stop_list_exceptions;
 
 foreach my $file (@ARGV) {
 	$datafile = $file;
@@ -881,26 +884,73 @@ sub canonicalizeTitle
 }
 
 ######################################################################################################
-# used to override what would otherwise be canonical matches
-#  returns 1 if they should NOT match
-
-sub match_stoplist_override
+# Allow the user to create a file named
+#   ~/.shepherd/reconcilers/reconciler_mk2/reconciler_mk2.stop_list_exceptions.conf
+# which will be read instead of the default list.
+#
+sub setup_canonical_stop_list_exceptions
 {
-	my ($word1, $word2) = @_;
+	my $conf_file = "$progname.stop_list_exceptions.conf";
+
+	if (-r $conf_file)
+	{
+		print "\nFound user $conf_file: reading stop list exceptions.\n";
+		local (@ARGV, $/) = ($conf_file);
+		eval <>;
+		if ($@ and !$opt->{configure})
+		{
+			warn "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR in $conf_file!!\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n$@";
+			print "\nNot using $conf_file due to errors. Falling back on default.\n\n";
+		}
+		else
+		{
+			print "Using custom stop list exceptions!\n";
+			print Dumper($canonical_stop_list_exceptions) if ($opt->{debug});
+		}
+	}
 
 	# if the left-hand-side programme matches the right-hand-side, ensure the
 	# alternate programme ALSO matches the right-hand-side
-	my $canonical_stop_list_exceptions = {
-		'Law.*Order' => [ "Criminal", "SVU", "Special", "Trial","UK" ],
-		'BBC World News' => [ "America" ],
-		'(CSI|Crime.*Scene.*Investigation).*:' => [ ":.*Crime", "NY", "N.Y", "New", "Miami" ], 
-		'NCIS' => [ "Los Angeles", "New Orleans" ], 
-		'Doctor Who' => ["Confidential"], 
-		'Stargate' => [ "Universe", "SG.*1", "Atlantis", "Infinity" ],
-		'Criminal Minds' => [ 'Suspect Behavior', 'Suspect Behaviour' ],
-		'Once Upon a Time' => [ 'in .*' ],
+	unless (ref $canonical_stop_list_exceptions eq 'HASH')
+	{
+		print "Using default stop list exceptions.\n" if ($opt->{debug});
+
+		##################################################################################
+		# To create your own exceptions, copy & paste the below into a file named
+		# ~/.shepherd/reconcilers/reconciler_mk2/reconciler_mk2.stop_list_exceptions.conf
+		# and then make any changes you desire.
+		#
+		# START COPYING FROM THE LINE BELOW THIS ONE
+	
+		$canonical_stop_list_exceptions = {
+		    'Law.*Order' => [ "Criminal", "SVU", "Special", "Trial","UK" ],
+		    'BBC World News' => [ "America" ],
+		    '(CSI|Crime.*Scene.*Investigation).*:' => [ ":.*Crime", "NY", "N.Y", "New", "Miami" ], 
+		    'NCIS' => [ "Los Angeles", "New Orleans" ], 
+		    'Doctor Who' => ["Confidential"], 
+		    'Stargate' => [ "Universe", "SG.*1", "Atlantis", "Infinity" ],
+		    'Criminal Minds' => [ 'Suspect Behavior', 'Suspect Behaviour' ],
+		    'Once Upon a Time' => [ 'in .*' ],
 		};
 
+		# STOP COPYING ON THE LINE ABOVE THIS ONE
+		#
+		# You can test your edited file for syntax errors with the command:
+		# perl -c reconciler_mk2.stop_list_exceptions.conf
+		#
+		# ###############################################################################
+	}
+}
+
+######################################################################################################
+# used to override what would otherwise be canonical matches
+#  returns 1 if they should NOT match
+#
+sub match_stoplist_override
+{
+        my ($word1, $word2) = @_;
+
+	die "No stop list exceptions!" unless (ref $canonical_stop_list_exceptions eq 'HASH');
 	foreach my $stop1 (keys %$canonical_stop_list_exceptions) {
 		#printf "checking word1 ($word1) against stoplist stop1 ($stop1) ..\n";
 		if ($word1 =~ /^$stop1/i) {

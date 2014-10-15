@@ -12,7 +12,7 @@ grabber         rex                 9.2.1
 grabber         acctv_website       0.09
 grabber         zaxmltv             0.03
 grabber         foxtel_swf          4.01
-reconciler      reconciler_mk2      0.51
+reconciler      reconciler_mk2      0.52
 postprocessor   imdb_augment_data   1.03
 postprocessor   metacritic          1.1
 postprocessor   augment_timezone    0.30
