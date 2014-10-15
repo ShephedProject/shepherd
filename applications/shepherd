@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.8';
+my $version = '1.9.9';
 
 # tv_grab_au
 # "Shepherd"
@@ -3058,7 +3058,7 @@ Configuration options:
     --list-title-translations
                           Show how Shepherd is choosing between "official"
 			  and unofficial names for shows
-    --change-title-translation '<from>' '<to>'
+    --change-title-translation '<from>'='<to>'
                           Change a show's "official" name
 		    
 };
