@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.53";
+my $version = "0.54";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -906,39 +906,72 @@ sub setup_canonical_stop_list_exceptions
 		}
 		else
 		{
-			print "Using custom stop list exceptions!\n";
+			print "Adding custom stop list exceptions!\n";
 			print Dumper($canonical_stop_list_exceptions) if ($opt->{debug});
 		}
 	}
-
-	unless (ref $canonical_stop_list_exceptions eq 'HASH')
+	else
 	{
-		print "Using default stop list exceptions.\n" if ($opt->{debug});
+	    print "Using default stop list exceptions.\n" if ($opt->{debug});
+	}
 
-		##################################################################################
-		# To create your own exceptions, copy & paste the below into a file named
-		# ~/.shepherd/reconcilers/reconciler_mk2/reconciler_mk2.stop_list_exceptions.conf
-		# and then make any changes you desire.
-		#
-		# How this works: When Shepherd finds two programs with similar but different
-		# names, and would otherwise conclude that they're the same program, it checks
-		# them against this list first. If one of the programs matches the left side,
-		# then Shepherd checks if it matches any of the right side options. If it does,
-		# then the other program must also match the same right side option, or else
-		# the match will be rejected.
-		#
-		# For example, consider two programs:
-		# #1: "Law & Order: Special Victims Unit"
-		# #2: "Law and Order: UK". 
-		# Both match the left-side regular expression "Law.*Order". #1 matches "Special" 
-		# in the right-side options. However, "Law and Order: UK" does not also match 
-		# "Special", so this match is rejected, and they are deemed to be different shows.
-		#
-		# Matches are case-insensitive.
-		#
-		# START COPYING FROM THE LINE BELOW THIS ONE
-	
-		$canonical_stop_list_exceptions = {
+	$canonical_stop_list_exceptions ||= { };
+
+	###################################################################################
+	# To modify Shepherd's behaviour, create a file named:
+	#   ~/.shepherd/reconcilers/reconciler_mk2/reconciler_mk2.stop_list_exceptions.conf
+	# with your own rules. (See examples below.)
+	#
+	# WHAT STOP LIST EXCEPTIONS ARE
+	# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	# How this works: When Shepherd finds two programs with similar but different
+	# names, and would otherwise conclude that they're the same program, it checks
+	# them against this list first. If one of the programs matches the left side,
+	# then Shepherd checks if it matches any of the right side options. If it does,
+	# then the other program must also match the same right side option, or else
+	# the match will be rejected.
+	#
+	# For example, consider two programs:
+	# #1: "Law & Order: Special Victims Unit"
+	# #2: "Law and Order: UK". 
+	# and the rule:
+	#   'Law.*Order' => [ "Criminal", "(SVU|Special)", "Trial","UK" ],
+	#
+	# Both match the left-side regular expression "Law.*Order". #1 matches "Special" 
+	# in the right-side options. However, "Law and Order: UK" does not also match 
+	# "Special", so this match is rejected, and they are deemed to be different shows.
+	#
+	# Matches are case-INsensitive.
+	#
+	# SOME EXAMPLES
+	# ~~~~~~~~~~~~~
+	# What your file should look like if you want to:
+	#
+	# (1) Make sure "Seven News" is treated as a different show to "Seven News at 4":
+	#
+	# $default_canonical_stop_list_exceptions = {
+	#	'Seven News' => [ 'at ' ],
+	# };
+	#
+	# (2) Same as #1 but also break out different Doctor Who shows as separate shows:
+	# $default_canonical_stop_list_exceptions = {
+	#       'Seven News' => [ 'at ' ],
+	#       'Doctor Who' => [ 'Confidential', 'Extra', 'Greatest Moments', 'Extra' ],
+	# };
+	#
+	# (3) Delete Shepherd's default stop list exceptions for "Stargate":
+	# $default_canonical_stop_list_exceptions = {
+	#	'Stargate' => [ ],
+	# };
+	#
+	#
+	# TROUBLESHOOTING
+	# ~~~~~~~~~~~~~~~
+	# You can test your edited file for syntax errors with the command:
+	#   perl -c reconciler_mk2.stop_list_exceptions.conf
+	#
+
+	my $default_canonical_stop_list_exceptions = {
 		    'Law.*Order' => [ "Criminal", "(SVU|Special)", "Trial","UK" ],
 		    'BBC World News' => [ "America" ],
 		    '(CSI|Crime.*Scene.*Investigation).*:' => [ ":.*Crime", "(New York|NY|N\.Y\.)", "Miami" ], 
@@ -947,14 +980,14 @@ sub setup_canonical_stop_list_exceptions
 		    'Stargate' => [ "Universe", "SG.*1", "Atlantis", "Infinity" ],
 		    'Criminal Minds' => [ 'Suspect Behaviou?r' ],
 		    'Once Upon a Time' => [ 'in .*' ],
+		    'Seven News' => [ 'at ' ],
 		};
-
-		# STOP COPYING ON THE LINE ABOVE THIS ONE
-		#
-		# You can test your edited file for syntax errors with the command:
-		# perl -c reconciler_mk2.stop_list_exceptions.conf
-		#
-		# ###############################################################################
+	foreach my $key (keys %$default_canonical_stop_list_exceptions)
+	{
+	    unless (exists $canonical_stop_list_exceptions->{$key})
+	    {
+		$canonical_stop_list_exceptions->{$key} = $default_canonical_stop_list_exceptions->{$key};
+	    }
 	}
 }
 
