@@ -2833,7 +2833,7 @@ sub show_mythtv_mappings
     map { $xmltvids{$channels->{$_}} = $_ } keys %$channels;
     map { $xmltvids{$opt_channels->{$_}} = $_ } keys %$opt_channels;
     my %unmapped = %xmltvids;
-    foreach my $chan (@$mchans)
+    foreach my $chan (sort { ($a->{channum} or 9999) <=> ($b->{channum} or 9999) || ($a->{name} or $a->{callsign} or '') cmp ($b->{name} or $b->{callsign} or '') } @$mchans)
     {
 	my $mapped_to = $chan->{'xmltvid'} ? $xmltvids{$chan->{'xmltvid'}} || '-' : '-';
 	delete $unmapped{$chan->{'xmltvid'}} if ($mapped_to ne '-');
@@ -2841,28 +2841,39 @@ sub show_mythtv_mappings
 	my $longname = $chan->{'name'};
         $longname .= " ($chan->{callsign})" if ($chan->{'callsign'} and lc($chan->{'callsign'}) ne lc($chan->{'name'}));
 	my $channum = $chan->{'channum'};
-	if ($show_xmltvids)
-	{
-	    &log(sprintf "%4s  %-30s %-20s <- %s\n",
-		         $channum,
-			 $longname,
-			 $chan->{'xmltvid'} || '-',
-			 $mapped_to
-		        );
-	}
-	else
-	{
-	    &log(sprintf "%4s  %-30s <- %s\n",
-		    $channum,
-		    $longname,
-		    $mapped_to);
-	}
+	show_mythtv_mapping($channum, $longname, ($show_xmltvids ? $chan->{'xmltvid'} || '-' : undef), $mapped_to);
     }
     if (keys %unmapped)
     {
+	foreach (keys %unmapped)
+	{
+	    show_mythtv_mapping('', '-', ($show_xmltvids ? '-' : undef), $unmapped{$_});
+	}
 	&log("\nWARNING! Unmapped guide data: " . join(', ', values %unmapped) . ".\n".
 	     "         Shepherd is set to download guide data that no MythTV channel wants.\n".
 	     "         Either map these to a MythTV channel, or do not subscribe to them!\n\n");
+    }
+}
+
+sub show_mythtv_mapping
+{
+    my ($channum, $name, $xmltvid, $mapped_to) = @_;
+
+    if ($xmltvid)
+    {
+	&log(sprintf "%4s  %-30s %-20s <- %s\n",
+	    $channum,
+	    $name,
+	    $xmltvid || '-',
+	    $mapped_to
+	);
+    }
+    else
+    {
+	&log(sprintf "%4s  %-30s <- %s\n",
+	    $channum,
+	    $name,
+	    $mapped_to);
     }
 }
 
