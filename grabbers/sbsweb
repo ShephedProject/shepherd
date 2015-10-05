@@ -5,13 +5,13 @@
 # Good data, usually 14-21 days, but has a lot of variability
 # in titles & subtitles.
 #
-# Currently only good for SBS ONE, SBS TWO and NITV, not SBS News, but
+# Currently only good for SBS, SBS TWO and NITV, not SBS News, but
 # has been coded to make adding any future channels easy.
 #
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '5.03';
+my $version = '5.04';
 
 use strict;
 use warnings;

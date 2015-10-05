@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.9';
+my $version = '1.9.11';
 
 # tv_grab_au
 # "Shepherd"
@@ -105,7 +105,7 @@ my $invoked = get_full_path($0);
 @{$hd_to_sds->{"Prime HD"}} = ("Prime");
 @{$hd_to_sds->{"Nine HD"}} = ("Nine","WIN","NBN","Imparja");
 @{$hd_to_sds->{"One HD"}} = ("One Digital");
-@{$hd_to_sds->{"SBS HD"}} = ("SBS ONE");
+@{$hd_to_sds->{"SBS HD"}} = ("SBS");
 
 
 # grabbing
