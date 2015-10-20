@@ -1,0 +1,40 @@
+# Custom Stop List Example file 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# This file contains some examples. See the comments in the reconciler code
+# (~/.shepherd/reconcilers/reconciler_mk2) for more info.
+#
+# WHAT STOP LIST EXCEPTIONS ARE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# How this works: When Shepherd finds two programs with similar but different
+# names, and would otherwise conclude that they're the same program, it checks
+# them against this list first. If one of the programs matches the left side,
+# then Shepherd checks if it matches any of the right side options. If it does,
+# then the other program must also match the same right side option, or else
+# the match will be rejected.
+#
+# For example, consider two programs:
+# #1: "Law & Order: Special Victims Unit"
+# #2: "Law and Order: UK". 
+# and the rule:
+#   'Law.*Order' => [ "Criminal", "(SVU|Special)", "Trial","UK" ],
+#
+# Both match the left-side regular expression "Law.*Order". #1 matches "Special" 
+# in the right-side options. However, "Law and Order: UK" does not also match 
+# "Special", so this match is rejected, and they are deemed to be different shows.
+#
+# Matches are case-INsensitive.
+#
+
+
+$canonical_stop_list_exceptions = {
+
+	# Example (1) Make sure "Seven News" is treated as a different show to "Seven News at 4":
+	'Seven News' => [ 'at ' ],
+
+	# Example (2) Break out different Doctor Who shows as separate shows:
+	'Doctor Who' => [ 'Confidential', 'Extra', 'Greatest Moments', 'Extra' ],
+
+	# Example (3) Delete Shepherd's default stop list exceptions for "Stargate":
+	'Stargate' => [ ],
+
+};

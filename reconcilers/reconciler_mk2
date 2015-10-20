@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.54";
+my $version = "0.55";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -922,6 +922,9 @@ sub setup_canonical_stop_list_exceptions
 	#   ~/.shepherd/reconcilers/reconciler_mk2/reconciler_mk2.stop_list_exceptions.conf
 	# with your own rules. (See examples below.)
 	#
+	# Example file is available here:
+	#   ~/.shepherd/reconcilers/reconciler_mk2/reconciler_mk2.stop_list_exceptions.conf.sample
+	#
 	# WHAT STOP LIST EXCEPTIONS ARE
 	# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	# How this works: When Shepherd finds two programs with similar but different
@@ -949,18 +952,18 @@ sub setup_canonical_stop_list_exceptions
 	#
 	# (1) Make sure "Seven News" is treated as a different show to "Seven News at 4":
 	#
-	# $default_canonical_stop_list_exceptions = {
+	# $canonical_stop_list_exceptions = {
 	#	'Seven News' => [ 'at ' ],
 	# };
 	#
 	# (2) Same as #1 but also break out different Doctor Who shows as separate shows:
-	# $default_canonical_stop_list_exceptions = {
+	# $canonical_stop_list_exceptions = {
 	#       'Seven News' => [ 'at ' ],
 	#       'Doctor Who' => [ 'Confidential', 'Extra', 'Greatest Moments', 'Extra' ],
 	# };
 	#
 	# (3) Delete Shepherd's default stop list exceptions for "Stargate":
-	# $default_canonical_stop_list_exceptions = {
+	# $canonical_stop_list_exceptions = {
 	#	'Stargate' => [ ],
 	# };
 	#
@@ -981,6 +984,7 @@ sub setup_canonical_stop_list_exceptions
 		    'Criminal Minds' => [ 'Suspect Behaviou?r' ],
 		    'Once Upon a Time' => [ 'in .*' ],
 		    'Seven News' => [ 'at ' ],
+		    'Fargo' => [ 'sneak peek' ],	# make sure fargo season 2 sneak peak remains distinct from fargo
 		};
 	foreach my $key (keys %$default_canonical_stop_list_exceptions)
 	{
