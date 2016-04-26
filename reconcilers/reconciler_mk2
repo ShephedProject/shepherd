@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.55";
+my $version = "0.56";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -981,7 +981,7 @@ sub setup_canonical_stop_list_exceptions
 		    'NCIS' => [ "Los Angeles", "New Orleans" ], 
 		    'Doctor Who' => ["Confidential"], 
 		    'Stargate' => [ "Universe", "SG.*1", "Atlantis", "Infinity" ],
-		    'Criminal Minds' => [ 'Suspect Behaviou?r' ],
+		    'Criminal Minds' => [ 'Suspect Behaviou?r', 'Beyond Borders' ],
 		    'Once Upon a Time' => [ 'in .*' ],
 		    'Seven News' => [ 'at ' ],
 		    'Fargo' => [ 'sneak peek' ],	# make sure fargo season 2 sneak peak remains distinct from fargo
