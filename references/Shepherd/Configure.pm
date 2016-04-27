@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.40';
+my $version = '0.41';
 
 use strict;
 no strict 'refs';
@@ -339,12 +339,12 @@ sub configure_channels_guided
 	    $inp = "$default_index";
 	}
 
-	if ($inp =~ /\d+/)
+	if ($inp =~ /^\d+$/)
 	{
 	    my $xmltvid = '';
 	    if ($inp == 0)
 	    {
-		print "$mch->{name} -> (no guide data)\n";
+		print "\n$mch->{name} -> (no guide data)\n\n";
 	    }
 	    else
 	    {
@@ -352,7 +352,7 @@ sub configure_channels_guided
 		my $target = $allchannels[$inp];
 		unless ($target)
 		{
-		    print "Unknown #: $inp\n";
+		    print "\n *** Unknown #: $inp ***\n\n";
 		    redo;
 		}
 		$xmltvid = lc "$target.shepherd.au";
@@ -365,13 +365,13 @@ sub configure_channels_guided
 		{
 		    $::opt_channels->{$target} = $xmltvid;
 		}
-		print "$mch->{name} -> $allchannels[$inp].\n";
+		print "\nSet: $mch->{name} -> $allchannels[$inp]\n\n";
 	    }
 	    $mch->{xmltvid} = $xmltvid;
 	}
 	else
 	{
-	    print "Unknown selection. Please try again.\n";
+	    print "\n *** ERROR: Selection does not appear to be a number. Please try again. ***\n\n";
 	    redo;
 	}
     }
