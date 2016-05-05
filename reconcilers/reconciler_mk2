@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.56";
+my $version = "0.57";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -788,23 +788,54 @@ sub canonicalizeTitles_match
 	}
 
 	return(0) if (match_stoplist_override($word1, $word2));
+
+	# Check whether the only difference between them is that one has
+	# an extra number (e.g. "Superman", "Superman 2"). If so, they're 
+	# different shows.
+	if (scalar(@longer) == 1)
+	{
+	    my $final_word = $longer[0];
+
+	    # Standardize "three", "3", "iii", etc
+	    $final_word = alternative($final_word) || $final_word;
+
+	    return 0 if ($final_word =~ /^\d+$/);
+	}
+
 	return(1);
 }
 
 # lookup table of special case name matches
-my %alternatives = ( one => "1",
-		     two => "2",
-		     to  => "2",
-		     too => "2",
-		     three => "3",
-		     four => "4",
-		     for => "4",
-		     five => "5",
-		     six => "6",
-		     seven => "7",
-		     eight => "8",
-		     nine => "9"
-		   );
+sub alternative
+{
+    my $word = shift;
+
+    my %alternatives = ( 
+	one => "1",
+	i => "1",
+	two => "2",
+	ii => "2",
+	to  => "2",
+	too => "2",
+	three => "3",
+	iii => "3",
+	four => "4",
+	for => "4",
+	iv => "4",
+	five => "5",
+	v => "5",
+	six => "6",
+	vi => "6",
+	seven => "7",
+	vii => "7",
+	eight => "8",
+	viii => "8",
+	nine => "9",
+	ix => "9",
+    );
+
+    return $alternatives{$word};
+}
 
 ##############################################################################
 # Are the two arguments "close enough" to being identical strings that they
@@ -821,12 +852,18 @@ sub forgivingMatch
 
 	# exact match
 	return 1 if $word1 eq $word2;
+
+	my $alt1 = alternative($word1) || $word1;
+	my $alt2 = alternative($word2) || $word2;
+
 	# they match according to our alternatives lookup table
-	return 1 if $alternatives{$word1} && $alternatives{$word1} eq $word2 ||
-		    $alternatives{$word2} && $alternatives{$word2} eq $word1;
-	# irreconcilable differences
-	return 0 if abs(length($word1) - length($word2)) > 1 ||
-		    length($word1) < 3;
+	return 1 if ($alt1 eq $alt2);
+
+	# irreconcilable length differences
+	return 0 if (abs(length($word1) - length($word2)) > 1 || length($word1) < 3);
+
+	# differences are numbers (e.g. Superman II, Superman III)
+	return 0 if ($alt1 =~ /^\d+$/ and $alt2 =~ /^\d+$/);
 
 	my @list1 = split(//,$word1);
 	my @list2 = split(//,$word2);
