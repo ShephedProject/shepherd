@@ -25,7 +25,7 @@ use strict;
 use warnings;
 
 my $progname = "yahoo7widget";
-my $version = "2.42";
+my $version = "2.43";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -479,29 +479,31 @@ sub write_data
 sub check_for_paytv
 {
 	$d->{want_paytv} = 0;
-	foreach my $ch ( qw(
-	        111Hits 111HITS2 13THSTREET 13thSTREET2 3DChannel ACC AdultsOnly960 AIR AnimalPlanet AntennaGreek AntennaPacific 
-	        APAC Arena Arena2 Aurora BBCKnowledge BBCKnowledgeHD BBCWorldNews Bio BloombergTelevision Boomerang CartoonNetwork 
-	        Cbeebies ChannelV CMC CNBC CNN Comedy2 ComedyChannel Crime Discovery2 DiscoveryChannel DiscoveryHD DiscoveryHealth 
-	        DiscoveryRealTime DiscoveryScience DiscoveryTravel DiscoveryTurboMAX DiscoveryWorldHD DiscTurboMAX2 DisneyChannel 
-	        E!Entertainment ERTGreek ESPN ESPNHD Eurosport Eurosportnews EXPO FashionTV FMC FOX8 FOX82 FOX8HD FOXClassics 
-	        FOXClassics2 FOXNews FOXSPORTS1 FoxSports1HD FOXSPORTS2 FoxSports2HD FOXSPORTS3 FoxSports3HD FOXSPORTSNews 
-	        FoxtelBoxOffice FUELTV Hallmark HOWTOChannel KidsCo LifeStyle2 LifeStyleFOOD LifestyleFOOD2 LifeStyleYOU LifStyleYOU2
-	        MAX MOVIEEXTRA MOVIEGREATS MOVIEONE MOVIEONEHD MOVIETWO MTV MTVClassic MTVHits MTVNLive MTVNLiveHD NatGeo2 
-	        NatGeoAdventure NatGeoAdventure2 NatGeoHD NATGEOWILD NatGeoWild NatGeoWildHD NationalGeographic Nickelodeon 
-	        NickJr NITV Ovation PlayhouseDisney RAIITALIA SCIFI SCIFI2 showcase showcaseHD showcasetwo ShowPremiereHD 
-	        showtimeaction showtimeactionHD showtimecomedy showtimedrama showtimepremiere showtimetwo SkyNewsAustralia SkyNewsBusiness
-	        SKYNewsBusiness SKYNewsNational SkyRacing SKYRacing SKYRacing2 SKYRacingWorld SPEED SPEEDHD STARPICS1 STARPICS1HD STARPICS2 
-	        STARPICS2HD STVDIO TCM TheHistoryChannel TheLifeStyleChannel TheStyleNetwork TheWeatherChannel TLC TLC2 TSN TV1 TV12 
-	        TVE TVN TVSN UKTV UKTV2 UKTVHD Universal VHits W W2 WHD WORLDMOVIES
-	 )) {
-		$d->{want_paytv}++ if ((exists $channels->{$ch} || exists $opt_channels->{$ch}));
+	foreach my $ch ( 
+	    qw(
+	    111Hits 111HITS2 13THSTREET 13thSTREET2 3DChannel ACC AdultsOnly960 AIR AnimalPlanet AntennaGreek AntennaPacific 
+	    APAC Arena Arena2 Aurora BBCKnowledge BBCKnowledgeHD BBCWorldNews Bio BloombergTelevision Boomerang CartoonNetwork 
+	    Cbeebies ChannelV CMC CNBC CNN Comedy2 ComedyChannel Crime Discovery2 DiscoveryChannel DiscoveryHD DiscoveryHealth 
+	    DiscoveryRealTime DiscoveryScience DiscoveryTravel DiscoveryTurboMAX DiscoveryWorldHD DiscTurboMAX2 DisneyChannel 
+	    E!Entertainment ERTGreek ESPN ESPNHD Eurosport Eurosportnews EXPO FashionTV FMC FOX8 FOX82 FOX8HD FOXClassics 
+	    FOXClassics2 FOXNews FOXSPORTS1 FoxSports1HD FOXSPORTS2 FoxSports2HD FOXSPORTS3 FoxSports3HD FOXSPORTSNews 
+	    FoxtelBoxOffice FUELTV Hallmark HOWTOChannel KidsCo LifeStyle2 LifeStyleFOOD LifestyleFOOD2 LifeStyleYOU LifStyleYOU2
+	    MAX MOVIEEXTRA MOVIEGREATS MOVIEONE MOVIEONEHD MOVIETWO MTV MTVClassic MTVHits MTVNLive MTVNLiveHD NatGeo2
+	    NatGeoAdventure NatGeoAdventure2 NatGeoHD NATGEOWILD NatGeoWild NatGeoWildHD NationalGeographic Nickelodeon
+	    NickJr Ovation PlayhouseDisney RAIITALIA SCIFI SCIFI2 showcase showcaseHD showcasetwo ShowPremiereHD
+	    showtimeaction showtimeactionHD showtimecomedy showtimedrama showtimepremiere showtimetwo SkyNewsAustralia SkyNewsBusiness
+	    SKYNewsBusiness SKYNewsNational SkyRacing SKYRacing SKYRacing2 SKYRacingWorld SPEED SPEEDHD STARPICS1 STARPICS1HD STARPICS2
+	    STARPICS2HD STVDIO TCM TheHistoryChannel TheLifeStyleChannel TheStyleNetwork TheWeatherChannel TLC TLC2 TSN TV1 TV12
+	    TVE TVN UKTV UKTV2 UKTVHD Universal VHits W W2 WHD WORLDMOVIES
+	    )
+	) {
+	    $d->{want_paytv}++ if ((exists $channels->{$ch} || exists $opt_channels->{$ch}));
 	}
 
 	$d->{want_paytv}++ if (defined $opt->{paytv});
 	if ($d->{want_paytv} > 0) {
-		Shepherd::Common::log("going to gather paytv channels as we have ".$d->{want_paytv}." paytv channels matching.");
-		Shepherd::Common::log("offsetting paytv channels by ".($time_offset/60)." minutes due to --paytvoffset") if (defined $opt->{paytvoffset});
+	    Shepherd::Common::log("going to gather paytv channels as we have ".$d->{want_paytv}." paytv channels matching.");
+	    Shepherd::Common::log("offsetting paytv channels by ".($time_offset/60)." minutes due to --paytvoffset") if (defined $opt->{paytvoffset});
 		$d->{fetch_interval} = (3 * 3600);	# 3 hours (for now)
 	} else {
 		$d->{fetch_interval} = (6 * 3600);	# 6 hours
