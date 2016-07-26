@@ -2,9 +2,7 @@
 #
 # "Rex"
 
-my $version  = '9.2.1'; 
-
-# TODO: remove refresh_ua every 20 requests (maybe)
+my $version  = '10.0.0'; 
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -28,6 +26,7 @@ use Data::Dumper;
 use HTML::TreeBuilder;
 use POSIX;
 use Encode;
+use JSON;
 
 use XMLTV;
 use XMLTV::Ask;
@@ -41,8 +40,8 @@ my $progname = "Rex";
 my $lang = "en";
 
 my $DATASOURCE             = "http://www.yourtv.com.au";
-my $DATASOURCE_GUIDE       = "$DATASOURCE/guide";
-my $DATASOURCE_DETAIL      = "$DATASOURCE/guide/event.aspx";
+my $DATASOURCE_GUIDE       = "$DATASOURCE/getGuide";
+my $DATASOURCE_DETAIL      = "$DATASOURCE/getProgramInfo";
 
 my $runtime = time();
 my $laststats = $runtime;
@@ -163,23 +162,9 @@ sub get_guide_data
     $dow = substr(localtime($runtime + (86400 * $day)).'', 0, 3);
     print "Day $day ($dow).\n" if ($debug);
 
-    $dow = lc $dow;
-    if (!$day)
-    {
-	$url = "$DATASOURCE_GUIDE/restofday/";
-	$guidedata = &get_page($url);
-	&parse_guide($guidedata, $date);
-    }
-    else
-    {
-	my @phases = qw( 0 early morning afternoon night);
-	for (1 .. 4)
-	{
-	    $url = sprintf "%s/%s/%s/", $DATASOURCE_GUIDE, $dow, $phases[$_];
-	    $guidedata = &get_page($url);
-	    &parse_guide($guidedata, $date, $_) if ($guidedata);
-	}
-    }
+    $url = sprintf "%s?date=%s&ftaRegion=%d&format=json", $DATASOURCE_GUIDE, Ymd($date), $opt->{region};
+    $guidedata = get_page($url);
+    parse_guide($guidedata, $date) if ($guidedata);
   }
   $numshows = scalar(keys %$precache);
   print "Shows found: $numshows.\n";
@@ -285,29 +270,26 @@ sub compare_caches
 
 sub download_show
 {
-  my ($pid, $recurse_count) = @_;
+    my ($pid, $recurse_count) = @_;
 
-  $recurse_count ||= 0;
-  return undef if ($recurse_count > 2);
- 
-  $dcount++;
-#  refresh_ua() if ($dcount % 20 == 0); # don't wait for error page
+    $recurse_count ||= 0;
+    return undef if ($recurse_count > 2);
 
-  my $result;
+    $dcount++;
 
-  print "Downloading # $pid (" . $precache->{$pid}->{title} . ").\n" if ($debug);
-  my $detailsdata = get_page($DATASOURCE_DETAIL .
-                      '?program_id=' . $precache->{$pid}->{'program_id'} .
-		      '&event_id=' . $pid .
-		      '&region_id=' . $opt->{'region'});
-  $result = parse_details($detailsdata, $pid) if ($detailsdata);
-  unless ($detailsdata and $result)
-  {
-    refresh_ua();
-    return download_show($pid, $recurse_count+1);
-  }
+    my $result;
 
-  return $result;
+    print "Downloading # $pid (" . $precache->{$pid}->{title} . ").\n" if ($debug);
+    my $url = sprintf "%s?eventId=%d&regionId=%d", $DATASOURCE_DETAIL, $pid, $opt->{region};
+    my $detailsdata = get_page($url);
+    $result = parse_details($detailsdata, $pid) if ($detailsdata);
+    unless ($detailsdata and $result)
+    {
+	refresh_ua();
+	return download_show($pid, $recurse_count+1);
+    }
+
+    return $result;
 }
 
 sub save_cache
@@ -495,142 +477,54 @@ sub get_page
 
 sub parse_guide
 {
-  my ($guidedata, $date, $phase) = @_;
+    my ($guidedata, $date) = @_;
 
-  print "Parsing guide page.\n" if ($debug);
+    print "Parsing guide page.\n" if ($debug);
 
-  $phase ||= 0;
+    my $data = JSON::decode_json($guidedata);
 
-  my $tree = HTML::TreeBuilder->new_from_content(decode_utf8($guidedata));
-  my $curchan = '';
-  my @channels_seen;
-  my ($block, $line, $link, $title);
-  my $c = 0;
-  foreach my $tag ($tree->look_down('_tag' => 'td', 'class' => 'venue venue-collapse'))
-  {
-    # Some screens repeat channel name
-    next if ($tag->left);
+    my $rows = $data->{sections}->{fta}->{rows};
 
-    $c++;
-    my $channame = $tag->as_text();
-    unless ($channame)
+    my @channels_seen;
+
+    foreach my $row (@$rows)
     {
-	my $img = $tag->look_down('_tag' => 'img');
-	$channame = $img->attr('title');
-    }
+	my $channame = $row->{channelName};
+	my $curchan = translate_channel_name($channame, scalar(grep($_ eq $channame, @channels_seen)));
+	push @channels_seen, $channame;
+	if (!$channels->{$curchan})
+	{ 
+	    print "Ignoring unsubscribed channel $curchan.\n" if ($debug);
+	    next;
+	}
+	print "Channel: $curchan.\n" if ($debug);
 
-    my $curchan = translate_channel_name($channame, scalar(grep($_ eq $channame, @channels_seen)));
-    push @channels_seen, $channame;
-    if (!$channels->{$curchan})
-    {
-      print "Ignoring unsubscribed channel $curchan.\n" if ($debug);
-      next;
+	foreach my $block (@{$row->{blocks}})
+	{
+	    foreach my $show (@{$block->{shows}})
+	    {
+		addme($show, $curchan);
+	    }
+	}
     }
-    print "Channel: $curchan.\n" if ($debug);
-    $block = $tag->parent();
-    foreach $line ($block->look_down('_tag' => 'td'))
-    {
-      my $lineclass = ($line->attr('class') or '');
-      last if ($lineclass eq 'venue');
-      next if ($lineclass);
-      my ($pid, $program_id, $title, $start, $pextra);
-      foreach my $bit ($line->look_down('_tag' => 'div'))
-      {
-	my $bitclass = ($bit->attr('class') or '');
-	if ($bitclass eq 'ptime')
-	{
-	  if ($start)
-	  {
-	    addme($pid, $title, $start, $pextra, $curchan, $program_id);
-	    $pextra = undef;
-	    $title = undef;
-	    $pid = undef;
-	    $program_id = undef;
-	  }
-	  $start = $bit->as_text();
-	  if ($phase and $phase == 1 and $start =~ /pm/)
-	  {
-	    $start = expand_date($start ." ". Ymd(DateCalc($date, "- 1 day")));
-	  }
-	  else
-	  {
-	    $start = expand_date(strip_whitespace($start) . ' ' . $date);
-	  }
-	}
-	elsif ($bitclass eq 'pname')
-	{
-	  $title = strip_whitespace($bit->as_text());
-          if (HTML::Entities::decode($bit->as_HTML()) =~ /ShowPopup\((\d+), (\d+),/) 
-          {
-	    $program_id = $1;
-	    $pid = $2;
-          }
-	}
-	elsif ($bitclass eq 'pextra')
-	{
-	  $pextra = strip_whitespace($bit->as_text());
-	}
-      }
-      if ($pid)
-      {
-	addme($pid, $title, $start, $pextra, $curchan, $program_id);
-      }
-      else
-      {
-	bad_parse("No pid found in guide data block");
-      }
-    }
-  }
-  bad_parse("No shows found on guide page ($date phase $phase)") unless ($c);
-  $tree->delete();
 }
 
 sub addme
 {
-  my ($pid, $title, $start, $pextra, $curchan, $program_id) = @_;
-  
-  if ($precache->{$pid})
-  {
-    print "Duplicate: $title ($pid | $program_id).\n" if ($debug);
-  }
-  else
-  {
-    print "New: $title " . ($pextra ? "($pextra) " : '') . 
-          "($pid | $program_id) $start\n" if ($debug);
-    if ($pextra and $pextra =~ /\(\d\d\d\d\)/)
-    {
-      print "Ignoring detail.\n" if ($debug);
-      $pextra = undef;
-    }
-    $precache->{$pid} = { 'title' => $title, 
-		          'start' => $start,
-			  'program_id' => $program_id,
-			  'sub-title' => $pextra,
-			  'channel' => $channels->{$curchan}
-			};
-    my $lastpid = $lastpids->{$curchan};
-    if ($lastpid)
-    {
-	$precache->{$lastpid}->{stop} = $start;
-	if ($start < $precache->{$lastpid}->{start}) 
-	{
-	    print "Oddness detected in \"" .
-	          $precache->{$lastpid}->{title} .
-		  "\" (pid $pid), starting at " .
-		  $precache->{$lastpid}->{start} .
-		  ".\n";
-	    delete $precache->{$lastpid} if ($gaps);
-	}
-	elsif ($gaps)
-	{
-	    if (is_outside_gaps($curchan, $precache->{$lastpid}->{start}, $precache->{$lastpid}->{stop}))
-	    {
-		delete $precache->{$lastpid};
-	    }
-	}
-    }
-    $lastpids->{$curchan} = $pid;
-  }
+    my ($show, $curchan) = @_;
+
+    my $pid = $show->{id};
+
+    $precache->{$pid} = { 
+	'title' => $show->{title},
+	'start' => convert_date($show->{startTime}),
+	'stop' => convert_date($show->{endTime}),
+	'program_id' => $show->{programId},
+	'channel' => $channels->{$curchan},
+    };
+
+    my %type;
+    $type{'movie'} = 1 if ($show->{movie} and lc $show->{movie} ne 'false');
 }
 
 # The guide pages for some regions don't provide any way to distinguish
@@ -654,169 +548,81 @@ sub translate_channel_name
 
 sub parse_details 
 {
-  my $detailsdata = shift;
-  my $pid = shift; 
+    my ($detailsdata, $pid) = @_;
 
-  my ($show, $str, @rows, $block, $start, $stop, $date, @extra, @items, %type);
+    my $data = JSON::decode_json($detailsdata);
 
-  my $startdate = substr($precache->{$pid}->{'start'}, 0, 8);
-  $startdate =~ s/^(\d\d\d\d)(\d\d)(\d\d)/$1-$2-$3/;
+#    print Dumper($data) if ($debug);
 
+    my $show = $precache->{$pid};
+    my %type;
+    my %video;
 
-  my $tree = HTML::TreeBuilder->new_from_content(decode_utf8($detailsdata));
+    my $lang = $data->{meta}->{info}->{language} || 'en';
 
-  $block = $tree->look_down('_tag' => 'h1');
-  return bad_parse("Missing title") unless ($block);  # site is probably sending that block page
+    $show->{title} = [[ $data->{copy}->{h1}, $lang ]];
 
-  $show->{'title'} = [[ strip_whitespace($block->as_text()), $lang ]];
-  $str = $tree->look_down('_tag' => 'h2', 'class' => 'normal');
-  if ($str and $str->as_text())
-  {
-    $str = strip_whitespace($str->as_text());
-    $str =~ s/\s*\(Repeat\)// and $show->{'previously-shown'} = { };
-    $str =~ s/\s*\(Premiere\)// and $show->{'premiere'} = [ 'Premiere' ] and $type{'premiere'} = 1;
+    $show->{language} = [ $lang ];
 
-    $show->{'sub-title'} = [[ $str, $lang ]] if ($str);
-  }
+    $show->{desc} = [[ $data->{copy}->{description}, $lang ]];
 
-  $date = $tree->look_down('_tag' => 'li', 'class' => 'period') or return bad_parse("Missing section");
-  $date = $date->as_text;
-  $date = 'today' if (grep ($_ eq lc($date), qw(tonight morning)));
-
-  my $timeline = $tree->look_down('_tag' => 'li', 'class' => 'time') or return bad_parse("Missing section");
-  if($timeline->as_text() =~ /(\b[\d\.\:]+[ap]m)\s+.*?\s+([\d\.\:]+[ap]m)\b/)
-  {
-    ($start, $stop) = ($1, $2);
-    $start = "$1:00$2" if ($start =~ /^(\d+)(\w+)$/);
-    $stop = "$1:00$2" if ($stop =~ /^(\d+)(\w+)$/);
-
-    $show->{'start'} = expand_date("$start $startdate");
-    $show->{'stop'} = expand_date("$stop $startdate");
-    if ($show->{'stop'} < $show->{'start'})
+    if ($data->{meta}->{info}->{rating})
     {
-	$show->{'stop'} = expand_date(DateCalc($show->{'stop'}, "+ 1 day"));
+	$show->{rating} = [[ uc $data->{meta}->{info}->{rating}, 'ABA', undef]];
     }
-  }
-  return bad_parse("Missing times") unless ($show->{'start'} and $show->{'stop'});  # Failed to parse
-  if (Date_Cmp($show->{'start'}, $show->{'stop'}) == 1)
-  {
-     $show->{'stop'} = expand_date(DateCalc($show->{'stop'}, "+ 1 day"));
-     print "Adjusted STOP time.\n" if ($debug);
-  }
-  $show->{'channel'} = $chanid{lc($tree->look_down('_tag' => 'li', 'class' => 'ch bold')->as_text())}; # this fails for undistinguished channels
 
-  $block = $tree->look_down('_tag' => 'p', 'class' => 'desc') or return bad_parse("Missing desc");
-  if ($block->as_text())
-  {
-    $show->{'desc'} = [[ strip_whitespace($block->as_text()), $lang ]];
-  }
+    if (is_true($data->{meta}->{info}->{repeat}))
+    {
+	$show->{'previously-shown'} = { };
+    }
+    if (is_true($data->{meta}->{info}->{premiere}))
+    {
+	$show->{'premiere'} = [ 'Premiere' ];
+	$type{'premiere'} = 1;
+    }
+    if ($data->{copy}->{h2})
+    {
+	$show->{'sub-title'} = [[ $data->{copy}->{h2}, $lang ]];
+    }
 
-  $block = $tree->look_down('_tag' => 'div', 'class' => 'rating');
-  if ($block)
-  {
-      my ($rating, $subrating);
-      $subrating = $block->as_text();
+    if ($data->{meta}->{info}->{mainCast})
+    {
+	$show->{'credits'}{'actor'} = [ split(/, ?/, strip_whitespace($data->{meta}->{info}->{mainCast})) ];
+    }
 
-      my @divs = $block->look_down('_tag' => 'div');
-      if (@divs == 2)
-      {
-	  if ($divs[1]->attr('class') =~ /\brating-(\w+)/)
-	  {
-	      $rating = uc $1;
-	  }
-      }
-      $rating .= ' ' . &Shepherd::Common::subrating($subrating) if ($subrating);
+    if (is_true($data->{tech}->{widescreen}))
+    {
+	$video{'aspect'} = '16:9';
+    }
 
-      $show->{'rating'} = [[ $rating, 'ABA', undef]] if ($rating);
-  }
+    if (is_true($data->{tech}->{highDefinition}))
+    {
+	$video{'quality'} = 'HDTV';
+    }
 
-  $block = $tree->look_down('_tag' => 'p', 'class' => 'cast');
-  if ($block)
-  {
-      $show->{'credits'}{'actor'} = [ split(/, /, strip_whitespace($block->as_text())) ];
-  }
+    if (is_true($data->{meta}->{info}->{live}))
+    {
+	$type{live} = 1;
+    }
 
-  $block = $tree->look_down('_tag' => 'div', 'class' => 'other-links');
-  if ($block)
-  {
-      my $aref = $block->look_down('_tag' => 'a', 'title' => 'Official Site');
-      $show->{'url'} = [ $aref->attr('href') ] if ($aref);
+    if (is_true($data->{tech}->{captions}) or is_true($data->{tech}->{subtitles}))
+    {
+	$show->{'subtitles'} = [ { 'type' => 'teletext' } ];
+    }
 
-      $type{'movie'} = 1 if ($block->as_text() =~ /movie/);
-  }
+    $show->{language} = [ $data->{meta}->{info}->{language} || 'en' ];
 
+    if ($data->{meta}->{info}->{country})
+    {
+	$show->{country} = [[ $data->{meta}->{info}->{country}, 'en' ]];
+    }
 
-  $block = $tree->look_down('_tag' => 'div', 'class' => 'detail');
+    $show->{'video'} = \%video if (%video);
 
-  my ($category, %video);
-  foreach my $tag ($block->look_down('_tag' => 'div'))
-  {
-      next if ($tag->attr('class') and $tag->attr('class') eq 'detail');
-      $str = $tag->as_text();
-      if ($str)
-      {
-	  foreach my $bit (split / \| /, $str)
-	  {
-	      $bit = strip_whitespace($bit);
-	      if (!$show->{'date'} and $bit =~ /^[12]\d\d\d$/)
-	      {
-		  $show->{'date'} = $bit;
-	      }
-	      elsif (!$category)
-	      {
-		  $category = $bit;
-	      }
-	      elsif (!$show->{'country'} and $bit ne 'English')
-	      {
-		  $show->{'country'} = [ [ $bit, 'en' ] ];
-	      }
-	      elsif (!$show->{'language'})
-	      {
-		  $show->{'language'} = [ split(/, /, $bit) ];
-	      }
-	      else
-	      {
-		  print "Unknown bit: \"$bit\"???";
-	      }
-	  }
-      }
-      elsif ($str = $tag->attr('title'))
-      {
-	  if ($str eq 'Closed Captions')
-	  {
-	      $show->{'subtitles'} = [ { 'type' => 'teletext' } ];
-	  }
-	  elsif ($str eq 'Widescreen')
-	  {
-	      $video{'aspect'} = '16:9';
-	  }
-	  elsif ($str eq 'High Definition')
-	  {
-	      $video{'quality'} = 'HDTV';
-	  }
-	  elsif ($str eq 'Black & White')
-	  {
-	      $video{'colour'} = 'no';
-	  }
-	  else
-	  {
-	      print "Unknown title: \"$str\"???";
-	  }
+    $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}[0][0], undef, %type) ];
 
-      }
-      else
-      {
-#	  print "Ignoring this: " . $tag->as_HTML() . "\n";
-      }
-  }
-
-  $show->{'video'} = \%video if (%video);
-
-  $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}[0][0], $category, %type) ];
-
-  $tree->delete();
-  print Dumper($show) if ($debug);
-  return $show;
+    print Dumper($show) if ($debug);
+    return $show;
 }
 
 sub bad_parse
@@ -1010,10 +816,20 @@ sub set_defaults
 
   Shepherd::Common::set_defaults(
 	stats => \%stats, 
-	delay => "1-5",
+	delay => "0-2",
 	debug => $debug,
 	webwarper => $opt->{warper}
     );
+}
+
+sub convert_date
+{
+    my $str = shift;
+
+    my $ret = ParseDate($str);
+    $ret =~ tr/://d;
+
+    return $ret;
 }
 
 sub expand_date
@@ -1042,6 +858,13 @@ sub sleep_for
     return unless ($n);
     sleep $n;
     $stats{slept_for} += $n;
+}
+
+sub is_true
+{
+    my $str = shift;
+
+    return 1 if ($str and lc $str eq 'true');
 }
 
 sub help

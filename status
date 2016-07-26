@@ -7,7 +7,7 @@ reference	Shepherd/json_pp.pm 0.2
 grabber         oztivo              2.61
 grabber         yahoo7widget        2.43
 grabber         sbsweb              5.04
-grabber         rex                 9.2.1
+grabber         rex                 10.0.0
 grabber         acctv_website       0.09
 grabber         zaxmltv             0.03
 grabber         foxtel_swf          4.01
