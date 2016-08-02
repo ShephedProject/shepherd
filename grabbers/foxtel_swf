@@ -7,7 +7,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "4.01";
+my $version = "5.00";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -383,31 +383,31 @@ sub get_reference_data
 	my $parsed_xml = XMLin($data);
 
 	die "Failed to retrieve valid ReferenceData\n"
-	  if (!defined $parsed_xml->{'soapenv:Body'}->{'ns5:InitialiseEpgOut'});
-	my $ref = $parsed_xml->{'soapenv:Body'}->{'ns5:InitialiseEpgOut'};
+	  if (!defined $parsed_xml->{'SOAP-ENV:Body'}->{'ns2:InitialiseEpgOut'});
+	my $ref = $parsed_xml->{'SOAP-ENV:Body'}->{'ns2:InitialiseEpgOut'};
 
 	# check for error response
-	die "ReferenceData page indicated failure code: ".$ref->{'ns5:EPGFault'}->{'ns5:Message'}.": aborting!\n"
-	  if ($ref->{'ns5:EPGFault'}->{'ns5:Message'});
+	die "ReferenceData page indicated failure code: ".$ref->{'ns2:EPGFault'}->{'ns2:Message'}.": aborting!\n"
+	  if ($ref->{'ns2:EPGFault'}->{'ns2:Message'});
 
 	# get bouqet
 	die "Failed to retrieve Bouquet\n"
-		if (!defined $ref->{'ns5:Bouquet'});
-	$d->{bouquet}->{bouquet_id} = $ref->{'ns5:Bouquet'}->{'ns5:BouquetId'};
-	$d->{bouquet}->{subbouquet_id} = $ref->{'ns5:Bouquet'}->{'ns5:SubBouquetId'};
+		if (!defined $ref->{'ns2:Bouquet'});
+	$d->{bouquet}->{bouquet_id} = $ref->{'ns2:Bouquet'}->{'ns2:BouquetId'};
+	$d->{bouquet}->{subbouquet_id} = $ref->{'ns2:Bouquet'}->{'ns2:SubBouquetId'};
 	
 	# get state
 	die "Failed to retrieve State\n"
-		if (!defined $ref->{'ns5:State'});
-	$d->{state}->{id} = $ref->{'ns5:State'}->{'ns5:Id'};
-	$d->{state}->{code} = $ref->{'ns5:State'}->{'ns5:Code'};
-	$d->{state}->{name} = $ref->{'ns5:State'}->{'ns5:Name'};
+		if (!defined $ref->{'ns2:State'});
+	$d->{state}->{id} = $ref->{'ns2:State'}->{'ns2:Id'};
+	$d->{state}->{code} = $ref->{'ns2:State'}->{'ns2:Code'};
+	$d->{state}->{name} = $ref->{'ns2:State'}->{'ns2:Name'};
 	Shepherd::Common::log(" - parsed state id:$d->{state}->{id}, code:$d->{state}->{code}, bouquet_id:$d->{bouquet}->{bouquet_id}, subbouquet_id:$d->{bouquet}->{subbouquet_id}, name:$d->{state}->{name}") if (defined $opt->{debug});
 
 	# gather up channel categories
-	foreach my $category_ref (@{($ref->{'ns5:ChannelCategories'}->{'ns5:Category'})}) {
-		my $category_id = $category_ref->{'ns5:Id'};
-		my $category_name = $category_ref->{'ns5:Name'};
+	foreach my $category_ref (@{($ref->{'ns2:ChannelCategories'}->{'ns2:Category'})}) {
+		my $category_id = $category_ref->{'ns2:Id'};
+		my $category_name = $category_ref->{'ns2:Name'};
 
 		$d->{categories}->{$category_id} = $category_name;
 		Shepherd::Common::log(" - parsed category $category_id: $category_name") if (defined $opt->{debug});
@@ -416,17 +416,17 @@ sub get_reference_data
 	# gather up genres and subgenres
 	$d->{genre_count} = 0;
 	$d->{subgenre_count} = 0;
-	foreach my $genre_ref (@{($ref->{'ns5:Genres'}->{'ns5:Genre'})}) {
-		my $genre_code = $genre_ref->{'ns5:Code'};
-		my $genre_name = $genre_ref->{'ns5:Name'};
+	foreach my $genre_ref (@{($ref->{'ns2:Genres'}->{'ns2:Genre'})}) {
+		my $genre_code = $genre_ref->{'ns2:Code'};
+		my $genre_name = $genre_ref->{'ns2:Name'};
 
 		$d->{genres}->{$genre_code}->{name} = $genre_name;
 		$d->{genre_count}++;
 		
-		foreach my $subgenre_ref (@{($genre_ref->{'ns5:SubGenre'})}) {
-			# GetEventDetails returns ns5:SubGenreCode Id, not Code, so we store the Id
-			my $subgenre_code = $subgenre_ref->{'ns5:Id'};
-			my $subgenre_name = $subgenre_ref->{'ns5:Name'};
+		foreach my $subgenre_ref (@{($genre_ref->{'ns2:SubGenre'})}) {
+			# GetEventDetails returns ns2:SubGenreCode Id, not Code, so we store the Id
+			my $subgenre_code = $subgenre_ref->{'ns2:Id'};
+			my $subgenre_name = $subgenre_ref->{'ns2:Name'};
 			
 			$d->{genres}->{$genre_code}->{$subgenre_code} = $subgenre_name;
 			$d->{subgenre_count}++;
@@ -438,9 +438,9 @@ sub get_reference_data
 
 	# gather up channels
 	$d->{channel_count} = 0;
-	foreach my $channel_ref (@{($ref->{'ns5:Channels'}->{'ns5:Channel'})}) {
-		my $channel_id = $channel_ref->{'ns5:Id'};
-		my $channel_name = $channel_ref->{'ns5:ChannelName'};
+	foreach my $channel_ref (@{($ref->{'ns2:Channels'}->{'ns2:Channel'})}) {
+		my $channel_id = $channel_ref->{'ns2:Id'};
+		my $channel_name = $channel_ref->{'ns2:ChannelName'};
 		my $orig_channel_name = $channel_name;
 		$channel_name =~ s/[ \t()\[\]\+\.\-]//g;	# remove special chars
 		$channel_name =~ s/(&amp;|&)/and/g;		# &amp; to and
@@ -448,11 +448,11 @@ sub get_reference_data
 
 		$d->{channel_names}->{$channel_name} = $channel_id;
 		$d->{channels}->{$channel_id}->{name} = $orig_channel_name;
-		$d->{channels}->{$channel_id}->{number} = $channel_ref->{'ns5:DigitalNumber'};
-		$d->{channels}->{$channel_id}->{category} = $channel_ref->{'ns5:ChannelCategoryId'};
-		$d->{channels}->{$channel_id}->{content_warning} = $channel_ref->{'ns5:ContentWarningInd'};
-		$d->{channels}->{$channel_id}->{available} = $channel_ref->{'ns5:ChannelAvailableInd'};
-		$d->{channels}->{$channel_id}->{timeshift} = $channel_ref->{'ns5:TimeShiftInd'};
+		$d->{channels}->{$channel_id}->{number} = $channel_ref->{'ns2:DigitalNumber'};
+		$d->{channels}->{$channel_id}->{category} = $channel_ref->{'ns2:ChannelCategoryId'};
+		$d->{channels}->{$channel_id}->{content_warning} = $channel_ref->{'ns2:ContentWarningInd'};
+		$d->{channels}->{$channel_id}->{available} = $channel_ref->{'ns2:ChannelAvailableInd'};
+		$d->{channels}->{$channel_id}->{timeshift} = $channel_ref->{'ns2:TimeShiftInd'};
 
 		$d->{channel_count}++;
 		Shepherd::Common::log(" - parsed channel $channel_id: (".$d->{channels}->{$channel_id}->{number}.") $channel_name)") if (defined $opt->{debug});
@@ -543,12 +543,13 @@ sub get_programs
 {
   my ($starttime, $stoptime) = @_;
   my $ref;
+  my %event_list;
 	
   Shepherd::Common::log(" - ".POSIX::strftime("%a %e %b %H:%M", localtime($starttime))." to ".POSIX::strftime("%a %e %b %H:%M", localtime($stoptime))." ...");
 # print "Local Start time: ".localtime( $starttime). "Stop: ".localtime( $stoptime)."\n" ;
   $ref = &soap_search_events($starttime, $stoptime);
   return 1 if (! defined($ref));
-  Shepherd::Common::log("   gathering synopsis for up to ".(scalar(@{($ref->{'ns5:Events'}->{'ns5:Event'})}))." progs ...");
+  Shepherd::Common::log("   gathering synopsis for up to ".(scalar(@{($ref->{'ns2:Events'}->{'ns2:Event'})}))." progs ...");
 	
   #
   # Loop through each programme and see if we have it in the cache.  If it's in the cache grab it and write it to the output file.
@@ -560,7 +561,7 @@ sub get_programs
   my $cache_miss = 0;
 	
   my @event_list;
-  foreach my $prog_ref (@{($ref->{'ns5:Events'}->{'ns5:Event'})}) {
+  foreach my $prog_ref (@{($ref->{'ns2:Events'}->{'ns2:Event'})}) {
 	$prog_count++;
     
 	### first check the program start, stop and durations (new_start & new_stop are used to overide the cache entry
@@ -568,13 +569,13 @@ sub get_programs
 	my $new_start = 0;
 	my $new_stop = 0;
 	my $new_channel = "none";
-	my $new_length  = int($prog_ref->{'ns5:Duration'} * 60);
+	my $new_length  = int($prog_ref->{'ns2:Duration'} * 60);
 	my $new_title;
-	$new_title = $prog_ref->{'ns5:ProgramTitle'} if (defined $prog_ref->{'ns5:ProgramTitle'});
+	$new_title = $prog_ref->{'ns2:ProgramTitle'} if (defined $prog_ref->{'ns2:ProgramTitle'});
 		
-	if ((defined $prog_ref->{'ns5:ScheduledDate'}) &&
-		    ($prog_ref->{'ns5:ScheduledDate'} =~ /^(\d{4})-(\d{2})\-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})\+(\d{2}):(\d{2})$/)) {
-			my $prog_tz = "+".$8.$9;
+	if ((defined $prog_ref->{'ns2:ScheduledDate'}) &&
+		    ($prog_ref->{'ns2:ScheduledDate'} =~ /^(\d{4})-(\d{2})\-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+(\d{2}):(\d{2})$/)) {
+			my $prog_tz = "+".$7.$8;
 			my @t = ($6, $5, $4, $3, ($2-1), ($1-1900), -1, -1, -1);
 
 			my $prog_start = mktime(@t);
@@ -583,20 +584,20 @@ sub get_programs
 			$new_start = POSIX::strftime("%Y%m%d%H%M%S", localtime($prog_start))." ".$prog_tz;
 			$new_stop =  POSIX::strftime("%Y%m%d%H%M%S", localtime($prog_stop))." ".$prog_tz;
 			if ((defined $opt->{daynum}) and ( $prog_start < $first_start_time ))
-			  { print("Skipping, starts before requested time at $prog_ref->{'ns5:ScheduledDate'}\n"); next; }
+			  { print("Skipping, starts before requested time at $prog_ref->{'ns2:ScheduledDate'}\n"); next; }
 	} else {
 			$stats{skipped_prog_bad_starttime}++;
-			Shepherd::Common::log("unparsable date ".$prog_ref->{'ns5:ScheduledDate'})
-				if ((defined $prog_ref->{'ns5:ScheduledDate'}) &&
+			Shepherd::Common::log("unparsable date ".$prog_ref->{'ns2:ScheduledDate'})
+				if ((defined $prog_ref->{'ns2:ScheduledDate'}) &&
 					($stats{skipped_prog_bad_starttime} < 10));
 			next;
 	}
 	
 	### and its on the same channel (new_channl is used as a cache key
 
-	if ((defined $prog_ref->{'ns5:ChannelId'}) &&
-				(defined $d->{channels}->{$prog_ref->{'ns5:ChannelId'}}->{xmlid})) {
-			$new_channel = $d->{channels}->{$prog_ref->{'ns5:ChannelId'}}->{xmlid};
+	if ((defined $prog_ref->{'ns2:ChannelId'}) &&
+				(defined $d->{channels}->{$prog_ref->{'ns2:ChannelId'}}->{xmlid})) {
+			$new_channel = $d->{channels}->{$prog_ref->{'ns2:ChannelId'}}->{xmlid};
 	} else {
 			$stats{skipped_prog_bad_channel}++;
 			next;
@@ -606,10 +607,10 @@ sub get_programs
 	### now check the program cache for a;; other details....
 				
 	# if we have a ProgramId...
-	if (defined $prog_ref->{'ns5:ProgramId'}) {
-			my $prog_id = $new_channel . $prog_ref->{'ns5:ProgramId'};
+	if (defined $prog_ref->{'ns2:ProgramId'}) {
+			my $prog_id = $new_channel . $prog_ref->{'ns2:ProgramId'};
 			# check the cache
-			# print ("Checking prog cache for $prog_id.... ($prog_ref->{'ns5:ProgramTitle'})\n");
+			# print ("Checking prog cache for $prog_id.... ($prog_ref->{'ns2:ProgramTitle'})\n");
 			if ((defined $data_cache->{prog_cache}->{$prog_id}) && (ref $data_cache->{prog_cache}->{$prog_id}->{details})) {
 				$cache_hit++;
 				$stats{programmes}++;
@@ -629,7 +630,7 @@ sub get_programs
 	$eptitle = $data_cache->{prog_cache}->{$prog_id}->{eptitle} if (defined $data_cache->{prog_cache}->{$prog_id}->{eptitle});
 #	print ("    Found cache Progm for $prog_id ($new_title) [$eptitle] \n"); 		
 				
-	Shepherd::Common::log("DEBUG: Found cache Program for ".$prog_id ."... (".($prog_ref->{'ns5:ProgramTitle'}).")") if (defined $opt->{debug}) ; 
+	Shepherd::Common::log("DEBUG: Found cache Program for ".$prog_id ."... (".($prog_ref->{'ns2:ProgramTitle'}).")") if (defined $opt->{debug}) ; 
 	Shepherd::Common::log("DEBUG: PCache: ".Dumper($hghghgh)) if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 
 				next;
@@ -639,9 +640,9 @@ sub get_programs
 		
 	### now check the event cache for other details....
 	# if we have an EventID ... (must be one!)
-	my $event_id = $new_channel . $prog_ref->{'ns5:EventId'};
+	my $event_id = $new_channel . $prog_ref->{'ns2:EventId'};
 			
-	# print ("Checking event cache for $event_id.... ($prog_ref->{'ns5:ProgramTitle'})\n");
+	# print ("Checking event cache for $event_id.... ($prog_ref->{'ns2:ProgramTitle'})\n");
 
 	if ((defined $data_cache->{event_cache}->{$event_id}) && (ref $data_cache->{event_cache}->{$event_id}->{details})) {
 				$event_hit++;
@@ -659,15 +660,16 @@ sub get_programs
 	$eptitle = $data_cache->{event_cache}->{$event_id}->{eptitle} if (defined $data_cache->{event_cache}->{$event_id}->{eptitle}) ;
 #	print ("    Found cache Event for $event_id ($new_title) [$eptitle] \n"); 			
 
-	Shepherd::Common::log("DEBUG: Found cache Event entry for ".$event_id."... (".($prog_ref->{'ns5:ProgramTitle'}).")") if (defined $opt->{debug}) ;
+	Shepherd::Common::log("DEBUG: Found cache Event entry for ".$event_id."... (".($prog_ref->{'ns2:ProgramTitle'}).")") if (defined $opt->{debug}) ;
 	Shepherd::Common::log("DEBUG: ECach: ".Dumper($hghghgh)) if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 				next;
 	}
 		
 		
 	$cache_miss++;
-	# print ("     Pushing event $prog_ref->{'ns5:EventId'} for lookup\n");
-	push(@event_list, $prog_ref->{'ns5:EventId'});
+	# print ("     Pushing event $prog_ref->{'ns2:EventId'} for lookup\n");
+	my $eventid = $prog_ref->{'ns2:EventId'};
+	$event_list{$eventid} = $new_length;
   } ### foreach my $prog_ref
 	
   if ( $cache_miss == 0) {
@@ -679,26 +681,27 @@ sub get_programs
   #
   # now retrieve the details for every programme that wasn't in the cache
   #
-  $ref = &soap_get_event_details(@event_list);	
-  foreach my $prog_ref (@{($ref->{'ns5:EventDetail'})}) {
+  $ref = &soap_get_event_details(%event_list);	
+  foreach my $prog_ref (@{($ref->{'ns2:EventDetail'})}) {
 	my $prog;
 	
-	$prog->{title} = [[ $prog_ref->{'ns5:ProgramTitle'}, $opt->{lang} ]];
+	$prog->{title} = [[ $prog_ref->{'ns2:ProgramTitle'}, $opt->{lang} ]];
 	if ($prog->{title}->[0]->[0] =~ s/\s*(?:S(\d+)\s*)?Ep(\d+)(?:\s*&(?:amp;)?\s*\d+$)?//i) { # "S1 Ep5 &amp; 6"
 			my $xmltv_ns = ($1 ? ($1 - 1) : "") ." . ". ($2 ? ($2 - 1) : "") ." . "; # drops " & 6"
 			$prog->{'episode-num'} = [[ $xmltv_ns, 'xmltv_ns' ]];
 			#<title lang="en">Brotherhood S1 Ep5 &amp; 6</title>
 	}
-	$prog->{length} = int($prog_ref->{'ns5:Duration'} * 60);
 		
-	if (!defined $prog_ref->{'ns5:Duration'}) {
+	if (defined $event_list{$prog_ref->{'ns2:EventId'}}) {
+			$prog->{length} = $event_list{$prog_ref->{'ns2:EventId'}};
+	} else {
 			$stats{skipped_prog_no_duration}++;
 			next;
 	}
 		
-	if ((defined $prog_ref->{'ns5:ScheduledDate'}) &&
-		    ($prog_ref->{'ns5:ScheduledDate'} =~ /^(\d{4})-(\d{2})\-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})\+(\d{2}):(\d{2})$/)) {
-			my $prog_tz = "+".$8.$9;
+	if ((defined $prog_ref->{'ns2:ScheduledDate'}) &&
+		    ($prog_ref->{'ns2:ScheduledDate'} =~ /^(\d{4})-(\d{2})\-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+(\d{2}):(\d{2})$/)) {
+			my $prog_tz = "+".$7.$8;
 			my @t = ($6, $5, $4, $3, ($2-1), ($1-1900), -1, -1, -1);
 
 			my $prog_start = mktime(@t);
@@ -708,24 +711,24 @@ sub get_programs
 			$prog->{stop} =  POSIX::strftime("%Y%m%d%H%M%S", localtime($prog_stop))." ".$prog_tz;
 	} else {
 			$stats{skipped_prog_bad_starttime}++;
-			Shepherd::Common::log("unparsable date ".$prog_ref->{'ns5:ScheduledDate'})
-				if ((defined $prog_ref->{'ns5:ScheduledDate'}) &&
+			Shepherd::Common::log("unparsable date ".$prog_ref->{'ns2:ScheduledDate'})
+				if ((defined $prog_ref->{'ns2:ScheduledDate'}) &&
 					($stats{skipped_prog_bad_starttime} < 10));
 			next;
 	}
 		
-	if ((defined $prog_ref->{'ns5:ChannelId'}) &&
-				(defined $d->{channels}->{$prog_ref->{'ns5:ChannelId'}}->{xmlid})) {
-			$prog->{channel} = $d->{channels}->{$prog_ref->{'ns5:ChannelId'}}->{xmlid};
+	if ((defined $prog_ref->{'ns2:ChannelId'}) &&
+				(defined $d->{channels}->{$prog_ref->{'ns2:ChannelId'}}->{xmlid})) {
+			$prog->{channel} = $d->{channels}->{$prog_ref->{'ns2:ChannelId'}}->{xmlid};
 	} else {
 			$stats{skipped_prog_bad_channel}++;
 			next;
 	}
 		
-	if ((defined $prog_ref->{'ns5:EpisodeTitle'}) &&
-				(ref $prog_ref->{'ns5:EpisodeTitle'} ne "HASH") &&
-				($prog_ref->{'ns5:EpisodeTitle'} ne "")) {
-			$prog->{'sub-title'} = [[ $prog_ref->{'ns5:EpisodeTitle'}, $opt->{lang} ]];
+	if ((defined $prog_ref->{'ns2:EpisodeTitle'}) &&
+				(ref $prog_ref->{'ns2:EpisodeTitle'} ne "HASH") &&
+				($prog_ref->{'ns2:EpisodeTitle'} ne "")) {
+			$prog->{'sub-title'} = [[ $prog_ref->{'ns2:EpisodeTitle'}, $opt->{lang} ]];
 			if ($prog->{'sub-title'}->[0]->[0] =~ /(?:Series\s*(\d+),\s*)?Episode\s*(\d+)/i) {	# "Series 2, Episode 19"
 				my $xmltv_ns = ($1 ? ($1 - 1) : "") ." . ". ($2 ? ($2 - 1) : "") ." . ";
 				$prog->{'episode-num'} = [[ $xmltv_ns, 'xmltv_ns' ]];
@@ -735,73 +738,73 @@ sub get_programs
 		
 
 	# Program rating and consumer advice
-	if ($prog_ref->{'ns5:ParentalRating'} ne "-") {
-		if (defined $prog_ref->{'ns5:ConsumerAdvice'}) {
-			my $advice = $prog_ref->{'ns5:ConsumerAdvice'};
+	if ($prog_ref->{'ns2:ParentalRating'} ne "-") {
+		if (defined $prog_ref->{'ns2:ConsumerAdvice'}) {
+			my $advice = $prog_ref->{'ns2:ConsumerAdvice'};
 			$advice =~ s/\s//g;
-			$prog->{rating} = [[ $prog_ref->{'ns5:ParentalRating'}." ".$advice, 'ABA', undef ]] ;
+			$prog->{rating} = [[ $prog_ref->{'ns2:ParentalRating'}." ".$advice, 'ABA', undef ]] ;
 		}
 		else {
-			$prog->{rating} = [[ $prog_ref->{'ns5:ParentalRating'}, 'ABA', undef ]] ;
+			$prog->{rating} = [[ $prog_ref->{'ns2:ParentalRating'}, 'ABA', undef ]] ;
 		}
 	}
 
 	$prog->{subtitles} = [ { 'type' => 'teletext' } ]
-			if (((defined $prog_ref->{'ns5:SubtitledInd'}) && ($prog_ref->{'ns5:SubtitledInd'} ne "false")) ||
-				((defined $prog_ref->{'ns5:ClosedCaptionInd'}) && ($prog_ref->{'ns5:ClosedCaptionInd'} ne "false")));
+			if (((defined $prog_ref->{'ns2:SubtitledInd'}) && ($prog_ref->{'ns2:SubtitledInd'} ne "false")) ||
+				((defined $prog_ref->{'ns2:ClosedCaptionInd'}) && ($prog_ref->{'ns2:ClosedCaptionInd'} ne "false")));
 	$prog->{video}->{aspect} = "16:9"
-			if ((defined $prog_ref->{'ns5:WidescreenInd'}) && ($prog_ref->{'ns5:WidescreenInd'} ne "false"));
+			if ((defined $prog_ref->{'ns2:WidescreenInd'}) && ($prog_ref->{'ns2:WidescreenInd'} ne "false"));
 	$prog->{video}->{quality} = "HDTV"
-			if (defined $prog_ref->{'ns5:HDInd'} && ($prog_ref->{'ns5:HDInd'} ne "false"));
+			if (defined $prog_ref->{'ns2:HDInd'} && ($prog_ref->{'ns2:HDInd'} ne "false"));
 		
-	if (defined $prog_ref->{'ns5:Audio'}) {
+	if (defined $prog_ref->{'ns2:Audio'}) {
 			# try to match bad values like 'dolby stereo'
-		  	$prog->{audio}->{stereo} = 'mono' if ($prog_ref->{'ns5:Audio'} =~ m/mono/i);
-			$prog->{audio}->{stereo} = 'stereo' if ($prog_ref->{'ns5:Audio'} =~ m/stereo/i);
-			$prog->{audio}->{stereo} = 'dolby' if ($prog_ref->{'ns5:Audio'} =~ m/dolby/i);
-			$prog->{audio}->{stereo} = 'dolby digital' if ($prog_ref->{'ns5:Audio'} =~ m/digital/i);
-			$prog->{audio}->{stereo} = 'surround' if ($prog_ref->{'ns5:Audio'} =~ m/surround/i);
+		  	$prog->{audio}->{stereo} = 'mono' if ($prog_ref->{'ns2:Audio'} =~ m/mono/i);
+			$prog->{audio}->{stereo} = 'stereo' if ($prog_ref->{'ns2:Audio'} =~ m/stereo/i);
+			$prog->{audio}->{stereo} = 'dolby' if ($prog_ref->{'ns2:Audio'} =~ m/dolby/i);
+			$prog->{audio}->{stereo} = 'dolby digital' if ($prog_ref->{'ns2:Audio'} =~ m/digital/i);
+			$prog->{audio}->{stereo} = 'surround' if ($prog_ref->{'ns2:Audio'} =~ m/surround/i);
 	}
 		
 	# get actors, directors and writers
-	foreach my $actor (@{$prog_ref->{'ns5:Actor'}}) { push(@{($prog->{credits}->{actor})}, $actor); }
-	foreach my $director (@{$prog_ref->{'ns5:Director'}}) { push(@{($prog->{credits}->{director})}, $director); }
-	foreach my $writer (@{$prog_ref->{'ns5:Writer'}}) { push(@{($prog->{credits}->{writer})}, $writer); }
+	foreach my $actor (@{$prog_ref->{'ns2:Actor'}}) { push(@{($prog->{credits}->{actor})}, $actor); }
+	foreach my $director (@{$prog_ref->{'ns2:Director'}}) { push(@{($prog->{credits}->{director})}, $director); }
+	foreach my $writer (@{$prog_ref->{'ns2:Writer'}}) { push(@{($prog->{credits}->{writer})}, $writer); }
 		
 	# get description/synopsis
-	$prog->{desc} = [[ $prog_ref->{'ns5:ExtendedSynopsis'}, $opt->{lang} ]] if (defined $prog_ref->{'ns5:ExtendedSynopsis'});
+	$prog->{desc} = [[ $prog_ref->{'ns2:ExtendedSynopsis'}, $opt->{lang} ]] if (defined $prog_ref->{'ns2:ExtendedSynopsis'});
 
 # TODO: get series and episode number
-#				my $series_num = (defined $prog_ref->{'ns5:SeriesNumber'}) ? $prog_ref->{'ns5:SeriesNumber'} : "";
-#				my $episode_num = (defined $prog_ref->{'ns5:EpisodeNumber'}) ? $prog_ref->{'ns5:EpisodeNumber'} : "";
+#				my $series_num = (defined $prog_ref->{'ns2:SeriesNumber'}) ? $prog_ref->{'ns2:SeriesNumber'} : "";
+#				my $episode_num = (defined $prog_ref->{'ns2:EpisodeNumber'}) ? $prog_ref->{'ns2:EpisodeNumber'} : "";
 #				if ((defined ) && (defined )) {
-#					if ($prog_ref->{'ns5:SeriesNumber'} =~ s/(?:S(?:Series\s*)?(\d+),\s*)//i) {
-#						my $xmltv_ns = ($1 - 1)." . ".($prog_ref->{'ns5:EpisodeNumber'} - 1)." . ";
+#					if ($prog_ref->{'ns2:SeriesNumber'} =~ s/(?:S(?:Series\s*)?(\d+),\s*)//i) {
+#						my $xmltv_ns = ($1 - 1)." . ".($prog_ref->{'ns2:EpisodeNumber'} - 1)." . ";
 #						$prog->{'episode-num'} = [[ $xmltv_ns, 'xmltv_ns' ]];
 #					}
 #					else {
-#						my $xmltv_ns = ($prog_ref->{'ns5:SeriesNumber'} - 1)." . ".($prog_ref->{'ns5:EpisodeNumber'} - 1)." . 0";
+#						my $xmltv_ns = ($prog_ref->{'ns2:SeriesNumber'} - 1)." . ".($prog_ref->{'ns2:EpisodeNumber'} - 1)." . 0";
 #						$prog->{'episode-num'} = [[ $xmltv_ns, 'xmltv_ns' ]];
 #					}
 #				}
 #				else {
-#					$prog->{'episode-num'} = [[ $prog_ref->{'ns5:EpisodeNumber'}, 'onscreen' ]] if (defined $prog_ref->{'ns5:EpisodeNumber'});
+#					$prog->{'episode-num'} = [[ $prog_ref->{'ns2:EpisodeNumber'}, 'onscreen' ]] if (defined $prog_ref->{'ns2:EpisodeNumber'});
 #				}
 ######### here #### mb try to get episode numbers - not real good with fox - lots of prints to get rid of
 #########
-	if (defined($prog->{'episode-num'}) )  { print("#### Episodes pre-defined: Title: $prog_ref->{'ns5:ProgramTitle'} \n"); }
+	if (defined($prog->{'episode-num'}) )  { print("#### Episodes pre-defined: Title: $prog_ref->{'ns2:ProgramTitle'} \n"); }
 	else {  ## process episode nums
 		my $se_num = " ";
 		my $ep_num = " ";
 		my $ep_tit = "";
 		my $xmltv_ns = "";
-		if (defined($prog_ref->{'ns5:EpisodeTitle'}))  { $ep_tit = $prog_ref->{'ns5:EpisodeTitle'}; }
-		if (defined($prog_ref->{'ns5:SeriesNumber'}))  { $se_num = $prog_ref->{'ns5:SeriesNumber'} ;}
-		if (defined($prog_ref->{'ns5:EpisodeNumber'})) { $ep_num = $prog_ref->{'ns5:EpisodeNumber'}; }
+		if (defined($prog_ref->{'ns2:EpisodeTitle'}))  { $ep_tit = $prog_ref->{'ns2:EpisodeTitle'}; }
+		if (defined($prog_ref->{'ns2:SeriesNumber'}))  { $se_num = $prog_ref->{'ns2:SeriesNumber'} ;}
+		if (defined($prog_ref->{'ns2:EpisodeNumber'})) { $ep_num = $prog_ref->{'ns2:EpisodeNumber'}; }
 			
 		if (( $se_num ne " ") or ( $ep_num ne " "))
 		{  ## one of them exists
-		print("#### Episodes found: Se_num: $se_num Ep_num: ($ep_num $prog_ref->{'ns5:ProgramTitle'}) [$ep_tit]\n");
+		print("#### Episodes found: Se_num: $se_num Ep_num: ($ep_num $prog_ref->{'ns2:ProgramTitle'}) [$ep_tit]\n");
 		
 		if ( $se_num=~ /^S(\d+)$/)          { $se_num = $1; }
 		if ( $se_num=~ /^Series\s+?(\d+)$/) { $se_num = $1; }
@@ -856,19 +859,19 @@ sub get_programs
 
 
 	# get genre and subgenre
-	if ((defined $prog_ref->{'ns5:GenreCode'}) &&
-				(defined $prog_ref->{'ns5:SubGenreCode'}) &&
-				(defined $d->{genres}->{$prog_ref->{'ns5:GenreCode'}}->{$prog_ref->{'ns5:SubGenreCode'}})) {
-		my $category = $d->{genres}->{$prog_ref->{'ns5:GenreCode'}}->{$prog_ref->{'ns5:SubGenreCode'}};
+	if ((defined $prog_ref->{'ns2:GenreCode'}) &&
+				(defined $prog_ref->{'ns2:SubGenreCode'}) &&
+				(defined $d->{genres}->{$prog_ref->{'ns2:GenreCode'}}->{$prog_ref->{'ns2:SubGenreCode'}})) {
+		my $category = $d->{genres}->{$prog_ref->{'ns2:GenreCode'}}->{$prog_ref->{'ns2:SubGenreCode'}};
 		$prog->{category} = [[ $category , $opt->{lang} ]];
 
 	      #more accurate than method below, gets movies on non-movie channels, and misses shows on movie channels
-		push(@{$prog->{category}}, ['Movie', $opt->{lang}]) if $d->{genres}->{$prog_ref->{'ns5:GenreCode'}}->{name} eq 'Movies';
-#		push(@{$prog->{category}}, ['Sports', $opt->{lang}]) if $d->{genres}->{$prog_ref->{'ns5:GenreCode'}}->{name} eq 'Sport';
+		push(@{$prog->{category}}, ['Movie', $opt->{lang}]) if $d->{genres}->{$prog_ref->{'ns2:GenreCode'}}->{name} eq 'Movies';
+#		push(@{$prog->{category}}, ['Sports', $opt->{lang}]) if $d->{genres}->{$prog_ref->{'ns2:GenreCode'}}->{name} eq 'Sport';
 
- 		if ((defined $d->{channels}->{$prog_ref->{'ns5:ChannelId'}}->{category}) &&
- 					(defined $d->{categories}->{$d->{channels}->{$prog_ref->{'ns5:ChannelId'}}->{category}})) {
- 			my $ch_category = $d->{categories}->{$d->{channels}->{$prog_ref->{'ns5:ChannelId'}}->{category}};
+ 		if ((defined $d->{channels}->{$prog_ref->{'ns2:ChannelId'}}->{category}) &&
+ 					(defined $d->{categories}->{$d->{channels}->{$prog_ref->{'ns2:ChannelId'}}->{category}})) {
+ 			my $ch_category = $d->{categories}->{$d->{channels}->{$prog_ref->{'ns2:ChannelId'}}->{category}};
 # 			push(@{$prog->{category}}, ['Movie', $opt->{lang}]) if $ch_category eq 'Movies';
  			push(@{$prog->{category}}, ['Sports', $opt->{lang}]) if $ch_category eq 'Sport';
  		}
@@ -876,15 +879,15 @@ sub get_programs
 	} else { $stats{skipped_categories}++; }
 
 	# get urls/weblinks
-	if (defined $prog_ref->{'ns5:WebLink'}) { 
-		if (ref($prog_ref->{'ns5:WebLink'}) eq "HASH") {
-			push(@{$prog->{url}}, $prog_ref->{'ns5:WebLink'}->{'ns5:Url'})
+	if (defined $prog_ref->{'ns2:WebLink'}) { 
+		if (ref($prog_ref->{'ns2:WebLink'}) eq "HASH") {
+			push(@{$prog->{url}}, $prog_ref->{'ns2:WebLink'}->{'ns2:Url'})
 		}
-		elsif (ref($prog_ref->{'ns5:WebLink'}) eq "ARRAY") {
-			my @webarray = @{$prog_ref->{'ns5:WebLink'}};
+		elsif (ref($prog_ref->{'ns2:WebLink'}) eq "ARRAY") {
+			my @webarray = @{$prog_ref->{'ns2:WebLink'}};
 			my $u = 0;
 			while ($u <= $#webarray) {
-  				push(@{$prog->{url}}, $webarray[$u]->{'ns5:Url'});
+  				push(@{$prog->{url}}, $webarray[$u]->{'ns2:Url'});
 				$u++;
  			}
 		}
@@ -893,38 +896,38 @@ sub get_programs
 	# TODO: get star-rating/criticsRating
 
 	# get date/YearOfProduction
-	$prog->{date} = $prog_ref->{'ns5:YearOfProduction'} if (defined $prog_ref->{'ns5:YearOfProduction'});
+	$prog->{date} = $prog_ref->{'ns2:YearOfProduction'} if (defined $prog_ref->{'ns2:YearOfProduction'});
 		
 	# get country
-	push(@{($prog->{country})}, [$prog_ref->{'ns5:CountryOfOrigin'}]) if (defined $prog_ref->{'ns5:CountryOfOrigin'});
+	push(@{($prog->{country})}, [$prog_ref->{'ns2:CountryOfOrigin'}]) if (defined $prog_ref->{'ns2:CountryOfOrigin'});
 		
 	# get language
-	$prog->{language}->[0] = $prog_ref->{'ns5:Language'} if (defined $prog_ref->{'ns5:Language'});
+	$prog->{language}->[0] = $prog_ref->{'ns2:Language'} if (defined $prog_ref->{'ns2:Language'});
 		
 	# get colour
-	if (defined $prog_ref->{'ns5:ColourType'}) {
-			$prog->{video}->{colour} = ($prog_ref->{'ns5:ColourType'} =~ /colour|color/i) ? "1" : "0";
+	if (defined $prog_ref->{'ns2:ColourType'}) {
+			$prog->{video}->{colour} = ($prog_ref->{'ns2:ColourType'} =~ /colour|color/i) ? "1" : "0";
 		}
 
 	# get premiere
 	$prog->{premiere} = ["New Episode", $opt->{lang} ]
-			if (defined $prog_ref->{'ns5:NewEpisode'} && ($prog_ref->{'ns5:NewEpisode'} ne "false"));
+			if (defined $prog_ref->{'ns2:NewEpisode'} && ($prog_ref->{'ns2:NewEpisode'} ne "false"));
 	$prog->{premiere} = ["Premiere", $opt->{lang} ]
-			if (defined $prog_ref->{'ns5:PremiereInd'} && ($prog_ref->{'ns5:PremiereInd'} ne "false"));
+			if (defined $prog_ref->{'ns2:PremiereInd'} && ($prog_ref->{'ns2:PremiereInd'} ne "false"));
 
 	# <ContentWarning>als</ContentWarning>
 	# 'DSTInd' => 'true', 'ProgramAvailableInd' => 'true'
 	Shepherd::Common::cleanup($prog);
 		
-	if (defined $prog_ref->{'ns5:ProgramId'}) {
-			my $prog_id = $prog->{channel} . $prog_ref->{'ns5:ProgramId'};
+	if (defined $prog_ref->{'ns2:ProgramId'}) {
+			my $prog_id = $prog->{channel} . $prog_ref->{'ns2:ProgramId'};
 			my $eptitle = "";
-			$eptitle = $prog_ref->{'ns5:EpisodeTitle'} if (defined($prog_ref->{'ns5:EpisodeTitle'}));
+			$eptitle = $prog_ref->{'ns2:EpisodeTitle'} if (defined($prog_ref->{'ns2:EpisodeTitle'}));
 			
-#			print ("*** Inserting ProgID $prog_id into cache...($prog_ref->{'ns5:ProgramTitle'})[$eptitle]\n");
+#			print ("*** Inserting ProgID $prog_id into cache...($prog_ref->{'ns2:ProgramTitle'})[$eptitle]\n");
 			
 			$data_cache->{prog_cache}->{$prog_id}->{progid}     = $prog_id;
-			$data_cache->{prog_cache}->{$prog_id}->{title}      = $prog_ref->{'ns5:ProgramTitle'};
+			$data_cache->{prog_cache}->{$prog_id}->{title}      = $prog_ref->{'ns2:ProgramTitle'};
 			$data_cache->{prog_cache}->{$prog_id}->{eptitle}    = $eptitle;
 			$data_cache->{prog_cache}->{$prog_id}->{first_used} = $script_start_time;
 			$data_cache->{prog_cache}->{$prog_id}->{last_used}  = $script_start_time;
@@ -934,15 +937,15 @@ sub get_programs
 			$cache_dirty = 1;
 			# &write_cache;
 	}
-	elsif (defined $prog_ref->{'ns5:EventId'}) {
-			my $event_id = $prog->{channel} . $prog_ref->{'ns5:EventId'};
+	elsif (defined $prog_ref->{'ns2:EventId'}) {
+			my $event_id = $prog->{channel} . $prog_ref->{'ns2:EventId'};
 			my $eptitle = "";
-			$eptitle = $prog_ref->{'ns5:EpisodeTitle'} if (defined($prog_ref->{'ns5:EpisodeTitle'}));
+			$eptitle = $prog_ref->{'ns2:EpisodeTitle'} if (defined($prog_ref->{'ns2:EpisodeTitle'}));
 
-			print ("*** Inserting EventID $event_id into cache... ($prog_ref->{'ns5:ProgramTitle'})[$eptitle]\n");
+			print ("*** Inserting EventID $event_id into cache... ($prog_ref->{'ns2:ProgramTitle'})[$eptitle]\n");
 			
 			$data_cache->{event_cache}->{$event_id}->{eventid}    = $event_id;
-			$data_cache->{event_cache}->{$event_id}->{title}      = $prog_ref->{'ns5:ProgramTitle'};
+			$data_cache->{event_cache}->{$event_id}->{title}      = $prog_ref->{'ns2:ProgramTitle'};
 			$data_cache->{event_cache}->{$event_id}->{eptitle}    = $eptitle;
 			$data_cache->{event_cache}->{$event_id}->{first_used} = $script_start_time;
 			$data_cache->{event_cache}->{$event_id}->{last_used}  = $script_start_time;
@@ -1017,21 +1020,21 @@ sub soap_search_events
 	} else {
 		Shepherd::Common::log("DEBUG: soap_search_events got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 
-	$parsed_xml = XMLin($data , forcearray => [ qw(ns5:Event) ]);
+	$parsed_xml = XMLin($data , forcearray => [ qw(ns2:Event) ]);
 	
 print Dumper( $parsed_xml) if ((defined $opt->{debug}) && ($opt->{debug} > 1));	
-		if (!defined $parsed_xml->{'soapenv:Body'}->{'ns5:SearchEventsOut'}) {
+		if (!defined $parsed_xml->{'SOAP-ENV:Body'}->{'ns2:SearchEventsOut'}) {
 			$failure_code = "no_SearchEventsOut";
 		} else {
-			$ref = $parsed_xml->{'soapenv:Body'}->{'ns5:SearchEventsOut'};
-			if (!defined $ref->{'ns5:Events'}->{'ns5:Event'}) {
+			$ref = $parsed_xml->{'SOAP-ENV:Body'}->{'ns2:SearchEventsOut'};
+			if (!defined $ref->{'ns2:Events'}->{'ns2:Event'}) {
 				$failure_code = "no_Events";
 			} else {
 ###			
-			if ((ref $ref->{'ns5:Events'}->{'ns5:Event'} ne "ARRAY") || (scalar(@{$ref->{'ns5:Events'}->{'ns5:Event'}}) < 1)) 
+			if ((ref $ref->{'ns2:Events'}->{'ns2:Event'} ne "ARRAY") || (scalar(@{$ref->{'ns2:Events'}->{'ns2:Event'}}) < 1)) 
 			       { $failure_code = "not_array_Event";
 			
-###				if (ref $ref->{'ns5:Events'}->{'ns5:Event'} ne "ARRAY") {
+###				if (ref $ref->{'ns2:Events'}->{'ns2:Event'} ne "ARRAY") {
 ###					$failure_code = "not_array_Events";
 				} else {
 					$found_array = 1; # success
@@ -1056,7 +1059,7 @@ print Dumper( $parsed_xml) if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 
 sub soap_get_event_details
 {
-	my (@event_list) = @_;
+	my (%event_list) = @_;
 	my $data, my $postvars;
 
 	$postvars = $d->{common_post_start}.
@@ -1066,7 +1069,7 @@ sub soap_get_event_details
 		"<s:SubBouquetId xmlns:types=\"http://epg.foxtel.com.au/schema\">".$d->{bouquet}->{subbouquet_id}."</s:SubBouquetId>".
 		"</s:Bouquet>".
 		"<s:StateId>".$d->{state}->{id}."</s:StateId>";
-	foreach my $event_id (@event_list) {
+	foreach my $event_id (keys %event_list) {
 	    $postvars .= "<s:EventId>".$event_id."</s:EventId>";
 	}
 	$postvars .= "</s:GetEventDetailsIn>".
@@ -1083,14 +1086,14 @@ sub soap_get_event_details
 		$failure_code = "no_GetEventDetails_data";
 	} else {
 		Shepherd::Common::log("DEBUG: soap_get_event_details got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
-		$parsed_xml = XMLin($data, forcearray => [ qw( ns5:EventDetail ns5:Actor ns5:Director ns5:Writer) ]);
+		$parsed_xml = XMLin($data, forcearray => [ qw( ns2:EventDetail ns2:Actor ns2:Director ns2:Writer) ]);
 		
-		if (!defined $parsed_xml->{'soapenv:Body'}->{'ns5:GetEventDetailsOut'}) {
+		if (!defined $parsed_xml->{'SOAP-ENV:Body'}->{'ns2:GetEventDetailsOut'}) {
 			$failure_code = "no_GetEventDetailsOut";
 		} else {
-			$ref = $parsed_xml->{'soapenv:Body'}->{'ns5:GetEventDetailsOut'};
-			if (ref $ref->{'ns5:EventDetail'} ne "ARRAY") {
-			my $s1st = ref $ref->{'ns5:EventDetail'};
+			$ref = $parsed_xml->{'SOAP-ENV:Body'}->{'ns2:GetEventDetailsOut'};
+			if (ref $ref->{'ns2:EventDetail'} ne "ARRAY") {
+			my $s1st = ref $ref->{'ns2:EventDetail'};
 				$failure_code = "not_array_EventDetail It is a $s1st";
 			} else {
 				$found_array = 1; # success
