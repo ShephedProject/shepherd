@@ -96,7 +96,7 @@ $| = 1;
 BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 my $progname = "reconciler_mk2";
-my $version = "0.57";
+my $version = "0.58";
 
 use LWP::UserAgent;
 use XMLTV;
@@ -1022,6 +1022,7 @@ sub setup_canonical_stop_list_exceptions
 		    'Once Upon a Time' => [ 'in .*' ],
 		    'Seven News' => [ 'at ' ],
 		    'Fargo' => [ 'sneak peek' ],	# make sure fargo season 2 sneak peak remains distinct from fargo
+		    'Trawlermen' => [ 'The Catch' ],
 		};
 	foreach my $key (keys %$default_canonical_stop_list_exceptions)
 	{
