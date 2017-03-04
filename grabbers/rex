@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '10.0.0'; 
+my $version  = '10.1.0a'; 
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -15,11 +15,14 @@ my $version  = '10.0.0';
 # 
 # A current version of this script, plus a README file, might be here:
 # http://www.whuffy.com/tv_grab_au/
+# 
+# 10.1.0 - updated 17th Feb 2017 - interim fixes to parsing and URL changes
 
 use strict;
 use warnings;
 use Getopt::Long;
 use Date::Manip;
+use Date::Parse;
 use File::Path;
 use File::Basename;
 use Data::Dumper;
@@ -39,9 +42,10 @@ use Shepherd::Common;
 my $progname = "Rex";
 my $lang = "en";
 
-my $DATASOURCE             = "http://www.yourtv.com.au";
-my $DATASOURCE_GUIDE       = "$DATASOURCE/getGuide";
-my $DATASOURCE_DETAIL      = "$DATASOURCE/getProgramInfo";
+my $DATASOURCE              = "https://www.yourtv.com.au";
+my $DATASOURCE_GUIDE        = "$DATASOURCE/api/guide/";
+my $DATASOURCE_DETAIL       = "$DATASOURCE/api/airings/";
+
 
 my $runtime = time();
 my $laststats = $runtime;
@@ -159,10 +163,12 @@ sub get_guide_data
   for my $day ($opt->{offset} .. $opt->{days} - 1)
   {
     $date = Ymd(DateCalc("now", "+ $day days"));
+
     $dow = substr(localtime($runtime + (86400 * $day)).'', 0, 3);
     print "Day $day ($dow).\n" if ($debug);
+    print "Date $date ($dow).\n" if ($debug);
 
-    $url = sprintf "%s?date=%s&ftaRegion=%d&format=json", $DATASOURCE_GUIDE, Ymd($date), $opt->{region};
+    $url = sprintf "%s?day=%s&format=json&region=%d", $DATASOURCE_GUIDE, lc($dow), $opt->{region};
     $guidedata = get_page($url);
     parse_guide($guidedata, $date) if ($guidedata);
   }
@@ -280,7 +286,7 @@ sub download_show
     my $result;
 
     print "Downloading # $pid (" . $precache->{$pid}->{title} . ").\n" if ($debug);
-    my $url = sprintf "%s?eventId=%d&regionId=%d", $DATASOURCE_DETAIL, $pid, $opt->{region};
+    my $url = sprintf "%s%d", $DATASOURCE_DETAIL, $pid;
     my $detailsdata = get_page($url);
     $result = parse_details($detailsdata, $pid) if ($detailsdata);
     unless ($detailsdata and $result)
@@ -483,13 +489,13 @@ sub parse_guide
 
     my $data = JSON::decode_json($guidedata);
 
-    my $rows = $data->{sections}->{fta}->{rows};
+    my $rows = $data->[0]{channels};
 
     my @channels_seen;
 
     foreach my $row (@$rows)
     {
-	my $channame = $row->{channelName};
+   my $channame = $row->{name};
 	my $curchan = translate_channel_name($channame, scalar(grep($_ eq $channame, @channels_seen)));
 	push @channels_seen, $channame;
 	if (!$channels->{$curchan})
@@ -501,9 +507,28 @@ sub parse_guide
 
 	foreach my $block (@{$row->{blocks}})
 	{
+       my $duration = $block->{offsets};
+
+       # if the text margin-left appears in the duration going to assume that the program
+       # was included in the previous days results and will ignore it here
+       if ($duration =~ /margin-left/) {
+       next;
+       }
+
+       # no endtime or duration in the json guide data 12th Feb 2017
+       # so attempt to spoof a valid duration from available info
+            $duration =~ s#[%].*##g;
+            $duration =~ s#.*[ ]##g;
+       $duration = $duration * 100000;
+       $duration = $duration / 6944;
+            $duration =~ s#[.].*##g;
+       $duration = $duration * 60;
+
 	    foreach my $show (@{$block->{shows}})
 	    {
-		addme($show, $curchan);
+#      addme($show, $curchan);
+                addme($show, $curchan, $duration, $date);
+
 	    }
 	}
     }
@@ -511,15 +536,23 @@ sub parse_guide
 
 sub addme
 {
-    my ($show, $curchan) = @_;
+    my ($show, $curchan, $duration, $date) = @_;
 
     my $pid = $show->{id};
 
-    $precache->{$pid} = { 
+    my $text_start_time = $show->{date};
+    $text_start_time = $date . " " . $text_start_time;
+    my $real_start_time = str2time($text_start_time);
+    my $real_end_time = $real_start_time + $duration;
+    $real_start_time = strftime '%Y%m%d%H%M%S', localtime $real_start_time;
+    $real_end_time = strftime '%Y%m%d%H%M%S', localtime $real_end_time;
+
+    $precache->{$pid} = {
 	'title' => $show->{title},
-	'start' => convert_date($show->{startTime}),
-	'stop' => convert_date($show->{endTime}),
-	'program_id' => $show->{programId},
+   'start' => $real_start_time,
+   'stop' => $real_end_time,
+#        'debug_rex_id1' => $show->{id},
+#        'debug_rex_id2' => $show->{programId},
 	'channel' => $channels->{$curchan},
     };
 
@@ -552,76 +585,101 @@ sub parse_details
 
     my $data = JSON::decode_json($detailsdata);
 
-#    print Dumper($data) if ($debug);
+    print Dumper($data) if ($debug);
 
     my $show = $precache->{$pid};
     my %type;
     my %video;
 
-    my $lang = $data->{meta}->{info}->{language} || 'en';
+    my $lang = $data->{language} || 'en';
 
-    $show->{title} = [[ $data->{copy}->{h1}, $lang ]];
+    $show->{title} = [[ $data->{program}->{title}, $lang ]];
 
     $show->{language} = [ $lang ];
 
-    $show->{desc} = [[ $data->{copy}->{description}, $lang ]];
+    $show->{desc} = [[ $data->{synopsis}, $lang ]] || [[ $data->{program}->{longSynopsis}, $lang ]] || [[ $data->{program}->{mediumSynopsis}, $lang ]] || [[ $data->{program}->{shortSynopsis}, $lang ]] || [[ $data->{synopsis}, $lang ]];
 
-    if ($data->{meta}->{info}->{rating})
+    if (!($show->{desc}[0][0]))
     {
-	$show->{rating} = [[ uc $data->{meta}->{info}->{rating}, 'ABA', undef]];
+        $show->{desc} = [[ $data->{synopsis}, $lang ]];
+    }
+    if (!($show->{desc}[0][0]))
+    {
+        $show->{desc} = [[ $data->{program}->{longSynopsis}, $lang ]];
+    }
+    if (!($show->{desc}[0][0]))
+    {
+        $show->{desc} = [[ $data->{program}->{mediumSynopsis}, $lang ]];
+    }
+    if (!($show->{desc}[0][0]))
+    {
+        $show->{desc} = [[ $data->{program}->{shortSynopsis}, $lang ]];
+    }
+    if (!($show->{desc}[0][0]))
+    {
+   $show->{desc} = [[ $data->{program}->{title}, $lang ]];
+    }
+    if (!($show->{desc}[0][0]))
+    {
+        $show->{desc} = [[ "Failed to parse a valid description, shouldn't be possible", $lang ]];
     }
 
-    if (is_true($data->{meta}->{info}->{repeat}))
+    if ($data->{classification})
+    {
+   $show->{rating} = [[ uc $data->{classification}, 'ABA', undef]];
+    }
+
+    if ($data->{repeat})
     {
 	$show->{'previously-shown'} = { };
     }
-    if (is_true($data->{meta}->{info}->{premiere}))
+    if ($data->{premiere})
     {
 	$show->{'premiere'} = [ 'Premiere' ];
 	$type{'premiere'} = 1;
     }
-    if ($data->{copy}->{h2})
+    if ($data->{episodeTitle})
     {
-	$show->{'sub-title'} = [[ $data->{copy}->{h2}, $lang ]];
+        $show->{'sub-title'} = [[ $data->{episodeTitle}, $lang ]];
     }
 
-    if ($data->{meta}->{info}->{mainCast})
+    if (is_true($data->{mainCast}))
     {
-	$show->{'credits'}{'actor'} = [ split(/, ?/, strip_whitespace($data->{meta}->{info}->{mainCast})) ];
+   $show->{'credits'}{'actor'} = [ split(/, ?/, strip_whitespace($data->{mainCast})) ];
     }
 
-    if (is_true($data->{tech}->{widescreen}))
+    if ($data->{widescreen})
     {
 	$video{'aspect'} = '16:9';
     }
 
-    if (is_true($data->{tech}->{highDefinition}))
+    if ($data->{highDefinition})
     {
 	$video{'quality'} = 'HDTV';
     }
 
-    if (is_true($data->{meta}->{info}->{live}))
-    {
-	$type{live} = 1;
-    }
+#    if (is_true($data->{realtime}))
+#    {
+#  $type{live} = 1;
+#    }
 
-    if (is_true($data->{tech}->{captions}) or is_true($data->{tech}->{subtitles}))
+    if (is_true($data->{closedCaptions}) or is_true($data->{subtitles}))
     {
 	$show->{'subtitles'} = [ { 'type' => 'teletext' } ];
     }
 
-    $show->{language} = [ $data->{meta}->{info}->{language} || 'en' ];
+#    $show->{language} = [ $data->{meta}->{info}->{language} || 'en' ];
 
-    if ($data->{meta}->{info}->{country})
+    if ($data->{country})
     {
-	$show->{country} = [[ $data->{meta}->{info}->{country}, 'en' ]];
+   $show->{country} = [[ $data->{country}, 'en' ]];
     }
 
     $show->{'video'} = \%video if (%video);
 
     $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}[0][0], undef, %type) ];
 
-    print Dumper($show) if ($debug);
+#    print Dumper($show) if ($debug);
     return $show;
 }
 
@@ -820,16 +878,6 @@ sub set_defaults
 	debug => $debug,
 	webwarper => $opt->{warper}
     );
-}
-
-sub convert_date
-{
-    my $str = shift;
-
-    my $ret = ParseDate($str);
-    $ret =~ tr/://d;
-
-    return $ret;
 }
 
 sub expand_date
