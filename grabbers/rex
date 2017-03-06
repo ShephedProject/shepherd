@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '10.1.0a'; 
+my $version  = '10.3.2'; 
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -17,12 +17,28 @@ my $version  = '10.1.0a';
 # http://www.whuffy.com/tv_grab_au/
 # 
 # 10.1.0 - updated 17th Feb 2017 - interim fixes to parsing and URL changes
+# 10.2.0 - updated 3rd Mar 2017  - version step with push to testing repo
+# 10.3.0 - updated 4th Mar 2017  - updated to be a bit more tidy
+#                                - remove dependency on Date::Parse that was
+#                                  added in 10.1.0 and promptly forgotten about.
+#                                - removed ugly ugly duration hack and replaced with
+#                                  proper solution
+#                                - cache fixes.
+#                                - various misc others.
+# 10.3.1 - updated 6th Mar 2017  - override for SBS v SBS ONE incorrect naming on yourtv.com.au
+# 10.3.2 - updated 6th Mar 2017  - reverting the override from 10.3.1
+#
+#
+#
+#
+#
+# todo
+# guard against program running over midnight (ie over two days)
 
 use strict;
 use warnings;
 use Getopt::Long;
 use Date::Manip;
-use Date::Parse;
 use File::Path;
 use File::Basename;
 use Data::Dumper;
@@ -227,27 +243,37 @@ sub verify_cache
 {
   my $pid = shift;
 
+# disabled cache verify on the stop time and subtitle as the precache wont hold those values from
+# the new guide at this point and the subsequent compare just returns a valid compare regardless.
+#
+# disabled cache verify on the title because it appears that the shepherd cache implementation
+# stores the title using the reconciler title. This will often fail the compare even just om
+# successive runs and causes a much slower execution.
+#
+# in my opinion the cache verify on starttime combined with the cache clean on open combined with
+# using the show id as the key should be sufficient to prevent the cache returning false positives.
+
   my @c = ( 
-            [ 
-	      'Title', 
-	      $cached->{$pid}->{title}[0][0], 
-	      $precache->{$pid}->{title} 
-	    ],
+#            [ 
+#	      'Title', 
+#	      $cached->{$pid}->{title}[0][0], 
+#	      $precache->{$pid}->{title} 
+#	    ],
 	    [ 
 	      'Start time',
 	      $cached->{$pid}->{start},
 	      $precache->{$pid}->{start}
 	    ],
-	    [
-	      'Stop time',
-	      $cached->{$pid}->{stop},
-	      $precache->{$pid}->{stop}
-	    ],
-	    [
-	      'Subtitle',
-	      ($cached->{$pid}->{'sub-title'} ? $cached->{$pid}->{'sub-title'}[0][0] : undef),
-	      $precache->{$pid}->{'sub-title'}
-	    ]
+#	    [
+#	      'Stop time',
+#	      $cached->{$pid}->{stop},
+#	      $precache->{$pid}->{stop}
+#	    ],
+#	    [
+#	      'Subtitle',
+#	      ($cached->{$pid}->{'sub-title'} ? $cached->{$pid}->{'sub-title'}[0][0] : undef),
+#	      $precache->{$pid}->{'sub-title'}
+#	    ]
 	  ); 
   foreach my $cmp (@c)
   {
@@ -271,6 +297,7 @@ sub compare_caches
   return 1 if $arg1 eq $arg2;
 
   print "$name mismatch: \"$arg1\" vs \"$arg2\".\n" if ($debug);
+print "$name mismatch: \"$arg1\" vs \"$arg2\".\n";
   return 0;
 }
 
@@ -394,7 +421,7 @@ sub restore_cache
 
 sub clean_cache
 {
-    my $r = expand_date(localtime($runtime - (3*3600))."");
+    my $r = expand_date(localtime($runtime - (27*3600))."");
     my $c = 0;
     print "Removing cache items that finish earlier than $r.\n" if ($debug);
     foreach (keys %$cached)
@@ -402,6 +429,7 @@ sub clean_cache
 	if (Date_Cmp($r, $cached->{$_}->{stop}) == 1)
 	{
 	    print "Removing $cached->{$_}->{title}[0][0] (" . Ymd($cached->{$_}->{stop}). ")\n" if ($debug);
+print "Removing $cached->{$_}->{title}[0][0] (" . Ymd($cached->{$_}->{stop}). ")\n";
 	    delete $cached->{$_};
 	    $c++;
 	}
@@ -495,69 +523,48 @@ sub parse_guide
 
     foreach my $row (@$rows)
     {
-   my $channame = $row->{name};
+	my $channame = $row->{name};
 	my $curchan = translate_channel_name($channame, scalar(grep($_ eq $channame, @channels_seen)));
 	push @channels_seen, $channame;
 	if (!$channels->{$curchan})
 	{ 
 	    print "Ignoring unsubscribed channel $curchan.\n" if ($debug);
+print "Ignoring unsubscribed channel $curchan.\n";
 	    next;
 	}
 	print "Channel: $curchan.\n" if ($debug);
 
-	foreach my $block (@{$row->{blocks}})
+        foreach my $block (@{$row->{blocks}})
 	{
-       my $duration = $block->{offsets};
-
-       # if the text margin-left appears in the duration going to assume that the program
-       # was included in the previous days results and will ignore it here
-       if ($duration =~ /margin-left/) {
-       next;
-       }
-
-       # no endtime or duration in the json guide data 12th Feb 2017
-       # so attempt to spoof a valid duration from available info
-            $duration =~ s#[%].*##g;
-            $duration =~ s#.*[ ]##g;
-       $duration = $duration * 100000;
-       $duration = $duration / 6944;
-            $duration =~ s#[.].*##g;
-       $duration = $duration * 60;
+            my $duration = $block->{offsets};
+            my $ignore_first_show = 0;
+	    # if the text margin-left appears in the duration it means that the first show in this block
+            # is actually from the previous day and needs to be ignored.
+            # note - its the first show in the block not the whole block. But assuming whole block for debugging
+	    if ($duration =~ /margin-left/) {
+		$ignore_first_show = 1;
+	    }
 
 	    foreach my $show (@{$block->{shows}})
 	    {
-#      addme($show, $curchan);
-                addme($show, $curchan, $duration, $date);
+                if ($ignore_first_show == 1)
+                {
+                    $ignore_first_show = 0;
+                    next;
+                }
+                my $pid = $show->{id};
 
+                $precache->{$pid} = {
+                    'title' => $show->{title},
+                    'start' => convert_date(sprintf "%s %s", $date, $show->{date}),
+#                    'stop' => $real_end_time, # cannot do stop time here if using duration from details page
+#                    'debug_showid' => $show->{id},
+#                    'debug_programid' => $show->{programId},
+                    'channel' => $channels->{$curchan},
+                };
 	    }
 	}
     }
-}
-
-sub addme
-{
-    my ($show, $curchan, $duration, $date) = @_;
-
-    my $pid = $show->{id};
-
-    my $text_start_time = $show->{date};
-    $text_start_time = $date . " " . $text_start_time;
-    my $real_start_time = str2time($text_start_time);
-    my $real_end_time = $real_start_time + $duration;
-    $real_start_time = strftime '%Y%m%d%H%M%S', localtime $real_start_time;
-    $real_end_time = strftime '%Y%m%d%H%M%S', localtime $real_end_time;
-
-    $precache->{$pid} = {
-	'title' => $show->{title},
-   'start' => $real_start_time,
-   'stop' => $real_end_time,
-#        'debug_rex_id1' => $show->{id},
-#        'debug_rex_id2' => $show->{programId},
-	'channel' => $channels->{$curchan},
-    };
-
-    my %type;
-    $type{'movie'} = 1 if ($show->{movie} and lc $show->{movie} ne 'false');
 }
 
 # The guide pages for some regions don't provide any way to distinguish
@@ -575,6 +582,7 @@ sub translate_channel_name
 	};
 
     my $region = $opt->{region};
+
     return $chan unless ($rchans->{$region} and $rchans->{$region}->{$chan});
     return $rchans->{$region}->{$chan}->[$seen_before];
 }
@@ -597,42 +605,21 @@ sub parse_details
 
     $show->{language} = [ $lang ];
 
-    $show->{desc} = [[ $data->{synopsis}, $lang ]] || [[ $data->{program}->{longSynopsis}, $lang ]] || [[ $data->{program}->{mediumSynopsis}, $lang ]] || [[ $data->{program}->{shortSynopsis}, $lang ]] || [[ $data->{synopsis}, $lang ]];
-
-    if (!($show->{desc}[0][0]))
-    {
-        $show->{desc} = [[ $data->{synopsis}, $lang ]];
-    }
-    if (!($show->{desc}[0][0]))
-    {
-        $show->{desc} = [[ $data->{program}->{longSynopsis}, $lang ]];
-    }
-    if (!($show->{desc}[0][0]))
-    {
-        $show->{desc} = [[ $data->{program}->{mediumSynopsis}, $lang ]];
-    }
-    if (!($show->{desc}[0][0]))
-    {
-        $show->{desc} = [[ $data->{program}->{shortSynopsis}, $lang ]];
-    }
-    if (!($show->{desc}[0][0]))
-    {
-   $show->{desc} = [[ $data->{program}->{title}, $lang ]];
-    }
-    if (!($show->{desc}[0][0]))
-    {
-        $show->{desc} = [[ "Failed to parse a valid description, shouldn't be possible", $lang ]];
-    }
+    if (!$data->{synopsis}) {
+        $show->{desc} = [[ $data->{program}->{title}, $lang ]]; }
+    else {
+        $show->{desc} = [[ $data->{synopsis}, $lang ]]; }
 
     if ($data->{classification})
     {
-   $show->{rating} = [[ uc $data->{classification}, 'ABA', undef]];
+	$show->{rating} = [[ uc $data->{classification}, 'ABA', undef]];
     }
 
     if ($data->{repeat})
     {
 	$show->{'previously-shown'} = { };
     }
+
     if ($data->{premiere})
     {
 	$show->{'premiere'} = [ 'Premiere' ];
@@ -643,9 +630,9 @@ sub parse_details
         $show->{'sub-title'} = [[ $data->{episodeTitle}, $lang ]];
     }
 
-    if (is_true($data->{mainCast}))
+    if ($data->{mainCast})
     {
-   $show->{'credits'}{'actor'} = [ split(/, ?/, strip_whitespace($data->{mainCast})) ];
+	$show->{'credits'}{'actor'} = [ split(/, ?/, strip_whitespace($data->{mainCast})) ];
     }
 
     if ($data->{widescreen})
@@ -658,28 +645,52 @@ sub parse_details
 	$video{'quality'} = 'HDTV';
     }
 
-#    if (is_true($data->{realtime}))
-#    {
-#  $type{live} = 1;
-#    }
+    if ($data->{live})
+    {
+	$type{live} = 1;
+    }
 
-    if (is_true($data->{closedCaptions}) or is_true($data->{subtitles}))
+    if ($data->{closedCaptions} || $data->{subtitles})
     {
 	$show->{'subtitles'} = [ { 'type' => 'teletext' } ];
     }
 
-#    $show->{language} = [ $data->{meta}->{info}->{language} || 'en' ];
-
-    if ($data->{country})
+    if ($data->{program}->{country})
     {
-   $show->{country} = [[ $data->{country}, 'en' ]];
+	$show->{'country'} = [[ $data->{program}->{country}, 'en' ]];
+    }
+
+    if ($data->{program}->{yearReleased})
+    {
+        $show->{'date'} =  $data->{program}->{yearReleased};
+    }
+
+    if ($data->{duration})
+    {
+        $show->{'length'} = ($data->{duration} *60);
+        my $s = $show->{'start'};
+        my $txt_date = (substr $s, 0, 4) . "-" . (substr $s, 4, 2) . "-" . (substr $s, 6, 2) . "-" . (substr $s, 8, 2) . ":" . (substr $s, 10, 2) . ":" . (substr $s, 12, 2);
+        $show->{'stop'} = ParseDateString("epoch " . (UnixDate($txt_date,'%s') + ($data->{duration} * 60)));
+        $show->{'stop'} =~ tr/://d;
+    }
+    elsif ($data->{realtimeDurationSeconds})
+    {
+        $show->{length} = $data->{realtimeDurationSeconds};
+        my $s = $show->{'start'};
+        my $txt_date = (substr $s, 0, 4) . "-" . (substr $s, 4, 2) . "-" . (substr $s, 6, 2) . "-" . (substr $s, 8, 2) . ":" . (substr $s, 10, 2) . ":" . (substr $s, 12, 2);
+        $show->{'stop'} = ParseDateString("epoch " . (UnixDate($txt_date,'%s') + $data->{realtimeDurationSeconds}));
+        $show->{'stop'} =~ tr/://d;
     }
 
     $show->{'video'} = \%video if (%video);
 
+    $type{'movie'} = 1 if ($data->{movie} && !$data->{series});
+    $type{'series'} = 1 if (!$data->{movie} && $data->{series});
+
     $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}[0][0], undef, %type) ];
 
 #    print Dumper($show) if ($debug);
+
     return $show;
 }
 
@@ -878,6 +889,16 @@ sub set_defaults
 	debug => $debug,
 	webwarper => $opt->{warper}
     );
+}
+
+sub convert_date
+{
+    my $str = shift;
+
+    my $ret = ParseDate($str);
+    $ret =~ tr/://d;
+
+    return $ret;
 }
 
 sub expand_date
