@@ -34,6 +34,7 @@ use Getopt::Long;
 use Data::Dumper;
 use Shepherd::Common;
 use Shepherd::json_pp;  # use JSON;
+use DateTime::Format::Strptime;
 
 #
 # some initial cruft
@@ -338,42 +339,48 @@ if (-r $opt->{channels_file}) {
 
 &check_for_paytv;
 
+my @channel_offets = qw(0 20);
+
 $starttime -= ($starttime % $d->{fetch_interval}); # normalize time window to help yahoo's squid cache entries
 for (my $currtime = $starttime; $currtime < $endtime; $currtime += $d->{fetch_interval}) {
-	# pace ourselves
-	if (($currtime != $starttime) && (!defined $opt->{fast})) {
-		my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
-		$stats{slept_for} += $sleeptimer;
-		sleep $sleeptimer;
-	}
-
-	# get data
-	my $tries = 5;
-	my $url = sprintf "http://au.tv.yahoo.com/tv-guide/data/%d/%d/%d/%d/",
-		$opt->{region},
-		($d->{want_paytv} > 0 ? "168" : "0"),
-		$currtime,
-		($currtime+$d->{fetch_interval});
-	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) = 
-	  Shepherd::Common::get_url(url => $url, retries => ($tries-1));
-
-	$stats{failed_requests} += $failed_attempts;
-	$stats{slept_for} += $seconds_slept;
-	$stats{bytes_fetched} += $bytes_fetched;
-
-	if ((!$data) || (!$success)) {
-		Shepherd::Common::log("Failed to fetch '$url' after $tries attempts.");
-
-		# if its our first page, abort now
-		if ($currtime == $starttime) {
-			Shepherd::Common::log("Aborting: likely format change or blocked!");
-			exit 10;
+	for my $chan_offset (@channel_offets) {
+		# pace ourselves
+		if (($currtime != $starttime) && (!defined $opt->{fast})) {
+			my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
+			$stats{slept_for} += $sleeptimer;
+			sleep $sleeptimer;
 		}
-		next;
-	}
 
-	$stats{http_successful_requests}++;
-	&parse_json_data($data);
+		# get data
+		my $tries = 5;
+		#my $url = sprintf "http://au.tv.yahoo.com/tv-guide/data/%d/%d/%d/%d/",
+		my $url = sprintf "https://y7mobile.query.yahoo.com/v1/tv-guide/schedule?region=%d&network=%d&start=%d&end=%d&grouping=channel&channel_offset=%d",
+			$opt->{region},
+			($d->{want_paytv} > 0 ? "168" : "0"),
+			$currtime,
+			($currtime + $d->{fetch_interval}),
+			$chan_offset;
+		my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
+			Shepherd::Common::get_url(url => $url, retries => ($tries - 1));
+
+		$stats{failed_requests} += $failed_attempts;
+		$stats{slept_for} += $seconds_slept;
+		$stats{bytes_fetched} += $bytes_fetched;
+
+		if ((!$data) || (!$success)) {
+			Shepherd::Common::log("Failed to fetch '$url' after $tries attempts.");
+
+			# if its our first page, abort now
+			if ($currtime == $starttime) {
+				Shepherd::Common::log("Aborting: likely format change or blocked!");
+				exit 10;
+			}
+			next;
+		}
+
+		$stats{http_successful_requests}++;
+		&parse_json_data($data);
+	}
 }
 
 &write_data;
@@ -425,138 +432,140 @@ sub parse_json_data
 	# my $decoded_data = decode_json($data);
 	my $decoded_data = JSON::cut_down_PP::decode_json($data);
 
-	foreach my $item (@{($decoded_data->{'tv'}->[0]->{'item'})}) {
-		my $event_id = $item->{'event_id'};
+	foreach my $schedule (@{$decoded_data->{'schedule'}->{'result'}->[0]->{'schedule'}}){
+		foreach my $item (@{($schedule->{'data'})}) {
+			my $event_id = $item->{'eventId'};
 
-		# mandatory fields
-		my $event_start = $item->{'event_date'}->[0]->{timestamp};
-		my $event_end =   $item->{'end_date'}->[0]->{timestamp};
+			# mandatory fields
+			my $event_start = $item->{'start'};
+			my $event_end =   $item->{'end'};
 
-		if ($event_start < 10) {
-			$stats{progs_with_invalid_start}++;
-			printf "WARNING: programme with event_id '$event_id' had an invalid start time of '$event_start'; skipped\n";
-			next;
-		}
-		if ($event_end < 10) {
-			$stats{progs_with_invalid_end}++;
-			printf "WARNING: programme with event_id '$event_id' had an invalid end time of '$event_end'; skipped\n";
-			next;
-		}
+			#		if ($event_start < 10) {
+			#			$stats{progs_with_invalid_start}++;
+			#			printf "WARNING: programme with event_id '$event_id' had an invalid start time of '$event_start'; skipped\n";
+			#			next;
+			#		}
+			#		if ($event_end < 10) {
+			#			$stats{progs_with_invalid_end}++;
+			#			printf "WARNING: programme with event_id '$event_id' had an invalid end time of '$event_end'; skipped\n";
+			#			next;
+			#		}
 
-		my $channel = $item->{'co_v_short'};
+			my $channel = $decoded_data->{'schedule'}->{'result'}->[0]->{'channels'}->{$item->{'channelId'}}->{name};
 
-		if (ref($channel) eq "ARRAY") { # paytv channels
+			if (ref($channel) eq "ARRAY") { # paytv channels
 
-			$channel = $channel->[0]->{0};
-			$channel =~ s/(\s|\[|\]|\+|\&)//g; 
-			$channel = $paytv_fixups{$channel} if (defined $paytv_fixups{$channel});
+				$channel = $channel->[0]->{0};
+				$channel =~ s/(\s|\[|\]|\+|\&)//g;
+				$channel = $paytv_fixups{$channel} if (defined $paytv_fixups{$channel});
 
-			# Yahoo7 guide is broken in non daylight savings states (QLD at least) returning FTA
-			# without DLS and Foxtel with DLS. Only apply offset if switch is set and in opt_channels
-			if (defined $opt_channels->{$channel}) {
-			    $event_start -= $time_offset if (defined $opt->{paytvoffset});
-			    $event_end -= $time_offset if (defined $opt->{paytvoffset});
+				# Yahoo7 guide is broken in non daylight savings states (QLD at least) returning FTA
+				# without DLS and Foxtel with DLS. Only apply offset if switch is set and in opt_channels
+				if (defined $opt_channels->{$channel}) {
+					$event_start -= $time_offset if (defined $opt->{paytvoffset});
+					$event_end -= $time_offset if (defined $opt->{paytvoffset});
+				}
 			}
-                }
 
-		# Hack; assuming this is a temporary typo
-		$channel = 'ABC News 24' if ($channel eq 'ABCNews24');
-		$channel = 'WIN GEM' if ($channel eq 'WINGEM');
-		$channel = '31 Digital' if ($channel eq '31Digital'); 
-		$channel = 'ABC2 / KIDS' if ($channel eq 'ABC2/KIDS');
-		$channel = 'SBS 2' if ($channel eq 'SBS2');
-		$channel = 'Food Network' if ($channel eq 'FoodNetwork');
-		$channel = 'TEN HD' if ($channel eq 'TENHD');
+			# Hack; assuming this is a temporary typo
+			$channel = 'ABC News 24' if ($channel eq 'ABCNews24');
+			$channel = 'WIN GEM' if ($channel eq 'WINGEM');
+			$channel = '31 Digital' if ($channel eq '31Digital');
+			$channel = 'ABC2 / KIDS' if ($channel eq 'ABC2/KIDS');
+			$channel = 'SBS 2' if ($channel eq 'SBS2');
+			$channel = 'Food Network' if ($channel eq 'FoodNetwork');
+			$channel = 'TEN HD' if ($channel eq 'TENHD');
 
-# Temp hack Oct 2010 when Seven-related channels gave bad data
-#		if (grep ($channel eq $_, ('Seven', 'Prime', '7mate', '7TWO', 'Prime HD', 'Seven HD')))
-#		{
-#		        &Shepherd::Common::log("ignoring unreliable channel '$channel'");
-#			$d->{ignored_channels}->{$channel} = 1;
-#			$stats{skipped_channels}++;
-#			next;
-#		}
+			# Temp hack Oct 2010 when Seven-related channels gave bad data
+			#		if (grep ($channel eq $_, ('Seven', 'Prime', '7mate', '7TWO', 'Prime HD', 'Seven HD')))
+			#		{
+			#		        &Shepherd::Common::log("ignoring unreliable channel '$channel'");
+			#			$d->{ignored_channels}->{$channel} = 1;
+			#			$stats{skipped_channels}++;
+			#			next;
+			#		}
 
-		if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
-			if (!defined $d->{ignored_channels}->{$channel}) {
-				$d->{ignored_channels}->{$channel} = 1;
-				$stats{skipped_channels}++;
-				Shepherd::Common::log("ignoring unwanted channel '$channel'");
+			if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
+				if (!defined $d->{ignored_channels}->{$channel}) {
+					$d->{ignored_channels}->{$channel} = 1;
+					$stats{skipped_channels}++;
+					Shepherd::Common::log("ignoring unwanted channel '$channel'");
+				}
+				next;
 			}
-			next;
-		}
 
 
-		$event_id = $event_start.":".$event_end.":".$event_id; # event_id actually isn't unique - so make it so
+			$event_id = $event_start.":".$event_end.":".$event_id; # event_id actually isn't unique - so make it so
 
-		$stats{programmes}++;
-		$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
+			$stats{programmes}++;
+			$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
 
-		# store it in the correct XMLTV schema!
-		$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channels->{$channel} if (defined $channels->{$channel});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $opt_channels->{$channel} if (defined $opt_channels->{$channel});
+			# store it in the correct XMLTV schema!
+			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channels->{$channel} if (defined $channels->{$channel});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $opt_channels->{$channel} if (defined $opt_channels->{$channel});
 
-		$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = POSIX::strftime("%Y%m%d%H%M", localtime($event_start));
-		$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	POSIX::strftime("%Y%m%d%H%M", localtime($event_end));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = $event_start;#POSIX::strftime("%Y%m%d%H%M", localtime($event_start));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	$event_end;#POSIX::strftime("%Y%m%d%H%M", localtime($event_end));
 
-		# Hack for what seems to be a bug in the datasource:
-		# i.e. titles/sub-titles of "Law &Order" rather than "Law & Order".
-		$item->{title}->[0]->{0} =~ s/ \&(?=\S)/ \& /g if (defined $item->{title});
-		$item->{subtitle}->[0]->{0} =~ s/ \&(?=\S)/ \& /g if (defined $item->{subtitle});
+			# Hack for what seems to be a bug in the datasource:
+			# i.e. titles/sub-titles of "Law &Order" rather than "Law & Order".
+			#$item->{title}->[0]->{0} =~ s/ \&(?=\S)/ \& /g if (defined $item->{title});
+			#$item->{subtitle}->[0]->{0} =~ s/ \&(?=\S)/ \& /g if (defined $item->{subtitle});
 
-		$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $item->{title}->[0]->{0}, $opt->{lang} ]] if (defined $item->{title});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $item->{description_1}, $opt->{lang} ]] if (defined $item->{description_1});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $item->{subtitle}->[0]->{0}, $opt->{lang} ]] if (defined $item->{subtitle});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $item->{title}, $opt->{lang} ]] if (defined $item->{title});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $item->{description_1}, $opt->{lang} ]] if (defined $item->{description_1});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $item->{subtitle}, $opt->{lang} ]] if (defined $item->{subtitle});
 
-		my %genre, my $category, my $category2;
-		$genre{movie} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Movie"));
-		$genre{series} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Series"));
-		$genre{live} = 1 if (defined $item->{live});
-		$category = $item->{genre} if (defined $item->{genre});
-		if ((defined $item->{'category'}) && (defined $item->{'category'}->[0]->{'item'}->[0]->{0})) {
-			my $category2 = $item->{'category'}->[0]->{'item'}->[0]->{0};
-			$category = $category2 if (!defined $category);
-			$genre{$category2} = 1;
-		}
-		$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ &Shepherd::Common::generate_category($item->{title}->[0]->{0}, $category, %genre) ];
-		Shepherd::Common::log(sprintf "category: chose '%s' from '%s' and '%s' for '%s'",
-			$tv_guide->{$channel}->{data}->{$event_id}->{'category'}->[0]->[0], $category,
-			join(', ',keys %genre), $item->{title}->[0]->{0}) if (defined $opt->{debug});
+			my %genre, my $category, my $category2;
+			$genre{movie} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Movie"));
+			$genre{series} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Series"));
+			$genre{live} = 1 if (defined $item->{live});
+			$category = $item->{genre} if (defined $item->{genre});
+			if ((defined $item->{'category'}) && (defined $item->{'category'}->[0]->{'item'}->[0]->{0})) {
+				my $category2 = $item->{'category'}->[0]->{'item'}->[0]->{0};
+				$category = $category2 if (!defined $category);
+				$genre{$category2} = 1;
+			}
+			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ &Shepherd::Common::generate_category($item->{title}, $category, %genre) ];
+			Shepherd::Common::log(sprintf "category: chose '%s' from '%s' and '%s' for '%s'",
+				$tv_guide->{$channel}->{data}->{$event_id}->{'category'}->[0]->[0], $category,
+				join(', ',keys %genre), $item->{title}->[0]->{0}) if (defined $opt->{debug});
 
-		$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[ map([$_,$opt->{lang}], split(/\//, $item->{country})) ] if (defined $item->{country});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'premiere'} = 	[ 'premiere', $opt->{lang} ] if (defined $item->{'premiere'});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[ map([$_,$opt->{lang}], split(/\//, $item->{country})) ] if (defined $item->{country});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'premiere'} = 	[ 'premiere', $opt->{lang} ] if (defined $item->{'premiere'});
 
-		my $rating = "";
-		$rating .= $item->{rating} if (defined $item->{'rating'});
-		$rating .= " ".lc($item->{warnings}) if (defined $item->{'warnings'});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]] if $rating ne "";
+			my $rating = "";
+			$rating .= $item->{rating} if (defined $item->{'rating'});
+			$rating .= " ".lc($item->{warnings}) if (defined $item->{'warnings'});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]] if $rating ne "";
 
-		$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $item->{main_cast}) ] if (defined $item->{main_cast});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'director'} = [ split(/, /, $item->{director}) ] if (defined $item->{director});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'writer'} = [ split(/, /, $item->{writer}) ] if (defined $item->{writer}); # unseen
-		$tv_guide->{$channel}->{data}->{$event_id}->{'date'} = 	$item->{year_released} if (defined $item->{year_released});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'previously-shown'} = { } if (defined $item->{repeat});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ] if (defined $item->{captions});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'last-chance'} = 	[ 'final', $opt->{lang} ] if (defined $item->{final});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $item->{main_cast}) ] if (defined $item->{main_cast});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'director'} = [ split(/, /, $item->{director}) ] if (defined $item->{director});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'writer'} = [ split(/, /, $item->{writer}) ] if (defined $item->{writer}); # unseen
+			$tv_guide->{$channel}->{data}->{$event_id}->{'date'} = 	$item->{year_released} if (defined $item->{year_released});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'previously-shown'} = { } if (defined $item->{repeat});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ] if (defined $item->{captions});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'last-chance'} = 	[ 'final', $opt->{lang} ] if (defined $item->{final});
 
-		my %video_details;
-		if ((defined $item->{colour}) && ($item->{colour} == 1)) {
-			$video_details{'colour'} = 1;
-			$tv_guide->{$channel}->{data}->{$event_id}->{'video'} = \%video_details;
-		}
+			my %video_details;
+			if ((defined $item->{colour}) && ($item->{colour} == 1)) {
+				$video_details{'colour'} = 1;
+				$tv_guide->{$channel}->{data}->{$event_id}->{'video'} = \%video_details;
+			}
 
-		$tv_guide->{$channel}->{data}->{$event_id}->{'length'} = ($item->{running_time} * 60) if (defined $item->{running_time});
-		$tv_guide->{$channel}->{data}->{$event_id}->{'language'} = [ $item->{language}, $opt->{lang} ] if (defined $item->{language});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'length'} = ($item->{running_time} * 60) if (defined $item->{running_time});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'language'} = [ $item->{language}, $opt->{lang} ] if (defined $item->{language});
 
-		$d->{seen_progs}->{$channel}++;
+			$d->{seen_progs}->{$channel}++;
 
-		# print out any unused fields
-		foreach my $field (keys %{($item)}) {
-			next if ($field =~ /(event_id|co_v_short|event_date|end_date|title|subtitle|description_1|show_type|category|country|premiere|rating|warnings|main_cast|director|writer|year_released|repeat|captions|final|colour|running_time|language|genre|live)/); # parsed fields
-			next if ($field =~ /(program_id|series_id|genre_id|venue_id|y7_url|highlight)/); # ignored fields
-			next if (defined $d->{ignored_field}->{$field});
-			$d->{ignored_field}->{$field} = 1;
-			Shepherd::Common::log("ignoring unknown field '$field'");
+			# print out any unused fields
+			foreach my $field (keys %{($item)}) {
+				next if ($field =~ /(event_id|co_v_short|event_date|end_date|title|subtitle|description_1|show_type|category|country|premiere|rating|warnings|main_cast|director|writer|year_released|repeat|captions|final|colour|running_time|language|genre|live)/); # parsed fields
+				next if ($field =~ /(program_id|series_id|genre_id|venue_id|y7_url|highlight)/); # ignored fields
+				next if (defined $d->{ignored_field}->{$field});
+				$d->{ignored_field}->{$field} = 1;
+				Shepherd::Common::log("ignoring unknown field '$field'");
+			}
 		}
 	}
 }
