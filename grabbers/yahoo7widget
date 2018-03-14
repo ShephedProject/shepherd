@@ -338,48 +338,62 @@ if (-r $opt->{channels_file}) {
 }
 
 &check_for_paytv;
-
-my @channel_offets = qw(0 20);
-
 $starttime -= ($starttime % $d->{fetch_interval}); # normalize time window to help yahoo's squid cache entries
+my @urls;
 for (my $currtime = $starttime; $currtime < $endtime; $currtime += $d->{fetch_interval}) {
-	for my $chan_offset (@channel_offets) {
-		# pace ourselves
-		if (($currtime != $starttime) && (!defined $opt->{fast})) {
-			my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
-			$stats{slept_for} += $sleeptimer;
-			sleep $sleeptimer;
-		}
+	my $url = sprintf "https://y7mobile.query.yahoo.com/v1/tv-guide/schedule?region=%d&network=%d&start=%d&end=%d&grouping=channel&channel_offset=%d",
+		$opt->{region},
+		($d->{want_paytv} > 0 ? "168" : "0"),
+		$currtime,
+		($currtime + $d->{fetch_interval}),
+		0;
+	push @urls, $url;
+}
 
-		# get data
-		my $tries = 5;
-		#my $url = sprintf "http://au.tv.yahoo.com/tv-guide/data/%d/%d/%d/%d/",
-		my $url = sprintf "https://y7mobile.query.yahoo.com/v1/tv-guide/schedule?region=%d&network=%d&start=%d&end=%d&grouping=channel&channel_offset=%d",
+#$starttime -= ($starttime % $d->{fetch_interval}); # normalize time window to help yahoo's squid cache entries
+my $url_i = 0;
+foreach my $url (@urls) {
+	# pace ourselves
+	if (($url_i != 0) && (!defined $opt->{fast})) {
+		my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
+		$stats{slept_for} += $sleeptimer;
+		sleep $sleeptimer;
+	}
+
+	# get data
+	my $tries = 5;
+	#my $url = sprintf "http://au.tv.yahoo.com/tv-guide/data/%d/%d/%d/%d/",
+	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
+		Shepherd::Common::get_url(url => $url, retries => ($tries - 1));
+
+	$stats{failed_requests} += $failed_attempts;
+	$stats{slept_for} += $seconds_slept;
+	$stats{bytes_fetched} += $bytes_fetched;
+
+	if ((!$data) || (!$success)) {
+		Shepherd::Common::log("Failed to fetch '$url' after $tries attempts.");
+
+		# if its our first page, abort now
+		if ($url_i == 0) {
+			Shepherd::Common::log("Aborting: likely format change or blocked!");
+			exit 10;
+		}
+		next;
+	}
+
+	$stats{http_successful_requests}++;
+	$url_i++;
+	my $decoded_data = JSON::cut_down_PP::decode_json($data);
+	&parse_json_data($decoded_data);
+	if (defined $decoded_data->{schedule}->{result}->[0]->{pagination}->{down}){
+		my $params = $decoded_data->{schedule}->{result}->[0]->{pagination}->{down}->{params};
+		my $newurl = sprintf "https://y7mobile.query.yahoo.com/v1/tv-guide/schedule?region=%d&network=%d&start=%d&end=%d&grouping=channel&channel_offset=%d",
 			$opt->{region},
 			($d->{want_paytv} > 0 ? "168" : "0"),
-			$currtime,
-			($currtime + $d->{fetch_interval}),
-			$chan_offset;
-		my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
-			Shepherd::Common::get_url(url => $url, retries => ($tries - 1));
-
-		$stats{failed_requests} += $failed_attempts;
-		$stats{slept_for} += $seconds_slept;
-		$stats{bytes_fetched} += $bytes_fetched;
-
-		if ((!$data) || (!$success)) {
-			Shepherd::Common::log("Failed to fetch '$url' after $tries attempts.");
-
-			# if its our first page, abort now
-			if ($currtime == $starttime) {
-				Shepherd::Common::log("Aborting: likely format change or blocked!");
-				exit 10;
-			}
-			next;
-		}
-
-		$stats{http_successful_requests}++;
-		&parse_json_data($data);
+			$params->{start},
+			$params->{end},
+			$params->{channel_offset};
+		push @urls, $newurl;
 	}
 }
 
@@ -422,15 +436,17 @@ EOF
 
 sub parse_json_data
 {
-	my $data = shift;
+#	my $data = shift;
+#
+#	unless (($data) && (length($data) > 1)) {
+#	    print STDERR "ERROR: no data to parse.\n";
+#	    return;
+#	}
+#
+#	# my $decoded_data = decode_json($data);
+#	my $decoded_data = JSON::cut_down_PP::decode_json($data);
 
-	unless (($data) && (length($data) > 1)) {
-	    print STDERR "ERROR: no data to parse.\n";
-	    return;
-	}
-
-	# my $decoded_data = decode_json($data);
-	my $decoded_data = JSON::cut_down_PP::decode_json($data);
+	my $decoded_data = shift;
 
 	foreach my $schedule (@{$decoded_data->{'schedule'}->{'result'}->[0]->{'schedule'}}){
 		foreach my $item (@{($schedule->{'data'})}) {
@@ -475,6 +491,12 @@ sub parse_json_data
 			$channel = 'SBS 2' if ($channel eq 'SBS2');
 			$channel = 'Food Network' if ($channel eq 'FoodNetwork');
 			$channel = 'TEN HD' if ($channel eq 'TENHD');
+
+			#map to shephed known names
+			$channel = 'ABCNEWS' if ($channel eq 'ABC NEWS');
+			$channel = 'ABCME' if ($channel eq 'ABC ME');
+			$channel = 'SBSVICELAND' if ($channel eq 'SBS VICELAND');
+			$channel = 'SBSVICELANDHD' if ($channel eq 'SBS VICELAND HD');
 
 			# Temp hack Oct 2010 when Seven-related channels gave bad data
 			#		if (grep ($channel eq $_, ('Seven', 'Prime', '7mate', '7TWO', 'Prime HD', 'Seven HD')))
@@ -560,8 +582,8 @@ sub parse_json_data
 
 			# print out any unused fields
 			foreach my $field (keys %{($item)}) {
-				next if ($field =~ /(event_id|co_v_short|event_date|end_date|title|subtitle|description_1|show_type|category|country|premiere|rating|warnings|main_cast|director|writer|year_released|repeat|captions|final|colour|running_time|language|genre|live)/); # parsed fields
-				next if ($field =~ /(program_id|series_id|genre_id|venue_id|y7_url|highlight)/); # ignored fields
+				next if ($field =~ /(eventId|start|end|title|subtitle|channelId|description_1|show_type|category|country|premiere|rating|warnings|main_cast|director|writer|year_released|repeat|captions|final|colour|running_time|language|genre|live)/); # parsed fields
+				next if ($field =~ /(seriesId|program_id|series_id|genre_id|venue_id|y7_url|highlight)/); # ignored fields
 				next if (defined $d->{ignored_field}->{$field});
 				$d->{ignored_field}->{$field} = 1;
 				Shepherd::Common::log("ignoring unknown field '$field'");
