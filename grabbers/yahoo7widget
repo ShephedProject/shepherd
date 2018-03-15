@@ -21,6 +21,7 @@
 #    2.01  20jun10	add sub-title support in
 #    2.10  22jun10	experimental: drop JSON module for cut-down Shepherd::json_pp
 #    2.45  18mar17      pull 'series' category when present in the guide
+#    2.50  15mar18	fix for new json format & individual program GETting (one req per eventid :( )
 
 use strict;
 use warnings;

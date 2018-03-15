@@ -5,7 +5,7 @@ reference       Shepherd/MythTV.pm  0.42
 reference       Shepherd/Configure.pm   0.41
 reference	Shepherd/json_pp.pm 0.2
 grabber         oztivo              2.62
-grabber         yahoo7widget        2.45
+grabber         yahoo7widget        2.50
 grabber         sbsweb              5.04
 grabber         rex                 10.4.11
 grabber         acctv_website       0.09
