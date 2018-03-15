@@ -36,6 +36,11 @@ use Data::Dumper;
 use Shepherd::Common;
 use Shepherd::json_pp;  # use JSON;
 use DateTime::Format::Strptime;
+use DateTime::Format::XMLTV;
+use DateTime::Format::Builder;
+
+#early decl
+sub generate_json_url($$$$);
 
 #
 # some initial cruft
@@ -49,6 +54,12 @@ my $input_xml;
 my $d;
 $| = 1;
 my %event_cache;
+
+my $yahoo_time_parser = DateTime::Format::Builder->new();
+$yahoo_time_parser->parser(
+	regex  => qr/(^\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)([-+]\d{4})$/,
+	params => [qw(year     month  day    hour   minute second  time_zone)]
+);
 
 # Map yahoo paytv names to what shepherd knows them as.
 # Format: 'yahoo7widget name' => 'official name'
@@ -257,6 +268,7 @@ $opt->{outputfile} = 	"output.xmltv";	# default
 $opt->{days} = 		7;		# default
 $opt->{lang} =		"en";
 $opt->{region} =	94;
+$opt->{skip_detail} = 0;
 
 GetOptions(
 	'region=i'	=> \$opt->{region},
@@ -277,6 +289,7 @@ GetOptions(
 	'version'	=> \$opt->{version},
 	'ready'		=> \$opt->{version},
 	'desc'		=> \$opt->{desc},
+	'basic'	=> \$opt->{skip_detail},
 	'v'		=> \$opt->{help});
 
 &help if (defined $opt->{help});
@@ -315,11 +328,12 @@ if (!defined $opt->{paytvoffset} || !($opt->{paytvoffset} =~ m/(\+|-)\d{4}$/o)) 
 }
 
 # yahoo7widget times are always localtime on Eastern States ..
-$ENV{TZ}="Australia/Melbourne";
-my $melbourne_time_offset = POSIX::strftime("%z",localtime(time));
-my $time_offset = ((int(substr($melbourne_time_offset,1,2))-int(substr($local_time_offset,1,2)))*(60*60)) +
-                ((int(substr($melbourne_time_offset,3,2))-int(substr($local_time_offset,3,2)))*(60));
-$starttime -= $time_offset;
+#TODO check if the TZ containing elements are correct on east coast
+#$ENV{TZ}="Australia/Melbourne";
+#my $melbourne_time_offset = POSIX::strftime("%z",localtime(time));
+#my $time_offset = ((int(substr($melbourne_time_offset,1,2))-int(substr($local_time_offset,1,2)))*(60*60)) +
+#                ((int(substr($melbourne_time_offset,3,2))-int(substr($local_time_offset,3,2)))*(60));
+#$starttime -= $time_offset;
 
 my $endtime = $starttime + ($opt->{days} * 86400);
 $starttime += (86400 * $opt->{offset}) if (defined $opt->{offset});
@@ -457,6 +471,7 @@ $0 [options]
 	--output=file			send xml output to file (default: "$opt->{outputfile}")
 
 	--fast				don't run slow - get data as quick as you can - not recommended
+	--basic				skip downloading individual program details (quicker, but no subtitles, description, etc)
 	--debug				increase debug level
 	--warper			fetch data using WebWarper web anonymizer service
 	--obfuscate			pretend to be a proxy servicing multiple clients
@@ -493,8 +508,8 @@ sub parse_json_data
 			my $event_id = $item->{'eventId'};
 
 			# mandatory fields
-			my $event_start = $item->{'start'};
-			my $event_end =   $item->{'end'};
+			my $event_start = $yahoo_time_parser->parse_datetime($item->{'start'});
+			my $event_end =   $yahoo_time_parser->parse_datetime($item->{'end'});
 
 			#		if ($event_start < 10) {
 			#			$stats{progs_with_invalid_start}++;
@@ -517,10 +532,11 @@ sub parse_json_data
 
 				# Yahoo7 guide is broken in non daylight savings states (QLD at least) returning FTA
 				# without DLS and Foxtel with DLS. Only apply offset if switch is set and in opt_channels
-				if (defined $opt_channels->{$channel}) {
-					$event_start -= $time_offset if (defined $opt->{paytvoffset});
-					$event_end -= $time_offset if (defined $opt->{paytvoffset});
-				}
+				#TODO TZ stuff
+#				if (defined $opt_channels->{$channel}) {
+#					$event_start -= $time_offset if (defined $opt->{paytvoffset});
+#					$event_end -= $time_offset if (defined $opt->{paytvoffset});
+#				}
 			}
 
 			# Hack; assuming this is a temporary typo
@@ -556,10 +572,12 @@ sub parse_json_data
 				next;
 			}
 
-			$event_cache{$item->{'eventId'}} = get_event_info($item->{'eventId'}, $d->{want_paytv} > 0 ? "168" : "0") unless defined $event_cache{$item->{'eventId'}};
+			if (!$opt->{skip_detail}) {
+				$event_cache{$item->{'eventId'}} = get_event_info($item->{'eventId'}, $d->{want_paytv} > 0 ? "168" : "0") unless defined $event_cache{$item->{'eventId'}};
+			}
 			my $event_info = $event_cache{$item->{'eventId'}};
 
-			$event_id = $event_start.":".$event_end.":".$event_id; # event_id actually isn't unique - so make it so
+			$event_id = $item->{'start'}.":".$item->{'end'}.":".$event_id; # event_id actually isn't unique - so make it so
 
 			$stats{programmes}++;
 			$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
@@ -568,8 +586,8 @@ sub parse_json_data
 			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channels->{$channel} if (defined $channels->{$channel});
 			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $opt_channels->{$channel} if (defined $opt_channels->{$channel});
 
-			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = $event_start;#POSIX::strftime("%Y%m%d%H%M", localtime($event_start));
-			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	$event_end;#POSIX::strftime("%Y%m%d%H%M", localtime($event_end));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = DateTime::Format::XMLTV->format_datetime($event_start);
+			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	DateTime::Format::XMLTV->format_datetime($event_end);
 
 			# Hack for what seems to be a bug in the datasource:
 			# i.e. titles/sub-titles of "Law &Order" rather than "Law & Order".
@@ -679,7 +697,7 @@ sub write_data
 		$timeattr[1] = 0; # min
 		$timeattr[2] = 7; # hours 7am
 		my $time7am = mktime(@timeattr);
-		$time7am -= $time_offset;
+		#TODO tz $time7am -= $time_offset;
 		my $xmltime7am = POSIX::strftime("%Y%m%d%H%M", localtime($time7am));
 
 		if (($starttime < $time7am) && ($abc2_eariest_start == $xmltime7am))
@@ -727,7 +745,8 @@ sub check_for_paytv
 	$d->{want_paytv}++ if (defined $opt->{paytv});
 	if ($d->{want_paytv} > 0) {
 	    Shepherd::Common::log("going to gather paytv channels as we have ".$d->{want_paytv}." paytv channels matching.");
-	    Shepherd::Common::log("offsetting paytv channels by ".($time_offset/60)." minutes due to --paytvoffset") if (defined $opt->{paytvoffset});
+	    #TODO TZ
+		#Shepherd::Common::log("offsetting paytv channels by ".($time_offset/60)." minutes due to --paytvoffset") if (defined $opt->{paytvoffset});
 		$d->{fetch_interval} = (3 * 3600);	# 3 hours (for now)
 	} else {
 		$d->{fetch_interval} = (6 * 3600);	# 6 hours
