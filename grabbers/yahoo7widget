@@ -47,6 +47,7 @@ my $tv_guide;
 my $input_xml;
 my $d;
 $| = 1;
+my %event_cache;
 
 # Map yahoo paytv names to what shepherd knows them as.
 # Format: 'yahoo7widget name' => 'official name'
@@ -341,12 +342,11 @@ if (-r $opt->{channels_file}) {
 $starttime -= ($starttime % $d->{fetch_interval}); # normalize time window to help yahoo's squid cache entries
 my @urls;
 for (my $currtime = $starttime; $currtime < $endtime; $currtime += $d->{fetch_interval}) {
-	my $url = sprintf "https://y7mobile.query.yahoo.com/v1/tv-guide/schedule?region=%d&network=%d&start=%d&end=%d&grouping=channel&channel_offset=%d",
-		$opt->{region},
+	my $url = generate_json_url(
 		($d->{want_paytv} > 0 ? "168" : "0"),
 		$currtime,
 		($currtime + $d->{fetch_interval}),
-		0;
+		0);
 	push @urls, $url;
 }
 
@@ -387,12 +387,11 @@ foreach my $url (@urls) {
 	&parse_json_data($decoded_data);
 	if (defined $decoded_data->{schedule}->{result}->[0]->{pagination}->{down}){
 		my $params = $decoded_data->{schedule}->{result}->[0]->{pagination}->{down}->{params};
-		my $newurl = sprintf "https://y7mobile.query.yahoo.com/v1/tv-guide/schedule?region=%d&network=%d&start=%d&end=%d&grouping=channel&channel_offset=%d",
-			$opt->{region},
+		my $newurl = generate_json_url(
 			($d->{want_paytv} > 0 ? "168" : "0"),
 			$params->{start},
 			$params->{end},
-			$params->{channel_offset};
+			$params->{channel_offset});
 		push @urls, $newurl;
 	}
 }
@@ -400,6 +399,46 @@ foreach my $url (@urls) {
 &write_data;
 Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
 exit(0);
+
+sub generate_json_url($$$$) {
+	my ($network, $start, $end, $offset) = @_;
+	return sprintf "https://y7mobile.query.yahoo.com/v1/tv-guide/schedule?region=%d&network=%d&start=%d&end=%d&grouping=channel&channel_offset=%d",
+		$opt->{region},
+		$network,
+		$start,
+		$end,
+		$offset;
+}
+
+sub get_event_info($$){
+	my ($eventid, $network) = @_;
+	#https://y7mobile.query.yahoo.com/v1/tv-guide/schedule/event/93278637?region=101&network=0
+	my $url = sprintf "https://y7mobile.query.yahoo.com/v1/tv-guide/schedule/event/%d?region=%d&network=%d", $eventid, $opt->{region}, $network;
+
+	#sleep for 1s
+	if (!defined $opt->{fast}) {
+		$stats{slept_for} += 1;
+		sleep 1;
+	}
+
+	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
+		Shepherd::Common::get_url(url => $url, retries => 1);
+
+	$stats{failed_requests} += $failed_attempts;
+	$stats{slept_for} += $seconds_slept;
+	$stats{bytes_fetched} += $bytes_fetched;
+
+	if ((!$data) || (!$success) || length($data) == 0) {
+		return {};
+	}
+
+	$stats{http_successful_requests}++;
+	my $decoded_data = JSON::cut_down_PP::decode_json($data);
+	unless (defined $decoded_data->{event} && defined $decoded_data->{event}->{result} && defined $decoded_data->{event}->{result}->[0] && defined $decoded_data->{event}->{result}->[0]->{event}) {
+		return {};
+	}
+	return $decoded_data->{event}->{result}->[0]->{event};
+}
 
 ######################################################################################################
 # help
@@ -516,6 +555,8 @@ sub parse_json_data
 				next;
 			}
 
+			$event_cache{$item->{'eventId'}} = get_event_info($item->{'eventId'}, $d->{want_paytv} > 0 ? "168" : "0") unless defined $event_cache{$item->{'eventId'}};
+			my $event_info = $event_cache{$item->{'eventId'}};
 
 			$event_id = $event_start.":".$event_end.":".$event_id; # event_id actually isn't unique - so make it so
 
@@ -535,39 +576,36 @@ sub parse_json_data
 			#$item->{subtitle}->[0]->{0} =~ s/ \&(?=\S)/ \& /g if (defined $item->{subtitle});
 
 			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $item->{title}, $opt->{lang} ]] if (defined $item->{title});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $item->{description_1}, $opt->{lang} ]] if (defined $item->{description_1});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $item->{subtitle}, $opt->{lang} ]] if (defined $item->{subtitle});
-
-			my %genre, my $category, my $category2;
-			$genre{movie} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Movie"));
-			$genre{series} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Series"));
-			$genre{live} = 1 if (defined $item->{live});
-			$category = $item->{genre} if (defined $item->{genre});
-			if ((defined $item->{'category'}) && (defined $item->{'category'}->[0]->{'item'}->[0]->{0})) {
-				my $category2 = $item->{'category'}->[0]->{'item'}->[0]->{0};
-				$category = $category2 if (!defined $category);
-				$genre{$category2} = 1;
+			if (defined $event_info->{extendedMeta}) {
+				$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = [ [ $event_info->{extendedMeta}->{description}, $opt->{lang} ] ] if (defined $event_info->{extendedMeta}->{description} && length $event_info->{extendedMeta}->{description} > 0);
+				$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = [ [ $event_info->{extendedMeta}->{subTitle}, $opt->{lang} ] ] if (defined $event_info->{extendedMeta}->{subTitle} && length $event_info->{extendedMeta}->{subTitle} > 0);
 			}
+
+			my %genre, my $category;
+			#$genre{movie} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Movie"));
+			#$genre{series} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Series"));
+			#$genre{live} = 1 if (defined $item->{live});
+			$category = $event_info->{genre} if (defined $event_info->{genre});
 			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ &Shepherd::Common::generate_category($item->{title}, $category, %genre) ];
 			Shepherd::Common::log(sprintf "category: chose '%s' from '%s' and '%s' for '%s'",
 				$tv_guide->{$channel}->{data}->{$event_id}->{'category'}->[0]->[0], $category,
 				join(', ',keys %genre), $item->{title}->[0]->{0}) if (defined $opt->{debug});
 
-			$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[ map([$_,$opt->{lang}], split(/\//, $item->{country})) ] if (defined $item->{country});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'premiere'} = 	[ 'premiere', $opt->{lang} ] if (defined $item->{'premiere'});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'country'} = 	[ map([$_,$opt->{lang}], split(/\//, $item->{country})) ] if (defined $event_info->{country});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'premiere'} = 	[ 'premiere', $opt->{lang} ] if (defined $event_info->{'premiere'});
 
 			my $rating = "";
-			$rating .= $item->{rating} if (defined $item->{'rating'});
-			$rating .= " ".lc($item->{warnings}) if (defined $item->{'warnings'});
+			$rating .= $event_info->{rating} if (defined $event_info->{'rating'});
+			$rating .= " ".lc($item->{warnings}) if (defined $event_info->{'warnings'});
 			$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]] if $rating ne "";
 
-			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $item->{main_cast}) ] if (defined $item->{main_cast});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'director'} = [ split(/, /, $item->{director}) ] if (defined $item->{director});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'writer'} = [ split(/, /, $item->{writer}) ] if (defined $item->{writer}); # unseen
-			$tv_guide->{$channel}->{data}->{$event_id}->{'date'} = 	$item->{year_released} if (defined $item->{year_released});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'previously-shown'} = { } if (defined $item->{repeat});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ] if (defined $item->{captions});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'last-chance'} = 	[ 'final', $opt->{lang} ] if (defined $item->{final});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $event_info->{main_cast}) ] if (defined $event_info->{main_cast});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'director'} = [ split(/, /, $event_info->{director}) ] if (defined $event_info->{director});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'writer'} = [ split(/, /, $event_info->{writer}) ] if (defined $event_info->{writer}); # unseen
+			$tv_guide->{$channel}->{data}->{$event_id}->{'date'} = 	$event_info->{year_released} if (defined $event_info->{year_released});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'previously-shown'} = { } if (defined $event_info->{isRepeat});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ] if (defined $event_info->{captions});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'last-chance'} = 	[ 'final', $opt->{lang} ] if (defined $event_info->{final});
 
 			my %video_details;
 			if ((defined $item->{colour}) && ($item->{colour} == 1)) {
