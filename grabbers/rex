@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '10.3.2'; 
+my $version  = '10.4.11'; 
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -27,7 +27,26 @@ my $version  = '10.3.2';
 #                                - various misc others.
 # 10.3.1 - updated 6th Mar 2017  - override for SBS v SBS ONE incorrect naming on yourtv.com.au
 # 10.3.2 - updated 6th Mar 2017  - reverting the override from 10.3.1
-#
+# 10.3.3 - updated 7th Mar 2017  - fixed encoding
+# 10.3.4 - updated 7th Mar 2017  - more encoding fix
+# 10.3.5 - updated 7th Mar 2017  - more encoding fix
+# 10.3.6 - updated 9th Mar 2017  - changed cache expiry routine. alternate duration based cache routine built
+#                                  but commented out for now. Will see how primary routine performs first.
+#                                  the duration based routine will come with a fair performance hit.
+# 10.3.7 - updated 9th Mar 2017  - patch to eliminate expiring same program twice
+# 10.3.8 - updated 10th Mar 2017 - fixed = in compare should be ==
+# 10.3.9 - updated 10th Mar 2017 - tweak expire logic
+# 10.4.0 - updated 10th Mar 2017 - expire programs between now and 4hrs into the future to always pickup latest changes.
+# 10.4.2 - updated 13th Mar 2017 - pull imdb reference if availble.
+# 10.4.3 - updated 13th Mar 2017 - tweak references to Movie / Series. Need to try and work our why keep getting duplicates.
+# 10.4.4 - updated 15th Mar 2017 - added xmltv_ns. Changed how categories are formulated.
+# 10.4.5 - updated 17th Mar 2017 - updated channel name translator to sync to yahoo7widget listings. some users may need to run a reconfigure once updated channel list is published.
+# 10.4.6 - updated 22nd Mar 2017 - workaround for poisoned cache for sports shows that change sub-title. need to investigate duration changes (particularly longer with no change in start time).
+# 10.4.7 - updated 22nd Mar 2017 - update channel name translator for region 88.
+# 10.4.8 - updated 11th Apr 2017 - update channel name translator for ABC NEWS 24 / ABC NEWS changes and SBS VICELAND HD rebroadcasts.
+# 10.4.9 - updated 13th Apr 2017 - SBSVICELAND HD to SBSVICELANDHD translation.
+# 10.4.10 - updated 1st Aug Apr 2017 - more translations.
+# 10.4.11 - updated 5th Sept 2017 - 7 Prime Flix translation.
 #
 #
 #
@@ -46,6 +65,8 @@ use HTML::TreeBuilder;
 use POSIX;
 use Encode;
 use JSON;
+
+use HTML::Entities qw(decode_entities);
 
 use XMLTV;
 use XMLTV::Ask;
@@ -82,6 +103,10 @@ my %shows;
 my $numshows;
 my %stats;
 my $dcount;
+my $prog_start_changed = 0;
+my $prog_duration_changed = 0;
+my $max_failed_duration = 0;
+my $expired_a_neighbour = 0;
 
 # ---------------------------------------------------------------------------
 # --- Setup
@@ -154,6 +179,9 @@ write_xml();
 print stats(1);
 
 Shepherd::Common::print_stats($progname, $version, $runtime, %stats);
+printf "%d programs changed starttime. %d programs failed duration check.\n", $prog_start_changed, $prog_duration_changed;
+printf "Longest show to fail duration check was %d seconds.\n", $max_failed_duration;
+printf "Expired a total of %d shows that were neighbours to shows that changed.\n", $expired_a_neighbour;
 
 exit 0;
 
@@ -198,45 +226,79 @@ sub get_guide_data
 #
 sub get_details_data
 {
-  $firstfetch = time();
-  my $show;
-  foreach my $pid (keys %$precache)
-  {
-    if ($cached->{$pid})
+    $firstfetch = time();
+    my $show;
+    my @expire_neighbours;
+    my @neighbour_pids;
+    foreach my $pid (keys %$precache)
     {
-      print "Cached: " . $cached->{$pid}->{title}[0][0] . ".\n" if ($debug);
-      if (verify_cache($pid))
-      {
-        $shows{$pid} = $cached->{$pid};
-        $stats{cache_hits}++;
-      }
-      else
-      {
-        print "Cache has stale data for \"" . $cached->{$pid}->{title}[0][0] .
-	      "\": fetching fresh data.\n" if ($debug);
-	$stats{cache_changes}++;
-      }
+        if (defined($cached->{$pid}))
+        {
+            print "Cached: " . $cached->{$pid}->{title}[0][0] . ".\n" if ($debug);
+            if (!verify_cache($pid))
+            {
+                push (@expire_neighbours, [ $cached->{$pid}->{channel}, $cached->{$pid}->{start}, $cached->{$pid}->{title}[0][0] ]);
+                push (@expire_neighbours, [ $cached->{$pid}->{channel}, $cached->{$pid}->{stop}, $cached->{$pid}->{title}[0][0] ]);
+
+                print "Cache has stale data for \"" . $cached->{$pid}->{channel} . "\" \"" . $cached->{$pid}->{title}[0][0] . "\": fetching fresh data.\n" if ($debug);
+                print "Cache has stale data for \"" . $cached->{$pid}->{channel} . "\" \"" . $cached->{$pid}->{title}[0][0] . "\": fetching fresh data.\n";
+                $stats{cache_changes}++;
+                delete $cached->{$pid};
+            }
+        }
     }
-    unless ($shows{$pid})
+
+    foreach my $exp_neighbours (@expire_neighbours)
     {
-      $show = download_show($pid);
-      if ($show)
-      {
-        $show->{channel}=$precache->{$pid}->{channel}; # this is a fix for undistinguished channels
-        $shows{$pid} = $show;
-	$cached->{$pid} = $show;
-        $stats{detail_pages}++;
-      }
-      else
-      {
-	print "Failed to parse show $pid.\n";
-      }
+        foreach my $cpid (keys %$cached)
+        {
+            if ((($$exp_neighbours[0] eq $cached->{$cpid}->{channel}) && ($$exp_neighbours[1] eq $cached->{$cpid}->{start})) || (($$exp_neighbours[0] eq $cached->{$cpid}->{channel}) && ($$exp_neighbours[1] eq $cached->{$cpid}->{stop})))
+            {
+                printf "found pid %d belonging to title %s\n", $cpid, $cached->{$cpid}->{title}[0][0] if ($debug); 
+                my $already_added = 0;
+                foreach my $neighbour_pids (@neighbour_pids)
+                {
+                    if ($$neighbour_pids[0] == $cpid) { print "Already added pid", $$neighbour_pids[0], " ", $$neighbour_pids[1], "\n"; $already_added = 1; }
+                }
+                if ($already_added == 0) { push (@neighbour_pids, [$cpid, $$exp_neighbours[2]]); }
+                $already_added = 0;
+            }
+        }
     }
-    if ($opt->{stats} and time() - $laststats >= $opt->{stats})
+
+    foreach my $nb_pids (@neighbour_pids) { print "Expiring ", $cached->{$$nb_pids[0]}->{title}[0][0], " pid=", $$nb_pids[0], " which is adjacent to ", $$nb_pids[1], " from cache.\n"; delete $cached->{$$nb_pids[0]}; $expired_a_neighbour++; }
+
+    foreach my $pid (keys %$precache)
     {
-      print stats();
+        if ($cached->{$pid})
+        {
+            print "Cached: " . $cached->{$pid}->{title}[0][0] . ".\n" if ($debug);
+            if (verify_cache($pid))
+            {
+                $shows{$pid} = $cached->{$pid};
+                $stats{cache_hits}++;
+            }
+        }
+        unless ($shows{$pid})
+        {
+            $show = download_show($pid);
+            if ($show)
+            {
+                $show->{channel}=$precache->{$pid}->{channel}; # this is a fix for undistinguished channels
+                $shows{$pid} = $show;
+                $cached->{$pid} = $show;
+                $stats{detail_pages}++;
+            }
+            else
+            {
+                printf "Failed to parse show %d, title - %s.\n", $pid, $precache->{$pid}->{title};
+            }
+        }
+        if ($opt->{stats} and time() - $laststats >= $opt->{stats})
+        {
+            print stats();
+        }
     }
-  }
 }
 
 sub verify_cache
@@ -253,6 +315,14 @@ sub verify_cache
 # in my opinion the cache verify on starttime combined with the cache clean on open combined with
 # using the show id as the key should be sufficient to prevent the cache returning false positives.
 
+#  my $cache_duration;
+#print Dumper $cached->{$pid};
+#exit;
+#  if ($cached->{$pid}->{length}[0] eq "hours") { $cache_duration = $cached->{$pid}->{length}[0][0] * 60 * 60; }
+#  elsif ($cached->{$pid}->{length}[0] eq "minutes") { $cache_duration = $cached->{$pid}->{length}[0][0] * 60; }
+#  else { $cache_duration = $cached->{$pid}->{length}[0][0]; }
+
+
   my @c = ( 
 #            [ 
 #	      'Title', 
@@ -264,6 +334,11 @@ sub verify_cache
 	      $cached->{$pid}->{start},
 	      $precache->{$pid}->{start}
 	    ],
+#            [
+#              'Duration',
+#              $cached->{$pid}->{length},
+#              $precache->{$pid}->{duration}
+#            ],
 #	    [
 #	      'Stop time',
 #	      $cached->{$pid}->{stop},
@@ -277,7 +352,12 @@ sub verify_cache
 	  ); 
   foreach my $cmp (@c)
   {
-    return 0 unless compare_caches($cmp->[0], $cmp->[1], $cmp->[2]);
+    if (!compare_caches($cmp->[0], $cmp->[1], $cmp->[2]))
+    {
+      if ($cmp->[0] eq "Start time") { $prog_start_changed++; }
+      elsif ($cmp->[0] eq "Duration") { $prog_duration_changed++; if ($cmp->[1] > $max_failed_duration) { $max_failed_duration = $cmp->[1]; } }
+      return 0; # unless compare_caches($cmp->[0], $cmp->[1], $cmp->[2]);
+    }
   }
   return 1;
 }
@@ -297,7 +377,6 @@ sub compare_caches
   return 1 if $arg1 eq $arg2;
 
   print "$name mismatch: \"$arg1\" vs \"$arg2\".\n" if ($debug);
-print "$name mismatch: \"$arg1\" vs \"$arg2\".\n";
   return 0;
 }
 
@@ -315,6 +394,8 @@ sub download_show
     print "Downloading # $pid (" . $precache->{$pid}->{title} . ").\n" if ($debug);
     my $url = sprintf "%s%d", $DATASOURCE_DETAIL, $pid;
     my $detailsdata = get_page($url);
+    $detailsdata =~ s#[\x{2018}]#\'#g if ($detailsdata);
+    $detailsdata =~ s#[\x{2019}]#\'#g if ($detailsdata);
     $result = parse_details($detailsdata, $pid) if ($detailsdata);
     unless ($detailsdata and $result)
     {
@@ -344,6 +425,7 @@ sub write_xml
   {
     my $fh = new IO::File(">" . $opt->{output})  
   	     or die "Can't open " . $opt->{output} . ": $!";
+    binmode($fh, ":encoding(Latin1)") || die "can't binmode to encoding Latin1";
     $writer_args{OUTPUT} = $fh;
   }
 
@@ -357,6 +439,7 @@ sub write_xml
   for my $channel (sort keys %$channels) 
   {
     my $chanid = $chanid{lc $channel};
+    Encode::from_to($chanid, "UTF-8", "ISO-8859-1");
     $writer->write_channel( { 'display-name' => [[$channel, $lang]],
                               'id' => $chanid } );
   } 
@@ -364,6 +447,7 @@ sub write_xml
   foreach my $pid (keys %shows)
   {
     print "- " . $shows{$pid}->{'title'}[0][0] . "\n" if ($debug);
+    Encode::from_to($pid, "UTF-8", "ISO-8859-1");
     $writer->write_programme($shows{$pid});
   }
 
@@ -421,18 +505,44 @@ sub restore_cache
 
 sub clean_cache
 {
-    my $r = expand_date(localtime($runtime - (27*3600))."");
+    my $r = expand_date(localtime($runtime - (27*3600)).""); # expire programs more than 27 hours in the past.
+    my $r_extra = expand_date(localtime($runtime + (4*3600)).""); # expire programs less than 4hrs into the future to always pickup latest changes.
     my $c = 0;
     print "Removing cache items that finish earlier than $r.\n" if ($debug);
-    foreach (keys %$cached)
+    print "Removing cache items that finish between $runtime and $r_extra.\n" if ($debug);
+    OUTER: foreach my $pid (keys %$cached)
     {
-	if (Date_Cmp($r, $cached->{$_}->{stop}) == 1)
+        foreach my $category_scrub (@{$cached->{$pid}->{'category'}})
+        {
+            if (@{$category_scrub}[0] eq "Sport")
+            {
+                print "Removing Sports show $cached->{$pid}->{title}[0][0] (" . Ymd($cached->{$pid}->{stop}). ")\n" if ($debug);
+                delete $cached->{$pid};
+                $c++;
+                next OUTER;
+            }
+        }
+
+	if (Date_Cmp($r, $cached->{$pid}->{stop}) == 1)
 	{
-	    print "Removing $cached->{$_}->{title}[0][0] (" . Ymd($cached->{$_}->{stop}). ")\n" if ($debug);
-print "Removing $cached->{$_}->{title}[0][0] (" . Ymd($cached->{$_}->{stop}). ")\n";
-	    delete $cached->{$_};
+	    print "Removing $cached->{$pid}->{title}[0][0] (" . Ymd($cached->{$pid}->{stop}). ")\n" if ($debug);
+	    delete $cached->{$pid};
 	    $c++;
 	}
+        elsif ((Date_Cmp($r_extra, $cached->{$pid}->{start}) == 1) && (Date_Cmp(expand_date(localtime($runtime).""), $cached->{$pid}->{start}) != 1))
+        {
+            print "Removing $cached->{$pid}->{title}[0][0] (" . Ymd($cached->{$pid}->{stop}). ")\n" if ($debug);
+            delete $cached->{$pid};
+            $c++;
+        }
+# debug - allow to manually expire or starttime shift individual shows for convenience of testing
+#        elsif ( $pid == 84444579 || $pid == 84444467 || $pid == 84297918 || $pid == 84571574)
+#        {
+#            print "Removing $cached->{$pid}->{title}[0][0] (" . Ymd($cached->{$pid}->{stop}). ")\n";
+#            delete $cached->{$pid};
+#            $cached->{$pid}->{start} = 20170309003000;
+#            $c++;
+#        }
     }
     print "Removed $c stale items from cache.\n";
 }
@@ -506,6 +616,8 @@ sub get_page
       die "Too many network failures.";
   }
   $ret =~ s/&nbsp;/ /g if ($ret);
+  $ret =~ s#[\x{2018}]#\'#g if ($ret);
+  $ret =~ s#[\x{2019}]#\'#g if ($ret);
   return $ret;
 }
 
@@ -524,7 +636,7 @@ sub parse_guide
     foreach my $row (@$rows)
     {
 	my $channame = $row->{name};
-	my $curchan = translate_channel_name($channame, scalar(grep($_ eq $channame, @channels_seen)));
+	my $curchan = translate_channel_name($channame);
 	push @channels_seen, $channame;
 	if (!$channels->{$curchan})
 	{ 
@@ -545,6 +657,16 @@ print "Ignoring unsubscribed channel $curchan.\n";
 		$ignore_first_show = 1;
 	    }
 
+            # going to spoof an approximate duration here. if can get it accurate it will prevent a lot of
+            # unnecessary expiry in the cache. Will not work for multi show blocks (ie where shows are less than
+            # about 15min) but just going to have to take that performance hit for now.
+#            $duration =~ s#[%].*##g;
+#            $duration =~ s#.*[ ]##g;
+#            $duration = $duration * 100000;
+#            $duration = $duration / 6944;
+#            $duration =~ s#[.].*##g;
+#            $duration = $duration * 60;
+
 	    foreach my $show (@{$block->{shows}})
 	    {
                 if ($ignore_first_show == 1)
@@ -558,8 +680,9 @@ print "Ignoring unsubscribed channel $curchan.\n";
                     'title' => $show->{title},
                     'start' => convert_date(sprintf "%s %s", $date, $show->{date}),
 #                    'stop' => $real_end_time, # cannot do stop time here if using duration from details page
-#                    'debug_showid' => $show->{id},
-#                    'debug_programid' => $show->{programId},
+#                    'duration' => $duration, # will get ignored in the xmltv write stage (albeit with a warning), this is just for cache expiry purposes
+                    'debug_showid' => $show->{id},
+                    'debug_programid' => $show->{programId},
                     'channel' => $channels->{$curchan},
                 };
 	    }
@@ -567,24 +690,42 @@ print "Ignoring unsubscribed channel $curchan.\n";
     }
 }
 
-# The guide pages for some regions don't provide any way to distinguish
-# between (eg) "Prime (Regional)" and "Prime (Albury)" in the same region,
-# other than the order in which they're listed. (They're both called
-# simply "Prime".) This func tracks which is which.
+# The different grabber sources do not necessarily use the same channel names.
+# This func translates yourtv.com.au channel names into official shepherd names.
 sub translate_channel_name
 {
-    my ($chan, $seen_before) = @_;
+    my ($chan) = @_;
 
     my $rchans;
 
     $rchans = {
-	95 => { 'TEN' => [ 'TEN (VIC: Mildura/Sunraysia)', 'TEN (Mildura Digital)' ] },
-	};
+        'ABC ME' => 'ABCME',
+        'SBS VICELAND' => 'SBSVICELAND',
+        'SBS VICELAND HD' => 'SBSVICELANDHD',
+        'WIN GOLD' => 'WINGOLD',
+        'SC10 HD' => 'SC10HD',
+        'SCTV HD' => 'SCTVHD',
+        'ABC NEWS' => 'ABCNEWS',
+        'TDT HD' => 'TDTHD',
+        'Aboriginal TV' => 'AboriginalTV',
+        'Education TV' => 'EducationTV',
+       	'Tourism TV' => 'TourismTV',
+        '7flix Prime' => '7flixPrime'
+        };
 
     my $region = $opt->{region};
 
-    return $chan unless ($rchans->{$region} and $rchans->{$region}->{$chan});
-    return $rchans->{$region}->{$chan}->[$seen_before];
+    return $chan unless ($rchans->{$chan});
+    return $rchans->{$chan};
+}
+
+sub strip_html_codes
+{
+    my ($html_string) = @_;
+    my $ret_string;
+    decode_entities($html_string);
+    $ret_string =  encode("iso-8859-1", $html_string);
+    return $ret_string;
 }
 
 sub parse_details 
@@ -593,22 +734,28 @@ sub parse_details
 
     my $data = JSON::decode_json($detailsdata);
 
-    print Dumper($data) if ($debug);
+#    print Dumper($data) if ($debug);
 
     my $show = $precache->{$pid};
-    my %type;
+#    my %type;
     my %video;
 
     my $lang = $data->{language} || 'en';
+    $lang = 'en' if ($lang eq "English");
 
-    $show->{title} = [[ $data->{program}->{title}, $lang ]];
+    if ($data->{genre}->{name})
+    {
+        push (@{$show->{'category'}}, [ $data->{genre}->{name} , $lang ]);
+    }
+
+    $show->{title} = [[ strip_html_codes( $data->{program}->{title}), $lang ]];
 
     $show->{language} = [ $lang ];
 
     if (!$data->{synopsis}) {
-        $show->{desc} = [[ $data->{program}->{title}, $lang ]]; }
+        $show->{desc} = [[ strip_html_codes( $data->{program}->{title}), $lang ]]; }
     else {
-        $show->{desc} = [[ $data->{synopsis}, $lang ]]; }
+        $show->{desc} = [[ strip_html_codes( $data->{synopsis}), $lang ]]; }
 
     if ($data->{classification})
     {
@@ -623,16 +770,17 @@ sub parse_details
     if ($data->{premiere})
     {
 	$show->{'premiere'} = [ 'Premiere' ];
-	$type{'premiere'} = 1;
+        push (@{$show->{'category'}}, [ "Premiere" , $lang ]);
+#	$type{'premiere'} = 1;
     }
     if ($data->{episodeTitle})
     {
-        $show->{'sub-title'} = [[ $data->{episodeTitle}, $lang ]];
+        $show->{'sub-title'} = [[ strip_html_codes( $data->{episodeTitle}), $lang ]];
     }
 
     if ($data->{mainCast})
     {
-	$show->{'credits'}{'actor'} = [ split(/, ?/, strip_whitespace($data->{mainCast})) ];
+	$show->{'credits'}{'actor'} = [ split(/, ?/, strip_whitespace(strip_html_codes( $data->{mainCast}))) ];
     }
 
     if ($data->{widescreen})
@@ -647,7 +795,8 @@ sub parse_details
 
     if ($data->{live})
     {
-	$type{live} = 1;
+#	$type{live} = 1;
+        push (@{$show->{'category'}}, [ "Live" , $lang ]);
     }
 
     if ($data->{closedCaptions} || $data->{subtitles})
@@ -663,6 +812,18 @@ sub parse_details
     if ($data->{program}->{yearReleased})
     {
         $show->{'date'} =  $data->{program}->{yearReleased};
+    }
+
+    if ($data->{program}->{imdbId})
+    {
+        my $raw_imdbId = $data->{program}->{imdbId};
+        $raw_imdbId =~ s#[Tt][Tt]##g;
+        push (@{$$show{'episode-num'}}, [ "title/tt" . $raw_imdbId, 'imdb.com' ]);
+    }
+
+    if (defined($data->{episodeNumber}) && defined($data->{seriesNumber}))
+    {
+        push (@{$show->{'episode-num'}}, [ (sprintf(" %d . %d . ", ($data->{seriesNumber} - 1)  , ($data->{episodeNumber} - 1))), 'xmltv_ns' ]);
     }
 
     if ($data->{duration})
@@ -684,10 +845,12 @@ sub parse_details
 
     $show->{'video'} = \%video if (%video);
 
-    $type{'movie'} = 1 if ($data->{movie} && !$data->{series});
-    $type{'series'} = 1 if (!$data->{movie} && $data->{series});
+    push (@{$show->{'category'}}, [ "Movie" , $lang ]) if ($data->{movie} && !$data->{series});
+    push (@{$show->{'category'}}, [ "Series" , $lang ]) if (!$data->{movie} && $data->{series});
 
-    $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}[0][0], undef, %type) ];
+#    $type{'Movie'} = 1 if ($data->{movie} && !$data->{series});
+#    $type{'Series'} = 1 if (!$data->{movie} && $data->{series});
+#    $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}[0][0], undef, %type) ];
 
 #    print Dumper($show) if ($debug);
 
