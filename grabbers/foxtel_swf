@@ -3,11 +3,14 @@
 # foxtel_swf australian paytv grabber
 #  * grabs data from www.foxtel.com.au
 #  * this does NOT use any config file - all settings (channels) are passed in from shepherd
+# update
+#    5.01: updated initial page url
+#    5.02: added channel name translator
 
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.00";
+my $version = "5.02";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -352,7 +355,7 @@ sub get_initial_page
 
 	Shepherd::Common::log(" - fetching initial page...");
 
-	$data = &get_url(url => "http://www.foxtel.com.au/whats-on/tv-guide/default.htm", retries => 4);
+	$data = &get_url(url => "http://www.foxtel.com.au/tv-guide/grid", retries => 4);
 	die "Failed to retrieve initial page! Aborting..\n" if (!$data);
 
 	$data = &get_url(url => "https://epg.foxtel.com.au/epg-service/epg/EpgServiceV2?wsdl", retries => 4);
@@ -467,13 +470,14 @@ sub choose_channel_lineup
 	$d->{included_chan_count} = 0;
 
 	foreach my $ch (keys %{($d->{channel_names})}) {
-		if ((defined $channels->{$ch}) ||
-		    (defined $opt_channels->{$ch}) ||
+		if ((defined $channels->{channel_name_munger($ch)}) ||
+		    (defined $opt_channels->{channel_name_munger($ch)}) ||
 		    (defined $opt->{all_channels})) {
-			my $ch_id = $d->{channel_names}->{$ch};
-			my $ch_xmlid = $ch;
-			$ch_xmlid = $channels->{$ch} if (defined $channels->{$ch});
-			$ch_xmlid = $opt_channels->{$ch} if (defined $opt_channels->{$ch});
+                        my $ch_id = $d->{channel_names}->{$ch};
+                        my $ch_xmlid = $ch;
+			$ch_xmlid = $channels->{channel_name_munger($ch)} if (defined $channels->{channel_name_munger($ch)});
+			$ch_xmlid = $opt_channels->{channel_name_munger($ch)} if (defined $opt_channels->{channel_name_munger($ch)});
+                        Shepherd::Common::log(" - Grabbing channel ".$ch." (channel munger is ".channel_name_munger($ch).") ch_id is ".$ch_id." and ch_xmlid is ".$ch_xmlid) if (defined $opt->{debug});
 
 			$d->{including_channels}->{$ch_id} = $ch_xmlid;
 			$d->{channels}->{$ch_id}->{xmlid} = $ch_xmlid;
@@ -482,6 +486,8 @@ sub choose_channel_lineup
 			$writer->write_channel( {
 				'display-name' => [[ $d->{channels}->{$ch_id}->{name}, $opt->{lang} ]],
 				'id' => $ch_xmlid } );
+		} else {
+			Shepherd::Common::log(" - Ignoring unsubscribed channel ".$ch." (channel munger is ".channel_name_munger($ch).")");
 		}
 	}
 
@@ -490,6 +496,46 @@ sub choose_channel_lineup
 		join(",",keys %$opt_channels)."\n"
 	  if ($d->{included_chan_count} == 0);
 }
+
+
+##############################################################################
+# The different grabber sources do not necessarily use the same channel names.
+# This func translates yourtv.com.au channel names into official shepherd names.
+
+sub channel_name_munger
+{
+    my ($chan) = @_;
+    my @cities = ("Melbourne", "Sydney", "Brisbane", "Adelaide", "Darwin", "Perth", "Hobart", "VIC", "NSW", "QLD", "SA", "NT", "WA", "TAS");
+    foreach my $cities (@cities)
+    {
+        if ((substr $chan,  -length($cities)) eq $cities)
+        {
+            $chan = substr $chan, 0 , length($chan) - length($cities);
+            last;
+        }
+    }
+
+    my $rchans;
+
+    $rchans = {
+        'ABC2' => 'ABC2 / KIDS',
+        'ABCNews' => 'ABCNEWS',
+        'Channel9' => 'Nine',
+        'Channel10' => 'TEN',
+        'Channel7' => 'Seven',
+        'ABCHD' => 'ABC HD',
+        'RACINGCOM' => 'RACING.COM',
+        'FoodNetwork' => 'Food Network',
+        'One' => 'ONE',
+        '7Flix' => '7flix',
+        'Channel10HD' => 'TEN HD',
+        'SBSHD' => 'SBS HD'
+        };
+
+    return $chan unless ($rchans->{$chan});
+    return $rchans->{$chan};
+}
+
 
 ##############################################################################
 
