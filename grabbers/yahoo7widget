@@ -20,12 +20,13 @@
 #    2.00  19jun10	moved to JSON data format
 #    2.01  20jun10	add sub-title support in
 #    2.10  22jun10	experimental: drop JSON module for cut-down Shepherd::json_pp
+#    2.45  18mar17      pull 'series' category when present in the guide
 
 use strict;
 use warnings;
 
 my $progname = "yahoo7widget";
-my $version = "2.44";
+my $version = "2.45";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -509,6 +510,7 @@ sub parse_json_data
 
 		my %genre, my $category, my $category2;
 		$genre{movie} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Movie"));
+		$genre{series} = 1 if ((defined $item->{show_type}) && ($item->{show_type} eq "Series"));
 		$genre{live} = 1 if (defined $item->{live});
 		$category = $item->{genre} if (defined $item->{genre});
 		if ((defined $item->{'category'}) && (defined $item->{'category'}->[0]->{'item'}->[0]->{0})) {
