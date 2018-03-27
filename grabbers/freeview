@@ -1,0 +1,387 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+my $progname = "freeview";
+my $version = "1.0";
+
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use Data::Dumper;
+use Shepherd::Common;
+use Shepherd::json_pp;  # use JSON;
+use DateTime::Format::XMLTV;
+use DateTime::Format::ISO8601;
+use DateTime::Duration;
+
+#
+# some initial cruft
+#
+
+my $script_start_time = time;
+my %stats;
+my $channels, my $opt_channels;
+my $tv_guide;
+my $input_xml;
+my $d;
+$| = 1;
+
+#
+# parse command line
+#
+
+my $opt;
+$opt->{outputfile} = 	"output.xmltv";	# default
+$opt->{days} = 		8;		# default
+$opt->{lang} =		"en";
+$opt->{region} =	94;
+
+GetOptions(
+	'region=i'	=> \$opt->{region},
+	'days=i'	=> \$opt->{days},
+	'offset=i'	=> \$opt->{offset},
+	'paytvtimeoffset:s'	=> \$opt->{paytvoffset},
+	'channels_file=s' => \$opt->{channels_file},
+	'cachefile=s' => \$opt->{obsolete},
+	'output=s'	=> \$opt->{outputfile},
+	'fast'		=> \$opt->{fast},
+	#'paytv'		=> \$opt->{paytv},
+	'warper'	=> \$opt->{warper},
+	'lang=s'	=> \$opt->{lang},
+	'obfuscate'	=> \$opt->{obfuscate},
+	'debug+'	=> \$opt->{debug},
+	'help'		=> \$opt->{help},
+	'verbose'	=> \$opt->{help},
+	'version'	=> \$opt->{version},
+	'ready'		=> \$opt->{version},
+	'desc'		=> \$opt->{desc},
+	'v'		=> \$opt->{help});
+
+&help if (defined $opt->{help});
+
+if (defined $opt->{version} || defined $opt->{desc}) {
+	printf "%s %s\n",$progname,$version;
+	printf "%s is a details-aware grabber that collects very high quality data (full title/subtitle/description/genre and year/cast/credits data) using the Freeview website.",$progname if (defined $opt->{desc});
+	exit(0);
+}
+
+#shep regions to "state" url param
+my %SHEP_ID_TO_STATE = (
+	73 => "Sydney",
+	94 => "Melbourne",
+	75 => "Brisbane",
+	81 => "Adelaide",
+	101 => "Perth",
+	126 => "Canberra",
+	88 => "Hobart",
+	74 => "Darwin",
+	63 => "Broken Hill",
+	66 => "Central Coast",
+	261 => "Coffs Harbour",
+	67 => "Griffith",
+	184 => "Newcastle",
+	262 => "Orange/Dubbo",
+	106 => "Remote and Central NSW",
+	259 => "South Coast",
+	69 => "Tamworth",
+	263 => "Taree/Port Macquarie",
+	264 => "Wagga Wagga",
+	71 => "Wollongong",
+	108 => "Regional NT",
+	79 => "Cairns",
+	78 => "Gold Coast",
+	253 => "Mackay",
+	114 => "Remote and Central QLD",
+	254 => "Rockhampton",
+	255 => "Sunshine Coast",
+	256 => "Toowoomba",
+	257 => "Townsville",
+	258 => "Wide Bay",
+	107 => "Remote and Central SA",
+	83 => "Riverland",
+	85 => "South East SA",
+	86 => "Spencer Gulf",
+	268 => "Albury/Wodonga",
+	90 => "Ballarat",
+	266 => "Bendigo",
+	93 => "Geelong",
+	98 => "Gippsland",
+	95 => "Mildura/Sunraysia",
+	267 => "Shepparton",
+	102 => "Regional WA"
+);
+
+#service names to shep channel names where differ
+my %SERVICE_NAME_TO_SHEP = (
+	"Channel 9"       => "Nine",
+	'ABC NEWS'        => "ABCNEWS",
+	#'ABC COMEDY/ABC KIDS WA' => 'ABC COMEDY/ABC KIDS', <- handled as regex in &parse_json_data
+	'ABC ME'          => "ABCME",
+	'SBS VICELAND'    => 'SBSVICELAND',
+	'SBS VICELAND HD' => 'SBSVICELANDHD',
+	'TVSN Shopping'   => 'TVSN',
+	'SCTV Darwin'     => "SCTV",
+	'DDT10'           => 'DDT',
+	'ABC2 / KIDS'     => 'ABC COMEDY/ABC KIDS',
+	'C31'             => 'Channel 31',
+	'sctv'            => 'SCTV',
+	'GOLD'            => 'WINGOLD',
+	'NINE'            => 'Nine',
+	'7Flix Prime'     => '7flixPrime',
+	'9GEM'            => '9Gem',
+	'SC 7mate'        => '7mate',
+	'7TWO Central'    => '7TWO'
+);
+
+die("region not supported") unless defined $SHEP_ID_TO_STATE{$opt->{region}};
+
+# set defaults
+Shepherd::Common::set_default("debug", ($opt->{debug} * 2)) if (defined $opt->{debug});
+Shepherd::Common::set_default("webwarper", 1) if (defined $opt->{warper});
+Shepherd::Common::set_default("squid", 1) if (defined $opt->{obfuscate});
+Shepherd::Common::set_default("referer", "last");
+Shepherd::Common::set_default("retry_delay", 10);
+Shepherd::Common::setup_ua('agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)');
+
+die "no channel file specified, see --help for instructions\n", unless (defined $opt->{channels_file});
+
+$opt->{days} = 8 if $opt->{days} > 8;	# no data beyond 8 days
+
+Shepherd::Common::log(sprintf "going to grab %d days%s of data into %s (%s%s) region %s",
+	$opt->{days},
+	($opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
+	$opt->{outputfile},
+	(defined $opt->{fast} ? "with haste" : "slowly"),
+	(defined $opt->{warper} ? ", anonymously" : ""),
+	$opt->{region});
+
+if (-r $opt->{channels_file}) {
+	local (@ARGV, $/) = ($opt->{channels_file});
+	no warnings 'all'; eval <>; die "$@" if $@;
+} else {
+	die "WARNING: channels file $opt->{channels_file} could not be read\n";
+}
+
+my $offset = defined $opt->{offset} ? $opt->{offset} : 0;
+
+for (my $day_i = $offset; $day_i < 8 && $day_i < $opt->{days}+$offset; $day_i++){
+	#sleep if not first day
+	if (($day_i != 0) && (!defined $opt->{fast})) {
+		my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
+		$stats{slept_for} += $sleeptimer;
+		sleep $sleeptimer;
+	}
+	my $url = sprintf "http://www.freeview.com.au/umbraco/Surface/JsonString/ReadFromTVGuideDB/?state=%s&param=tvGuide&index=%d", $SHEP_ID_TO_STATE{$opt->{region}}, $day_i;
+	# get data
+	my $tries = 5;
+	#my $url = sprintf "http://au.tv.yahoo.com/tv-guide/data/%d/%d/%d/%d/",
+	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
+		Shepherd::Common::get_url(url => $url, retries => ($tries - 1), method => 'POST'); #get works, but the JS uses POST for some reason
+
+	$stats{failed_requests} += $failed_attempts;
+	$stats{slept_for} += $seconds_slept;
+	$stats{bytes_fetched} += $bytes_fetched;
+
+	if ((!$data) || (!$success)) {
+		Shepherd::Common::log("Failed to fetch '$url' after $tries attempts.");
+
+		# if its our first page, abort now
+		if ($day_i == 0) {
+			Shepherd::Common::log("Aborting: likely format change or blocked!");
+			exit 10;
+		}
+		next;
+	}
+	parse_json_data($data);
+}
+
+
+&write_data;
+Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
+exit(0);
+
+
+sub parse_json_data {
+	my $data = shift;
+
+	unless (($data) && (length($data) > 1)) {
+	    print STDERR "ERROR: no data to parse.\n";
+	    return;
+	}
+
+	# my $decoded_data = decode_json($data);
+	my $decoded_data = JSON::cut_down_PP::decode_json($data);
+
+	foreach my $svc (@{$decoded_data->{TVGuide}}){
+		$svc = $svc->{service};
+		my $channel = $svc->{'@service_name'};
+		#remove some suffixes
+		$channel =~ s/ (NT|QLD|NSW|VIC|ACT|TAS|Toowoomba|SA|South East SA|WA|Mid NC|Coffs Harbour|Coffs|Canberra|Shepparton|Mildura|Wollongong|New Eng|Tamworth|Cairns|Orange|Albury|Port Macquarie|Taree|Wide Bay|Tas|Hobart|Mackay|Gippsland|Sunshine Coast|Gold Coast|Gold C|Ballarat|Townsville|Batemans Bay|South Coast|Newc|Newcastle|Bendigo|Cent C|Central C|Rockhampton|Wagga Wagga|Wagga|Griffith|Adel|SA Lox|Lox)$//;
+		#check if we have a static remap
+		$channel = $SERVICE_NAME_TO_SHEP{$channel} if (defined $SERVICE_NAME_TO_SHEP{$channel});
+		if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
+			if (!defined $d->{ignored_channels}->{$channel}) {
+				$d->{ignored_channels}->{$channel} = 1;
+				$stats{skipped_channels}++;
+				Shepherd::Common::log("ignoring unwanted channel '$channel'");
+			}
+			next;
+		}
+
+		foreach my $programme (@{$svc->{schedule}}) {
+			$programme = $programme->{programme};
+
+			my $event_id = $programme->{event_id}.$programme->{date_time_duration}->{'@date_time_value'};
+
+			$stats{programmes}++;
+			$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
+
+			my $event_start = DateTime::Format::ISO8601->parse_datetime( $programme->{date_time_duration}->{'@date_time_value'} );
+			my ($hours, $minutes) = $programme->{date_time_duration}->{'@duration'} =~ m/(\d+):(\d+)/;
+			my $duration_obj = DateTime::Duration->new(hours=>$hours, minutes=>$minutes);
+			my $event_end = $event_start->clone()->add($duration_obj);
+
+			# store it in the correct XMLTV schema!
+			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channels->{$channel} if (defined $channels->{$channel});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $opt_channels->{$channel} if (defined $opt_channels->{$channel});
+
+			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = DateTime::Format::XMLTV->format_datetime($event_start);
+			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	DateTime::Format::XMLTV->format_datetime($event_end);
+
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{title}, $opt->{lang} ]] if (defined $programme->{title});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $programme->{synopsis}, $opt->{lang} ]] if (defined $programme->{synopsis} && length($programme->{synopsis}) > 0);
+			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $programme->{series}->{episode_title}, $opt->{lang} ]] if (defined $programme->{series} && defined $programme->{series}->{episode_title} && length($programme->{series}->{episode_title}) > 0);
+
+			my %genre, my $category;
+			$genre{movie} = 1 if ((defined $programme->{'@program_type'}) && ($programme->{'@program_type'} eq "movie"));
+			$genre{series} = 1 if ((defined $programme->{'series'}) && (defined $programme->{'series'}->{'@episode_number'}));
+			$category = $programme->{'@genre'} if (defined $programme->{'@genre'});
+			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ &Shepherd::Common::generate_category($programme->{title}, $category, %genre) ];
+
+			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $programme->{cast}) ] if (defined $programme->{cast} && length($programme->{cast}) > 0);
+
+			if (defined $programme->{'series'}){
+				my $season = $programme->{'series'}->{'@season_number'};
+				my $episode = $programme->{'series'}->{'@episode_number'};
+				if ($season || $episode) {
+					my $xmltv_ns = ($season ? ($season - 1) : "") ." . ". ($episode ? ($episode - 1) : "") ." . 0";
+					$tv_guide->{$channel}->{data}->{$event_id}->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
+				}
+			}
+
+			if (defined $programme->{'@attributes'}){
+				for my $attribute (split(/,/, $programme->{'@attributes'})){
+					if ($attribute eq "CC"){
+						$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ];
+					} elsif ($attribute eq "HD"){
+						$tv_guide->{$channel}->{data}->{$event_id}->{video}->{quality} = "HDTV";
+					}
+				}
+			}
+
+			if (defined $programme->{'@classification'}){
+				my ($rating) =  $programme->{'@classification'} =~ m/\(([^)]+)\)/;
+				$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]] if $rating ne "";
+			}
+
+			$d->{seen_progs}->{$channel}++;
+		}
+	}
+}
+
+######################################################################################################
+# help
+
+sub help
+{
+	print<<EOF
+$progname $version
+
+$0 [options]
+    options are as follows:
+	--region=N			set region for where to collect data from (default: $opt->{region})
+	--channels_file=file		where to get channel data from (MANDATORY)
+	--days=N			fetch 'n' days of data (default: $opt->{days})
+	--output=file			send xml output to file (default: "$opt->{outputfile}")
+
+	--fast				don't run slow - get data as quick as you can - not recommended
+	--debug				increase debug level
+	--warper			fetch data using WebWarper web anonymizer service
+	--obfuscate			pretend to be a proxy servicing multiple clients
+	--lang=[s]			set language of xmltv output data (default $opt->{lang})
+
+	--paytvtimeoffset		apply an offset between current timezone and AEST for paytv channels
+	--paytvtimeoffset[="+HHMM"]	apply a difference of +HHMM and AEST for paytv channels ie +1030 (+- is mandatory)
+
+EOF
+	;
+
+	exit(0);
+}
+
+sub write_data
+{
+	my %writer_args = ( encoding => 'ISO-8859-1' );
+	if ($opt->{outputfile}) {
+		my $fh = new IO::File(">$opt->{outputfile}")  or die "can't open $opt->{outputfile}: $!";
+		$writer_args{OUTPUT} = $fh;
+	}
+
+	my $writer = new XMLTV::Writer(%writer_args);
+
+	$writer->start
+		( { 'source-info-name'   => "$progname $version",
+			'generator-info-name' => "$progname $version"} );
+
+	for my $channel (sort keys %{$channels}) {
+		$writer->write_channel( {'display-name' => [[ $channel, $opt->{lang} ]], 'id' => $channels->{$channel}} )
+			if (defined $d->{seen_progs}->{$channel});
+	}
+	for my $channel (sort keys %{$opt_channels}) {
+		$writer->write_channel( {'display-name' => [[ $channel, $opt->{lang} ]], 'id' => $opt_channels->{$channel}} )
+			if (defined $d->{seen_progs}->{$channel});
+	}
+
+	my $abc2_eariest_start = "300000000000";
+
+	for my $channel (sort keys %{($d->{seen_progs})}) {
+		for my $event_id (sort {$a cmp $b} keys %{($tv_guide->{$channel}->{data})}) {
+			my $show = $tv_guide->{$channel}->{data}->{$event_id};
+			Shepherd::Common::cleanup($show);
+			$writer->write_programme($show);
+
+			$abc2_eariest_start = $show->{'start'}
+				if ($channel eq "ABC2" && $abc2_eariest_start > $show->{'start'});
+		}
+	}
+
+	# check if abc2 has a gap on the first day when the station is closed
+	if ($abc2_eariest_start != "300000000000" && (!defined $opt->{offset}) && defined $channels->{ABC2} &&
+		$abc2_eariest_start > POSIX::strftime("%Y%m%d%H%M", localtime($script_start_time))) {
+
+		# create 7am today
+		my @timeattr = localtime($script_start_time); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
+		$timeattr[0] = 0; # zero seconds
+		$timeattr[1] = 0; # min
+		$timeattr[2] = 7; # hours 7am
+		my $time7am = mktime(@timeattr);
+		#$time7am -= $time_offset;
+		my $xmltime7am = POSIX::strftime("%Y%m%d%H%M", localtime($time7am));
+
+		if (($script_start_time < $time7am) && ($abc2_eariest_start == $xmltime7am))
+		{
+			my $show;
+			$show->{'channel'} =    $channels->{ABC2};
+			$show->{'title'} =      [[ "Station Close Guess", $opt->{lang} ]];
+			$show->{'start'} =      POSIX::strftime("%Y%m%d%H%M", localtime($script_start_time));
+			$show->{'stop'} =       $abc2_eariest_start;
+
+			Shepherd::Common::cleanup($show);
+			$writer->write_programme($show);
+		}
+	}
+
+	$writer->end();
+}
