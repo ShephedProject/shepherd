@@ -95,22 +95,22 @@ sub get_guide_data
 
     if ($opt->{offset} > 0)
     {
-	$opt->{offset}--;
-	&log("Fetching previous day to get pre-5AM data.\n");
+		$opt->{offset}--;
+		&log("Fetching previous day to get pre-5AM data.\n");
     }
 
     for my $day ($opt->{offset} .. $opt->{days} - 1)
     { 
-	my $daystr = &POSIX::strftime("%Y-%m-%d", localtime($runtime + ($day * 86400)));
-	&log("Day $day: $daystr ($loc)");
+		my $daystr = &POSIX::strftime("%Y-%m-%d", localtime($runtime + ($day * 86400)));
+		&log("Day $day: $daystr ($loc)");
 
-	my $url = "$URL/day/$daystr/location/$loc";
-	my $guidedata = &Shepherd::Common::get_url($url);
-	exit 11 unless ($guidedata);
+		my $url = "$URL/day/$daystr/location/$loc";
+		my $guidedata = &Shepherd::Common::get_url($url);
+		exit 11 unless ($guidedata);
 
-	Encode::from_to($guidedata, "UTF-8", "iso-8859-1");
+		Encode::from_to($guidedata, "UTF-8", "iso-8859-1");
 
-	&parse_guide($guidedata, $day, $daystr);
+		&parse_guide($guidedata, $day, $daystr);
     }
     &log("Found " . &num_items($shows) . " shows on " . scalar(keys %$shows) . " channels.");
 }
@@ -124,75 +124,78 @@ sub parse_guide
     my $decoded_json;
     foreach my $line (split /^/, $guidedata)
     {
-	if ($line =~ /^\s*tv:(\s*\[\{.*),/)
-	{
-	    $line = '{ "tv": ' . $1 . '}';
-	    $decoded_json = &JSON::decode_json($line);
-	    last;
-	}
+		if ($line =~ /^\s*tv:(\s*\[\{.*),/)
+		{
+			$line = '{ "tv": ' . $1 . '}';
+			#replace fancy apostrophes to something that iso-8859-1 can encode(')
+			$line =~ s/\\u2018/\\u0027/g;
+			$line =~ s/\\u2019/\\u0027/g;
+		    $decoded_json = &JSON::decode_json($line);
+		    last;
+		}
     }
     unless ($decoded_json)
     {
-	&log("ERROR: Unable to parse $daystr (Day $day)!");
-	exit 11;
+		&log("ERROR: Unable to parse $daystr (Day $day)!");
+		exit 11;
     }
 
     my @channels = @{$decoded_json->{'tv'}};
     foreach my $chan (@channels)
     {
-	my $channel_name = $chan->{name};
-	my $chanid = $channels->{$channel_name};
-	unless ($chanid)
-	{
-	    &log("Ignoring channel $channel_name: not requested by user.") if ($opt->{debug});
-	    next;
-	}
-	&log("Channel: $channel_name");
-	foreach my $listing (@{$chan->{programs}})
-	{
-	    $stats{'shows'}++;
+		my $channel_name = $chan->{name};
+		my $chanid = $channels->{$channel_name};
+		unless ($chanid)
+		{
+		    &log("Ignoring channel $channel_name: not requested by user.") if ($opt->{debug});
+		    next;
+		}
+		&log("Channel: $channel_name");
+		foreach my $listing (@{$chan->{programs}})
+		{
+		    $stats{'shows'}++;
 
-	    my $show = { };
-	    $show->{title} = &HTML::Entities::decode($listing->{programTitle});
-	    &log("- " . $show->{title}) if ($opt->{debug});
+		    my $show = { };
+		    $show->{title} = &HTML::Entities::decode($listing->{programTitle});
+		    &log("- " . $show->{title}) if ($opt->{debug});
 
 
-	    $show->{start} = $listing->{playtime};
-	    $show->{channel} = $chanid;
-	    $show->{stop} = $listing->{endtime};
-	    $show->{length} = $listing->{duration} * 60;
-	    $show->{desc} = $listing->{longSynopsis} || $listing->{shortSynopsis};
-	    &Shepherd::Common::cleanup(\$show->{desc}) if $show->{desc};
-	    $show->{desc} = &HTML::Entities::decode($show->{desc});
+		    $show->{start} = $listing->{playtime};
+		    $show->{channel} = $chanid;
+		    $show->{stop} = $listing->{endtime};
+		    $show->{length} = $listing->{duration} * 60;
+		    $show->{desc} = $listing->{longSynopsis} || $listing->{shortSynopsis};
+		    &Shepherd::Common::cleanup(\$show->{desc}) if $show->{desc};
+		    $show->{desc} = &HTML::Entities::decode($show->{desc});
 
-	    push (@{$show->{category}}, 'News') if ($show->{title} =~ /News/);
-	    $show->{'previously-shown'} = { } if ($listing->{isRepeat});
+		    push (@{$show->{category}}, 'News') if ($show->{title} =~ /News/);
+		    $show->{'previously-shown'} = { } if ($listing->{isRepeat});
 
-	    push @{$show->{'subtitles'}}, 'teletext' if ($listing->{closedCaption});
+		    push @{$show->{'subtitles'}}, 'teletext' if ($listing->{closedCaption});
 
-	    $show->{video}->{aspect} = '16:9' if ($show->{desc} =~ / WS /);
+		    $show->{video}->{aspect} = '16:9' if ($show->{desc} =~ / WS /);
 
-	    if ($listing->{'rating'} and $listing->{'rating'} ne 'NC')
-	    {
-		$show->{'rating'} = [ [ $listing->{'rating'}, 'ABA', undef] ];
-	    }
+		    if ($listing->{'rating'} and $listing->{'rating'} ne 'NC')
+		    {
+			$show->{'rating'} = [ [ $listing->{'rating'}, 'ABA', undef] ];
+		    }
 
-	    if ($show->{desc} =~ /Directed by (.*?)(?: and| \(|[,\.])/)
-	    {
-		$show->{credits}{director} = [ $1 ];
-	    }
-	    if ($show->{desc} =~ / [sS]tar(?:s|ring) (.*?),? and (.*?)\./)
-	    {
-		$show->{credits}{actor} = [ split(/, /, $1), $2 ];
-	    }
-	    $show->{country} = $listing->{countryOfOrigin} if ($listing->{countryOfOrigin});
-	    $show->{language} = $listing->{language} if ($listing->{language});
+		    if ($show->{desc} =~ /Directed by (.*?)(?: and| \(|[,\.])/)
+		    {
+			$show->{credits}{director} = [ $1 ];
+		    }
+		    if ($show->{desc} =~ / [sS]tar(?:s|ring) (.*?),? and (.*?)\./)
+		    {
+			$show->{credits}{actor} = [ split(/, /, $1), $2 ];
+		    }
+		    $show->{country} = strip_whitespace($listing->{countryOfOrigin}) if ($listing->{countryOfOrigin} && length(strip_whitespace($listing->{countryOfOrigin})) > 0);
+		    $show->{language} = $listing->{language} if ($listing->{language});
 
-	    $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}, $listing->{genre}, { }) ];
-	    $show->{'episode-num'} = [[ $listing->{episodeNo}, 'onscreen' ]] if ($listing->{episodeNo});
+		    $show->{'category'} = [ &Shepherd::Common::generate_category($show->{'title'}, $listing->{genre}, { }) ];
+		    $show->{'episode-num'} = [[ $listing->{episodeNo}, 'onscreen' ]] if ($listing->{episodeNo});
 
-	    $shows->{$chanid}->{$show->{start}} = $show;
-	}
+		    $shows->{$chanid}->{$show->{start}} = $show;
+		}
     }
 }
 
@@ -384,7 +387,7 @@ sub write_xml
 	    my %p = %{$shows->{$ch}->{$s}};
 	    foreach my $field ('title', 'sub-title', 'desc', 'country')
 	    {
-		$p{$field} = [[ $p{$field}, $lang ]] if ($p{$field});
+		$p{$field} = [[ Encode::encode( 'iso-8859-1', $p{$field}), $lang ]] if ($p{$field});
 	    }
 	    $p{language} = [ $p{language}, $lang ] if ($p{language});
 	    $p{start} = &POSIX::strftime("%Y%m%d%H%M", localtime($p{start}));
