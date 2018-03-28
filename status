@@ -8,7 +8,6 @@ grabber         oztivo              2.62
 grabber         yahoo7widget        2.45
 grabber         sbsweb              5.04
 grabber         rex                 10.4.11
-grabber         acctv_website       0.09
 grabber         foxtel_swf          5.02
 reconciler      reconciler_mk2      0.58
 postprocessor   imdb_augment_data   1.03
