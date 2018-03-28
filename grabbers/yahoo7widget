@@ -27,7 +27,7 @@ use strict;
 use warnings;
 
 my $progname = "yahoo7widget";
-my $version = "2.45";
+my $version = "2.51";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -54,6 +54,8 @@ my $input_xml;
 my $d;
 $| = 1;
 my %event_cache;
+my $previous_run_cache;
+my $cache_filename = "${progname}_cache.storeable";
 
 my $yahoo_time_parser = DateTime::Format::Builder->new();
 $yahoo_time_parser->parser(
@@ -338,6 +340,8 @@ if (!defined $opt->{paytvoffset} || !($opt->{paytvoffset} =~ m/(\+|-)\d{4}$/o)) 
 my $endtime = $starttime + ($opt->{days} * 86400);
 $starttime += (86400 * $opt->{offset}) if (defined $opt->{offset});
 
+$previous_run_cache = Shepherd::Common::read_cache($cache_filename);
+
 Shepherd::Common::log(sprintf "going to grab %d days%s of data into %s (%s%s) region %s",
 	$opt->{days},
 	($opt->{offset} ? " (skipping first $opt->{offset} days)" : ""),
@@ -413,6 +417,7 @@ foreach my $url (@urls) {
 
 &write_data;
 Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
+Shepherd::Common::write_cache($cache_filename, \%event_cache);
 exit(0);
 
 sub generate_json_url($$$$) {
@@ -572,10 +577,21 @@ sub parse_json_data
 				next;
 			}
 
+			my $event_info;
+
 			if (!$opt->{skip_detail}) {
-				$event_cache{$item->{'eventId'}} = get_event_info($item->{'eventId'}, $d->{want_paytv} > 0 ? "168" : "0") unless defined $event_cache{$item->{'eventId'}};
+				if (defined $event_cache{$item->{'eventId'}}){
+					#print "found EID $item->{eventId} in cache :D\n";
+					$event_info = $event_cache{$item->{'eventId'}};
+				} elsif (defined $previous_run_cache->{$item->{'eventId'}}){
+					#print "found EID $item->{eventId} in last-run-cache :D\n";
+					$event_info = $previous_run_cache->{$item->{'eventId'}};
+					$event_cache{$item->{'eventId'}} = $previous_run_cache->{$item->{'eventId'}};#copy it into the current cache so it saves
+				} else {
+					$event_info = get_event_info($item->{'eventId'}, $d->{want_paytv} > 0 ? "168" : "0") unless defined $event_cache{$item->{'eventId'}};
+					$event_cache{$item->{'eventId'}} = $event_info;
+				}
 			}
-			my $event_info = $event_cache{$item->{'eventId'}};
 
 			$event_id = $item->{'start'}.":".$item->{'end'}.":".$event_id; # event_id actually isn't unique - so make it so
 
