@@ -35,7 +35,8 @@ use lib 'references';
 # --- required perl modules
 # ---------------------------------------------------------------------------
 
-our $wiki = 'http://svn.whuffy.com/wiki';
+our $standard_source_url = "https://raw.githubusercontent.com/ShephedProject/shepherd/release/";
+our $wiki = 'https://github.com/ShephedProject/shepherd/wiki';
 
 &require_module("Cwd");
 &require_module("LWP::UserAgent");
@@ -1907,10 +1908,10 @@ sub read_config_file
     {
 	&log("Defining default source.\n");
 	&reset_sources;
-	# Components with no source are assigned to whuffy
+	# Components with no source are assigned to $standard_source_url
 	foreach (keys %$components)
 	{
-	    $components->{$_}->{source} ||= 'http://www.whuffy.com/shepherd/';
+	    $components->{$_}->{source} ||= $standard_source_url;
 	}
     }
 	
@@ -2326,7 +2327,7 @@ sub delsource
 
 sub reset_sources
 {
-    $sources = [ 'http://www.whuffy.com/shepherd/' ];
+    $sources = [ $standard_source_url ];
 }
 
 sub list_chan_names
