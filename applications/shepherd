@@ -35,7 +35,8 @@ use lib 'references';
 # --- required perl modules
 # ---------------------------------------------------------------------------
 
-our $wiki = 'http://svn.whuffy.com/wiki';
+our $standard_source_url = "https://raw.githubusercontent.com/ShephedProject/shepherd/release/";
+our $wiki = 'https://github.com/ShephedProject/shepherd/wiki';
 
 &require_module("Cwd");
 &require_module("LWP::UserAgent");
@@ -907,24 +908,25 @@ sub no_data
 # Report any pending stats to main server.
 sub report_stats
 {
-    my $postvars = build_stats();
-    return unless $postvars;
-
-    if ($opt->{nonotify} or $opt->{dontcallgrabbers})
-    {
-	&log("Not posting usage statistics due to --" . ($opt->{nonotify} ? 'nonotify' : 'dontcallgrabbers' ) . " option.\n");
-	&log("Would have posted: ".Dumper($pending_messages)) if ($debug);
-    }
-    else
-    {
-	&log("Posting anonymous usage statistics.\n");
-	return 0 unless (fetch_file("http://www.whuffy.com/report.cgi", undef, 1, $postvars));
-    }
+#    my $postvars = build_stats();
+#    return unless $postvars;
+#
+#    if ($opt->{nonotify} or $opt->{dontcallgrabbers})
+#    {
+#	&log("Not posting usage statistics due to --" . ($opt->{nonotify} ? 'nonotify' : 'dontcallgrabbers' ) . " option.\n");
+#	&log("Would have posted: ".Dumper($pending_messages)) if ($debug);
+#    }
+#    else
+#    {
+#	&log("Posting anonymous usage statistics.\n");
+#	return 0 unless (fetch_file("http://www.whuffy.com/report.cgi", undef, 1, $postvars));
+#    }
 
     # successful post, clear out our pending messages
     $pending_messages = undef;
 
-    return 1; # made changes
+#    return 1; # made changes
+	return 0;
 }
 
 # gather pending messages
@@ -1907,10 +1909,10 @@ sub read_config_file
     {
 	&log("Defining default source.\n");
 	&reset_sources;
-	# Components with no source are assigned to whuffy
+	# Components with no source are assigned to $standard_source_url
 	foreach (keys %$components)
 	{
-	    $components->{$_}->{source} ||= 'http://www.whuffy.com/shepherd/';
+	    $components->{$_}->{source} ||= $standard_source_url;
 	}
     }
 	
@@ -2326,7 +2328,7 @@ sub delsource
 
 sub reset_sources
 {
-    $sources = [ 'http://www.whuffy.com/shepherd/' ];
+    $sources = [ $standard_source_url ];
 }
 
 sub list_chan_names
