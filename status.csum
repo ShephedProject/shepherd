@@ -1,4 +1,4 @@
-application     shepherd            1.9.11	97eb6f54378516af58b6dcfcd721d27e076f0237	e42249800f838820eb72a26e60c15d1afa8e292e
+application     shepherd            1.9.11	97eb6f54378516af58b6dcfcd721d27e076f0237	8ccec57524e7b0f1111dcc70f70d32c777b17ad0
 reference       channel_list        140	98db7e8c3adfc08745e79d61b60a83dca2e797db	eca8868d2ddfa0788086631717308244465ef819
 reference       Shepherd/Common.pm  1.30	b8e59c9f7e4a13517eba974c40ba5745f3688e76	ced99111e1d37e0eab5a44061c7097fa69a714c3
 reference       Shepherd/MythTV.pm  0.42	85f83123706d06d99d896ee3d4767d6bdff71ca1	d5f6290d8b77d537f49f43d5167a54264b2599c7
