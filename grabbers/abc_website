@@ -380,8 +380,12 @@ sub get_day_data
 		return;
 	}
 
-	$data =~ s/\\u2018/\\u0027/g;
-	$data =~ s/\\u2019/\\u0027/g;
+	$data =~ s/\\u2018/\\u0027/g;#single quote
+	$data =~ s/\\u2019/\\u0027/g;#single quote
+	$data =~ s/\\u201C/\\u0022/gi;#doublequote
+	$data =~ s/\\u201D/\\u0022/gi;#doublequote
+	$data =~ s/\\u2013/-/g;#en-dash
+	$data =~ s/\\u2026/.../g;#ellipsis
 
 	my $decoded_data = JSON::decode_json($data);
 	if (!defined $decoded_data->{schedule}){
