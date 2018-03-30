@@ -9,6 +9,7 @@ grabber         yahoo7widget        2.45
 grabber         sbsweb              5.04
 grabber         rex                 10.4.11
 grabber         foxtel_swf          5.02
+grabber         abc_website         6.00
 reconciler      reconciler_mk2      0.58
 postprocessor   imdb_augment_data   1.03
 postprocessor   metacritic          1.1
