@@ -67,6 +67,7 @@ regions:
       - TVSN
       - WIN
       - WIN HD
+      - PRIME7 HD
   67:
     state: NSW
     name: "Griffith"
@@ -128,6 +129,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
   71:
     state: NSW
     name: "Wollongong"
@@ -161,6 +163,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   73:
     state: NSW
     name: "Sydney"
@@ -226,6 +230,7 @@ regions:
       - TourismTV
       - TVNT
       - TVSN
+      - SBN
   75:
     state: QLD
     name: "Brisbane"
@@ -263,14 +268,14 @@ regions:
     state: QLD
     name: "Gold Coast"
     channels:
-      - 7flix
-      - 7flixPrime
+      - 7flix #brisbane
+      - 7flixPrime #Prime
       - 7HD
       - 7mate
       - 7TWO
       - 9Gem
-      - 9Go!
-      - 9GO!
+      - 9Go! #brisbane
+      - 9GO! #NBN
       - 9HD
       - 9Life
       - ABC
@@ -301,6 +306,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
   79:
     state: QLD
     name: "Cairns"
@@ -333,6 +339,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - SBN
   81:
     name: "SA: Adelaide"
     channels:
@@ -392,6 +399,7 @@ regions:
       - SBSVICELANDHD
       - SC10
       - TVSN
+      - SBN
   83:
     name: "SA: Riverland"
     channels:
@@ -470,6 +478,7 @@ regions:
       - SBSVICELANDHD
       - SC10
       - TVSN
+      - SBN
   88:
     state: TAS
     name: "Tasmania"
@@ -535,6 +544,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   93:
     state: VIC
     name: "Geelong"
@@ -626,6 +637,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
   98:
     state: VIC
     name: "Gippsland"
@@ -659,6 +671,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   101:
     name: "WA: Perth"
     channels:
@@ -742,6 +756,7 @@ regions:
       - SBSVICELAND
       - SCTV
       - TEN
+      - PRIME7 HD
   107:
     name: "SA: Remote and Central"
     channels:
@@ -843,6 +858,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   184:
     state: NSW
     name: "Newcastle"
@@ -877,6 +894,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
   253:
     name:  "QLD: Mackay"
     channels:
@@ -908,6 +926,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - SBN
   254:
     state: QLD
     name: "Rockhampton"
@@ -940,6 +959,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - SBN
   255:
     state: QLD
     name: "Sunshine Coast"
@@ -979,6 +999,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - SBN
   256:
     state: QLD
     name: "Toowoomba"
@@ -1011,6 +1032,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - SBN
   257:
     state: QLD
     name: "Townsville"
@@ -1043,6 +1065,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - SBN
   258:
     state: QLD
     name: "Wide Bay"
@@ -1075,6 +1098,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - SBN
   259:
     state: NSW
     name: "Far South Coast"
@@ -1108,6 +1132,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   261:
     state: NSW
     name: "Lismore/Coffs Harbour"
@@ -1142,6 +1168,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
   262:
     state: NSW
     name: "Orange/Dubbo"
@@ -1175,6 +1202,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   263:
     state: NSW
     name: "Taree/Port Macquarie"
@@ -1209,6 +1238,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
   264:
     state: NSW
     name: "Wagga Wagga"
@@ -1242,6 +1272,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   266:
     state: VIC
     name: "Bendigo"
@@ -1275,6 +1307,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   267:
     state: VIC
     name: "Shepparton"
@@ -1308,6 +1342,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
   268:
     state: VIC
     name: "Albury/Wodonga"
@@ -1341,6 +1377,8 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - PRIME7 HD
+      - SBN
 paytv:
   Foxtel:
     - 111funny
