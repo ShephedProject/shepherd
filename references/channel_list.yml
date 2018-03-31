@@ -1379,6 +1379,51 @@ regions:
       - WINGOLD
       - PRIME7 HD
       - SBN
+  342: #experimenal, supported by freeview mainly. Yourtv has just regionals, yahoo doesnt have it at all. Freeview has some dupes when only considering @service_name (@network_name differs)
+    state: WA
+    name: Mandurah
+    channels:
+      - 7TWO
+      - GWN7TWO
+      - 7flix
+      - 7mate
+      - GWN7mate
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC COMEDY/ABC KIDS
+      - ABC HD
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - ELEVEN WA #WIN
+      - Extra
+      - Food Network
+      - GEM WA #WIN
+      - GO! WA #WIN
+      - WINGOLD
+      - GWN7
+      - NITV
+      - Nine
+      - Nine WA # WIN
+      - ONE
+      - ONE WA
+      - RACING.COM
+      - GWNRACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+      - TVSN WA #WIN
+      - WIN HD
+      - WIN
 paytv:
   Foxtel:
     - 111funny
