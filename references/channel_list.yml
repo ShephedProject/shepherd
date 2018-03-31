@@ -501,6 +501,7 @@ regions:
       - WIN
       - WIN HD
       - WINGOLD
+      - SBN
   90:
     state: VIC
     name: "Ballarat"
