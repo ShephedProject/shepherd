@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.00";
+my $version = "7.01";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -155,19 +155,54 @@ my %abc_channel_to_shep = (
 	"TDHD"     => "TDTHD"
 );
 
-my %state_to_tz = (
-	"ACT" => "Australia/Canberra",
-	"NSW" => "Australia/Sydney",
-	"NT" => "Australia/Darwin",
-	"QLD" => "Australia/Brisbane",
-	"SA" => "Australia/Adelaide",
-	"TAS" => "Australia/Hobart",
-	"VIC" => "Australia/Melbourne",
-	"WA" => "Australia/Perth"
+my %region_to_tz = (
+	63  => 'Australia/Broken_Hill',
+	66  => 'Australia/Sydney',
+	67  => 'Australia/Sydney',
+	69  => 'Australia/Sydney',
+	71  => 'Australia/Sydney',
+	73  => 'Australia/Sydney',
+	74  => 'Australia/Darwin',
+	75  => 'Australia/Brisbane',
+	78  => 'Australia/Brisbane',
+	79  => 'Australia/Brisbane',
+	81  => 'Australia/Adelaide',
+	82  => 'Australia/Adelaide',
+	83  => 'Australia/Adelaide',
+	85  => 'Australia/Adelaide',
+	86  => 'Australia/Adelaide',
+	88  => 'Australia/Hobart',
+	90  => 'Australia/Melbourne',
+	93  => 'Australia/Melbourne',
+	94  => 'Australia/Melbourne',
+	95  => 'Australia/Melbourne',
+	98  => 'Australia/Melbourne',
+	101 => 'Australia/Perth',
+	102 => 'Australia/Perth',
+	106 => 'Australia/Sydney',
+	107 => 'Australia/Adelaide',
+	108 => 'Australia/Darwin',
+	114 => 'Australia/Brisbane',
+	126 => 'Australia/Canberra',
+	184 => 'Australia/Sydney',
+	253 => 'Australia/Brisbane',
+	254 => 'Australia/Brisbane',
+	255 => 'Australia/Brisbane',
+	256 => 'Australia/Brisbane',
+	257 => 'Australia/Brisbane',
+	258 => 'Australia/Brisbane',
+	259 => 'Australia/Sydney',
+	261 => 'Australia/Sydney',
+	262 => 'Australia/Sydney',
+	263 => 'Australia/Sydney',
+	264 => 'Australia/Sydney',
+	266 => 'Australia/Melbourne',
+	267 => 'Australia/Melbourne',
+	268 => 'Australia/Melbourne',
+	342 => 'Australia/Perth'
 );
 
-my $state = Shepherd::Common::which_state($region);
-my $local_tz = $state_to_tz{$state};
+my $local_tz = $region_to_tz{$region};
 
 #
 # go go go!
