@@ -2,6 +2,7 @@ regions:
   63:
     state: NSW
     name: "Broken Hill"
+    timezone: Australia/Broken_Hill
     channels:
       - 7mate
       - 7TWO
@@ -29,6 +30,7 @@ regions:
   66:
     state: NSW
     name: "Central Coast"
+    timezone: Australia/Sydney
     channels:
       - 7flix
       - 7flixPrime
@@ -71,6 +73,7 @@ regions:
   67:
     state: NSW
     name: "Griffith"
+    timezone: Australia/Sydney
     channels:
       - 7mate
       - 7TWO
@@ -98,6 +101,7 @@ regions:
   69:
     state: NSW
     name: "Tamworth"
+    timezone: Australia/Sydney
     channels:
       - 7flixPrime
       - 7mate
@@ -133,6 +137,7 @@ regions:
   71:
     state: NSW
     name: "Wollongong"
+    timezone: Australia/Sydney
     channels:
       - 7flixPrime
       - 7mate
@@ -168,6 +173,7 @@ regions:
   73:
     state: NSW
     name: "Sydney"
+    timezone: Australia/Sydney
     channels:
       - 7flix
       - 7HD
@@ -199,7 +205,9 @@ regions:
       - TEN HD
       - TVSN
   74:
-    name: "NT: Darwin"
+    state: NT
+    name: "Darwin"
+    timezone: Australia/Darwin
     channels:
       - 7mate
       - 7TWO
@@ -234,6 +242,7 @@ regions:
   75:
     state: QLD
     name: "Brisbane"
+    timezone: Australia/Brisbane
     channels:
       - 7flix
       - 7HD
@@ -267,15 +276,20 @@ regions:
   78:
     state: QLD
     name: "Gold Coast"
+    timezone: Australia/Brisbane
     channels:
-      - 7flix #brisbane
-      - 7flixPrime #Prime
+      #brisbane
+      - 7flix
+      #Prime
+      - 7flixPrime
       - 7HD
       - 7mate
       - 7TWO
       - 9Gem
-      - 9Go! #brisbane
-      - 9GO! #NBN
+      #brisbane
+      - 9Go!
+      #NBN
+      - 9GO!
       - 9HD
       - 9Life
       - ABC
@@ -310,6 +324,7 @@ regions:
   79:
     state: QLD
     name: "Cairns"
+    timezone: Australia/Brisbane
     channels:
       - 7flix
       - 7mate
@@ -341,7 +356,9 @@ regions:
       - WINGOLD
       - SBN
   81:
-    name: "SA: Adelaide"
+    state: SA
+    name: "Adelaide"
+    timezone: Australia/Adelaide
     channels:
       - 44Adelaide
       - 7flix
@@ -374,7 +391,9 @@ regions:
       - TEN HD
       - TVSN
   82:
-    name: "SA: Renmark"
+    state: SA
+    name: "Renmark"
+    timezone: Australia/Adelaide
     channels:
       - 7mate
       - 7TWO
@@ -401,7 +420,9 @@ regions:
       - TVSN
       - SBN
   83:
-    name: "SA: Riverland"
+    state: SA
+    name: "Riverland"
+    timezone: Australia/Adelaide
     channels:
       - 7mate
       - 7TWO
@@ -427,7 +448,9 @@ regions:
       - WIN HD
       - WINGOLD
   85:
-    name: "SA: South East SA"
+    state: SA
+    name: "South East SA"
+    timezone: Australia/Adelaide
     channels:
       - 7mate
       - 7TWO
@@ -453,7 +476,9 @@ regions:
       - WIN HD
       - WINGOLD
   86:
-    name: "SA: Spencer Gulf"
+    state: SA
+    name: "Spencer Gulf"
+    timezone: Australia/Adelaide
     channels:
       - 7mate
       - 7TWO
@@ -482,6 +507,7 @@ regions:
   88:
     state: TAS
     name: "Tasmania"
+    timezone: Australia/Hobart
     channels:
       - 7mate
       - 7TWO
@@ -514,6 +540,7 @@ regions:
   90:
     state: VIC
     name: "Ballarat"
+    timezone: Australia/Melbourne
     channels:
       - 7flixPrime
       - 7mate
@@ -549,6 +576,7 @@ regions:
   93:
     state: VIC
     name: "Geelong"
+    timezone: Australia/Melbourne
     channels:
       - 7flixPrime
       - 7mate
@@ -576,6 +604,7 @@ regions:
   94:
     state: VIC
     name: "Melbourne"
+    timezone: Australia/Melbourne
     channels:
       - 7flix
       - 7HD
@@ -610,6 +639,7 @@ regions:
   95:
     state: VIC
     name: "Mildura/Sunraysia"
+    timezone: Australia/Melbourne
     channels:
       - 7flixPrime
       - 7mate
@@ -641,6 +671,7 @@ regions:
   98:
     state: VIC
     name: "Gippsland"
+    timezone: Australia/Melbourne
     channels:
       - 7flixPrime
       - 7mate
@@ -674,7 +705,9 @@ regions:
       - PRIME7 HD
       - SBN
   101:
-    name: "WA: Perth"
+    state: WA
+    name: "Perth"
+    timezone: Australia/Perth
     channels:
       - 7flix
       - 7HD
@@ -707,7 +740,9 @@ regions:
       - TVSN
       - WTV
   102:
-    name: "WA: Regional"
+    state: WA
+    name: "Regional"
+    timezone: Australia/Perth
     channels:
       - 7mate
       - 7TWO
@@ -736,6 +771,7 @@ regions:
   106:
     state: NSW
     name: "Remote and Central"
+    timezone: Australia/Sydney
     channels:
       - 7mate
       - 7TWO
@@ -758,7 +794,9 @@ regions:
       - TEN
       - PRIME7 HD
   107:
-    name: "SA: Remote and Central"
+    state: SA
+    name: "Remote and Central"
+    timezone: Australia/Adelaide
     channels:
       - 7mate
       - 7TWO
@@ -780,7 +818,9 @@ regions:
       - SCTV
       - TEN
   108:
-    name: "NT: Remote and Central"
+    state: NT
+    name: "Remote and Central"
+    timezone: Australia/Darwin
     channels:
       - 7mate
       - 7TWO
@@ -805,6 +845,7 @@ regions:
   114:
     state: QLD
     name: "Remote and Central"
+    timezone: Australia/Brisbane
     channels:
       - 7mate
       - 7TWO
@@ -828,6 +869,7 @@ regions:
   126:
     state: ACT
     name: "Canberra"
+    timezone: Australia/Canberra
     channels:
       - 7flixPrime
       - 7mate
@@ -863,6 +905,7 @@ regions:
   184:
     state: NSW
     name: "Newcastle"
+    timezone: Australia/Sydney
     channels:
       - 7flixPrime
       - 7mate
@@ -897,6 +940,7 @@ regions:
       - PRIME7 HD
   253:
     name:  "QLD: Mackay"
+    timezone: Australia/Brisbane
     channels:
       - 7flix
       - 7mate
@@ -930,6 +974,7 @@ regions:
   254:
     state: QLD
     name: "Rockhampton"
+    timezone: Australia/Brisbane
     channels:
       - 7flix
       - 7mate
@@ -963,6 +1008,7 @@ regions:
   255:
     state: QLD
     name: "Sunshine Coast"
+    timezone: Australia/Brisbane
     channels:
       - 7flix
       - 7HD
@@ -1003,6 +1049,7 @@ regions:
   256:
     state: QLD
     name: "Toowoomba"
+    timezone: Australia/Brisbane
     channels:
       - 7flix
       - 7mate
@@ -1036,6 +1083,7 @@ regions:
   257:
     state: QLD
     name: "Townsville"
+    timezone: Australia/Brisbane
     channels:
       - 7flix
       - 7mate
@@ -1069,6 +1117,7 @@ regions:
   258:
     state: QLD
     name: "Wide Bay"
+    timezone: Australia/Brisbane
     channels:
       - 7flix
       - 7mate
@@ -1102,6 +1151,7 @@ regions:
   259:
     state: NSW
     name: "Far South Coast"
+    timezone: Australia/Sydney
     channels:
       - 7flixPrime
       - 7mate
@@ -1137,6 +1187,7 @@ regions:
   261:
     state: NSW
     name: "Lismore/Coffs Harbour"
+    timezone: Australia/Sydney
     channels:
       - 7flixPrime
       - 7mate
@@ -1172,6 +1223,7 @@ regions:
   262:
     state: NSW
     name: "Orange/Dubbo"
+    timezone: Australia/Sydney
     channels:
       - 7flixPrime
       - 7mate
@@ -1207,6 +1259,7 @@ regions:
   263:
     state: NSW
     name: "Taree/Port Macquarie"
+    timezone: Australia/Sydney
     channels:
       - 7flixPrime
       - 7mate
@@ -1242,6 +1295,7 @@ regions:
   264:
     state: NSW
     name: "Wagga Wagga"
+    timezone: Australia/Sydney
     channels:
       - 7flixPrime
       - 7mate
@@ -1277,6 +1331,7 @@ regions:
   266:
     state: VIC
     name: "Bendigo"
+    timezone: Australia/Melbourne
     channels:
       - 7flixPrime
       - 7mate
@@ -1312,6 +1367,7 @@ regions:
   267:
     state: VIC
     name: "Shepparton"
+    timezone: Australia/Melbourne
     channels:
       - 7flixPrime
       - 7mate
@@ -1347,6 +1403,7 @@ regions:
   268:
     state: VIC
     name: "Albury/Wodonga"
+    timezone: Australia/Melbourne
     channels:
       - 7flixPrime
       - 7mate
@@ -1379,9 +1436,11 @@ regions:
       - WINGOLD
       - PRIME7 HD
       - SBN
-  342: #experimenal, supported by freeview mainly. Yourtv has just regionals, yahoo doesnt have it at all. Freeview has some dupes when only considering @service_name (@network_name differs)
+  #experimenal, supported by freeview mainly. Yourtv has just regionals, yahoo doesnt have it at all. Freeview has some dupes when only considering @service_name (@network_name differs)
+  342:
     state: WA
     name: Mandurah
+    timezone: Australia/Perth
     channels:
       - 7TWO
       - GWN7TWO
@@ -1398,16 +1457,20 @@ regions:
       - ABCME
       - ABCNEWS
       - ELEVEN
-      - ELEVEN WA #WIN
+      #WIN
+      - ELEVEN WA
       - Extra
       - Food Network
-      - GEM WA #WIN
-      - GO! WA #WIN
+      #WIN
+      - GEM WA
+      #WIN
+      - GO! WA
       - WINGOLD
       - GWN7
       - NITV
       - Nine
-      - Nine WA # WIN
+      # WIN
+      - Nine WA
       - ONE
       - ONE WA
       - RACING.COM
@@ -1421,7 +1484,8 @@ regions:
       - TEN
       - TEN HD
       - TVSN
-      - TVSN WA #WIN
+      #WIN
+      - TVSN WA
       - WIN HD
       - WIN
 paytv:
