@@ -12,6 +12,7 @@ use Digest::SHA;
 
 while (<>) {
 	chop;
+	$_ =~ s/\r//;
 	print $_;
 
 	if ($_ =~ /(\S+)\s+(\S+)\s+(\S+)/g) {
