@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.01";
+my $version = "7.02";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -36,7 +36,7 @@ use Getopt::Long;
 use HTML::TreeBuilder;
 use Shepherd::Common;
 use JSON;
-use DateTime::Format::XMLTV;
+use DateTimeFormat::XMLTV;
 
 #
 # constants
@@ -474,8 +474,8 @@ sub get_day_data
 				next;
 			}
 
-			$prog{'start'} = DateTime::Format::XMLTV->format_datetime($starttime);
-			$prog{'stop'} = 	DateTime::Format::XMLTV->format_datetime($endtime);
+			$prog{'start'} = DateTimeFormat::XMLTV->format_datetime($starttime);
+			$prog{'stop'} = 	DateTimeFormat::XMLTV->format_datetime($endtime);
 
 			$prog{'channel'} = $channels->{$chan} if (defined $channels->{$chan});
 			$prog{'channel'} = $opt_channels->{$chan} if (defined $opt_channels->{$chan});
