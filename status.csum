@@ -4,7 +4,7 @@ reference       Shepherd/Common.pm  1.31	b8e59c9f7e4a13517eba974c40ba5745f3688e7
 reference       Shepherd/MythTV.pm  0.42	85f83123706d06d99d896ee3d4767d6bdff71ca1	d5f6290d8b77d537f49f43d5167a54264b2599c7
 reference       Shepherd/Configure.pm   0.42	7666e8cf87e63ed27abac3c367c6862285db6028	4da919d2272647c4fae878fea86e2ee6fba665ea
 reference	    Shepherd/json_pp.pm 0.2	af7820870d7cdfd47a593929a14e06306e9fda7b	ce32f3b0dbfbc1664b69c97faa2639461d5d8c18
-reference		DateTimeFormat/XMLTV.pm		1.001	72dc2b212d733776e7f08a0e318ff5fea4e18b3a	2f1608d26dc2fe8d226281cdc4349cdda2fd8d7d
+reference		DateTimeFormat/XMLTV.pm		1.001	72dc2b212d733776e7f08a0e318ff5fea4e18b3a	c16512679b7051ae50ee025ea8e3225995a7e3ff
 grabber         oztivo              2.62	00783671f4a4949e4b58ce7f8e6412be2c887ace	c52e831b7b93393810aa8d23e20925bc312434a6
 grabber         yahoo7widget        2.45	36f8944f0b97b21a484b2f0a4c8c315668637a3c	10588fe9fab80c63677bc8b0afa0078c1650632c
 grabber         sbsweb              5.05	a4e72ca0de3ace9220948171c3455a6a4b3be50b	ddee42fe50268e882edda7545d36016b3e3e766b
