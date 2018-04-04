@@ -1,5 +1,5 @@
 #---------------------------------------------------------------------
-package DateTime::Format::XMLTV;
+package DateTimeFormat::XMLTV;
 #
 # Copyright 2011 Christopher J. Madsen
 #
