@@ -344,40 +344,11 @@ sub write_data
 			if (defined $d->{seen_progs}->{$channel});
 	}
 
-	my $abc2_eariest_start = "300000000000";
+
 
 	for my $channel (sort keys %{($d->{seen_progs})}) {
 		for my $event_id (sort {$a cmp $b} keys %{($tv_guide->{$channel}->{data})}) {
 			my $show = $tv_guide->{$channel}->{data}->{$event_id};
-			Shepherd::Common::cleanup($show);
-			$writer->write_programme($show);
-
-			$abc2_eariest_start = $show->{'start'}
-				if ($channel eq "ABC2" && $abc2_eariest_start > $show->{'start'});
-		}
-	}
-
-	# check if abc2 has a gap on the first day when the station is closed
-	if ($abc2_eariest_start != "300000000000" && (!defined $opt->{offset}) && defined $channels->{ABC2} &&
-		$abc2_eariest_start > POSIX::strftime("%Y%m%d%H%M", localtime($script_start_time))) {
-
-		# create 7am today
-		my @timeattr = localtime($script_start_time); # 0=sec,1=min,2=hour,3=day,4=month,5=year,6=wday,7=yday,8=isdst
-		$timeattr[0] = 0; # zero seconds
-		$timeattr[1] = 0; # min
-		$timeattr[2] = 7; # hours 7am
-		my $time7am = mktime(@timeattr);
-		#$time7am -= $time_offset;
-		my $xmltime7am = POSIX::strftime("%Y%m%d%H%M", localtime($time7am));
-
-		if (($script_start_time < $time7am) && ($abc2_eariest_start == $xmltime7am))
-		{
-			my $show;
-			$show->{'channel'} =    $channels->{ABC2};
-			$show->{'title'} =      [[ "Station Close Guess", $opt->{lang} ]];
-			$show->{'start'} =      POSIX::strftime("%Y%m%d%H%M", localtime($script_start_time));
-			$show->{'stop'} =       $abc2_eariest_start;
-
 			Shepherd::Common::cleanup($show);
 			$writer->write_programme($show);
 		}

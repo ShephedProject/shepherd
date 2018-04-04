@@ -1,0 +1,1785 @@
+regions:
+  63:
+    state: NSW
+    name: "Broken Hill"
+    timezone: Australia/Broken_Hill
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - Central GTS/BKN
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - SC10
+      - TVSN
+  66:
+    state: NSW
+    name: "Central Coast"
+    timezone: Australia/Sydney
+    channels:
+      - 7flix
+      - 7flixPrime
+      - 7HD
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - 9GO!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Extra
+      - Food Network
+      - ishoptv
+      - NBN
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+      - WIN
+      - WIN HD
+      - PRIME7 HD
+  67:
+    state: NSW
+    name: "Griffith"
+    timezone: Australia/Sydney
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+  69:
+    state: NSW
+    name: "Tamworth"
+    timezone: Australia/Sydney
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9GO!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Extra
+      - Food Network
+      - ishoptv
+      - NBN
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+  71:
+    state: NSW
+    name: "Wollongong"
+    timezone: Australia/Sydney
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  73:
+    state: NSW
+    name: "Sydney"
+    timezone: Australia/Sydney
+    channels:
+      - 7flix
+      - 7HD
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Extra
+      - Food Network
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+  74:
+    state: NT
+    name: "Darwin"
+    timezone: Australia/Darwin
+    channels:
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - AboriginalTV
+      - DDT
+      - EducationTV
+      - ELEVEN
+      - Extra
+      - Food Network
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - SCTV
+      - TourismTV
+      - TVNT
+      - TVSN
+      - SBN
+  75:
+    state: QLD
+    name: "Brisbane"
+    timezone: Australia/Brisbane
+    channels:
+      - 7flix
+      - 7HD
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Extra
+      - Food Network
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+  78:
+    state: QLD
+    name: "Gold Coast"
+    timezone: Australia/Brisbane
+    channels:
+      #brisbane
+      - 7flix
+      #Prime
+      - 7flixPrime
+      - 7HD
+      - 7mate
+      - 7TWO
+      - 9Gem
+      #brisbane
+      - 9Go!
+      #NBN
+      - 9GO!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Extra
+      - Food Network
+      - ishoptv
+      - NBN
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+  79:
+    state: QLD
+    name: "Cairns"
+    timezone: Australia/Brisbane
+    channels:
+      - 7flix
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - SBN
+  81:
+    state: SA
+    name: "Adelaide"
+    timezone: Australia/Adelaide
+    channels:
+      - 44Adelaide
+      - 7flix
+      - 7HD
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Extra
+      - Food Network
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+  82:
+    state: SA
+    name: "Renmark"
+    timezone: Australia/Adelaide
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - Central GTS/BKN
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - SC10
+      - TVSN
+      - SBN
+  83:
+    state: SA
+    name: "Riverland"
+    timezone: Australia/Adelaide
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+  85:
+    state: SA
+    name: "South East SA"
+    timezone: Australia/Adelaide
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+  86:
+    state: SA
+    name: "Spencer Gulf"
+    timezone: Australia/Adelaide
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - Central GTS/BKN
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - SC10
+      - TVSN
+      - SBN
+  88:
+    state: TAS
+    name: "Tasmania"
+    timezone: Australia/Hobart
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - SCTV
+      - SCTVHD
+      - TDT
+      - TDTHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - SBN
+  90:
+    state: VIC
+    name: "Ballarat"
+    timezone: Australia/Melbourne
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  93:
+    state: VIC
+    name: "Geelong"
+    timezone: Australia/Melbourne
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Channel 31
+      - ELEVEN
+      - Food Network
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TEN
+  94:
+    state: VIC
+    name: "Melbourne"
+    timezone: Australia/Melbourne
+    channels:
+      - 7flix
+      - 7HD
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Channel 31
+      - ELEVEN
+      - Extra
+      - Food Network
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+  95:
+    state: VIC
+    name: "Mildura/Sunraysia"
+    timezone: Australia/Melbourne
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+  98:
+    state: VIC
+    name: "Gippsland"
+    timezone: Australia/Melbourne
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  101:
+    state: WA
+    name: "Perth"
+    timezone: Australia/Perth
+    channels:
+      - 7flix
+      - 7HD
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Extra
+      - Food Network
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+      - WTV
+  102:
+    state: WA
+    name: "Regional"
+    timezone: Australia/Perth
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - GWN7
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+  106:
+    state: NSW
+    name: "Remote and Central"
+    timezone: Australia/Sydney
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - GEM
+      - GO!
+      - Imparja
+      - NITV
+      - ONE
+      - PRIME7
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SCTV
+      - TEN
+      - PRIME7 HD
+  107:
+    state: SA
+    name: "Remote and Central"
+    timezone: Australia/Adelaide
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - GEM
+      - GO!
+      - Imparja
+      - NITV
+      - ONE
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - SCTV
+      - TEN
+  108:
+    state: NT
+    name: "Remote and Central"
+    timezone: Australia/Darwin
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Imparja
+      - NITV
+      - ONE
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - SCTV Central
+      - TEN
+  114:
+    state: QLD
+    name: "Remote and Central"
+    timezone: Australia/Brisbane
+    channels:
+      - 7mate
+      - 7TWO
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      - GEM
+      - GO!
+      - Imparja
+      - NITV
+      - ONE
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - SCTV Central
+      - TEN
+  126:
+    state: ACT
+    name: "Canberra"
+    timezone: Australia/Canberra
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  184:
+    state: NSW
+    name: "Newcastle"
+    timezone: Australia/Sydney
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9GO!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Extra
+      - Food Network
+      - ishoptv
+      - NBN
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+  253:
+    name:  "QLD: Mackay"
+    timezone: Australia/Brisbane
+    channels:
+      - 7flix
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - SBN
+  254:
+    state: QLD
+    name: "Rockhampton"
+    timezone: Australia/Brisbane
+    channels:
+      - 7flix
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - SBN
+  255:
+    state: QLD
+    name: "Sunshine Coast"
+    timezone: Australia/Brisbane
+    channels:
+      - 7flix
+      - 7HD
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Extra
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - SBN
+  256:
+    state: QLD
+    name: "Toowoomba"
+    timezone: Australia/Brisbane
+    channels:
+      - 7flix
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - SBN
+  257:
+    state: QLD
+    name: "Townsville"
+    timezone: Australia/Brisbane
+    channels:
+      - 7flix
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - SBN
+  258:
+    state: QLD
+    name: "Wide Bay"
+    timezone: Australia/Brisbane
+    channels:
+      - 7flix
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - Nine
+      - NITV
+      - ONE
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - SBN
+  259:
+    state: NSW
+    name: "Far South Coast"
+    timezone: Australia/Sydney
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  261:
+    state: NSW
+    name: "Lismore/Coffs Harbour"
+    timezone: Australia/Sydney
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9GO!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Extra
+      - Food Network
+      - ishoptv
+      - NBN
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+  262:
+    state: NSW
+    name: "Orange/Dubbo"
+    timezone: Australia/Sydney
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  263:
+    state: NSW
+    name: "Taree/Port Macquarie"
+    timezone: Australia/Sydney
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9Gem
+      - 9GO!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Extra
+      - Food Network
+      - ishoptv
+      - NBN
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+  264:
+    state: NSW
+    name: "Wagga Wagga"
+    timezone: Australia/Sydney
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  266:
+    state: VIC
+    name: "Bendigo"
+    timezone: Australia/Melbourne
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  267:
+    state: VIC
+    name: "Shepparton"
+    timezone: Australia/Melbourne
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  268:
+    state: VIC
+    name: "Albury/Wodonga"
+    timezone: Australia/Melbourne
+    channels:
+      - 7flixPrime
+      - 7mate
+      - 7TWO
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC HD
+      - ABC COMEDY/ABC KIDS
+      - ABCME
+      - ABCNEWS
+      - Aspire
+      - ELEVEN
+      - Food Network
+      - GEM
+      - GO!
+      - ishoptv
+      - Nine
+      - NITV
+      - ONE
+      - PRIME7
+      - RACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - TVSN
+      - WIN
+      - WIN HD
+      - WINGOLD
+      - PRIME7 HD
+      - SBN
+  #experimenal, supported by freeview mainly. Yourtv has just regionals, yahoo doesnt have it at all. Freeview has some dupes when only considering @service_name (@network_name differs)
+  342:
+    state: WA
+    name: Mandurah
+    timezone: Australia/Perth
+    channels:
+      - 7TWO
+      - GWN7TWO
+      - 7flix
+      - 7mate
+      - GWN7mate
+      - 9Gem
+      - 9Go!
+      - 9HD
+      - 9Life
+      - ABC
+      - ABC COMEDY/ABC KIDS
+      - ABC HD
+      - ABCME
+      - ABCNEWS
+      - ELEVEN
+      #WIN
+      - ELEVEN WA
+      - Extra
+      - Food Network
+      #WIN
+      - GEM WA
+      #WIN
+      - GO! WA
+      - WINGOLD
+      - GWN7
+      - NITV
+      - Nine
+      # WIN
+      - Nine WA
+      - ONE
+      - ONE WA
+      - RACING.COM
+      - GWNRACING.COM
+      - SBS
+      - SBS HD
+      - SBSVICELAND
+      - SBSVICELANDHD
+      - Seven
+      - SpreeTV
+      - TEN
+      - TEN HD
+      - TVSN
+      #WIN
+      - TVSN WA
+      - WIN HD
+      - WIN
+paytv:
+  Foxtel:
+    - 111funny
+    - 111funny2
+    - 13THSTREET
+    - 13thSTREET2
+    - 13thStreetHD
+    - ACC
+    - Action
+    - Action2
+    - ActionHD
+    - AdultsOnly960
+    - AE
+    - AE2
+    - AEHD
+    - AlJazeera
+    - AnimalPlanet
+    - AntennaPacific
+    - Arena
+    - Arena2
+    - ArenaHD
+    - Arts
+    - ArtsHD
+    - Aurora
+    - BBCFirst
+    - BBCFirstHD
+    - BBCKnowledge
+    - BBCKnowledgeHD
+    - BBCWorldNews
+    - beINSPORTS1
+    - beINSPORTS1HD
+    - beINSPORTS2
+    - beINSPORTS2HD
+    - beINSPORTS3
+    - beINSPORTS3HD
+    - Binge
+    - BingeHD
+    - Bio
+    - BloombergTelevision
+    - Boomerang
+    - BoxSets
+    - BoxSetHD
+    - CartoonNetwork
+    - Cbeebies
+    - CCD
+    - CCTV9Doco
+    - CCTVNews
+    - ChelseaTV
+    - ChelseaTVHD
+    - CMC
+    - CNBC
+    - CNN
+    - Comedy
+    - ComedyHD
+    - TheComedyChannel
+    - ComedyCh2
+    - Crime
+    - Daystar
+    - Discovery2
+    - DiscoveryChannel
+    - DiscoveryHD
+    - DiscoveryHealth
+    - DiscoveryKids
+    - DiscoveryScience
+    - DiscoveryTurbo
+    - DiscoveryTurbo2
+    - DisneyMov2
+    - DisneyChannel
+    - DisneyJunior
+    - DisneyXD
+    - E!Entertainment
+    - ESPN
+    - ESPN2
+    - ESPNHD
+    - ESPN2HD
+    - Eurosport
+    - EurosportHD
+    - Eurosportnews
+    - EXPO
+    - Family
+    - Family2
+    - FamilyHD
+    - FOX8
+    - FOX82
+    - FOX8HD
+    - FOXClassics
+    - FOXClassics2
+    - FOXNews
+    - FoxSports1
+    - FoxSports1HD
+    - FoxSports2
+    - FoxSports2HD
+    - FoxSports3
+    - FoxSports3HD
+    - FoxSports4
+    - FoxSports4HD
+    - FoxSports5
+    - FoxSports5HD
+    - FoxFooty
+    - FoxFootyHD
+    - FoxSportsNews
+    - FoxSportsNewsHD
+    - DisneyMoviesHD
+    - DisneyMovies
+    - FOXSPORTSMORE
+    - FOXSPORTSMOREHD
+    - FoxtelSmooth
+    - FUELTV
+    - FX
+    - FX2
+    - FXHD
+    - KidsCo
+    - LifestyleHome
+    - TheLifestyleChannel
+    - Lifestyle2
+    - LifestyleFOOD
+    - LifestyleFOOD2
+    - LifestyleHD
+    - LifestyleYOU
+    - LifestyleYOU2
+    - LFCTV
+    - LFCTVHD
+    - MainEvent
+    - MUTV
+    - MUTVHD
+    - Masterpiece
+    - MasterpieceHD
+    - MAX
+    - FoxtelMoviesMore
+    - FoxtelMoviesMoreHD
+    - MTV
+    - MTVMusic
+    - MTVDance
+    - NatGeo2
+    - NatGeoAdventure
+    - NatGeoHD
+    - NatGeoPeople
+    - NatGeoWild
+    - NatGeoWildHD
+    - NationalGeographic
+    - Nickelodeon
+    - NickJr
+    - NITV
+    - NHKWorld
+    - Ovation
+    - Premiere
+    - Premiere2
+    - PremiereHD
+    - RAIITALIA
+    - Romance
+    - RomanceHD
+    - RussiaToday
+    - SetantaSports
+    - showcase
+    - showcase2
+    - showcaseHD
+    - SKYNewsBusiness
+    - SkyBusinessHD
+    - SKYNewsLive
+    - SKYNewsHD
+    - APAC
+    - SKYRacing
+    - SKYRacing2
+    - SKYRacingWorld
+    - SKYTbredCent
+    - SKYTbredCentHD
+    - SKYWeather
+    - SPEED
+    - SPEEDHD
+    - Style
+    - Syfy
+    - Syfy2
+    - SyfyHD
+    - TCM
+    - TheHistoryChannel
+    - HistoryHD
+    - Thriller
+    - ThrillerHD
+    - TLC
+    - TLC2
+    - TSN
+    - TVH!TS
+    - TVH!TS2
+    - TVN
+    - TVSN
+    - UKTV
+    - UKTV2
+    - UKTVHD
+    - Universal
+    - Universal2
+    - UniversalHD
+    - VHITS
+    - VHITS2
+    - WORLDMOVIES
+    - WorldMoviesHD
+    - YesShop
+    - FOXSPORTS501
+    - TRTWorld
+    - SonLife
+    - AandEHD
+    - FOXSPORTS501HD
+    - FOXSPORTS506HD
+    - CGTN
+    - AandE
+    - AandE2
+    - V
+    - Smooth
+    - FOXSPORTS503
+    - FOXLEAGUE
+    - FOXSPORTS505
+    - HillsongChannel
+    - FOXSPORTS503HD
+    - FOXSPORTS505HD
+    - CGTNDocumentary
+    - APACHD
+    - FOXLEAGUEHD
+    - V2
+    - FOXSPORTS506
+  SelecTV:
+    - AnimalPlanet
+    - AntennaGreek
+    - BBCWorldNews
+    - BloombergTelevision
+    - CartoonNetwork
+    - CNN
+    - DiscoveryScience
+    - DiscoveryHealth
+    - TLC
+    - DiscoveryRealTime
+    - DisneyChannel
+    - E!Entertainment
+    - ERTGreek
+    - Eurosport
+    - FashionTV
+    - FMC
+    - MOVIEEXTRA
+    - MOVIEGREATS
+    - MOVIEONE
+    - MOVIETWO
+    - MTV
+    - MTVClassic
+    - NatGeoAdventure
+    - NationalGeographic
+    - Ovation
+    - PlayhouseDisney
+    - SKYRacing
+    - STARPICS1
+    - TCM
+    - TVChileSpanish
+    - TVE
+migrations:
+  -
+    region: "*"
+    from: SBS 2
+    to: SBSVICELAND
+  -
+    region: "*"
+    from: SBS VICELAND
+    to: SBSVICELAND
+  -
+    region: "*"
+    from: ABC ME
+    to: ABCME
+  -
+    region: "*"
+    from: ABC3
+    to: ABCME
+  -
+    region: "*"
+    from: TDT HD
+    to: TDTHD
+  -
+    region: "*"
+    from: WIN GOLD
+    to: WINGOLD
+  -
+    region: "*"
+    from: 9GO!
+    to: 9Go!
+  -
+    region: "*"
+    from: SC10 HD
+    to: SC10HD
+  -
+    region: "*"
+    from: ABC News 24
+    to: ABCNEWS
+  -
+    region: "*"
+    from: SBSVICELAND HD
+    to: SBSVICELANDHD
+  -
+    region: "*"
+    from: ABC2 / KIDS
+    to: ABC COMEDY/ABC KIDS

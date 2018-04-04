@@ -127,9 +127,13 @@ sub parse_guide
 		if ($line =~ /^\s*tv:(\s*\[\{.*),/)
 		{
 			$line = '{ "tv": ' . $1 . '}';
-			#replace fancy apostrophes to something that iso-8859-1 can encode(')
-			$line =~ s/\\u2018/\\u0027/g;
-			$line =~ s/\\u2019/\\u0027/g;
+			#replace fancy characters to something that iso-8859-1 can encode
+			$line =~ s/\\u2018/\\u0027/g;#single quote
+			$line =~ s/\\u2019/\\u0027/g;#single quote
+			$line =~ s/\\u201C/\\u0022/gi;#doublequote
+			$line =~ s/\\u201D/\\u0022/gi;#doublequote
+			$line =~ s/\\u2013/-/g;#en-dash
+			$line =~ s/\\u2026/.../g;#ellipsis
 		    $decoded_json = &JSON::decode_json($line);
 		    last;
 		}

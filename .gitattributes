@@ -1,0 +1,9 @@
+*.pl eol=lf
+*.pm eol=lf
+*.conf eol=lf
+applications/* eol=lf
+grabbers/* eol=lf
+postprocessors/* eol=lf
+reconcilers/* eol=lf
+references/* eol=lf
+references/Shepherd/* eol=lf

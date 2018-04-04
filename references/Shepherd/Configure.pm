@@ -1326,7 +1326,16 @@ sub munge
 
     $ret =~s/DIGITAL//g;
 
-    # Remove white space.
+	#remove capital city names
+	$ret =~ s/ (PERTH|DARWIN|ADELAIDE|BRISBANE|SYDNEY|MELBOURNE|CANBERRA|HOBART)//;
+
+	#"channel " prefix
+	$ret =~ s/^CHANNEL //;
+
+	#sbs still called "sbs one" in some regions (callsign at least)
+	$ret =~ s/SBS ONE/SBS/;
+
+	# Remove white space.
 
     $ret =~s/[[:space:]]+//g;
 
