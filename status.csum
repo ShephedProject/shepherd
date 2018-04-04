@@ -13,7 +13,6 @@ grabber         foxtel_swf          5.02	64b38cade7e38491a6712b3289887592d18b9f6
 grabber         abc_website         7.02	5b033781f567687e93c6cf785792bef96ac33125	7affd5941669b77cf129bb97e5cf5a26bdf7acf1
 grabber         freeview            1.0.1	7c88ea1073150bce644ccec8270c4166d88f9215	83c46ca17f146bb1ffc1a3bfe9df39678c1686b1
 reconciler      reconciler_mk2      0.58	53c4c0647abf244d0b22e7620bf1247e37abf689	8f8ee5f905bf4e844b67a557baa2b0403fb263c4
-postprocessor   imdb_augment_data   1.03	7f533fb68799c83474f2ae9b703648ce72968d90	118c605ce6aaa8639778b64f869b75155cdfa14d
 postprocessor   metacritic          1.1	5e30f527c03bbddc31a2d649c5c5c50f63848c16	59fe1817de57012e3d449e807f3941ff9e683973
 postprocessor   augment_timezone    0.30	df61b40c0943bf7568442496081a4e90d9a30fed	8b8bf1be73c1d1f1d41c5ce5ae4ea038561cf3b3
 postprocessor	add_channel_icons   0.2	a4d3d745dfcbd02fdba7c979e7990f61efcc3206	b58fd6b9a2c3a263d2ad59e75840df64f33e3e62

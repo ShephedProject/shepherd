@@ -13,7 +13,6 @@ grabber         foxtel_swf          5.02
 grabber         abc_website         7.02
 grabber         freeview            1.0.1
 reconciler      reconciler_mk2      0.58
-postprocessor   imdb_augment_data   1.03
 postprocessor   metacritic          1.1
 postprocessor   augment_timezone    0.30
 postprocessor	add_channel_icons   0.2
