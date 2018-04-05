@@ -5,7 +5,7 @@ reference       Shepherd/MythTV.pm  0.42
 reference       Shepherd/Configure.pm   0.42
 reference	    Shepherd/json_pp.pm 0.2
 reference		DateTimeFormat/XMLTV.pm		1.001
-grabber         oztivo              2.62
+grabber         oztivo              2.63
 grabber         yahoo7widget        2.45
 grabber         sbsweb              5.05
 grabber         rex                 10.4.11
