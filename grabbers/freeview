@@ -4,15 +4,15 @@ use strict;
 use warnings;
 
 my $progname = "freeview";
-my $version = "1.0.1";
+my $version = "1.0.2";
 
 use XMLTV;
+use XMLTV::Date;
 use POSIX qw(strftime mktime);
 use Getopt::Long;
 use Data::Dumper;
 use Shepherd::Common;
 use Shepherd::json_pp;  # use JSON;
-use DateTimeFormat::XMLTV;
 use DateTime::Format::ISO8601;
 use DateTime::Duration;
 
@@ -247,8 +247,8 @@ sub parse_json_data {
 			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channels->{$channel} if (defined $channels->{$channel});
 			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $opt_channels->{$channel} if (defined $opt_channels->{$channel});
 
-			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = DateTimeFormat::XMLTV->format_datetime($event_start);
-			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	DateTimeFormat::XMLTV->format_datetime($event_end);
+			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = time_iso_to_xmltv($event_start->strftime('%FT%T.%3N%z'));
+			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} =  time_iso_to_xmltv($event_end->strftime('%FT%T.%3N%z'));
 
 			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{title}, $opt->{lang} ]] if (defined $programme->{title});
 			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $programme->{synopsis}, $opt->{lang} ]] if (defined $programme->{synopsis} && length($programme->{synopsis}) > 0);
