@@ -5,6 +5,7 @@ reference       Shepherd/MythTV.pm  0.42
 reference       Shepherd/Configure.pm   0.42
 reference	    Shepherd/json_pp.pm 0.2
 reference		DateTimeFormat/XMLTV.pm		1.001
+reference       TMDB.pm             1.2.1
 grabber         oztivo              2.63
 grabber         yahoo7widget        2.45
 grabber         sbsweb              5.05
@@ -17,4 +18,5 @@ postprocessor   imdb_augment_data   1.03
 postprocessor   metacritic          1.1
 postprocessor   augment_timezone    0.30
 postprocessor	add_channel_icons   0.2
+postprocessor	the_movie_db_augment  1.0
 END
