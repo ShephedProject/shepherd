@@ -18,7 +18,7 @@ THEME	t8_hybrid	Hybrid themed logos (T8)	http://ash.ms/projects/channels/logos/t
 THEME	foxtel		Standard Foxtel logos		http://www.foxtel.com.au/channel/lineup.html
 THEME	wikipedia	Station logos from wikipedia	http://en.wikipedia.org/
 THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
-THEME   freeview    Freeview Logos              http://www.freeview.com.au/tv-guide/
+THEME   schmittyd-standard    Freeview Logos              http://www.schmittyd-standard.com.au/tv-guide/
 #
 # ICON : channel : theme name : [base_url]+url 
 #
@@ -34,7 +34,7 @@ ICON	ABC1	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-
 ICON	ABC1	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/abc.png
 ICON	ABC1	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc.png
 ICON	ABC1	yourtv		http://contentserver.com.au/assets/270208_abc-1.gif
-ICON    ABC1     freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/ABC1.png
+ICON    ABC1     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/ABC1.png
 
 ICON	ABC2 / ABC4	standard	http://img691.imageshack.us/img691/1412/abc25c10eb48094ce03b5e4.png
 ICON	ABC2 / ABC4	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/3/38/ABC2.svg/180px-ABC2.svg.png
@@ -47,7 +47,7 @@ ICON	ABC2 / ABC4	frogman_hybrid	http://ash.ms/projects/channels/download/icons-f
 ICON	ABC2 / ABC4	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/abc2.png
 ICON	ABC2 / ABC4	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc2.png
 ICON	ABC2 / ABC4	yourtv		http://contentserver.com.au/assets/270209_abc-2.gif
-ICON    ABC2 / ABC4 freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/ABC2-4.png
+ICON    ABC2 / ABC4 schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/ABC2-4.png
 
 #ICON    ABC3    standard        http://imagestore.ugbox.net/thumb/abc2_5c10eb48094ce03b5e46e8c0ec2.jpg
 ICON    ABC3    wikipedia       http://upload.wikimedia.org/wikipedia/en/thumb/f/fd/ABC3_logo.png/180px-ABC3_logo.png
@@ -59,7 +59,7 @@ ICON    ABC3    frogman_hybrid	http://ash.ms/projects/channels/download/icons-fr
 ICON    ABC3    t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/abc3.png
 ICON    ABC3    t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc3.png
 ICON	ABC3	yourtv		http://contentserver.com.au/assets/270210_abc-3.gif
-ICON    ABC3 freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/ABC_ME.png
+ICON    ABC ME schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/ABC_ME.png
 
 ICON	ABC HD	standard	http://img43.imageshack.us/img43/735/abc86ce2a644c39d7ffd529.png
 #ICON	ABC HD	tatey_blue	http://tatey.com/images/au_network_logos/abc-hd.png
@@ -69,7 +69,7 @@ ICON	ABC HD	frogman_green	http://ash.ms/projects/channels/download/icons-frogman
 ICON	ABC HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/abc-hd.png
 ICON	ABC HD	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/abc-hd.png
 ICON	ABC HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/abc-hd.png
-ICON    ABC HD freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/ABC_HD.png
+ICON    ABC HD schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/ABC_HD.png
 
 ICON	ABC News 24	wikipedia   http://upload.wikimedia.org/wikipedia/en/thumb/6/6c/ABC_News_24.svg/217px-ABC_News_24.svg.png
 ICON	ABC News 24	frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/abc-news-24.png
@@ -77,7 +77,7 @@ ICON	ABC News 24	frogman_blue    http://barstool.ash.ms/tv-channel-icons/icons-f
 ICON	ABC News 24	frogman_green   http://barstool.ash.ms/tv-channel-icons/icons-frogman-green/png/abc-news-24.png
 ICON	ABC News 24	t8_blue	    http://barstool.ash.ms/tv-channel-icons/icons-t8-blue/png/abc-news-24.png
 ICON	ABC News 24	yourtv	    http://contentserver.com.au/assets/275718_275459_compressed_abc_radio_24_smallest.gif
-ICON    ABC News 24 freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/ABC_News_24.png
+ICON    ABC News 24 schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/ABC_News_24.png
 
 ICON	Seven	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
 ICON	Seven	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/7network_aus.jpg
@@ -89,7 +89,7 @@ ICON	Seven	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman
 ICON	Seven	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/seven.png
 ICON	Seven	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/seven.png
 ICON	Seven	yourtv		http://contentserver.com.au/assets/270212_7.gif
-ICON    Seven freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/Seven.png
+ICON    Seven schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/Seven.png
 
 ICON	7HD	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
 ICON	7HD	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/7network_hd.jpg
@@ -100,14 +100,14 @@ ICON	7HD	frogman_green	http://ash.ms/projects/channels/download/icons-frogman-gr
 ICON	7HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/seven-hd.png
 ICON	7HD	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/seven-hd.png
 ICON	7HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/seven-hd.png
-ICON    7HD freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/7HD.png
+ICON    7HD schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/7HD.png
 
 ICON	7mate	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/seven-mate.png
 ICON	7mate	frogman_blue	http://barstool.ash.ms/tv-channel-icons/icons-frogman-blue/png/seven-mate.png
 ICON	7mate	frogman_green	http://barstool.ash.ms/tv-channel-icons/icons-frogman-green/png/seven-mate.png
 ICON	7mate	t8_blue		http://barstool.ash.ms/tv-channel-icons/icons-t8-blue/png/seven-mate.png
 ICON	7mate	yourtv		http://contentserver.com.au/assets/283993_7_mate_80x60.jpg
-ICON    7mate freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/7mate.png
+ICON    7mate schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/7mate.png
 
 ICON	7TWO	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/seven-two.png
 ICON    7TWO	frogman_blue    http://ash.ms/projects/channels/download/icons-frogman-blue/png/seven-two.png
@@ -116,9 +116,9 @@ ICON    7TWO	frogman_hybrid  http://ash.ms/projects/channels/download/icons-frog
 ICON    7TWO	t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/seven-two.png
 ICON    7TWO	t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/seven-two.png
 ICON	7TWO	yourtv		http://contentserver.com.au/assets/270205_7-two.gif
-ICON    7TWO freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/7TWO.png
+ICON    7TWO schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/7TWO.png
 
-ICON    7flix freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/7flix.png
+ICON    7flix schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/7flix.png
 
 ICON	Nine	standard	http://imagestore.ugbox.net/thumb/nine_53151871dd779ac2304e05ce9b2.jpg
 ICON	Nine	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/9network.jpg
@@ -130,7 +130,7 @@ ICON	Nine	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-
 ICON	Nine	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/nine.png
 ICON	Nine	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/nine.png
 ICON	Nine	yourtv		http://contentserver.com.au/assets/270211_9.gif
-ICON    Nine    freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/Nine.png
+ICON    Nine    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/Nine.png
 
 ICON	Nine HD	standard	http://imagestore.ugbox.net/thumb/nine_53151871dd779ac2304e05ce9b2.jpg
 #ICON	Nine HD	tatey_blue	http://tatey.com/images/au_network_logos/nine-hd.png
@@ -141,14 +141,14 @@ ICON	Nine HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogm
 ICON	Nine HD	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/nine-hd.png
 ICON	Nine HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/nine-hd.png
 ICON	Nine HD	yourtv		http://contentserver.com.au/assets/284327_ninehd_80x60.jpg
-ICON    Nine HD freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/9HD.png
+ICON    9HD schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/9HD.png
 
 ICON	GEM	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/gem.png
 ICON	GEM	frogman_blue	http://barstool.ash.ms/tv-channel-icons/icons-frogman-blue/png/gem.png
 ICON	GEM	frogman_green	http://barstool.ash.ms/tv-channel-icons/icons-frogman-green/png/gem.png
 ICON	GEM	t8_blue		http://barstool.ash.ms/tv-channel-icons/icons-t8-blue/png/gem.png
 ICON	GEM	yourtv		http://contentserver.com.au/assets/284321_gem_logo_violet80x60.jpg
-ICON    GEM freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/9GEM.png
+ICON    GEM schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/9GEM.png
 
 ICON    GO!     frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/go.png
 ICON    GO!     frogman_blue    http://ash.ms/projects/channels/download/icons-frogman-blue/png/go.png
@@ -157,7 +157,7 @@ ICON    GO!     frogman_hybrid  http://ash.ms/projects/channels/download/icons-f
 ICON    GO!     t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/go.png
 ICON    GO!     t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/go.png
 ICON	GO!	yourtv		http://contentserver.com.au/assets/270213_go.gif
-ICON    GO! freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/9GO.png
+ICON    9Go! schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/9GO.png
 
 ICON	TEN	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
 ICON	TEN	lyngsat		http://www.lyngsat-logo.com/logo/tv/tt/ten_network.jpg
@@ -169,7 +169,7 @@ ICON	TEN	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-h
 ICON	TEN	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/ten.png
 ICON	TEN	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/ten.png
 ICON	TEN	yourtv		http://contentserver.com.au/assets/270216_ten.gif
-ICON    TEN freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/10.png
+ICON    10  schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/10.png
 
 ICON	TEN HD	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
 ICON	TEN HD	lyngsat		http://www.lyngsat-logo.com/logo/tv/tt/ten_network_hd.jpg
@@ -180,7 +180,7 @@ ICON	TEN HD	frogman_green	http://ash.ms/projects/channels/download/icons-frogman
 ICON	TEN HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/ten-hd.png
 ICON	TEN HD	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/ten-hd.png
 ICON	TEN HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/ten-hd.png
-ICON    TEN HD freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/10HD.png
+ICON    10 HD    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/10HD.png
 
 #ICON	One HD	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
 ICON	One HD	lyngsat		http://www.lyngsat-logo.com/logo/tv/oo/one_hd.jpg
@@ -203,13 +203,14 @@ ICON	One Digital	frogman_hybrid	http://ash.ms/projects/channels/download/icons-f
 ICON	One Digital	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/one.png
 ICON	One Digital	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/one.png
 ICON	One Digital	yourtv		http://contentserver.com.au/assets/270220_one.gif
-ICON    One Digital freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/One.png
 
-ICON    10 Boss freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/10Boss.png
+ICON    ONE schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/ONE.png
 
-ICON    ELEVEN freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/ELEVEN.png
+ICON    10 Boss schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/10Boss.png
 
-ICON    10 Peach freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/10Peach.png
+ICON    ELEVEN schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/ELEVEN.png
+
+ICON    10 Peach schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/10Peach.png
 
 ICON	SBS ONE		standard	http://img196.imageshack.us/img196/7526/sbs861c4b17d8fc1856b814.png
 ICON	SBS ONE		lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/sbs.jpg
@@ -221,9 +222,9 @@ ICON	SBS ONE		frogman_hybrid	http://ash.ms/projects/channels/download/icons-frog
 ICON	SBS ONE		t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/sbs.png
 ICON	SBS ONE		t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/sbs.png
 ICON	SBS ONE		yourtv		http://contentserver.com.au/assets/270224_sbs-one.gif
-ICON    SBS ONE     freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/SBS_ONE.png
+ICON    SBS ONE     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SBS_ONE.png
 
-#ICON    SBS TWO         standard        http://imagestore.ugbox.net/thumb/sbs_861c4b17d8fc1856b8142446ddf6.jpg
+#ICON   SBS TWO         standard        http://imagestore.ugbox.net/thumb/sbs_861c4b17d8fc1856b8142446ddf6.jpg
 ICON    SBS TWO         frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/sbs-two.png
 ICON    SBS TWO         frogman_blue	http://ash.ms/projects/channels/download/icons-frogman-blue/png/sbs-two.png
 ICON    SBS TWO         frogman_green	http://ash.ms/projects/channels/download/icons-frogman-green/png/sbs-two.png
@@ -231,7 +232,9 @@ ICON    SBS TWO         frogman_hybrid 	http://ash.ms/projects/channels/download
 ICON    SBS TWO         t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/sbs-two.png
 ICON    SBS TWO         t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/sbs-two.png
 ICON	SBS TWO		yourtv		http://contentserver.com.au/assets/270225_sbs-two.gif
-ICON    SBS TWO     freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/SBS_Viceland.png
+ICON    SBS VICELAND     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SBS_Viceland.png
+
+ICON    SBS VICELAND HD     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SBS_Viceland_HD.png
 
 ICON	SBS HD	standard	http://img196.imageshack.us/img196/7526/sbs861c4b17d8fc1856b814.png
 #ICON	SBS HD	tatey_blue	http://tatey.com/images/au_network_logos/sbs-hd.png
@@ -242,7 +245,7 @@ ICON	SBS HD	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogma
 ICON	SBS HD	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/sbs-hd.png
 ICON	SBS HD	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/sbs-hd.png
 ICON	SBS HD	yourtv		http://contentserver.com.au/assets/270223_sbs-hd.gif
-ICON    SBS HD freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/SBS_HD.png
+ICON    SBS HD schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SBS_HD.png
 
 # miscellaneous regional logos
 
@@ -254,9 +257,13 @@ ICON    WIN	frogman_hybrid  http://ash.ms/projects/channels/download/icons-frogm
 ICON    WIN	t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/win.png
 ICON    WIN	t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/win.png
 ICON	WIN	yourtv		http://contentserver.com.au/assets/270231_win.gif
-ICON    WIN freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/WIN.png
+ICON    WIN schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/WIN.png
 
-ICON    WIN HD freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/WINHD.png
+ICON    WIN HD   schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/WINHD.png
+
+ICON    WIN Peach    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/WINPeach.png
+
+ICON    WIN Boss     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/WINBoss.png
 
 ICON	SC10	lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_ten.jpg
 ICON	SC10	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/southern-cross-ten.png
@@ -266,7 +273,7 @@ ICON    SC10	frogman_hybrid	http://ash.ms/projects/channels/download/icons-frogm
 ICON    SC10	t8_blue	http://ash.ms/projects/channels/download/icons-t8-blue/png/southern-cross-ten.png
 ICON    SC10	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/southern-cross-ten.png
 ICON	SC10	yourtv		http://contentserver.com.au/assets/270228_sthncrosstv-ten.gif
-ICON    SC10    freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/SC10.png
+ICON    SC10    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SC10.png
 
 ICON    SCTV  lyngsat         http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_tv.jpg
 ICON    SCTV  frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/southern-cross-television.png
@@ -276,6 +283,7 @@ ICON    SCTV  frogman_hybrid  http://ash.ms/projects/channels/download/icons-fro
 ICON    SCTV  t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/southern-cross-television.png
 ICON    SCTV  t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/southern-cross-television.png
 ICON	SCTV	yourtv		http://contentserver.com.au/assets/270226_sthncrosstv.gif
+ICON	SCTV   schmittyd-standard		https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SCTV.png
 
 ICON    Prime	wikipedia       http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
 ICON    Prime   frogman_plain   http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/prime.png
@@ -285,7 +293,7 @@ ICON    Prime  	frogman_hybrid	http://ash.ms/projects/channels/download/icons-fr
 ICON    Prime  	t8_blue		http://ash.ms/projects/channels/download/icons-t8-blue/png/prime.png
 ICON    Prime  	t8_hybrid	http://ash.ms/projects/channels/download/icons-t8-hybrid/png/prime.png
 ICON	Prime	yourtv		http://contentserver.com.au/assets/270221_prime.gif
-ICON    Prime   freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/Prime7.png
+ICON    Prime7   schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/Prime7.png
 
 ICON	Prime HD	wikipedia	http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
 ICON	Prime HD	frogman_plain	http://barstool.ash.ms/tv-channel-icons/icons-plain-plain/png/prime-hd.png
@@ -294,7 +302,7 @@ ICON    Prime HD  	frogman_green   http://ash.ms/projects/channels/download/icon
 ICON    Prime HD  	frogman_hybrid  http://ash.ms/projects/channels/download/icons-frogman-hybrid/png/prime-hd.png
 ICON    Prime HD  	t8_blue         http://ash.ms/projects/channels/download/icons-t8-blue/png/prime-hd.png
 ICON    Prime HD  	t8_hybrid       http://ash.ms/projects/channels/download/icons-t8-hybrid/png/prime-hd.png
-ICON    Prime HD freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/Prime7HD.png
+ICON    Prime7 HD schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/Prime7HD.png
 
 ICON    TVS		wikipedia	http://upload.wikimedia.org/wikipedia/commons/thumb/d/df/TVS_Logo.svg/200px-TVS_Logo.svg.png
 ICON    TVS		yourtv		http://contentserver.com.au/assets/270229_tvs.gif
@@ -302,21 +310,28 @@ ICON    TVS		yourtv		http://contentserver.com.au/assets/270229_tvs.gif
 ICON	Central GTS/BKN	lyngsat		http://www.lyngsat-logo.com/logo/tv/cc/central_gts_bkn.jpg
 ICON	NBN		lyngsat		http://www.lyngsat-logo.com/logo/tv/nn/nbn_au.jpg
 ICON	NBN		yourtv		http://contentserver.com.au/assets/270214_nbn.gif
-ICON    NBN     freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/9_NBN.png
+ICON    NBN     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/9_NBN.png
+ICON    TDT     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/TDT.png
+ICON    TDT HD    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/TDTHD.png
+ICON    GWN7     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/9_NBN.png
+ICON    DDT     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/DDT.png
 ICON	Imparja		lyngsat		http://www.lyngsat-logo.com/logo/tv/ii/imparja.jpg
 ICON	Imparja		yourtv		http://www.imparja.com/images/stories/bignewcube.png
-ICON    Imparja     freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/Imparja.png
+ICON    Imparja     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/Imparja.png
 ICON	Channel 31	lyngsat		http://www.lyngsat-logo.com/logo/tv/cc/channel31_melbourne.jpg
 ICON	Channel 31	yourtv		http://mctcltd.org.au/header.jpg
 ICON	Access 31	lyngsat		http://www.lyngsat-logo.com/logo/tv/aa/access_tv31_perth.jpg
-ICON    TVSN    freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/TVSN.png
-ICON    SpreeTV     freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/SpreeTV.png
-ICON    RACING.COM  freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/RACING.COM.png
-ICON    Extra   freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/Extra.png
-ICON    Aspire  freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/Aspire.png
-ICON    GOLD    freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/GOLD.png
-ICON    SBN     freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/SBN.png
-ICON    NITV    freeview    http://freeviewcdn.azureedge.net/images/network_logos/logo_with_bg/NITV.png
+ICON    TVSN    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/TVSN.png
+ICON    SpreeTV     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SpreeTV.png
+ICON    RACING.COM  schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/RACING.COM.png
+ICON    Extra   schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/Extra.png
+ICON    Aspire  schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/Aspire.png
+ICON    GOLD    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/GOLD.png
+ICON    SBN     schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SBN.png
+ICON    NITV    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/NITV.png
+ICON    SKY News on WIN    schmittyd-standard    https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/SKY_News_on_WIN.png
+ICON	C31 Melbourne	schmittyd-standard		https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/C31.jpg
+ICON	44 Adelaide	schmittyd-standard		https://raw.githubusercontent.com/schmittyd/tv-logos/master/Australia/standard/fta/44_Adelaide.jpg
 
 
 # standard foxtel logos
