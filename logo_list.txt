@@ -18,7 +18,7 @@ THEME	t8_hybrid	Hybrid themed logos (T8)	http://ash.ms/projects/channels/logos/t
 THEME	foxtel		Standard Foxtel logos		http://www.foxtel.com.au/channel/lineup.html
 THEME	wikipedia	Station logos from wikipedia	http://en.wikipedia.org/
 THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
-THEME   schmittyd-standard    Freeview Logos              http://www.schmittyd-standard.com.au/tv-guide/
+THEME   schmittyd-standard    Freeview Logos              http://www.freeview.com.au/tv-guide/
 #
 # ICON : channel : theme name : [base_url]+url 
 #
