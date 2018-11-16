@@ -1,0 +1,299 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+my $progname = "the_movie_db_augment";#based on metacritic
+my $version = "1.0";
+
+use XMLTV;
+use POSIX qw(strftime mktime);
+use Getopt::Long;
+use Data::Dumper;
+use Shepherd::Common;
+use TMDB;
+use Encode;
+
+$| = 1;
+
+my $opt = {};
+$opt->{output_file} = "output.xmltv";
+$opt->{debug} = 0;
+$opt->{min_duration} = 80;# 80 mins
+$opt->{max_duration} = 240;# 4 hours
+$opt->{skip_categories} = "Infotainment,Shopping,Business and Finance,Game Show,News,Parliament,Current Affairs,sports,Sport,Weather,Reality,live";
+
+my %stats;
+my $start_time = time;
+my $cache = {};
+
+GetOptions(
+	'region=i'          => \$opt->{region},# ignored
+	'days=i'            => \$opt->{days},# ignored
+	'offset=i'          => \$opt->{offset},# ignored
+	'timezone=s'        => \$opt->{timezone},# ignored
+	'channels_file=s'   => \$opt->{channels_file},# ignored
+	'config-file=s'     => \$opt->{configfile},# ignored
+
+	'min_duration=i'    => \$opt->{min_duration},
+	'max_duration=i'    => \$opt->{max_duration},
+	'skip_categories=s' => \$opt->{skip_categories},
+
+	'no-cache'		=> \$opt->{no_cache},
+
+	'output=s'          => \$opt->{output_file},
+	'debug+'            => \$opt->{debug},
+	'help'              => \$opt->{help},
+	'verbose'           => \$opt->{help},
+	'version'           => \$opt->{version},
+	'ready'             => \$opt->{ready},
+	'desc'              => \$opt->{desc},
+	'v'                 => \$opt->{version});
+
+printf "%s v%s\n", $progname, $version;
+
+if ($opt->{version} or $opt->{desc} or $opt->{help} or $opt->{ready} or !@ARGV) {
+	printf "Augments data from https://www.themoviedb.org\n" if $opt->{desc};
+
+	printf "$progname is ready for operation.\n" if ($opt->{ready});
+
+	if ($opt->{help} or !@ARGV) {
+		print <<EOF
+usage: $progname [options] [FILES...]
+
+Supported options include:
+  --min_duration={min} ignore programs under {min} duration (default: $opt->{min_duration} min)
+  --max_duration={min} ignore programs over {min} duration (default: $opt->{max_duration} min)
+  --skip_categories={list} don't try to look up programmes in these categories (default: $opt->{skip_categories})
+
+  --no-cache           don't use local cache to reduce network load on themoviedatabase.com
+
+  --output={file}      send final XMLTV output to {file} (default: $opt->{output_file})
+  --debug              enable debugging
+
+  --help
+  --version
+
+  This product uses the TMDb API but is not endorsed or certified by TMDb.
+
+EOF
+		;
+	}
+	exit(0);
+}
+
+# set defaults
+&Shepherd::Common::set_default("debug", ((defined $opt->{debug} && $opt->{debug} > 0) ? 2 : 0));
+&Shepherd::Common::set_default("stats", \%stats);
+&Shepherd::Common::set_default("retry_delay", 10);
+&Shepherd::Common::set_default("delay", int(rand(4) + 3)) unless (defined $opt->{fast});
+&Shepherd::Common::set_default('fake' => 0);
+
+my $tmdb = TMDB->new( apikey => '881f0e4d9f567e7b1e3f4e7b9da6cf5f', lang   => 'en' );
+
+my %writer_args = (encoding => 'ISO-8859-1');
+my $fh = new IO::File(">" . $opt->{output_file})
+	or die "can't open $opt->{output_file} for writing: $!";
+$writer_args{OUTPUT} = $fh;
+
+my $writer = new XMLTV::Writer(%writer_args);
+$writer->start({
+	'source-info-url'     => "https://www.themoviedb.org",
+	'source-info-name'    => "$progname $version",
+	'generator-info-name' => "$progname $version"
+});
+
+foreach my $file (@ARGV) {
+	&Shepherd::Common::log((sprintf "Parsing: %s",
+		($file eq "-" ? "(from-stdin, hit control-D to finiah)" : $file)));
+	&XMLTV::parsefiles_callback(\&encoding_cb, \&credits_cb,
+		\&channel_cb, \&programme_cb, $file);
+}
+
+$writer->end();
+&Shepherd::Common::log("Finished parsing, output in $opt->{output_file}");
+
+&Shepherd::Common::print_stats($progname, $version, $start_time, %stats);
+
+exit(0);
+
+##############################################################################
+
+##############################################################################
+
+sub encoding_cb($) {
+	my $e = shift;
+	# printf "got encoding ".Dumper($e);
+}
+
+##############################################################################
+
+sub credits_cb($) {
+	my $c = shift;
+	# printf "got credits ".Dumper($c);
+}
+
+##############################################################################
+
+sub channel_cb($) {
+	my $c = shift;
+	# printf "got channel ".Dumper($c);
+	$writer->write_channel($c);
+}
+
+##############################################################################
+
+sub programme_cb($) {
+	my $prog = shift;
+
+	$stats{programmes}++;
+
+	my $skip = 0;
+
+	my $movie_title;
+	if ($prog->{title} and $prog->{title}->[0] and $prog->{title}->[0]->[0]) {
+		$movie_title = $prog->{title}->[0]->[0];
+
+		if ($movie_title =~ /^close$/i or $movie_title =~ /^station close$/i) {
+			$stats{skipped_due_to_category}++;
+			$skip = 1;
+		}
+	}
+	else {
+		$skip = 1;
+	}
+
+	unless ($skip) {
+		&Shepherd::Common::log("- $movie_title") if ($opt->{debug});
+	}
+
+	my $prog_year = $prog->{date};
+	if (!$prog_year) {
+		# we want to be able to verify it's the right movie
+		&Shepherd::Common::log("  skipping: no year") if ($opt->{debug});
+		$skip = 1;
+	}
+
+	if (!$skip and defined $prog->{category}) {
+		foreach my $prog_category (@{($prog->{category})}) {
+			foreach my $prog_cat2 (@$prog_category) {
+				foreach my $skip_category (split(/,/, $opt->{skip_categories})) {
+					if (lc($prog_cat2) eq lc($skip_category)) {
+						$stats{skipped_due_to_category}++;
+						$skip = 1;
+						last;
+					}
+				}
+			}
+		}
+	}
+
+	# print "got programme ".Dumper($prog);
+
+	#
+	# only lookup if  min_duration < prog_duration > min_duration
+	#
+	my $t1 = &Shepherd::Common::parse_xmltv_date($prog->{start});
+	my $t2 = &Shepherd::Common::parse_xmltv_date($prog->{stop});
+	if (!$t1 or !$t2) {
+		$stats{excluded_couldnt_parse_time}++;
+		$skip = 1;
+	}
+	else {
+		my $prog_duration = (($t2 - $t1) / 60);
+		if ($prog_duration < $opt->{min_duration}) {
+			$stats{excluded_prog_too_short}++;
+			$skip = 1;
+		}
+		elsif ($prog_duration > $opt->{max_duration}) {
+			$stats{excluded_prog_too_long}++;
+			$skip = 1;
+		}
+	}
+
+	if (!$skip) {
+		$stats{included_for_lookup}++;
+
+		&Shepherd::Common::log("  searching") if ($opt->{debug});
+
+		my $found_id = undef;
+
+		unless (defined $cache->{$prog_year} && defined $cache->{$prog_year}->{$movie_title}) {
+
+			sleep 1;#try to not request things too rapidly
+
+			my @results = $tmdb->search->movie($movie_title);
+			foreach my $result (@results) {
+				unless ($result->{title} eq $movie_title) {
+					&Shepherd::Common::log("  skipping result $result->{title} as not equal") if ($opt->{debug});
+					next;
+				}
+				unless ($result->{release_date} =~ m/(\d{4})-\d{2}-\d{2}/ && abs($prog_year - $1) <= 1) {
+					&Shepherd::Common::log("  skipping result $result->{title} as year does not match. Prog: $prog_year, result: $1") if ($opt->{debug});
+					next;
+				}
+				$found_id = $result->{id};
+				&Shepherd::Common::log("  using id $found_id");
+				last;
+			}
+			$cache->{$prog_year}->{$movie_title} = $found_id;
+
+		}  else {
+			$found_id = $cache->{$prog_year}->{$movie_title};
+		}
+
+		if ($found_id){
+			my $movie = $cache->{movies}->{$found_id} || $tmdb->movie( id => $found_id );
+			$cache->{movies}->{$found_id} = $movie unless defined $cache->{movies}->{$found_id};
+
+			unless ($prog->{credits} && $prog->{credits}->{director}) {
+				my @movie_directors = $movie->director;
+				foreach my $director (@movie_directors){
+					push @{$prog->{credits}->{director}}, Encode::encode( 'iso-8859-1',$director);
+				}
+			}
+			unless ($prog->{credits} && $prog->{credits}->{actor}) {
+				my @movie_actors = $movie->actors;
+				foreach my $actor (@movie_actors){
+					push @{$prog->{credits}->{actor}},Encode::encode( 'iso-8859-1', $actor);
+				}
+			}
+			unless ($prog->{credits} && $prog->{credits}->{writer}) {
+				my @movie_writer = $movie->writer;
+				foreach my $movie_writer (@movie_writer){
+					push @{$prog->{credits}->{writer}}, Encode::encode( 'iso-8859-1',$movie_writer);
+				}
+			}
+
+			my $movie_info_raw  = $movie->info;
+
+			$prog->{'star-rating'} = [ ] unless (ref $prog->{'star-rating'});
+			&Shepherd::Common::log("  vote_average: $movie_info_raw->{vote_average} / 10");
+			push @{$prog->{'star-rating'}}, [ "$movie_info_raw->{vote_average}/10", "TMDB user rating", undef ];
+
+			unless ($prog->{desc}) {
+				$prog->{desc} = [ [ Encode::encode( 'iso-8859-1',$movie->overview), 'en' ] ];
+			}
+
+			if ($movie_info_raw->{imdb_id}){
+				push (@{($prog->{url})},"http://www.imdb.com/title/$movie_info_raw->{imdb_id}");
+			}
+
+			if ($movie_info_raw->{homepage}){
+				push (@{($prog->{url})},$movie_info_raw->{homepage});
+			}
+
+		} else {
+			&Shepherd::Common::log("   Not found") if $opt->{debug};
+		}
+
+		&Shepherd::Common::cleanup($prog);
+
+		#	print "prog now ".Dumper($prog);
+
+	}
+	$writer->write_programme($prog);
+}
+
+##############################################################################
+

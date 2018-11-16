@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 my $progname = "freeview";
-my $version = "1.0.1";
+my $version = "1.0.2";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -251,7 +251,12 @@ sub parse_json_data {
 			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	DateTimeFormat::XMLTV->format_datetime($event_end);
 
 			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{title}, $opt->{lang} ]] if (defined $programme->{title});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = 		[[ $programme->{synopsis}, $opt->{lang} ]] if (defined $programme->{synopsis} && length($programme->{synopsis}) > 0);
+			if (defined $programme->{synopsis} && length($programme->{synopsis}) > 0) {
+				if ($programme->{synopsis} =~ s/\s*\(([12][90]\d{2})\)$//){#if synopsis ends with a year, its the date field
+					$tv_guide->{$channel}->{data}->{$event_id}->{date} = $1;
+				}
+				$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = [ [ $programme->{synopsis}, $opt->{lang} ] ] if $programme->{synopsis};#check if again as may be empty
+			}
 			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $programme->{series}->{episode_title}, $opt->{lang} ]] if (defined $programme->{series} && defined $programme->{series}->{episode_title} && length($programme->{series}->{episode_title}) > 0);
 
 			my %genre, my $category;
