@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 my $progname = "freeview";
-my $version = "1.0.2";
+my $version = "1.0.3";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -132,7 +132,11 @@ my %SERVICE_NAME_TO_SHEP = (
 	'7Flix Prime'     => '7flixPrime',
 	'9GEM'            => '9Gem',
 	'SC 7mate'        => '7mate',
-	'7TWO Central'    => '7TWO'
+	'7TWO Central'    => '7TWO',
+	'ONE'             => '10 Boss',
+	'TEN'             => '10',
+	'TEN HD'          => '10 HD',
+	'ELEVEN'          => '10 Peach'
 );
 
 die("region not supported") unless defined $SHEP_ID_TO_STATE{$opt->{region}};
