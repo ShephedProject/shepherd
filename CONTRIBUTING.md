@@ -28,4 +28,4 @@ You can set your Shepherd to use this source, but it is mainly for devs to test 
 ### release
 General public release channel. Updates should not break user installs by misconfiguration.
 
-**Organisation Devs**: This should be a Fast-Forward branch only.
+**Organisation Devs**: This should only be a Fast-Forward from staging branch. Fix on staging then FF this branch to match.
