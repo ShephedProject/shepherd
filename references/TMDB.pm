@@ -1,4 +1,5 @@
 #repack of http://search.cpan.org/dist/TMDB/lib/TMDB.pm
+#modified to use Shepherd::json_pp
 package TMDB;
 
 #######################
@@ -1531,7 +1532,7 @@ use Carp qw(croak carp);
 #######################
 # LOAD CPAN MODULES
 #######################
-use JSON::MaybeXS;
+use Shepherd::json_pp;
 use Encode qw();
 use HTTP::Tiny qw();
 use Params::Validate qw(validate_with :types);
@@ -1601,7 +1602,7 @@ sub new {
 				type     => OBJECT,
 				can      => [qw(decode)],
 				optional => 1,
-				default  => JSON::MaybeXS->new(),
+				default  => JSON::cut_down_PP->new(),
 			},
 			debug => {
 				type     => BOOLEAN,
