@@ -5,6 +5,7 @@ reference       Shepherd/MythTV.pm  0.42
 reference       Shepherd/Configure.pm   0.42
 reference	    Shepherd/json_pp.pm 0.2
 reference		DateTimeFormat/XMLTV.pm		1.001
+reference		Shepherd/FreeviewHelper.pm	1.0
 reference       TMDB.pm             1.2.1.1
 grabber         oztivo              2.63
 grabber         yahoo7widget        2.45
@@ -12,7 +13,7 @@ grabber         sbsweb              5.05
 grabber         rex                 10.4.11
 grabber         foxtel_swf          5.02
 grabber         abc_website         7.02
-grabber         freeview            1.0.3
+grabber         freeview            1.0.4
 reconciler      reconciler_mk2      0.58
 postprocessor   metacritic          1.1
 postprocessor   augment_timezone    0.30
