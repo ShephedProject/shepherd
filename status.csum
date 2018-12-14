@@ -8,7 +8,6 @@ reference		DateTimeFormat/XMLTV.pm		1.001	72dc2b212d733776e7f08a0e318ff5fea4e18b
 reference		Shepherd/FreeviewHelper.pm	1.1	45a8ed942288d494668e48df2c5dbcc441125d84	7ec386af168f04561e07c55a3578f496420e194d
 reference       TMDB.pm             1.2.1.1	ce7621b4295c50bb93cb79f088cc0107807c1c0a	f49c6a479ae40bfa46ad64127b282a649fb6f314
 grabber         oztivo              2.63	00783671f4a4949e4b58ce7f8e6412be2c887ace	27091f5b5b200faab437b7d049db6942d559e0f4
-grabber         yahoo7widget        2.45	36f8944f0b97b21a484b2f0a4c8c315668637a3c	10588fe9fab80c63677bc8b0afa0078c1650632c
 grabber         sbsweb              5.05	a4e72ca0de3ace9220948171c3455a6a4b3be50b	ddee42fe50268e882edda7545d36016b3e3e766b
 grabber         rex                 10.4.11	4ae53787498b74036bb6611ef260658a225e4842	ad91636be1b1d063aa8d9bbb1282fb156cc0419c
 grabber         foxtel_swf          5.02	64b38cade7e38491a6712b3289887592d18b9f60	9dd03e16f6bcbc4e7568e44c33dd67d05bc41987
