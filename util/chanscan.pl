@@ -6,9 +6,13 @@ use LWP::Simple;
 use Data::Dumper;
 use HTML::TreeBuilder;
 use JSON;
+use Shepherd::json_pp;
+use Data::Dumper;
 
 use lib 'references';
 use lib '../references';
+
+use Shepherd::FreeviewHelper;
 
 $| = 1;
 
@@ -18,7 +22,7 @@ my $region_channels;
 my $ua;
 my $DATASOURCE_yourtv = 'https://www.yourtv.com.au/api/regions/%d/channels';
 
-my $DATASOURCE_yahoo = 'https://y7mobile.query.yahoo.com/v1/tv-guide/schedule?region=%d&network=0&grouping=channel&channel_offset=%d';
+my $DATASOURCE_freeview = 'https://www.freeview.com.au/umbraco/Surface/JsonString/ReadFromTVGuideDB/?state=%s&param=tvGuide&index=0';
 
 #Channel name remaps that grabbers should be smart enough to handle (spaces mainly)
 my %known_remaps = (
@@ -45,6 +49,8 @@ print "Channels found to be not in the official list should almost always\n" .
 	"alone, as that simply means the channel was not available in this\n" .
 	"particular datasource--it might be available via a different grabber.\n\n";
 
+my %special_matches;
+
 foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 	printf "Region %3d: \n", $region;
 
@@ -56,39 +62,35 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 	}
 	my $yourtv_data = JSON::decode_json($content);
 	my @yourtv_channels;
+	my %yourtv_by_lcn;
 
 	foreach my $chandata (@{$yourtv_data}) {
 		if (defined $chandata->{name}) {
 			my $name = $chandata->{name};
 			$name = $known_remaps{$name} if defined $known_remaps{$name};
-			push @yourtv_channels, $name;
+			push @yourtv_channels, { 'name'=>$name, 'lcn'=> $chandata->{number} };
+			$yourtv_by_lcn{$chandata->{number}} = $name;
 		}
 	}
 
-	my @yahoo_channels;
-	my @yahoo_urls = (sprintf $DATASOURCE_yahoo, $region, 0);
-
-	foreach my $yahoo_url (@yahoo_urls) {
-		$content = &Shepherd::Common::get_url($yahoo_url);
+	my @freeview_channels;
+	my %freeview_by_lcn;
+	if (!defined($Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$region})){
+		print "Region $region unsupported in freeview!\n";
+	} else {
+		my $freeview_url = sprintf $DATASOURCE_freeview, $Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$region};
+		$content = &Shepherd::Common::get_url($freeview_url);
 		unless ($content) {
-			die "Couldn't retrive $yahoo_url successfully";
+			die "Couldn't retrive $freeview_url successfully";
 		}
-		my $yahoo_data = JSON::decode_json($content);
+		my $freeview_data = JSON::cut_down_PP::decode_json($content);
 
-		unless (defined $yahoo_data->{schedule}->{result}->[0]->{channels}) {
-			die "yahoo channel list not found";
-		}
-
-		foreach my $chanid (keys %{$yahoo_data->{schedule}->{result}->[0]->{channels}}) {
-			if (defined $yahoo_data->{schedule}->{result}->[0]->{channels}->{$chanid}->{name}) {
-				my $name = $yahoo_data->{schedule}->{result}->[0]->{channels}->{$chanid}->{name};
-				$name = $known_remaps{$name} if defined $known_remaps{$name};
-				push @yahoo_channels, $name;
+		foreach my $chandata (@{$freeview_data->{TVGuide}}) {
+			if (defined $chandata->{service}) {
+				my $mapped_name = Shepherd::FreeviewHelper::map_service($chandata->{service});
+				push @freeview_channels, { 'name'=>$mapped_name, 'lcn'=>$chandata->{service}->{'@LCN'}};
+				$freeview_by_lcn{$chandata->{service}->{'@LCN'}} = $mapped_name;
 			}
-		}
-
-		if (defined $yahoo_data->{schedule}->{result}->[0]->{pagination}->{down}){
-			push @yahoo_urls, sprintf $DATASOURCE_yahoo, $region, $yahoo_data->{schedule}->{result}->[0]->{pagination}->{down}->{params}->{channel_offset};
 		}
 	}
 
@@ -98,34 +100,52 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 			print " & \"$chan\": Duplicated in channel_list\n";
 			next;
 		}
-		my @a = grep ($chan ne $_, @yourtv_channels);
-		my @b = grep ($chan ne $_, @yahoo_channels);
+		my @a = grep ($chan ne $_->{name}, @yourtv_channels);
+		my @b = grep ($chan ne $_->{name}, @freeview_channels);
 
-		if (@a == @yourtv_channels and @b == @yahoo_channels) {
-			print " ? \"$chan\" unknown to both YourTV and Yahoo\n";
+		if (@a == @yourtv_channels and @b == @freeview_channels) {
+			print " ? \"$chan\" unknown to both YourTV and Freeview\n";
 		}
 		elsif (@a == @yourtv_channels) {
 			print " ? \"$chan\" unknown to YourTV\n";
+			foreach my $freeview_chan (@freeview_channels){
+				if ($freeview_chan->{name} eq $chan && defined $yourtv_by_lcn{$freeview_chan->{lcn}}){
+					print "\texists as ch $freeview_chan->{lcn} \"".$yourtv_by_lcn{$freeview_chan->{lcn}}."\" based on Freeview match\n";
+					$special_matches{yourtv}->{$region}->{$yourtv_by_lcn{$freeview_chan->{lcn}}} = $chan;
+					@a = grep ($yourtv_by_lcn{$freeview_chan->{lcn}} ne $_->{name}, @a);
+					last;
+				}
+			}
 		}
-		elsif (@b == @yahoo_channels) {
-			print " ? \"$chan\" unknown to Yahoo\n";
+		elsif (@b == @freeview_channels) {
+			print " ? \"$chan\" unknown to Freeview\n";
+			foreach my $yourtv_chan (@yourtv_channels){
+				if ($yourtv_chan->{name} eq $chan && defined $freeview_by_lcn{$yourtv_chan->{lcn}}){
+					print "\texists as \"".$freeview_by_lcn{$yourtv_chan->{lcn}}."\" based on YourTV match\n";
+					$special_matches{freeview}->{$region}->{$freeview_by_lcn{$yourtv_chan->{lcn}}} = $chan;
+					@b = grep ($freeview_by_lcn{$yourtv_chan->{lcn}} ne $_->{name}, @b);
+					last;
+				}
+			}
 		}
 		@yourtv_channels = @a;
-		@yahoo_channels = @b;
+		@freeview_channels = @b;
 		push @matched_channels, $chan;
 	}
 	foreach my $chan (@yourtv_channels) {
-		print " ! \"$chan\" in YourTV but not channels_list.\n";
+		print " ! \"$chan->{name}\" in YourTV but not channels_list.\n";
 	}
 
-	foreach my $chan (@yahoo_channels) {
-		print " ! \"$chan\" in Yahoo but not channels_list.\n";
+	foreach my $chan (@freeview_channels) {
+		print " ! \"$chan->{name}\" in Freeview but not channels_list.\n";
 	}
 
 	sleep 1;
 }
 
 print "Done.\n";
+
+print Dumper(\%special_matches);
 
 
 
