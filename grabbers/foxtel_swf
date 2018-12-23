@@ -10,7 +10,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.02";
+my $version = "5.03";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -505,7 +505,7 @@ sub choose_channel_lineup
 sub channel_name_munger
 {
     my ($chan) = @_;
-    my @cities = ("Melbourne", "Sydney", "Brisbane", "Adelaide", "Darwin", "Perth", "Hobart", "VIC", "NSW", "QLD", "SA", "NT", "WA", "TAS");
+    my @cities = ("Melbourne", "Sydney", "Brisbane", "Adelaide", "Darwin", "Perth", "Hobart", "VIC", "NSW", "QLD", "Queensland" , "SA", "NT", "WA", "TAS");
     foreach my $cities (@cities)
     {
         if ((substr $chan,  -length($cities)) eq $cities)
@@ -518,17 +518,19 @@ sub channel_name_munger
     my $rchans;
 
     $rchans = {
-        'ABC2' => 'ABC2 / KIDS',
+        'ABC2' => 'ABC COMEDY/ABC KIDS',
         'ABCNews' => 'ABCNEWS',
         'Channel9' => 'Nine',
-        'Channel10' => 'TEN',
-        'Channel7' => 'Seven',
+        'Channel7' => 'Seven',	
+	'7Flix' => '7flix',
+	'Channel10' => 'TEN',
+	'10HD' => '10 HD',
+ 	'10BOLD' => '10 Bold',
+        '10Peach' => '10 Peach',	
         'ABCHD' => 'ABC HD',
         'RACINGCOM' => 'RACING.COM',
-        'FoodNetwork' => 'Food Network',
-        'One' => 'ONE',
-        '7Flix' => '7flix',
-        'Channel10HD' => 'TEN HD',
+        'SBSFood' => 'SBS Food',
+        'YourMoney' => 'Your Money',
         'SBSHD' => 'SBS HD'
         };
 
