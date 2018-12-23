@@ -73,6 +73,7 @@ my $pw;
 #	Pay TV mapping (under hash key 'PAY')
 # First mapping found wins.
 #
+
 my %s_to_o_map = (
 	'National' => {	# National channel mappings, all timeshifted
 		'ABC COMEDY/ABC KIDS' => 'ABC2',
@@ -88,12 +89,13 @@ my %s_to_o_map = (
 		'Extra'               => 'Extra',
 		'7flix'               => '7flix',
 		'7mate'               => '7mate',
-		'ELEVEN'              => 'ELEVEN',
+		'10 Peach'              => 'ELEVEN',
 		'NITV'                => 'NITV',
 		#'Food Network'        => "SBSFOOD",#TODO check this when they have data, state variants exist!
 	},
 	'VIC' => {
-		'ONE' => 'One-Vic',
+		'SBS Food' => 'SBSF-Vic',
+		'10 Bold' => 'One-Vic',
 		'One Digital' => 'One-Vic',
 		'SBSVICELAND' => 'SBSTWO-Vic',
 		'SBSVICELANDHD' => 'SBSTWO-Vic',
@@ -102,7 +104,8 @@ my %s_to_o_map = (
 		'9Gem' => 'GEM-Vic',
 	},
 	'NSW' => {
-		'ONE' => 'One-NSW',
+		'SBS Food' => 'SBSF-NSW',
+		'10 Bold' => 'One-NSW',
 		'One Digital' => 'One-NSW',
 		'SBSVICELAND' => 'SBSTWO-NSW',
 		'SBSVICELANDHD' => 'SBSTWO-NSW',
@@ -111,7 +114,8 @@ my %s_to_o_map = (
 		'9Gem' => 'GEM-NSW',
 	},
 	'QLD' => {
-		'ONE' => 'One-Qld',
+		'SBS Food' => 'SBSF-Qld',,
+		'10 Bold' => 'One-Qld',
 		'One Digital' => 'One-Qld',
 		'SBSVICELAND' => 'SBSTWO-Qld',
 		'SBSVICELANDHD' => 'SBSTWO-Qld',
@@ -120,7 +124,8 @@ my %s_to_o_map = (
 		'9Gem' => 'GEM-Qld',
 	},
 	'WA' => {
-		'ONE'           => 'One-WA',
+		'SBS Food'		=> 'SBSF-WA',
+		'10 Bold'       => 'One-WA',
 		'One Digital'   => 'One-WA',
 		'SBSVICELAND'   => 'SBSTWO-WA',
 		'SBSVICELANDHD' => 'SBSTWO-WA',
@@ -130,7 +135,8 @@ my %s_to_o_map = (
 		'WTV'           => 'WTV',
 	},
 	'SA' => {
-		'ONE' => 'One-SA',
+		'SBS Food' => 'SBSF-SA',
+		'10 Bold' => 'One-SA',
 		'One Digital' => 'One-SA',
 		'SBSVICELAND' => 'SBSTWO-SA',
 		'SBSVICELANDHD' => 'SBSTWO-SA',
@@ -139,14 +145,16 @@ my %s_to_o_map = (
 		'9Gem' => 'GEM-SA',
 	},
 	'NT' => {
-		'ONE' => 'One-Dar',
+		'SBS Food' => 'SBSF-NT',
+		'10 Bold' => 'One-Dar',
 		'One Digital' => 'One-Dar',
 		'SBSVICELAND' => 'SBSTWO-NT',
 		'SBSVICELANDHD' => 'SBSTWO-NT',
 		'7TWO' => '7TWO-NT',
 	},
 	'ACT' => {
-		'ONE' => 'One-NSW',
+		'SBS Food' => 'SBSF-Can',
+		'10 Bold' => 'One-NSW',
 		'One Digital' => 'One-NSW',
 		'SBSVICELAND' => 'SBSTWO-NSW',
 		'SBSVICELANDHD' => 'SBSTWO-NSW',
@@ -155,7 +163,8 @@ my %s_to_o_map = (
 		'9Gem' => 'GEM-ACT',
 	},
 	'TAS' => {
-		'ONE' => 'One-Tas',
+		'SBS Food' => 'SBSF-Tas',
+		'10 Bold' => 'One-Tas',
 		'One Digital' => 'One-Tas',
 		'SBSVICELAND' => 'SBSTWO-Tas',
 		'SBSVICELANDHD' => 'SBSTWO-Tas',
