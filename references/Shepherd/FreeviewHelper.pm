@@ -85,6 +85,7 @@ our %channel_code_to_shep = (
 	'TEN HD'          => '10 HD',
 );
 
+#old code, only used by chanscan, to fix
 sub map_service {
 	my $svc = shift;
 	my $channel = $svc->{'@service_name'};
