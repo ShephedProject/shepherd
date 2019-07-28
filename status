@@ -7,10 +7,10 @@ reference	    Shepherd/json_pp.pm 0.2
 reference		DateTimeFormat/XMLTV.pm		1.001
 reference		Shepherd/FreeviewHelper.pm	1.2
 reference       TMDB.pm             1.2.1.1
-grabber         oztivo              2.63
+grabber         oztivo              2.64
 grabber         sbsweb              5.05
 grabber         rex                 10.4.11
-grabber         foxtel_swf          5.02
+grabber         foxtel_swf          5.03
 grabber         abc_website         7.03
 grabber         freeview            1.0.6
 reconciler      reconciler_mk2      0.58
