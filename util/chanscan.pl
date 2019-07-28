@@ -22,7 +22,7 @@ my $region_channels;
 my $ua;
 my $DATASOURCE_yourtv = 'https://www.yourtv.com.au/api/regions/%d/channels';
 
-my $DATASOURCE_freeview = 'https://www.freeview.com.au/umbraco/Surface/JsonString/ReadFromTVGuideDB/?state=%s&param=tvGuide&index=0';
+my $DATASOURCE_freeview = 'https://fvau-api-prod.switch.tv/content/v1/channels/region/%s?limit=100&offset=0&include_related=1&expand_related=full&related_entity_types=images';
 
 #Channel name remaps that grabbers should be smart enough to handle (spaces mainly)
 my %known_remaps = (
@@ -51,8 +51,12 @@ print "Channels found to be not in the official list should almost always\n" .
 
 my %special_matches;
 
+open(my $csv, ">", "channel_mappings.csv");
+print $csv "Shepherd Channel,Rex Name,Freeview Name,Rex LCN,Freeview LCN\n\n";
+
 foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 	printf "Region %3d: \n", $region;
+	printf $csv "Region %3d: \n", $region;
 
 	my $yourtv_url = sprintf $DATASOURCE_yourtv, $region;
 
@@ -76,7 +80,7 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 	my @freeview_channels;
 	my %freeview_by_lcn;
 	if (!defined($Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$region})){
-		print "Region $region unsupported in freeview!\n";
+		#print "Region $region unsupported in freeview!\n";
 	} else {
 		my $freeview_url = sprintf $DATASOURCE_freeview, $Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$region};
 		$content = &Shepherd::Common::get_url($freeview_url);
@@ -85,16 +89,20 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 		}
 		my $freeview_data = JSON::cut_down_PP::decode_json($content);
 
-		foreach my $chandata (@{$freeview_data->{TVGuide}}) {
-			if (defined $chandata->{service}) {
-				my $mapped_name = Shepherd::FreeviewHelper::map_service($chandata->{service});
-				push @freeview_channels, { 'name'=>$mapped_name, 'lcn'=>$chandata->{service}->{'@LCN'}};
-				$freeview_by_lcn{$chandata->{service}->{'@LCN'}} = $mapped_name;
+		foreach my $chandata (@{$freeview_data->{data}}) {
+			if (defined $chandata->{channel_name}) {
+				my $mapped_name =  Shepherd::FreeviewHelper::clean_channel_name($chandata->{channel_name});
+
+				push @freeview_channels, { 'name'=>$mapped_name, 'lcn'=>$chandata->{lcn}};
+				$freeview_by_lcn{$chandata->{lcn}} = $mapped_name;
+			} else {
+				die "no channel name";
 			}
 		}
 	}
 
 	my @matched_channels;
+	my %region_mappings;
 	foreach my $chan (@{$region_channels->{$region}}) {
 		if (grep ($chan eq $_, @matched_channels)) {
 			print " & \"$chan\": Duplicated in channel_list\n";
@@ -102,6 +110,15 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 		}
 		my @a = grep ($chan ne $_->{name}, @yourtv_channels);
 		my @b = grep ($chan ne $_->{name}, @freeview_channels);
+
+		my @matched_yourtv = grep ($chan eq $_->{name}, @yourtv_channels);
+		my @matched_freeview = grep (lc $chan eq lc $_->{name}, @freeview_channels);
+
+		printf $csv '"%s","%s","%s","%s","%s"'."\n", $chan, join(', ', map($_->{name}, @matched_yourtv)), join(', ', map($_->{name}, @matched_freeview)), join(', ', map($_->{lcn}, @matched_yourtv)), join(', ', map($_->{lcn}, @matched_freeview));
+
+		$region_mappings{$chan}->{yourtv} = join(', ', map($_->{name}, @matched_yourtv));
+
+		$region_mappings{$chan}->{freeview} = join(', ', map($_->{name}, @matched_freeview));
 
 		if (@a == @yourtv_channels and @b == @freeview_channels) {
 			print " ? \"$chan\" unknown to both YourTV and Freeview\n";
@@ -117,7 +134,7 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 				}
 			}
 		}
-		elsif (@b == @freeview_channels) {
+		elsif (defined($Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$region}) && @b == @freeview_channels) {
 			print " ? \"$chan\" unknown to Freeview\n";
 			foreach my $yourtv_chan (@yourtv_channels){
 				if ($yourtv_chan->{name} eq $chan && defined $freeview_by_lcn{$yourtv_chan->{lcn}}){
@@ -140,13 +157,14 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 		print " ! \"$chan->{name}\" in Freeview but not channels_list.\n";
 	}
 
+	print $csv "\n";
 	sleep 1;
 }
 
 print "Done.\n";
 
 print Dumper(\%special_matches);
-
+close $csv;
 
 
 sub setup_ua {
