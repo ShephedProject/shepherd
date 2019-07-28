@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 my $progname = "freeview";
-my $version = "1.0.5";
+my $version = "1.0.6";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -16,6 +16,7 @@ use Shepherd::json_pp;  # use JSON;
 use DateTimeFormat::XMLTV;
 use DateTime::Format::ISO8601;
 use DateTime::Duration;
+use DateTime::TimeZone;
 
 #
 # some initial cruft
@@ -98,6 +99,9 @@ if (-r $opt->{channels_file}) {
 } else {
 	die "WARNING: channels file $opt->{channels_file} could not be read\n";
 }
+
+my $region_timezone = DateTime::TimeZone->new('name'=>Shepherd::Common::which_timezone($opt->{region}));
+my $sydney_timezone = DateTime::TimeZone->new('name'=>'Australia/Sydney');
 
 my $offset = defined $opt->{offset} ? $opt->{offset} : 0;
 
@@ -220,6 +224,11 @@ sub parse_json_data {
 
 	my $channel = $chan->{shepherd};
 
+    #national channel has region_national in its 'tags' array
+    my $is_national_channel = $chan->{channel_code} ne 'ABC NEWS' && scalar grep($_ eq 'region_national', @{$chan->{tags}});
+    if ($is_national_channel){
+        print "Found national channel: ".$chan->{shepherd}."\n";
+    }
 
 	foreach my $programme (@{$decoded_data->{data}}) {
 
@@ -230,6 +239,14 @@ sub parse_json_data {
 
 		my $event_start = DateTime::Format::ISO8601->parse_datetime( $programme->{start} );
 		my $event_end = DateTime::Format::ISO8601->parse_datetime( $programme->{end} );
+
+		#process time shift if national channel
+		if ($is_national_channel) {
+			my $offset_start = $sydney_timezone->offset_for_datetime($event_start) - $region_timezone->offset_for_datetime($event_start);
+			$event_start->add('seconds'=>$offset_start);
+			my $offset_end = $sydney_timezone->offset_for_datetime($event_end) - $region_timezone->offset_for_datetime($event_end);
+			$event_end->add('seconds'=>$offset_start);
+		}
 
 		# store it in the correct XMLTV schema!
 		$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channel;

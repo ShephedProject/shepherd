@@ -1,7 +1,7 @@
 #
 # Shepherd::Common library
 
-my $version = '1.30';
+my $version = '1.32';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -207,11 +207,11 @@ sub program_end
 #
 # Simple version:
 # $content = Shepherd::Common::get_url('http://www.example.com');
-# 
+#
 # Or send a hash of options:
 # $content = Shepherd::Common::get_url(url => 'http://www.example.com',
 #                                      retries => 0, retry_delay => 60);
-# 
+#
 # May also call in list context for more status info (see below):
 # @response = Shepherd::Common::get_url(url => 'http://www.example.com',
 #                                       fake => 0, debug => 5);
@@ -233,7 +233,7 @@ sub program_end
 #   headers       : ref to array of any additional headers (default: <none>)
 #   debug         : set debug level; 0 = silent, 5 = noisy (default: 1)
 #   stats         : reference to stats hash (see below)
-# 
+#
 # If called in list context, returns an array:
 # 0. content (string)
 # 1. success (boolean: 1 indicates success)
@@ -243,7 +243,7 @@ sub program_end
 # 5. number of failed attempts (integer)
 # 6. HTTP::Response object
 #
-# If called in scalar context, returns the content downloaded, or undef if 
+# If called in scalar context, returns the content downloaded, or undef if
 # the download failed (which includes getting things like 401 pages).
 #
 # 'stats'
@@ -311,11 +311,11 @@ sub get_url
 
     # Method
     my $request;
-    if ($cnf{method} eq "HEAD") 
+    if ($cnf{method} eq "HEAD")
     {
 	$request = HEAD $cnf{url};
     }
-    elsif ($cnf{method} eq "POST" or $cnf{postvars}) 
+    elsif ($cnf{method} eq "POST" or $cnf{postvars})
     {
 	$request = POST $cnf{url}, Content => $cnf{postvars};
     }
@@ -373,7 +373,7 @@ sub get_url
     my $success;
     my $failures = 0;
     my $bytes;
-    for (0 .. $cnf{retries}) 
+    for (0 .. $cnf{retries})
     {
 	if ($cnf{debug})
 	{
@@ -415,8 +415,8 @@ sub get_url
 	}
     }
 
-    if ($response->header('Content-Encoding') && 
-	$response->header('Content-Encoding') eq 'gzip') 
+    if ($response->header('Content-Encoding') &&
+	$response->header('Content-Encoding') eq 'gzip')
     {
 	$response->content(Compress::Zlib::memGunzip($response->content));
     }
@@ -526,7 +526,7 @@ sub get_mirror_file
 				binmode(FILE); # DOS / Windows rubbish
 				read(FILE, $data, -s FILE);
 				close(FILE);
-	
+
 				# If the original web page was sent gzipped then the mirror file
 				# is gzipped and should be unpacked
 				if ($data =~ m/^\037\213/) {	# magic number at start of gzip file
@@ -593,7 +593,7 @@ sub setup_ua
     $cnf{delay} = 0 unless (defined $cnf{delay});
     $cnf{retry_delay} = 10 unless (defined $cnf{retry_delay} or $cnf{delay});
     $cnf{debug} = 1 unless (defined $cnf{debug});
-                                     
+
     print "Establishing user agent.\n" if ($cnf{debug} > 3);
 
     $ua = LWP::UserAgent->new( keep_alive => 1, ssl_opts => { verify_hostname => 0 } );
@@ -619,7 +619,7 @@ sub setup_ua
 
     my $agent = ($cnf{fake} ? $agent_list[int(rand($#agent_list+1))] : ($cnf{agent} ? $cnf{agent} : 'Shepherd'));
     $ua->agent($agent);
-    print "User Agent string set to \"" . $ua->agent() . "\".\n" if ($cnf{debug} > 3); 
+    print "User Agent string set to \"" . $ua->agent() . "\".\n" if ($cnf{debug} > 3);
 
     $ua->cookie_jar({}) if (defined $cnf{cookie_jar});
 
@@ -1038,6 +1038,34 @@ sub which_state
 	return $state;
 }
 
+sub which_timezone
+{
+	my $region = shift;
+
+	my $state;
+	if ($region =~ /^(93|94|95|90|98|266|267|268)$/) {
+		$state = "Australia/Melbourne";
+	} elsif ($region =~ /^(73|66|67|63|69|71|106|184|259|261|262|263|264)$/) {
+		$state = "Australia/Sydney";
+	} elsif ($region =~ /^(75|78|255|256|258|254|253|257|79|114)$/) {
+		$state = "Australia/Brisbane";
+	} elsif ($region =~ /^(101|102)$/) {
+		$state = "Australia/Perth";
+	} elsif ($region =~ /^(81|82|83|85|86|107)$/) {
+		$state = "Australia/Adelaide";
+	} elsif ($region =~ /^(74|108)$/) {
+		$state = "Australia/Darwin";
+	} elsif ($region =~ /^(126)$/) {
+		$state = "Australia/Canberra";
+	} elsif ($region =~ /^(88)$/) {
+		$state = "Australia/Hobart";
+	} else {
+		$state = "Australia/Brisbane";
+	}
+
+	return $state;
+}
+
 ##########################################################################
 
 # Convert yyyymmddhhmmss +hhmm format to calendar time.
@@ -1052,7 +1080,7 @@ sub xmltvtimez {
             $xmltv =~ /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})? ?([+-]\d{4})?/ or
             die "Can't interprete xmltvtime \"$xmltv\".";
 
-    $z = $zone || ( $z ? "aus$z" : $default_zone ); 
+    $z = $zone || ( $z ? "aus$z" : $default_zone );
 
     local %ENV;
     if (defined $z and $z !~ "local") { $ENV{TZ} = $z; POSIX::tzset(); }
