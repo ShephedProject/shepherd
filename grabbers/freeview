@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 my $progname = "freeview";
-my $version = "1.0.6";
+my $version = "1.0.7";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -226,9 +226,6 @@ sub parse_json_data {
 
     #national channel has region_national in its 'tags' array
     my $is_national_channel = $chan->{channel_code} ne 'ABC NEWS' && scalar grep($_ eq 'region_national', @{$chan->{tags}});
-    if ($is_national_channel){
-        print "Found national channel: ".$chan->{shepherd}."\n";
-    }
 
 	foreach my $programme (@{$decoded_data->{data}}) {
 
