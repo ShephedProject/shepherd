@@ -7,10 +7,10 @@ reference	    Shepherd/json_pp.pm 0.2	af7820870d7cdfd47a593929a14e06306e9fda7b	c
 reference		DateTimeFormat/XMLTV.pm		1.001	72dc2b212d733776e7f08a0e318ff5fea4e18b3a	c16512679b7051ae50ee025ea8e3225995a7e3ff
 reference		Shepherd/FreeviewHelper.pm	1.2	45a8ed942288d494668e48df2c5dbcc441125d84	9094efa4b235878975736c7c546bc6d081246e51
 reference       TMDB.pm             1.2.1.1	ce7621b4295c50bb93cb79f088cc0107807c1c0a	f49c6a479ae40bfa46ad64127b282a649fb6f314
-grabber         oztivo              2.63	00783671f4a4949e4b58ce7f8e6412be2c887ace	a7e799f10b7f3f707529b0ef1f906e72eb0d0528
+grabber         oztivo              2.64	00783671f4a4949e4b58ce7f8e6412be2c887ace	a7e799f10b7f3f707529b0ef1f906e72eb0d0528
 grabber         sbsweb              5.05	a4e72ca0de3ace9220948171c3455a6a4b3be50b	ddee42fe50268e882edda7545d36016b3e3e766b
 grabber         rex                 10.4.11	4ae53787498b74036bb6611ef260658a225e4842	ad91636be1b1d063aa8d9bbb1282fb156cc0419c
-grabber         foxtel_swf          5.02	64b38cade7e38491a6712b3289887592d18b9f60	217292d82361ab4722e8f17dc678d9c448411366
+grabber         foxtel_swf          5.03	64b38cade7e38491a6712b3289887592d18b9f60	217292d82361ab4722e8f17dc678d9c448411366
 grabber         abc_website         7.03	5b033781f567687e93c6cf785792bef96ac33125	31be91eb5ffdc65330e7b829f7a9194daa7f5a26
 grabber         freeview            1.0.6	7d314b49651d2545c9f6852fcf9ed800e9b2cb00	3acb84e2d0bafb948fce1e20fafe539706865493
 reconciler      reconciler_mk2      0.58	53c4c0647abf244d0b22e7620bf1247e37abf689	8f8ee5f905bf4e844b67a557baa2b0403fb263c4
