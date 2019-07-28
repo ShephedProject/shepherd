@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 my $progname = "freeview";
-my $version = "1.0.4";
+my $version = "1.0.5";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -101,19 +101,78 @@ if (-r $opt->{channels_file}) {
 
 my $offset = defined $opt->{offset} ? $opt->{offset} : 0;
 
-for (my $day_i = $offset; $day_i < 8 && $day_i < $opt->{days}+$offset; $day_i++){
-	#sleep if not first day
-	if (($day_i != 0) && (!defined $opt->{fast})) {
-		my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
-		$stats{slept_for} += $sleeptimer;
-		sleep $sleeptimer;
+my $channels_url = "https://fvau-api-prod.switch.tv/content/v1/channels/region/%s?limit=100&offset=0&include_related=1&expand_related=full&related_entity_types=images";
+
+my @available_channels;
+
+{
+	my $url = sprintf $channels_url, $Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$opt->{region}};
+	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
+		Shepherd::Common::get_url(url => $url, retries => 5);
+	$stats{failed_requests} += $failed_attempts;
+	$stats{slept_for} += $seconds_slept;
+	$stats{bytes_fetched} += $bytes_fetched;
+
+	unless ($data){
+		Shepherd::Common::log("Aborting: likely format change or blocked! Failed to get channel list");
+		exit 10;
 	}
-	my $url = sprintf "http://www.freeview.com.au/umbraco/Surface/JsonString/ReadFromTVGuideDB/?state=%s&param=tvGuide&index=%d", $Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$opt->{region}}, $day_i;
+
+	my $parsed = JSON::cut_down_PP::decode_json($data);
+	unless (defined $parsed->{data}){
+		Shepherd::Common::log("Aborting: likely format change or blocked! Failed to parse channel list");
+		exit 10;
+	}
+	@available_channels = @{$parsed->{data}}
+}
+
+my $today = DateTime->today();
+
+foreach my $chan (@available_channels){
+	my $cleaned_name = Shepherd::FreeviewHelper::clean_channel_name($chan->{channel_name});
+	my $cleaned_code = Shepherd::FreeviewHelper::clean_channel_name($chan->{channel_code});
+
+	my $shep_channel;
+	$shep_channel = $channels->{$cleaned_code} if (defined $channels->{$cleaned_code});
+	unless ($shep_channel){
+		$shep_channel = $channels->{$cleaned_name} if (defined $channels->{$cleaned_name});
+	}
+
+	unless ($shep_channel){
+		Shepherd::Common::log("ignoring unwanted/unknown channel '$chan->{channel_name}'");
+		$stats{skipped_channels}++;
+		next;
+	}
+
+	$chan->{shepherd} = $shep_channel;
+
+	for (my $day_i = $offset; $day_i < 8 && $day_i < $opt->{days}+$offset; $day_i++){
+		if (!defined $opt->{fast}) {
+			my $sleeptimer = int(rand(5)) + 1;  # sleep anywhere from 1 to 5 seconds
+			$stats{slept_for} += $sleeptimer;
+			sleep $sleeptimer;
+		}
+		my $startdate = $today->clone()->add('days'=>$day_i)->iso8601().'Z';
+		$startdate =~ s/:/%3A/;
+		my $enddate = $today->clone()->add('days'=>$day_i+1)->iso8601().'Z';
+		$enddate =~ s/:/%3A/;
+		get_day_data($day_i, $chan, $startdate, $enddate, 0);
+	}
+}
+
+
+&write_data;
+Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
+exit(0);
+
+
+sub get_day_data {
+	my ($day_i, $chan, $startdate, $enddate, $data_offset) = @_;
+	my $url = sprintf "https://fvau-api-prod.switch.tv/content/v1/epgs/%s?start=%s&end=%s&sort=start&related_entity_types=episodes%%2Cshows&related_levels=1&include_related=1&expand_related=full&limit=100&offset=%d", $chan->{dvb_triplet}, $startdate, $enddate, $data_offset;
 	# get data
 	my $tries = 5;
-	#my $url = sprintf "http://au.tv.yahoo.com/tv-guide/data/%d/%d/%d/%d/",
 	my ($data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) =
-		Shepherd::Common::get_url(url => $url, retries => ($tries - 1), method => 'POST'); #get works, but the JS uses POST for some reason
+		Shepherd::Common::get_url(url => $url, retries => ($tries - 1));
 
 	$stats{failed_requests} += $failed_attempts;
 	$stats{slept_for} += $seconds_slept;
@@ -127,104 +186,116 @@ for (my $day_i = $offset; $day_i < 8 && $day_i < $opt->{days}+$offset; $day_i++)
 			Shepherd::Common::log("Aborting: likely format change or blocked!");
 			exit 10;
 		}
-		next;
+		return;
 	}
-	parse_json_data($data);
-}
-
-
-&write_data;
-Shepherd::Common::print_stats($progname, $version, $script_start_time, %stats);
-exit(0);
-
-
-sub parse_json_data {
-	my $data = shift;
 
 	unless (($data) && (length($data) > 1)) {
-	    print STDERR "ERROR: no data to parse.\n";
-	    return;
+		print STDERR "ERROR: no data to parse.\n";
+		return;
 	}
 
 	# my $decoded_data = decode_json($data);
 	my $decoded_data = JSON::cut_down_PP::decode_json($data);
 
-	foreach my $svc (@{$decoded_data->{TVGuide}}){
-		$svc = $svc->{service};
-		my $channel = Shepherd::FreeviewHelper::map_service($svc);
-		if ((!defined $channels->{$channel}) && (!defined $opt_channels->{$channel})) {
-			if (!defined $d->{ignored_channels}->{$channel}) {
-				$d->{ignored_channels}->{$channel} = 1;
-				$stats{skipped_channels}++;
-				Shepherd::Common::log("ignoring unwanted channel '$channel'");
-			}
-			next;
+	parse_json_data($decoded_data, $chan);
+
+	if (defined $decoded_data->{meta} && defined $decoded_data->{meta}->{pagination} && defined $decoded_data->{meta}->{pagination}->{more} && $decoded_data->{meta}->{pagination}->{more}){
+		get_day_data($day_i, $chan, $startdate, $enddate, $data_offset+$decoded_data->{meta}->{pagination}->{limit})
+	}
+}
+
+sub grep_category_field {
+	my ($categories, $prefix) = @_;
+	my @matches = grep { $_ =~ m/^$prefix\//; } @{$categories};
+	if (scalar @matches){
+		$matches[0] =~ s/^$prefix\///;
+		return $matches[0];
+	}
+	return 0;
+}
+
+sub parse_json_data {
+	my $decoded_data = shift;
+	my $chan = shift;
+
+	my $channel = $chan->{shepherd};
+
+
+	foreach my $programme (@{$decoded_data->{data}}) {
+
+		my $event_id = $programme->{id}.$programme->{start};
+
+		$stats{programmes}++;
+		$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
+
+		my $event_start = DateTime::Format::ISO8601->parse_datetime( $programme->{start} );
+		my $event_end = DateTime::Format::ISO8601->parse_datetime( $programme->{end} );
+
+		# store it in the correct XMLTV schema!
+		$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channel;
+
+		$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = DateTimeFormat::XMLTV->format_datetime($event_start);
+		$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	DateTimeFormat::XMLTV->format_datetime($event_end);
+
+		if (defined $programme->{related}->{shows}->[0]->{title}){
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{related}->{shows}->[0]->{title}, $opt->{lang} ]];
+		} elsif (defined $programme->{related}->{episodes}->[0]->{title}){
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{related}->{episodes}->[0]->{title}, $opt->{lang} ]];
+		} else {
+			die "no title found $programme->{id}";
 		}
 
-		foreach my $programme (@{$svc->{schedule}}) {
-			$programme = $programme->{programme};
+		if (defined $programme->{related}->{episodes}->[0]) {
+			my $episode = $programme->{related}->{episodes}->[0];
 
-			my $event_id = $programme->{event_id}.$programme->{date_time_duration}->{'@date_time_value'};
-
-			$stats{programmes}++;
-			$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
-
-			my $event_start = DateTime::Format::ISO8601->parse_datetime( $programme->{date_time_duration}->{'@date_time_value'} );
-			my ($hours, $minutes) = $programme->{date_time_duration}->{'@duration'} =~ m/(\d+):(\d+)/;
-			my $duration_obj = DateTime::Duration->new(hours=>$hours, minutes=>$minutes);
-			my $event_end = $event_start->clone()->add($duration_obj);
-
-			# store it in the correct XMLTV schema!
-			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $channels->{$channel} if (defined $channels->{$channel});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'channel'} = $opt_channels->{$channel} if (defined $opt_channels->{$channel});
-
-			$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = DateTimeFormat::XMLTV->format_datetime($event_start);
-			$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	DateTimeFormat::XMLTV->format_datetime($event_end);
-
-			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{title}, $opt->{lang} ]] if (defined $programme->{title});
-			if (defined $programme->{synopsis} && length($programme->{synopsis}) > 0) {
-				if ($programme->{synopsis} =~ s/\s*\(([12][90]\d{2})\)$//){#if synopsis ends with a year, its the date field
+			if (defined $episode->{synopsis} && length($episode->{synopsis}) > 0) {
+				if ($episode->{synopsis} =~ s/\s*\(([12][90]\d{2})\)$//){#if synopsis ends with a year, its the date field
 					$tv_guide->{$channel}->{data}->{$event_id}->{date} = $1;
 				}
-				$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = [ [ $programme->{synopsis}, $opt->{lang} ] ] if $programme->{synopsis};#check if again as may be empty
+				$tv_guide->{$channel}->{data}->{$event_id}->{'desc'} = [ [ $episode->{synopsis}, $opt->{lang} ] ] if $episode->{synopsis};#check if again as may be empty
 			}
-			$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = 	[[ $programme->{series}->{episode_title}, $opt->{lang} ]] if (defined $programme->{series} && defined $programme->{series}->{episode_title} && length($programme->{series}->{episode_title}) > 0);
 
-			my %genre, my $category;
-			$genre{movie} = 1 if ((defined $programme->{'@program_type'}) && ($programme->{'@program_type'} eq "movie"));
-			$genre{series} = 1 if ((defined $programme->{'series'}) && (defined $programme->{'series'}->{'@episode_number'}));
-			$category = $programme->{'@genre'} if (defined $programme->{'@genre'});
-			$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = 	[ &Shepherd::Common::generate_category($programme->{title}, $category, %genre) ];
+			#episode titles arent a thing atm, but separate field exits, use episode objects title if it differs just in case
+			if (defined $episode->{title} && $episode->{title} ne $tv_guide->{$channel}->{data}->{$event_id}->{'title'}->[0]->[0]) {
+				$tv_guide->{$channel}->{data}->{$event_id}->{'sub-title'} = [ [ $episode->{title}, $opt->{lang} ] ];
+			}
 
-			$tv_guide->{$channel}->{data}->{$event_id}->{'credits'}{'actor'} = [ split(/, /, $programme->{cast}) ] if (defined $programme->{cast} && length($programme->{cast}) > 0);
+			if (defined $episode->{categories}) {
+				my %genre, my $category;
+				$genre{movie} = 1 if (grep_category_field($episode->{categories}, "content_type") eq "movie");
+				$genre{series} = 1 if (grep_category_field($episode->{categories}, "content_type") eq "series");
+				$category = grep_category_field($episode->{categories}, "genres");
+				$tv_guide->{$channel}->{data}->{$event_id}->{'category'} = [ &Shepherd::Common::generate_category($programme->{title}, $category, %genre) ];
 
-			if (defined $programme->{'series'}){
-				my $season = $programme->{'series'}->{'@season_number'};
-				my $episode = $programme->{'series'}->{'@episode_number'};
-				if ($season || $episode) {
-					my $xmltv_ns = ($season ? ($season - 1) : "") ." . ". ($episode ? ($episode - 1) : "") ." . 0";
+				my $rating = grep_category_field($episode->{categories}, "classification");
+				if ($rating){
+					$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]];
+				}
+			}
+
+			if (defined $episode->{'episode_number'}) {
+				my $season = grep_category_field($episode->{categories}, "season_number");
+				my $episode_number = $episode->{'episode_number'};
+				if ($episode_number) {
+					my $xmltv_ns = ($season ? ($season - 1) : "") . " . " . ($episode_number ? ($episode_number - 1) : "") . " . 0";
 					$tv_guide->{$channel}->{data}->{$event_id}->{'episode-num'} = [ [ $xmltv_ns, 'xmltv_ns' ] ];
 				}
 			}
+		}
 
-			if (defined $programme->{'@attributes'}){
-				for my $attribute (split(/,/, $programme->{'@attributes'})){
-					if ($attribute eq "CC"){
-						$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ];
-					} elsif ($attribute eq "HD"){
-						$tv_guide->{$channel}->{data}->{$event_id}->{video}->{quality} = "HDTV";
-					}
+		if (defined $programme->{'tags'}){
+			for my $attribute (@{$programme->{'tags'}}){
+				if ($attribute eq "captioned"){
+					$tv_guide->{$channel}->{data}->{$event_id}->{'subtitles'} = 	[ { 'type' => 'teletext' } ];
+				} elsif ($attribute eq "hd"){#not seen, but maybe?
+					$tv_guide->{$channel}->{data}->{$event_id}->{video}->{quality} = "HDTV";
 				}
 			}
-
-			if (defined $programme->{'@classification'}){
-				my ($rating) =  $programme->{'@classification'} =~ m/\(([^)]+)\)/;
-				$tv_guide->{$channel}->{data}->{$event_id}->{'rating'} =	[[ $rating, 'ABA', undef ]] if $rating ne "";
-			}
-
-			$d->{seen_progs}->{$channel}++;
 		}
+
+		$d->{seen_progs}->{$channel}++;
 	}
+
 }
 
 ######################################################################################################
