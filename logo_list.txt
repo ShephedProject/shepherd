@@ -7,7 +7,6 @@
 #
 
 THEME	standard	Standard Free-to-air logos	http://svn.whuffy.com/index.fcgi/wiki/channel_icons
-THEME	lyngsat		Logos from lyngsat-logo.com	http://www.lyngsat-logo.com/tvcountry/au_1.html
 THEME	foxtel		Standard Foxtel logos		http://www.foxtel.com.au/channel/lineup.html
 THEME	wikipedia	Station logos from wikipedia	http://en.wikipedia.org/
 THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
@@ -17,24 +16,20 @@ THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
 
 ICON	ABC1	standard	http://img43.imageshack.us/img43/735/abc86ce2a644c39d7ffd529.png
 ICON	ABC1	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/8/8e/ABC1.svg/180px-ABC1.svg.png
-ICON	ABC1	lyngsat		http://www.lyngsat-logo.com/logo/tv/aa/abc_tv_au.jpg
 ICON	ABC1	yourtv		http://contentserver.com.au/assets/270208_abc-1.gif
 
 ICON	ABC2 / ABC4	standard	http://img691.imageshack.us/img691/1412/abc25c10eb48094ce03b5e4.png
 ICON	ABC2 / ABC4	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/3/38/ABC2.svg/180px-ABC2.svg.png
-ICON	ABC2 / ABC4	lyngsat		http://www.lyngsat-logo.com/logo/tv/aa/abc2_au.jpg
 ICON	ABC2 / ABC4	yourtv		http://contentserver.com.au/assets/270209_abc-2.gif
 
 #ICON    ABC3    standard        http://imagestore.ugbox.net/thumb/abc2_5c10eb48094ce03b5e46e8c0ec2.jpg
 ICON    ABC3    wikipedia       http://upload.wikimedia.org/wikipedia/en/thumb/f/fd/ABC3_logo.png/180px-ABC3_logo.png
-#ICON    ABC3    lyngsat         http://www.lyngsat-logo.com/logo/tv/aa/abc2_au.jpg
 ICON	ABC3	yourtv		http://contentserver.com.au/assets/270210_abc-3.gif
 
 ICON	ABC News 24	wikipedia   http://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/ABC_News_24_Logo.png/229px-ABC_News_24_Logo.png
 ICON	ABC News 24	yourtv	    http://contentserver.com.au/assets/275718_275459_compressed_abc_radio_24_smallest.gif
 
 ICON	Seven	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
-ICON	Seven	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/7network_aus.jpg
 ICON	Seven	yourtv		http://contentserver.com.au/assets/270212_7.gif
 
 ICON	7mate	yourtv		http://contentserver.com.au/assets/283993_7_mate_80x60.jpg
@@ -42,7 +37,6 @@ ICON	7mate	yourtv		http://contentserver.com.au/assets/283993_7_mate_80x60.jpg
 ICON	7TWO	yourtv		http://contentserver.com.au/assets/270205_7-two.gif
 
 ICON	Nine	standard	http://imagestore.ugbox.net/thumb/nine_53151871dd779ac2304e05ce9b2.jpg
-ICON	Nine	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/9network.jpg
 ICON	Nine	yourtv		http://contentserver.com.au/assets/270211_9.gif
 
 ICON	GEM	yourtv		http://contentserver.com.au/assets/284321_gem_logo_violet80x60.jpg
@@ -50,16 +44,13 @@ ICON	GEM	yourtv		http://contentserver.com.au/assets/284321_gem_logo_violet80x60.
 ICON	GO!	yourtv		http://contentserver.com.au/assets/270213_go.gif
 
 ICON	TEN	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
-ICON	TEN	lyngsat		http://www.lyngsat-logo.com/logo/tv/tt/ten_network.jpg
 ICON	TEN	yourtv		http://contentserver.com.au/assets/270216_ten.gif
 
 
 #ICON	ONE	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
-ICON	ONE	lyngsat		http://www.lyngsat-logo.com/logo/tv/oo/one_hd.jpg
 ICON	ONE	yourtv		http://contentserver.com.au/assets/270219_one-hd.gif
 
 ICON	SBS ONE		standard	http://img196.imageshack.us/img196/7526/sbs861c4b17d8fc1856b814.png
-ICON	SBS ONE		lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/sbs.jpg
 ICON	SBS ONE		yourtv		http://contentserver.com.au/assets/270224_sbs-one.gif
 
 #ICON    SBS TWO         standard        http://imagestore.ugbox.net/thumb/sbs_861c4b17d8fc1856b8142446ddf6.jpg
@@ -72,13 +63,10 @@ ICON	SBS HD	yourtv		http://contentserver.com.au/assets/270223_sbs-hd.gif
 
 # miscellaneous regional logos
 
-ICON	WIN	lyngsat		http://www.lyngsat-logo.com/logo/tv/ww/win_tv_au.jpg
 ICON	WIN	yourtv		http://contentserver.com.au/assets/270231_win.gif
 
-ICON	SC10	lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_ten.jpg
 ICON	SC10	yourtv		http://contentserver.com.au/assets/270228_sthncrosstv-ten.gif
 
-ICON    SCTV  lyngsat         http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_tv.jpg
 ICON	SCTV	yourtv		http://contentserver.com.au/assets/270226_sthncrosstv.gif
 
 ICON    Prime	wikipedia       http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
@@ -89,15 +77,10 @@ ICON	Prime HD	wikipedia	http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea
 ICON    TVS		wikipedia	http://upload.wikimedia.org/wikipedia/commons/thumb/d/df/TVS_Logo.svg/200px-TVS_Logo.svg.png
 ICON    TVS		yourtv		http://contentserver.com.au/assets/270229_tvs.gif
 
-ICON	NBN		lyngsat		http://www.lyngsat-logo.com/logo/tv/nn/nbn_au.jpg
 ICON	NBN		yourtv		http://contentserver.com.au/assets/270214_nbn.gif
 
-ICON	Central GTS/BKN	lyngsat		http://www.lyngsat-logo.com/logo/tv/cc/central_gts_bkn.jpg
-ICON	Imparja		lyngsat		http://www.lyngsat-logo.com/logo/tv/ii/imparja.jpg
 ICON	Imparja		yourtv		http://www.imparja.com/images/stories/bignewcube.png
-ICON	Channel 31	lyngsat		http://www.lyngsat-logo.com/logo/tv/cc/channel31_melbourne.jpg
 ICON	Channel 31	yourtv		http://mctcltd.org.au/header.jpg
-ICON	Access 31	lyngsat		http://www.lyngsat-logo.com/logo/tv/aa/access_tv31_perth.jpg
 
 # standard foxtel logos
 
