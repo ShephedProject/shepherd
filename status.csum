@@ -16,6 +16,6 @@ grabber         freeview            1.0.7	7d314b49651d2545c9f6852fcf9ed800e9b2cb
 reconciler      reconciler_mk2      0.58	53c4c0647abf244d0b22e7620bf1247e37abf689	8f8ee5f905bf4e844b67a557baa2b0403fb263c4
 postprocessor   metacritic          1.1	5e30f527c03bbddc31a2d649c5c5c50f63848c16	59fe1817de57012e3d449e807f3941ff9e683973
 postprocessor   augment_timezone    0.30	df61b40c0943bf7568442496081a4e90d9a30fed	8b8bf1be73c1d1f1d41c5ce5ae4ea038561cf3b3
-postprocessor	add_channel_icons   0.2	a4d3d745dfcbd02fdba7c979e7990f61efcc3206	b58fd6b9a2c3a263d2ad59e75840df64f33e3e62
+postprocessor	add_channel_icons   0.3	a4d3d745dfcbd02fdba7c979e7990f61efcc3206	1028b25e30378ecfd4e8ca3b5d9ef826aeba6381
 postprocessor	the_movie_db_augment  1.0	48e20d775acf9efb58f4f48002f20aff54154808	feaac994c23554098639494a62c8483bcd91e594
 END
