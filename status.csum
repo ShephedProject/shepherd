@@ -12,7 +12,7 @@ grabber         sbsweb              5.05	a4e72ca0de3ace9220948171c3455a6a4b3be50
 grabber         rex                 10.4.11	4ae53787498b74036bb6611ef260658a225e4842	ad91636be1b1d063aa8d9bbb1282fb156cc0419c
 grabber         foxtel_swf          5.03	64b38cade7e38491a6712b3289887592d18b9f60	217292d82361ab4722e8f17dc678d9c448411366
 grabber         abc_website         7.03	5b033781f567687e93c6cf785792bef96ac33125	31be91eb5ffdc65330e7b829f7a9194daa7f5a26
-grabber         freeview            1.0.7	7d314b49651d2545c9f6852fcf9ed800e9b2cb00	745b10b7c474aec346cf57a374b264b2b764e137
+#grabber         freeview            1.0.7	7d314b49651d2545c9f6852fcf9ed800e9b2cb00	745b10b7c474aec346cf57a374b264b2b764e137
 reconciler      reconciler_mk2      0.58	53c4c0647abf244d0b22e7620bf1247e37abf689	8f8ee5f905bf4e844b67a557baa2b0403fb263c4
 postprocessor   metacritic          1.1	5e30f527c03bbddc31a2d649c5c5c50f63848c16	59fe1817de57012e3d449e807f3941ff9e683973
 postprocessor   augment_timezone    0.30	df61b40c0943bf7568442496081a4e90d9a30fed	8b8bf1be73c1d1f1d41c5ce5ae4ea038561cf3b3
