@@ -6,7 +6,7 @@
 # THEME : theme name : theme description : preview (user) URL
 #
 
-THEME	standard	Standard Free-to-air logos	http://svn.whuffy.com/index.fcgi/wiki/channel_icons
+THEME	standard	Standard Free-to-air logos	https://github.com/ShephedProject/shepherd/wiki/channel_icons
 THEME	foxtel		Standard Foxtel logos		http://www.foxtel.com.au/channel/lineup.html
 THEME	wikipedia	Station logos from wikipedia	http://en.wikipedia.org/
 THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
