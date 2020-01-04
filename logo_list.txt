@@ -8,25 +8,6 @@
 
 THEME	standard	Standard Free-to-air logos	http://svn.whuffy.com/index.fcgi/wiki/channel_icons
 THEME	lyngsat		Logos from lyngsat-logo.com	http://www.lyngsat-logo.com/tvcountry/au_1.html
-THEME	frogman_hybrid	Hybrid themed logos (Frogman)	http://ash.ms/projects/channels/logos/frogman/hybrid
-THEME	frogman_black	Frogman Black TV Icon Theme	https://ash.ms/projects/channels/frogman-black-tv-icon-theme
-THEME	frogman_blue	Frogman Blue TV Icon Theme	https://ash.ms/projects/channels/frogman-blue-tv-icon-theme
-THEME	frogman_dark	Frogman Dark TV Icon Theme	https://ash.ms/projects/channels/frogman-dark-tv-icon-theme
-THEME	frogman_green	Frogman Green TV Icon Theme	https://ash.ms/projects/channels/frogman-green-tv-icon-theme
-THEME	frogman_orange	Frogman Orange TV Icon Theme	https://ash.ms/projects/channels/frogman-orange-tv-icon-theme
-THEME	frogman_plum	Frogman Plum TV Icon Theme	https://ash.ms/projects/channels/frogman-plum-tv-icon-theme
-THEME	frogman_warning	Frogman Warning TV Icon Theme	https://ash.ms/projects/channels/frogman-warning-tv-icon-theme
-THEME	frogman_yellow	Frogman Yellow TV Icon Theme	https://ash.ms/projects/channels/frogman-yellow-tv-icon-theme
-THEME	plain_plain	Plain Australian TV Logos	https://ash.ms/projects/channels/plain-australian-tv-logos
-THEME	strawman_azuria	Strawman Azuria TV Icon Theme	https://ash.ms/projects/channels/strawman-azuria-tv-icon-theme
-THEME	strawman_green	Strawman Green TV Icon Theme	https://ash.ms/projects/channels/strawman-green-tv-icon-theme
-THEME	t8_blue	T8 Blue TV Icon Theme	https://ash.ms/projects/channels/t8-blue-tv-icon-theme
-THEME	t8_green	T8 Green TV Icon Theme	https://ash.ms/projects/channels/t8-green-tv-icon-theme
-THEME	t8_orange	T8 Orange TV Icon Theme	https://ash.ms/projects/channels/t8-orange-tv-icon-theme
-THEME	t8_plum	T8 Plum TV Icon Theme	https://ash.ms/projects/channels/t8-plum-tv-icon-theme
-THEME	t8_warning	T8 Warning TV Icon Theme	https://ash.ms/projects/channels/t8-warning-tv-icon-theme
-THEME	t8_yellow	T8 Yellow TV Icon Theme	https://ash.ms/projects/channels/t8-yellow-tv-icon-theme
-THEME	t8_hybrid	Hybrid themed logos (T8)	http://ash.ms/projects/channels/logos/t8/hybrid
 THEME	foxtel		Standard Foxtel logos		http://www.foxtel.com.au/channel/lineup.html
 THEME	wikipedia	Station logos from wikipedia	http://en.wikipedia.org/
 THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
@@ -37,485 +18,77 @@ THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
 ICON	ABC1	standard	http://img43.imageshack.us/img43/735/abc86ce2a644c39d7ffd529.png
 ICON	ABC1	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/8/8e/ABC1.svg/180px-ABC1.svg.png
 ICON	ABC1	lyngsat		http://www.lyngsat-logo.com/logo/tv/aa/abc_tv_au.jpg
-ICON	ABC1	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/abc.png
-ICON	ABC1	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/abc.png
-ICON	ABC1	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/abc.png
-ICON	ABC1	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/abc.png
-ICON	ABC1	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/abc.png
-ICON	ABC1	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/abc.png
-ICON	ABC1	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/abc.png
-ICON	ABC1	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/abc.png
-ICON	ABC1	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/abc.png
-ICON	ABC1	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/abc.png
-ICON	ABC1	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/abc.png
-ICON	ABC1	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/abc.png
-ICON	ABC1	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/abc.png
-ICON	ABC1	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/abc.png
-ICON	ABC1	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/abc.png
-ICON	ABC1	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/abc.png
-ICON	ABC1	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/abc.png
-ICON	ABC1	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/abc.png
-ICON	ABC1	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/abc.png
 ICON	ABC1	yourtv		http://contentserver.com.au/assets/270208_abc-1.gif
 
 ICON	ABC2 / ABC4	standard	http://img691.imageshack.us/img691/1412/abc25c10eb48094ce03b5e4.png
 ICON	ABC2 / ABC4	wikipedia	http://upload.wikimedia.org/wikipedia/en/thumb/3/38/ABC2.svg/180px-ABC2.svg.png
 ICON	ABC2 / ABC4	lyngsat		http://www.lyngsat-logo.com/logo/tv/aa/abc2_au.jpg
-ICON	ABC2 / ABC4	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/abc2.png
-ICON	ABC2 / ABC4	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/abc2.png
-ICON	ABC2 / ABC4	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/abc2.png
-ICON	ABC2 / ABC4	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/abc2.png
-ICON	ABC2 / ABC4	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/abc2.png
-ICON	ABC2 / ABC4	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/abc2.png
-ICON	ABC2 / ABC4	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/abc2.png
-ICON	ABC2 / ABC4	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/abc2.png
-ICON	ABC2 / ABC4	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/abc2.png
-ICON	ABC2 / ABC4	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/abc2.png
-ICON	ABC2 / ABC4	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/abc2.png
-ICON	ABC2 / ABC4	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/abc2.png
-ICON	ABC2 / ABC4	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/abc2.png
-ICON	ABC2 / ABC4	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/abc2.png
-ICON	ABC2 / ABC4	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/abc2.png
-ICON	ABC2 / ABC4	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/abc2.png
-ICON	ABC2 / ABC4	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/abc2.png
-ICON	ABC2 / ABC4	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/abc2.png
-ICON	ABC2 / ABC4	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/abc2.png
 ICON	ABC2 / ABC4	yourtv		http://contentserver.com.au/assets/270209_abc-2.gif
 
 #ICON    ABC3    standard        http://imagestore.ugbox.net/thumb/abc2_5c10eb48094ce03b5e46e8c0ec2.jpg
 ICON    ABC3    wikipedia       http://upload.wikimedia.org/wikipedia/en/thumb/f/fd/ABC3_logo.png/180px-ABC3_logo.png
 #ICON    ABC3    lyngsat         http://www.lyngsat-logo.com/logo/tv/aa/abc2_au.jpg
-ICON    ABC3    frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/abc3.png
-ICON	ABC3	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/abc3.png
-ICON	ABC3	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/abc3.png
-ICON	ABC3	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/abc3.png
-ICON	ABC3	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/abc3.png
-ICON	ABC3	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/abc3.png
-ICON	ABC3	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/abc3.png
-ICON	ABC3	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/abc3.png
-ICON	ABC3	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/abc3.png
-ICON	ABC3	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/abc3.png
-ICON	ABC3	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/abc3.png
-ICON	ABC3	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/abc3.png
-ICON	ABC3	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/abc3.png
-ICON	ABC3	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/abc3.png
-ICON	ABC3	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/abc3.png
-ICON	ABC3	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/abc3.png
-ICON	ABC3	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/abc3.png
-ICON	ABC3	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/abc3.png
-ICON    ABC3    t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/abc3.png
 ICON	ABC3	yourtv		http://contentserver.com.au/assets/270210_abc-3.gif
 
-ICON	ABC News 24	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/abc-news-24.png
-ICON	ABC News 24	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/abc-news-24.png
-ICON	ABC News 24	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/abc-news-24.png
-ICON	ABC News 24	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/abc-news-24.png
-ICON	ABC News 24	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/abc-news-24.png
-ICON	ABC News 24	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/abc-news-24.png
-ICON	ABC News 24	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/abc-news-24.png
-ICON	ABC News 24	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/abc-news-24.png
-ICON	ABC News 24	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/abc-news-24.png
-ICON	ABC News 24	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/abc-news-24.png
-ICON	ABC News 24	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/abc-news-24.png
-ICON	ABC News 24	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/abc-news-24.png
-ICON	ABC News 24	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/abc-news-24.png
-ICON	ABC News 24	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/abc-news-24.png
-ICON	ABC News 24	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/abc-news-24.png
-ICON	ABC News 24	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/abc-news-24.png
-ICON	ABC News 24	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/abc-news-24.png
 ICON	ABC News 24	wikipedia   http://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/ABC_News_24_Logo.png/229px-ABC_News_24_Logo.png
 ICON	ABC News 24	yourtv	    http://contentserver.com.au/assets/275718_275459_compressed_abc_radio_24_smallest.gif
 
 ICON	Seven	standard	http://imagestore.ugbox.net/thumb/seven_e69f30e8baff7fcbab28feb8b9.jpg
 ICON	Seven	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/7network_aus.jpg
-ICON	Seven	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/seven.png
-ICON	Seven	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/seven.png
-ICON	Seven	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/seven.png
-ICON	Seven	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/seven.png
-ICON	Seven	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/seven.png
-ICON	Seven	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/seven.png
-ICON	Seven	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/seven.png
-ICON	Seven	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/seven.png
-ICON	Seven	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/seven.png
-ICON	Seven	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/seven.png
-ICON	Seven	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/seven.png
-ICON	Seven	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/seven.png
-ICON	Seven	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/seven.png
-ICON	Seven	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/seven.png
-ICON	Seven	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/seven.png
-ICON	Seven	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/seven.png
-ICON	Seven	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/seven.png
-ICON	Seven	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/seven.png
-ICON	Seven	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/seven.png
 ICON	Seven	yourtv		http://contentserver.com.au/assets/270212_7.gif
 
-ICON	7mate	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/seven-mate.png
-ICON	7mate	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/seven-mate.png
-ICON	7mate	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/seven-mate.png
-ICON	7mate	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/seven-mate.png
-ICON	7mate	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/seven-mate.png
-ICON	7mate	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/seven-mate.png
-ICON	7mate	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/seven-mate.png
-ICON	7mate	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/seven-mate.png
-ICON	7mate	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/seven-mate.png
-ICON	7mate	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/seven-mate.png
-ICON	7mate	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/seven-mate.png
-ICON	7mate	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/seven-mate.png
-ICON	7mate	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/seven-mate.png
-ICON	7mate	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/seven-mate.png
-ICON	7mate	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/seven-mate.png
-ICON	7mate	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/seven-mate.png
-ICON	7mate	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/seven-mate.png
 ICON	7mate	yourtv		http://contentserver.com.au/assets/283993_7_mate_80x60.jpg
 
-ICON    7TWO	frogman_hybrid  http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/seven-two.png
-ICON	7TWO	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/seven-two.png
-ICON	7TWO	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/seven-two.png
-ICON	7TWO	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/seven-two.png
-ICON	7TWO	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/seven-two.png
-ICON	7TWO	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/seven-two.png
-ICON	7TWO	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/seven-two.png
-ICON	7TWO	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/seven-two.png
-ICON	7TWO	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/seven-two.png
-ICON	7TWO	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/seven-two.png
-ICON	7TWO	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/seven-two.png
-ICON	7TWO	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/seven-two.png
-ICON	7TWO	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/seven-two.png
-ICON	7TWO	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/seven-two.png
-ICON	7TWO	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/seven-two.png
-ICON	7TWO	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/seven-two.png
-ICON	7TWO	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/seven-two.png
-ICON	7TWO	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/seven-two.png
-ICON    7TWO	t8_hybrid       http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/seven-two.png
 ICON	7TWO	yourtv		http://contentserver.com.au/assets/270205_7-two.gif
 
 ICON	Nine	standard	http://imagestore.ugbox.net/thumb/nine_53151871dd779ac2304e05ce9b2.jpg
 ICON	Nine	lyngsat		http://www.lyngsat-logo.com/logo/tv/num/9network.jpg
-ICON	Nine	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/nine.png
-ICON	Nine	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/nine.png
-ICON	Nine	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/nine.png
-ICON	Nine	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/nine.png
-ICON	Nine	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/nine.png
-ICON	Nine	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/nine.png
-ICON	Nine	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/nine.png
-ICON	Nine	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/nine.png
-ICON	Nine	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/nine.png
-ICON	Nine	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/nine.png
-ICON	Nine	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/nine.png
-ICON	Nine	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/nine.png
-ICON	Nine	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/nine.png
-ICON	Nine	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/nine.png
-ICON	Nine	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/nine.png
-ICON	Nine	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/nine.png
-ICON	Nine	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/nine.png
-ICON	Nine	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/nine.png
-ICON	Nine	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/nine.png
 ICON	Nine	yourtv		http://contentserver.com.au/assets/270211_9.gif
 
-ICON	GEM	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/gem.png
-ICON	GEM	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/gem.png
-ICON	GEM	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/gem.png
-ICON	GEM	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/gem.png
-ICON	GEM	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/gem.png
-ICON	GEM	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/gem.png
-ICON	GEM	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/gem.png
-ICON	GEM	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/gem.png
-ICON	GEM	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/gem.png
-ICON	GEM	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/gem.png
-ICON	GEM	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/gem.png
-ICON	GEM	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/gem.png
-ICON	GEM	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/gem.png
-ICON	GEM	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/gem.png
-ICON	GEM	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/gem.png
-ICON	GEM	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/gem.png
-ICON	GEM	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/gem.png
 ICON	GEM	yourtv		http://contentserver.com.au/assets/284321_gem_logo_violet80x60.jpg
 
-ICON    GO!     frogman_hybrid  http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/go.png
-ICON	GO!	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/go.png
-ICON	GO!	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/go.png
-ICON	GO!	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/go.png
-ICON	GO!	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/go.png
-ICON	GO!	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/go.png
-ICON	GO!	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/go.png
-ICON	GO!	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/go.png
-ICON	GO!	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/go.png
-ICON	GO!	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/go.png
-ICON	GO!	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/go.png
-ICON	GO!	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/go.png
-ICON	GO!	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/go.png
-ICON	GO!	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/go.png
-ICON	GO!	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/go.png
-ICON	GO!	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/go.png
-ICON	GO!	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/go.png
-ICON	GO!	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/go.png
-ICON    GO!     t8_hybrid       http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/go.png
 ICON	GO!	yourtv		http://contentserver.com.au/assets/270213_go.gif
 
 ICON	TEN	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
 ICON	TEN	lyngsat		http://www.lyngsat-logo.com/logo/tv/tt/ten_network.jpg
-ICON	TEN	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/ten.png
-ICON	TEN	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/ten.png
-ICON	TEN	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/ten.png
-ICON	TEN	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/ten.png
-ICON	TEN	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/ten.png
-ICON	TEN	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/ten.png
-ICON	TEN	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/ten.png
-ICON	TEN	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/ten.png
-ICON	TEN	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/ten.png
-ICON	TEN	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/ten.png
-ICON	TEN	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/ten.png
-ICON	TEN	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/ten.png
-ICON	TEN	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/ten.png
-ICON	TEN	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/ten.png
-ICON	TEN	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/ten.png
-ICON	TEN	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/ten.png
-ICON	TEN	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/ten.png
-ICON	TEN	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/ten.png
-ICON	TEN	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/ten.png
 ICON	TEN	yourtv		http://contentserver.com.au/assets/270216_ten.gif
 
-ICON	ELEVEN	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/eleven.png
-ICON	ELEVEN	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/eleven.png
-ICON	ELEVEN	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/eleven.png
-ICON	ELEVEN	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/eleven.png
-ICON	ELEVEN	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/eleven.png
-ICON	ELEVEN	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/eleven.png
-ICON	ELEVEN	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/eleven.png
-ICON	ELEVEN	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/eleven.png
-ICON	ELEVEN	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/eleven.png
-ICON	ELEVEN	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/eleven.png
-ICON	ELEVEN	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/eleven.png
-ICON	ELEVEN	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/eleven.png
-ICON	ELEVEN	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/eleven.png
-ICON	ELEVEN	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/eleven.png
-ICON	ELEVEN	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/eleven.png
-ICON	ELEVEN	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/eleven.png
-ICON	ELEVEN	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/eleven.png
 
 #ICON	ONE	standard	http://imagestore.ugbox.net/thumb/ten_953df6f5ce62f91c0068d5a3512f.jpg
 ICON	ONE	lyngsat		http://www.lyngsat-logo.com/logo/tv/oo/one_hd.jpg
-ICON	ONE	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/one-hd.png
-ICON	ONE	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/one.png
-ICON	ONE	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/one.png
-ICON	ONE	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/one.png
-ICON	ONE	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/one.png
-ICON	ONE	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/one.png
-ICON	ONE	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/one.png
-ICON	ONE	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/one.png
-ICON	ONE	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/one.png
-ICON	ONE	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/one.png
-ICON	ONE	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/one.png
-ICON	ONE	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/one.png
-ICON	ONE	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/one.png
-ICON	ONE	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/one.png
-ICON	ONE	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/one.png
-ICON	ONE	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/one.png
-ICON	ONE	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/one.png
-ICON	ONE	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/one.png
-ICON	ONE	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/one-hd.png
 ICON	ONE	yourtv		http://contentserver.com.au/assets/270219_one-hd.gif
 
 ICON	SBS ONE		standard	http://img196.imageshack.us/img196/7526/sbs861c4b17d8fc1856b814.png
 ICON	SBS ONE		lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/sbs.jpg
-ICON	SBS ONE		frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/sbs.png
-ICON	SBS ONE	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/sbs.png
-ICON	SBS ONE	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/sbs.png
-ICON	SBS ONE	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/sbs.png
-ICON	SBS ONE	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/sbs.png
-ICON	SBS ONE	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/sbs.png
-ICON	SBS ONE	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/sbs.png
-ICON	SBS ONE	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/sbs.png
-ICON	SBS ONE	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/sbs.png
-ICON	SBS ONE	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/sbs.png
-ICON	SBS ONE	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/sbs.png
-ICON	SBS ONE	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/sbs.png
-ICON	SBS ONE	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/sbs.png
-ICON	SBS ONE	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/sbs.png
-ICON	SBS ONE	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/sbs.png
-ICON	SBS ONE	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/sbs.png
-ICON	SBS ONE	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/sbs.png
-ICON	SBS ONE	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/sbs.png
-ICON	SBS ONE		t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/sbs.png
 ICON	SBS ONE		yourtv		http://contentserver.com.au/assets/270224_sbs-one.gif
 
 #ICON    SBS TWO         standard        http://imagestore.ugbox.net/thumb/sbs_861c4b17d8fc1856b8142446ddf6.jpg
-ICON    SBS TWO         frogman_hybrid 	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/sbs-two.png
-ICON	SBS TWO	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/sbs-two.png
-ICON	SBS TWO	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/sbs-two.png
-ICON	SBS TWO	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/sbs-two.png
-ICON	SBS TWO	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/sbs-two.png
-ICON	SBS TWO	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/sbs-two.png
-ICON	SBS TWO	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/sbs-two.png
-ICON	SBS TWO	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/sbs-two.png
-ICON	SBS TWO	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/sbs-two.png
-ICON	SBS TWO	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/sbs-two.png
-ICON	SBS TWO	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/sbs-two.png
-ICON	SBS TWO	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/sbs-two.png
-ICON	SBS TWO	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/sbs-two.png
-ICON	SBS TWO	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/sbs-two.png
-ICON	SBS TWO	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/sbs-two.png
-ICON	SBS TWO	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/sbs-two.png
-ICON	SBS TWO	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/sbs-two.png
-ICON	SBS TWO	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/sbs-two.png
-ICON    SBS TWO         t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/sbs-two.png
 ICON	SBS TWO		yourtv		http://contentserver.com.au/assets/270225_sbs-two.gif
 
 ICON	NITV	standard	http://www.safilm.com.au/library/NITVLOGOCOLOUR.jpg
 
 ICON	SBS HD	standard	http://img196.imageshack.us/img196/7526/sbs861c4b17d8fc1856b814.png
-ICON	SBS HD	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/sbs-hd.png
-ICON	SBS HD	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/sbs.png
-ICON	SBS HD	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/sbs.png
-ICON	SBS HD	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/sbs.png
-ICON	SBS HD	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/sbs.png
-ICON	SBS HD	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/sbs.png
-ICON	SBS HD	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/sbs.png
-ICON	SBS HD	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/sbs.png
-ICON	SBS HD	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/sbs.png
-ICON	SBS HD	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/sbs.png
-ICON	SBS HD	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/sbs.png
-ICON	SBS HD	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/sbs.png
-ICON	SBS HD	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/sbs.png
-ICON	SBS HD	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/sbs.png
-ICON	SBS HD	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/sbs.png
-ICON	SBS HD	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/sbs.png
-ICON	SBS HD	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/sbs.png
-ICON	SBS HD	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/sbs.png
-ICON	SBS HD	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/sbs-hd.png
 ICON	SBS HD	yourtv		http://contentserver.com.au/assets/270223_sbs-hd.gif
 
 # miscellaneous regional logos
 
 ICON	WIN	lyngsat		http://www.lyngsat-logo.com/logo/tv/ww/win_tv_au.jpg
-ICON    WIN	frogman_hybrid  http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/win.png
-ICON	WIN	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/win.png
-ICON	WIN	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/win.png
-ICON	WIN	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/win.png
-ICON	WIN	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/win.png
-ICON	WIN	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/win.png
-ICON	WIN	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/win.png
-ICON	WIN	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/win.png
-ICON	WIN	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/win.png
-ICON	WIN	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/win.png
-ICON	WIN	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/win.png
-ICON	WIN	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/win.png
-ICON	WIN	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/win.png
-ICON	WIN	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/win.png
-ICON	WIN	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/win.png
-ICON	WIN	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/win.png
-ICON	WIN	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/win.png
-ICON	WIN	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/win.png
-ICON    WIN	t8_hybrid       http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/win.png
 ICON	WIN	yourtv		http://contentserver.com.au/assets/270231_win.gif
 
 ICON	SC10	lyngsat		http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_ten.jpg
-ICON    SC10	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/southern-cross-ten.png
-ICON	SC10	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/southern-cross-ten.png
-ICON	SC10	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/southern-cross-ten.png
-ICON	SC10	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/southern-cross-ten.png
-ICON	SC10	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/southern-cross-ten.png
-ICON	SC10	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/southern-cross-ten.png
-ICON	SC10	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/southern-cross-ten.png
-ICON	SC10	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/southern-cross-ten.png
-ICON	SC10	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/southern-cross-ten.png
-ICON	SC10	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/southern-cross-ten.png
-ICON	SC10	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/southern-cross-ten.png
-ICON	SC10	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/southern-cross-ten.png
-ICON	SC10	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/southern-cross-ten.png
-ICON	SC10	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/southern-cross-ten.png
-ICON	SC10	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/southern-cross-ten.png
-ICON	SC10	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/southern-cross-ten.png
-ICON	SC10	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/southern-cross-ten.png
-ICON	SC10	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/southern-cross-ten.png
-ICON    SC10	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/southern-cross-ten.png
 ICON	SC10	yourtv		http://contentserver.com.au/assets/270228_sthncrosstv-ten.gif
 
 ICON    SCTV  lyngsat         http://www.lyngsat-logo.com/logo/tv/ss/southern_cross_tv.jpg
-ICON    SCTV  frogman_hybrid  http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/southern-cross-television.png
-ICON	SCTV	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/southern-cross-television.png
-ICON	SCTV	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/southern-cross-television.png
-ICON	SCTV	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/southern-cross-television.png
-ICON	SCTV	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/southern-cross-television.png
-ICON	SCTV	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/southern-cross-television.png
-ICON	SCTV	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/southern-cross-television.png
-ICON	SCTV	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/southern-cross-television.png
-ICON	SCTV	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/southern-cross-television.png
-ICON	SCTV	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/southern-cross-television.png
-ICON	SCTV	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/southern-cross-television.png
-ICON	SCTV	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/southern-cross-television.png
-ICON	SCTV	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/southern-cross-television.png
-ICON	SCTV	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/southern-cross-television.png
-ICON	SCTV	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/southern-cross-television.png
-ICON	SCTV	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/southern-cross-television.png
-ICON	SCTV	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/southern-cross-television.png
-ICON	SCTV	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/southern-cross-television.png
-ICON    SCTV  t8_hybrid       http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/southern-cross-television.png
 ICON	SCTV	yourtv		http://contentserver.com.au/assets/270226_sthncrosstv.gif
 
 ICON    Prime	wikipedia       http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
-ICON    Prime  	frogman_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/prime.png
-ICON	Prime	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/prime.png
-ICON	Prime	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/prime.png
-ICON	Prime	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/prime.png
-ICON	Prime	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/prime.png
-ICON	Prime	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/prime.png
-ICON	Prime	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/prime.png
-ICON	Prime	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/prime.png
-ICON	Prime	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/prime.png
-ICON	Prime	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/prime.png
-ICON	Prime	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/prime.png
-ICON	Prime	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/prime.png
-ICON	Prime	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/prime.png
-ICON	Prime	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/prime.png
-ICON	Prime	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/prime.png
-ICON	Prime	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/prime.png
-ICON	Prime	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/prime.png
-ICON	Prime	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/prime.png
-ICON    Prime  	t8_hybrid	http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/prime.png
 ICON	Prime	yourtv		http://contentserver.com.au/assets/270221_prime.gif
 
 ICON	Prime HD	wikipedia	http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/PrimeTelevision2001.svg/200px-PrimeTelevision2001.svg.png
-ICON    Prime HD  	frogman_hybrid  http://ash.ms/barstool/tv-channel-icons/icons-frogman-hybrid/png-myth/prime-hd.png
-ICON	Prime HD	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/prime.png
-ICON	Prime HD	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/prime-hd.png
-ICON	Prime HD	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/prime.png
-ICON	Prime HD	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/prime-hd.png
-ICON	Prime HD	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/prime.png
-ICON	Prime HD	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/prime.png
-ICON	Prime HD	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/prime.png
-ICON	Prime HD	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/prime.png
-ICON	Prime HD	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/prime-hd.png
-ICON	Prime HD	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/prime.png
-ICON	Prime HD	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/prime.png
-ICON	Prime HD	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/prime-hd.png
-ICON	Prime HD	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/prime.png
-ICON	Prime HD	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/prime.png
-ICON	Prime HD	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/prime.png
-ICON	Prime HD	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/prime.png
-ICON	Prime HD	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/prime.png
-ICON    Prime HD  	t8_hybrid       http://ash.ms/barstool/tv-channel-icons/icons-t8-hybrid/png-myth/prime-hd.png
 
 ICON    TVS		wikipedia	http://upload.wikimedia.org/wikipedia/commons/thumb/d/df/TVS_Logo.svg/200px-TVS_Logo.svg.png
 ICON    TVS		yourtv		http://contentserver.com.au/assets/270229_tvs.gif
 
-ICON	NBN	frogman_black	http://ash.ms/barstool/tv-channel-icons/icons-frogman-black/png-myth/nbn.png
-ICON	NBN	frogman_blue	http://ash.ms/barstool/tv-channel-icons/icons-frogman-blue/png-myth/nbn.png
-ICON	NBN	frogman_dark	http://ash.ms/barstool/tv-channel-icons/icons-frogman-dark/png-myth/nbn.png
-ICON	NBN	frogman_green	http://ash.ms/barstool/tv-channel-icons/icons-frogman-green/png-myth/nbn.png
-ICON	NBN	frogman_orange	http://ash.ms/barstool/tv-channel-icons/icons-frogman-orange/png-myth/nbn.png
-ICON	NBN	frogman_plum	http://ash.ms/barstool/tv-channel-icons/icons-frogman-plum/png-myth/nbn.png
-ICON	NBN	frogman_warning	http://ash.ms/barstool/tv-channel-icons/icons-frogman-warning/png-myth/nbn.png
-ICON	NBN	frogman_yellow	http://ash.ms/barstool/tv-channel-icons/icons-frogman-yellow/png-myth/nbn.png
-ICON	NBN	plain_plain	http://ash.ms/barstool/tv-channel-icons/icons-plain-plain/png-myth/nbn.png
-ICON	NBN	strawman_azuria	http://ash.ms/barstool/tv-channel-icons/icons-strawman-azuria/png-myth/nbn.png
-ICON	NBN	strawman_green	http://ash.ms/barstool/tv-channel-icons/icons-strawman-green/png-myth/nbn.png
-ICON	NBN	t8_blue	http://ash.ms/barstool/tv-channel-icons/icons-t8-blue/png-myth/nbn.png
-ICON	NBN	t8_green	http://ash.ms/barstool/tv-channel-icons/icons-t8-green/png-myth/nbn.png
-ICON	NBN	t8_orange	http://ash.ms/barstool/tv-channel-icons/icons-t8-orange/png-myth/nbn.png
-ICON	NBN	t8_plum	http://ash.ms/barstool/tv-channel-icons/icons-t8-plum/png-myth/nbn.png
-ICON	NBN	t8_warning	http://ash.ms/barstool/tv-channel-icons/icons-t8-warning/png-myth/nbn.png
-ICON	NBN	t8_yellow	http://ash.ms/barstool/tv-channel-icons/icons-t8-yellow/png-myth/nbn.png
 ICON	NBN		lyngsat		http://www.lyngsat-logo.com/logo/tv/nn/nbn_au.jpg
 ICON	NBN		yourtv		http://contentserver.com.au/assets/270214_nbn.gif
 
