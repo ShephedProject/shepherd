@@ -31,7 +31,7 @@ THEME	foxtel		Standard Foxtel logos		http://www.foxtel.com.au/channel/lineup.htm
 THEME	wikipedia	Station logos from wikipedia	http://en.wikipedia.org/
 THEME	yourtv		Logos from yourtv.com.au	http://www.yourtv.com.au/guide
 #
-# ICON : channel : theme name : [base_url]+url 
+# ICON : channel : theme name : [base_url]+url
 #
 
 ICON	ABC1	standard	http://img43.imageshack.us/img43/735/abc86ce2a644c39d7ffd529.png
