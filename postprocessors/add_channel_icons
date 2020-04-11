@@ -148,7 +148,7 @@ sub programme_cb( $ )
 sub load_logo_list
 {
     # fetch icon styles
-    $icon_styles = &Shepherd::Common::get_url('http://github.com/ShephedProject/shepherd/blob/release/logo_list.txt');
+    $icon_styles = &Shepherd::Common::get_url('https://raw.githubusercontent.com/ShephedProject/shepherd/release/logo_list.txt');
     exit 1 unless ($icon_styles);
 
     foreach my $line (split/\n/,$icon_styles) 
