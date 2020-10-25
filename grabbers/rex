@@ -699,18 +699,19 @@ sub translate_channel_name
     my $rchans;
 
     $rchans = {
-        'ABC ME' => 'ABCME',
-        'SBS VICELAND' => 'SBSVICELAND',
-        'SBS VICELAND HD' => 'SBSVICELANDHD',
-        'WIN GOLD' => 'WINGOLD',
-        'SC10 HD' => 'SC10HD',
-        'SCTV HD' => 'SCTVHD',
-        'ABC NEWS' => 'ABCNEWS',
-        'TDT HD' => 'TDTHD',
-        'Aboriginal TV' => 'AboriginalTV',
-        'Education TV' => 'EducationTV',
-       	'Tourism TV' => 'TourismTV',
-        '7flix Prime' => '7flixPrime'
+	    'ABC ME'                => 'ABCME',
+	    'SBS VICELAND'          => 'SBSVICELAND',
+	    'SBS VICELAND HD'       => 'SBSVICELANDHD',
+	    'WIN GOLD'              => 'WINGOLD',
+	    'SC10 HD'               => 'SC10HD',
+	    'SCTV HD'               => 'SCTVHD',
+	    'ABC NEWS'              => 'ABCNEWS',
+	    'TDT HD'                => 'TDTHD',
+	    'Aboriginal TV'         => 'AboriginalTV',
+	    'Education TV'          => 'EducationTV',
+	    'Tourism TV'            => 'TourismTV',
+	    '7flix Prime'           => '7flixPrime',
+	    '"ABC COMEDY/ABC Kids"' => '"ABC COMEDY/ABC KIDS"'
         };
 
     my $region = $opt->{region};
