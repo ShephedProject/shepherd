@@ -10,7 +10,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.03";
+my $version = "5.04";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -355,8 +355,9 @@ sub get_initial_page
 
 	Shepherd::Common::log(" - fetching initial page...");
 
-	$data = &get_url(url => "http://www.foxtel.com.au/tv-guide/grid", retries => 4);
-	die "Failed to retrieve initial page! Aborting..\n" if (!$data);
+	#disabled 25/10/20 as Foxtel seem to be checking user agents, and may be outright blocking this URL
+	#$data = &get_url(url => "http://www.foxtel.com.au/tv-guide/grid", retries => 4);
+	#die "Failed to retrieve initial page! Aborting..\n" if (!$data);
 
 	$data = &get_url(url => "https://epg.foxtel.com.au/epg-service/epg/EpgServiceV2?wsdl", retries => 4);
 	Shepherd::Common::log("DEBUG: get_initial_page got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
