@@ -1,5 +1,5 @@
 application     shepherd            1.9.13	97eb6f54378516af58b6dcfcd721d27e076f0237	466f6cfb7e3adfb2ee44065b79eaa4551077cf8d
-reference       channel_list        147	98db7e8c3adfc08745e79d61b60a83dca2e797db	0506df312c7011295fefee2a2f7f6c30d49f410a
+reference       channel_list        148	98db7e8c3adfc08745e79d61b60a83dca2e797db	964e2501c7592b45f6bfb07bb15edb3216e749f9
 reference       Shepherd/Common.pm  1.32	b8e59c9f7e4a13517eba974c40ba5745f3688e76	a5e3b89aa0f8e096328944bed0c9eab55e231e1d
 reference       Shepherd/MythTV.pm  0.42	85f83123706d06d99d896ee3d4767d6bdff71ca1	d5f6290d8b77d537f49f43d5167a54264b2599c7
 reference       Shepherd/Configure.pm   0.42	7666e8cf87e63ed27abac3c367c6862285db6028	4da919d2272647c4fae878fea86e2ee6fba665ea
@@ -9,10 +9,9 @@ reference		Shepherd/FreeviewHelper.pm	1.2	45a8ed942288d494668e48df2c5dbcc441125d
 reference       TMDB.pm             1.2.1.1	ce7621b4295c50bb93cb79f088cc0107807c1c0a	f49c6a479ae40bfa46ad64127b282a649fb6f314
 grabber         oztivo              2.64	00783671f4a4949e4b58ce7f8e6412be2c887ace	a7e799f10b7f3f707529b0ef1f906e72eb0d0528
 grabber         sbsweb              5.05	a4e72ca0de3ace9220948171c3455a6a4b3be50b	ddee42fe50268e882edda7545d36016b3e3e766b
-grabber         rex                 10.4.11	4ae53787498b74036bb6611ef260658a225e4842	ad91636be1b1d063aa8d9bbb1282fb156cc0419c
+grabber         rex                 10.4.11	4ae53787498b74036bb6611ef260658a225e4842	6096f89fd9f0b52701026ce54e4e2e0aba502546
 grabber         foxtel_swf          5.03	64b38cade7e38491a6712b3289887592d18b9f60	217292d82361ab4722e8f17dc678d9c448411366
 grabber         abc_website         7.03	5b033781f567687e93c6cf785792bef96ac33125	31be91eb5ffdc65330e7b829f7a9194daa7f5a26
-#grabber         freeview            1.0.7	7d314b49651d2545c9f6852fcf9ed800e9b2cb00	745b10b7c474aec346cf57a374b264b2b764e137
 reconciler      reconciler_mk2      0.58	53c4c0647abf244d0b22e7620bf1247e37abf689	8f8ee5f905bf4e844b67a557baa2b0403fb263c4
 postprocessor   metacritic          1.1	5e30f527c03bbddc31a2d649c5c5c50f63848c16	59fe1817de57012e3d449e807f3941ff9e683973
 postprocessor   augment_timezone    0.30	df61b40c0943bf7568442496081a4e90d9a30fed	8b8bf1be73c1d1f1d41c5ce5ae4ea038561cf3b3
