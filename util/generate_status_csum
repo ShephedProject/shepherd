@@ -13,6 +13,9 @@ use Digest::SHA;
 while (<>) {
 	chop;
 	$_ =~ s/\r//;
+	if (substr($_, 0, 1) eq '#'){
+		next;
+	}
 	print $_;
 
 	if ($_ =~ /(\S+)\s+(\S+)\s+(\S+)/g) {
@@ -32,6 +35,7 @@ sub print_csum
 	my $fname = shift;
 	my $sha = Digest::SHA->new();
 
+	print STDERR "$fname\n";
 	$sha->addfile($fname) or die "Unable to add file $fname to SHA hash: $!";
 	printf "\t%s",$sha->hexdigest;
 }
