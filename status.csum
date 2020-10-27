@@ -1,6 +1,6 @@
 application     shepherd            1.9.13	97eb6f54378516af58b6dcfcd721d27e076f0237	466f6cfb7e3adfb2ee44065b79eaa4551077cf8d
 reference       channel_list        148	98db7e8c3adfc08745e79d61b60a83dca2e797db	964e2501c7592b45f6bfb07bb15edb3216e749f9
-reference       Shepherd/Common.pm  1.32	b8e59c9f7e4a13517eba974c40ba5745f3688e76	a5e3b89aa0f8e096328944bed0c9eab55e231e1d
+reference       Shepherd/Common.pm  1.33	b8e59c9f7e4a13517eba974c40ba5745f3688e76	32f60aaeb9ba5ff6fa9df90e6dd4cef7dc3ceb00
 reference       Shepherd/MythTV.pm  0.42	85f83123706d06d99d896ee3d4767d6bdff71ca1	d5f6290d8b77d537f49f43d5167a54264b2599c7
 reference       Shepherd/Configure.pm   0.42	7666e8cf87e63ed27abac3c367c6862285db6028	4da919d2272647c4fae878fea86e2ee6fba665ea
 reference	    Shepherd/json_pp.pm 0.2	af7820870d7cdfd47a593929a14e06306e9fda7b	ce32f3b0dbfbc1664b69c97faa2639461d5d8c18
@@ -15,6 +15,6 @@ grabber         abc_website         7.03	5b033781f567687e93c6cf785792bef96ac3312
 reconciler      reconciler_mk2      0.58	53c4c0647abf244d0b22e7620bf1247e37abf689	8f8ee5f905bf4e844b67a557baa2b0403fb263c4
 postprocessor   metacritic          1.1	5e30f527c03bbddc31a2d649c5c5c50f63848c16	59fe1817de57012e3d449e807f3941ff9e683973
 postprocessor   augment_timezone    0.30	df61b40c0943bf7568442496081a4e90d9a30fed	8b8bf1be73c1d1f1d41c5ce5ae4ea038561cf3b3
-postprocessor	add_channel_icons   0.3	a4d3d745dfcbd02fdba7c979e7990f61efcc3206	1028b25e30378ecfd4e8ca3b5d9ef826aeba6381
+postprocessor	add_channel_icons   0.4	a4d3d745dfcbd02fdba7c979e7990f61efcc3206	c59512c379f7ad0dca79b079c5dddce0e3be30bc
 postprocessor	the_movie_db_augment  1.0	48e20d775acf9efb58f4f48002f20aff54154808	feaac994c23554098639494a62c8483bcd91e594
 END
