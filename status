@@ -1,6 +1,6 @@
 application     shepherd            1.9.13
 reference       channel_list        148
-reference       Shepherd/Common.pm  1.32
+reference       Shepherd/Common.pm  1.33
 reference       Shepherd/MythTV.pm  0.42
 reference       Shepherd/Configure.pm   0.42
 reference	    Shepherd/json_pp.pm 0.2
@@ -16,6 +16,6 @@ grabber         abc_website         7.03
 reconciler      reconciler_mk2      0.58
 postprocessor   metacritic          1.1
 postprocessor   augment_timezone    0.30
-postprocessor	add_channel_icons   0.3
+postprocessor	add_channel_icons   0.4
 postprocessor	the_movie_db_augment  1.0
 END
