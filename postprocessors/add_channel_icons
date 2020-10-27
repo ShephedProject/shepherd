@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 my $progname = "add_channel_icons";
-my $version = "0.2";
+my $version = "0.4";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
