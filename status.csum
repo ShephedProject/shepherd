@@ -1,11 +1,11 @@
-application     shepherd            1.9.13	97eb6f54378516af58b6dcfcd721d27e076f0237	466f6cfb7e3adfb2ee44065b79eaa4551077cf8d
+application     shepherd            1.9.14	97eb6f54378516af58b6dcfcd721d27e076f0237	42e05ff2f7655de8f71b70a595ae076ef2a65c16
 reference       channel_list        148	98db7e8c3adfc08745e79d61b60a83dca2e797db	964e2501c7592b45f6bfb07bb15edb3216e749f9
 reference       Shepherd/Common.pm  1.33	b8e59c9f7e4a13517eba974c40ba5745f3688e76	32f60aaeb9ba5ff6fa9df90e6dd4cef7dc3ceb00
 reference       Shepherd/MythTV.pm  0.42	85f83123706d06d99d896ee3d4767d6bdff71ca1	d5f6290d8b77d537f49f43d5167a54264b2599c7
 reference       Shepherd/Configure.pm   0.42	7666e8cf87e63ed27abac3c367c6862285db6028	4da919d2272647c4fae878fea86e2ee6fba665ea
 reference	    Shepherd/json_pp.pm 0.2	af7820870d7cdfd47a593929a14e06306e9fda7b	ce32f3b0dbfbc1664b69c97faa2639461d5d8c18
 reference		DateTimeFormat/XMLTV.pm		1.001	72dc2b212d733776e7f08a0e318ff5fea4e18b3a	c16512679b7051ae50ee025ea8e3225995a7e3ff
-reference		Shepherd/FreeviewHelper.pm	1.2	45a8ed942288d494668e48df2c5dbcc441125d84	9094efa4b235878975736c7c546bc6d081246e51
+reference		Shepherd/FreeviewHelper.pm	1.3	45a8ed942288d494668e48df2c5dbcc441125d84	cec86cdfe3f131a796c5606a1076e56637506b9b
 reference       TMDB.pm             1.2.1.1	ce7621b4295c50bb93cb79f088cc0107807c1c0a	f49c6a479ae40bfa46ad64127b282a649fb6f314
 grabber         oztivo              2.64	00783671f4a4949e4b58ce7f8e6412be2c887ace	a7e799f10b7f3f707529b0ef1f906e72eb0d0528
 grabber         sbsweb              5.05	a4e72ca0de3ace9220948171c3455a6a4b3be50b	ddee42fe50268e882edda7545d36016b3e3e766b
