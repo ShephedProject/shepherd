@@ -12,7 +12,7 @@ grabber         sbsweb              5.05
 grabber         rex                 10.4.12
 grabber         foxtel_swf          5.04
 grabber         abc_website         7.03
-grabber         freeview            1.0.8
+#grabber         freeview            1.0.8
 reconciler      reconciler_mk2      0.58
 postprocessor   metacritic          1.1
 postprocessor   augment_timezone    0.30
