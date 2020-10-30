@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.13';
+my $version = '1.9.14';
 
 # tv_grab_au
 # "Shepherd"
@@ -1694,7 +1694,12 @@ sub call_prog
 
     chdir (query_ldir($component, $progtype));
 
-    my $exec = sprintf "PERL5LIB=\"%s/references\" %s 2>&1|", $CWD, $prog;
+	my $perl_lib = sprintf "%s/references", $CWD;
+	if (exists $ENV{PERL5LIB}) {
+		$perl_lib = $perl_lib . $Config::Config{'path_sep'} . $ENV{PERL5LIB};
+	}
+
+    my $exec = sprintf "PERL5LIB=\"%s\" %s 2>&1|", $perl_lib, $prog;
     unless (open(PROG,$exec)) {
 	&log("warning: couldn't exec $component as \"$prog\": $!\n");
 	chdir $CWD;
