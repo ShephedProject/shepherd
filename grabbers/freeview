@@ -231,6 +231,17 @@ sub parse_json_data {
 
 		my $event_id = $programme->{id}.$programme->{start};
 
+		if (defined $programme->{related}->{shows}->[0]->{title}){
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{related}->{shows}->[0]->{title}, $opt->{lang} ]];
+		} elsif (defined $programme->{related}->{episodes}->[0]->{title}){
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{related}->{episodes}->[0]->{title}, $opt->{lang} ]];
+		} elsif (defined $programme->{title}){
+			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{title}, $opt->{lang} ]];
+		} else {
+			Shepherd::Common::log("no title found $programme->{id}, skipping");
+			next;
+		}
+
 		$stats{programmes}++;
 		$stats{duplicate_programmes}++ if ($tv_guide->{$channel}->{data}->{$event_id});
 
@@ -250,14 +261,6 @@ sub parse_json_data {
 
 		$tv_guide->{$channel}->{data}->{$event_id}->{'start'} = DateTimeFormat::XMLTV->format_datetime($event_start);
 		$tv_guide->{$channel}->{data}->{$event_id}->{'stop'} = 	DateTimeFormat::XMLTV->format_datetime($event_end);
-
-		if (defined $programme->{related}->{shows}->[0]->{title}){
-			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{related}->{shows}->[0]->{title}, $opt->{lang} ]];
-		} elsif (defined $programme->{related}->{episodes}->[0]->{title}){
-			$tv_guide->{$channel}->{data}->{$event_id}->{'title'} = 	[[ $programme->{related}->{episodes}->[0]->{title}, $opt->{lang} ]];
-		} else {
-			die "no title found $programme->{id}";
-		}
 
 		if (defined $programme->{related}->{episodes}->[0]) {
 			my $episode = $programme->{related}->{episodes}->[0];
