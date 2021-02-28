@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.03";
+my $version = "7.04";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -128,11 +128,11 @@ die "no channel file specified, see --help for instructions\n", if ($opt_channel
 Shepherd::Common::setup_ua('agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-us)');
 
 my %abc_channel_to_shep = (
-	"ABC1"     => "ABC",
-	"ABC2"     => "ABC COMEDY/ABC KIDS",
+	"ABC1"     => "ABC TV",
+	"ABC2"     => "ABC Kids/ABC TV Plus",
 	"ABC3"     => "ABCME",
-	"ABC4KIDS" => "ABC COMEDY/ABC KIDS",
-	"ABCHD"    => "ABC HD",
+	"ABC4KIDS" => "ABC Kids/ABC TV Plus",
+	"ABCHD"    => "ABC TV HD",
 	"ABCN"     => "ABCNEWS",
 	"7"        => "Seven",
 	"7FO"      => "7food network",
