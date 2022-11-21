@@ -1151,4 +1151,59 @@ sub testxmltvtimez {
 
 ##########################################################################
 
+#Used by rex & chanscan
+# requires $chan to find, and an hash of known shepherd channels (full channel_list or configured chans), value doesnt matter
+sub translate_channel_name
+{
+    my ($chan, $channels_list) = @_;
+
+    #if already good, return it
+    return $chan if ($channels_list->{$chan});
+
+    #static remaps
+    my $rchans;
+
+    $rchans = {
+        'ABC ME'                => 'ABCME',
+        'SBS VICELAND'          => 'SBSVICELAND',
+        'SBS VICELAND HD'       => 'SBSVICELANDHD',
+        'WIN GOLD'              => 'WINGOLD',
+        'SC10 HD'               => 'SC10HD',
+        'SCTV HD'               => 'SCTVHD',
+        'ABC NEWS'              => 'ABCNEWS',
+        'TDT HD'                => 'TDTHD',
+        'Aboriginal TV'         => 'AboriginalTV',
+        'Education TV'          => 'EducationTV',
+        'Tourism TV'            => 'TourismTV',
+        '7flix Prime'           => '7flixPrime',
+        '9Go!'                  => 'GO!',
+        '9Gem'                  => 'GEM',
+        '7TWO HD QLD'           => '7two HD',#seen in yourtv
+    };
+
+    if ($rchans->{$chan}){
+        return $rchans->{$chan};
+    }
+
+    #check lowercase match
+    foreach my $configured_channel (keys %{$channels_list}) {
+        if (lc $chan eq lc $configured_channel) {
+            return $configured_channel
+        }
+    }
+
+    #Numbers to names
+    return "Seven" if ($chan eq "7");
+    return "Nine" if ($chan eq "9");
+    #10 already migrated to numbers
+
+    #10HD vs 10 HD (inconsistency in some guide sources, whatever first got into Shep can stay)
+    #remember if they're already correct we won't get here
+    return "10HD" if ($chan eq "10 HD" && $channels_list->{"10HD"});
+    return "10 HD" if ($chan eq "10HD" && $channels_list->{"10 HD"});
+
+    #nothing found, bail
+    return $chan
+}
+
 1;
