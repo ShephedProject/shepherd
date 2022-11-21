@@ -31,6 +31,13 @@ my %REGIONS =
 # Subs: Configuration
 # -----------------------------------------
 
+sub get_region_name
+{
+    my ($region_num) = @_;
+    return $REGIONS{$region_num} if ($REGIONS{$region_num});
+    return "INVALID";
+}
+
 sub configure
 {
     if ($::opt->{configure} ne '1')
