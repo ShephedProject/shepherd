@@ -101,6 +101,7 @@ sub map_service {
 
 sub clean_channel_name {
 	my $channel = shift;
+    $channel =~ s/^\s+|\s+$//g;#trim leading/trailing whitespace because Freeview is sometimes poor quality
 	$channel =~ s/ (NT|QLD|NSW|VIC|ACT|TAS|Toowoomba|SA|South East SA|WA|Mid NC|Coffs Harbour|Coffs|Canberra|Shepparton|Mildura|Wollongong|New Eng|Tamworth|Cairns|Orange|Albury|Port Macquarie|Taree|Wide Bay|Tas|Hobart|Mackay|Gippsland|Sunshine Coast|Gold Coast|Gold C|Ballarat|Townsville|Batemans Bay|South Coast|Newc|Newcastle|Bendigo|Cent C|Central C|Rockhampton|Wagga Wagga|Wagga|Griffith|Adel|SA Lox|Lox|Central - South|Central - North|Darwin|Broken Hill|Port Lincoln|Perth|Sydney|Melbourne|Brisbane|Adelaide)$//;
 
 	$channel = $channel_code_to_shep{$channel} if (defined$channel_code_to_shep{$channel});
