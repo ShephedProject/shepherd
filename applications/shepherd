@@ -553,7 +553,7 @@ sub install
 
     # have we previously downloaded it but haven't been able to install it
     # (due to a failed test or failed dependencies or something like that)?
-    if ((-e "$newfile") && (-s "$newfile") && (defined $components_pending_install->{$proggy})) {
+    if ((-e "$newfile") && (-s "$newfile") && (defined $components_pending_install->{$proggy}) && csum_file($newfile) eq $csum2) {
 	&log("Appear to have previously downloaded $proggy v$latestversion.\n");
 	$config = Data::Dumper->Dump([$components_pending_install->{$proggy}->{config}], ["config"]);
     } else {
