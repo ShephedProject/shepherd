@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '10.4.12';
+my $version  = '10.4.13';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -636,7 +636,7 @@ sub parse_guide
     foreach my $row (@$rows)
     {
 	my $channame = $row->{name};
-	my $curchan = translate_channel_name($channame);
+	my $curchan = Shepherd::Common::translate_channel_name($channame, $channels);
 	push @channels_seen, $channame;
 	if (!$channels->{$curchan})
 	{ 
@@ -688,36 +688,6 @@ print "Ignoring unsubscribed channel $curchan.\n";
 	    }
 	}
     }
-}
-
-# The different grabber sources do not necessarily use the same channel names.
-# This func translates yourtv.com.au channel names into official shepherd names.
-sub translate_channel_name
-{
-    my ($chan) = @_;
-
-    my $rchans;
-
-    $rchans = {
-	    'ABC ME'                => 'ABCME',
-	    'SBS VICELAND'          => 'SBSVICELAND',
-	    'SBS VICELAND HD'       => 'SBSVICELANDHD',
-	    'WIN GOLD'              => 'WINGOLD',
-	    'SC10 HD'               => 'SC10HD',
-	    'SCTV HD'               => 'SCTVHD',
-	    'ABC NEWS'              => 'ABCNEWS',
-	    'TDT HD'                => 'TDTHD',
-	    'Aboriginal TV'         => 'AboriginalTV',
-	    'Education TV'          => 'EducationTV',
-	    'Tourism TV'            => 'TourismTV',
-	    '7flix Prime'           => '7flixPrime',
-	    '"ABC COMEDY/ABC Kids"' => '"ABC COMEDY/ABC KIDS"'
-        };
-
-    my $region = $opt->{region};
-
-    return $chan unless ($rchans->{$chan});
-    return $rchans->{$chan};
 }
 
 sub strip_html_codes

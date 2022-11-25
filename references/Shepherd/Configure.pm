@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.41';
+my $version = '0.43';
 
 use strict;
 no strict 'refs';
@@ -30,6 +30,13 @@ my %REGIONS =
 # -----------------------------------------
 # Subs: Configuration
 # -----------------------------------------
+
+sub get_region_name
+{
+    my ($region_num) = @_;
+    return $REGIONS{$region_num} if ($REGIONS{$region_num});
+    return "INVALID";
+}
 
 sub configure
 {

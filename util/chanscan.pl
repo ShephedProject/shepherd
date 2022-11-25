@@ -13,6 +13,7 @@ use lib 'references';
 use lib '../references';
 
 use Shepherd::FreeviewHelper;
+use Shepherd::Configure;
 
 $| = 1;
 
@@ -55,8 +56,14 @@ open(my $csv, ">", "channel_mappings.csv");
 print $csv "Shepherd Channel,Rex Name,Freeview Name,Rex LCN,Freeview LCN\n\n";
 
 foreach my $region (sort {$a <=> $b} keys %$region_channels) {
-	printf "Region %3d: \n", $region;
+	printf "Region %3d (%s): \n", $region, Shepherd::Configure::get_region_name($region);
 	printf $csv "Region %3d: \n", $region;
+
+    my %known_channels;
+    foreach my $chan (@{$region_channels->{$region}})
+    {
+        $known_channels{$chan} = 1;
+    }
 
 	my $yourtv_url = sprintf $DATASOURCE_yourtv, $region;
 
@@ -70,7 +77,7 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 
 	foreach my $chandata (@{$yourtv_data}) {
 		if (defined $chandata->{name}) {
-			my $name = $chandata->{name};
+			my $name = Shepherd::Common::translate_channel_name($chandata->{name}, \%known_channels);
 			$name = $known_remaps{$name} if defined $known_remaps{$name};
 			push @yourtv_channels, { 'name'=>$name, 'lcn'=> $chandata->{number} };
 			$yourtv_by_lcn{$chandata->{number}} = $name;
@@ -135,9 +142,11 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 			}
 		}
 		elsif (defined($Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$region}) && @b == @freeview_channels) {
-			print " ? \"$chan\" unknown to Freeview\n";
+			#moved inside the loop as FV is missing lots in regional, only print if we can find an LCN match
+            #print " ? \"$chan\" unknown to Freeview\n";
 			foreach my $yourtv_chan (@yourtv_channels){
 				if ($yourtv_chan->{name} eq $chan && defined $freeview_by_lcn{$yourtv_chan->{lcn}}){
+                    print " ? \"$chan\" unknown to Freeview\n";
 					print "\texists as \"".$freeview_by_lcn{$yourtv_chan->{lcn}}."\" based on YourTV match\n";
 					$special_matches{freeview}->{$region}->{$freeview_by_lcn{$yourtv_chan->{lcn}}} = $chan;
 					@b = grep ($freeview_by_lcn{$yourtv_chan->{lcn}} ne $_->{name}, @b);
@@ -155,6 +164,10 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 
 	foreach my $chan (@freeview_channels) {
 		print " ! \"$chan->{name}\" in Freeview but not channels_list.\n";
+        my $translated_channel_name = Shepherd::Common::translate_channel_name($chan, \%known_channels);
+        if ($known_channels{$translated_channel_name}){
+            print "\tWARN: exists as \"".$translated_channel_name."\" in common fun\n";
+        }
 	}
 
 	print $csv "\n";
