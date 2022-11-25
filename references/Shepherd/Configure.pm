@@ -1,7 +1,7 @@
 
 package Shepherd::Configure;
 
-my $version = '0.41';
+my $version = '0.43';
 
 use strict;
 no strict 'refs';
