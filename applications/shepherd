@@ -908,25 +908,24 @@ sub no_data
 # Report any pending stats to main server.
 sub report_stats
 {
-#    my $postvars = build_stats();
-#    return unless $postvars;
-#
-#    if ($opt->{nonotify} or $opt->{dontcallgrabbers})
-#    {
-#	&log("Not posting usage statistics due to --" . ($opt->{nonotify} ? 'nonotify' : 'dontcallgrabbers' ) . " option.\n");
-#	&log("Would have posted: ".Dumper($pending_messages)) if ($debug);
-#    }
-#    else
-#    {
-#	&log("Posting anonymous usage statistics.\n");
-#	return 0 unless (fetch_file("http://www.whuffy.com/report.cgi", undef, 1, $postvars));
-#    }
+    my $postvars = build_stats();
+    return unless $postvars;
+
+    if ($opt->{nonotify} or $opt->{dontcallgrabbers})
+    {
+	&log("Not posting usage statistics due to --" . ($opt->{nonotify} ? 'nonotify' : 'dontcallgrabbers' ) . " option.\n");
+	&log("Would have posted: ".Dumper($pending_messages)) if ($debug);
+    }
+    else
+    {
+	&log("Posting anonymous usage statistics.\n");
+	return 0 unless (fetch_file("https://shepherd.victory.id.au/report", undef, 1, $postvars));
+    }
 
     # successful post, clear out our pending messages
     $pending_messages = undef;
 
-#    return 1; # made changes
-	return 0;
+    return 1; # made changes
 }
 
 # gather pending messages
