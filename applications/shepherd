@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.15';
+my $version = '1.9.16';
 
 # tv_grab_au
 # "Shepherd"
