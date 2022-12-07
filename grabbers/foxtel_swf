@@ -10,7 +10,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.04";
+my $version = "5.05";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -259,6 +259,7 @@ sub get_url
 	$stats{slept_for} += $seconds_slept;
 	$stats{bytes_fetched} += $bytes_fetched;
 
+	return ($html_data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts) if wantarray;
 	return undef if ((!$html_data) || (!$success));
 	return $html_data;
 }
@@ -367,7 +368,7 @@ sub get_initial_page
 
 sub get_reference_data
 {
-	my $data, my $postvars;
+	 my $postvars;
 	
 	Shepherd::Common::log(" - fetching reference data...");
 	
@@ -378,9 +379,9 @@ sub get_reference_data
 		"</s:InitialiseEpgIn>".
 		$d->{common_post_end};
 	
-	$data = &soap_request("InitialiseEpg", $postvars);
+	my ($data, $InitialiseEpgSuccess, $statusMessage) = &soap_request("InitialiseEpg", $postvars);
 	
-	die "Failed to get ReferenceData\n" if !$data;
+	die "Failed to get ReferenceData: $statusMessage\n" if !$data;
 
 	Shepherd::Common::log("DEBUG: get_reference_data got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 

@@ -2,7 +2,7 @@
 #
 # "Rex"
 
-my $version  = '10.4.13';
+my $version  = '10.4.14';
 
 # An Australian TV Guide Grabber (a.k.a. tv_grab_au)
 # by Max Barry
@@ -468,11 +468,12 @@ sub refresh_ua
 
   # Set initial cookie
   my $url = "$DATASOURCE/guide/default.aspx?action=change&region_id=" . $opt->{region};
-  unless (get_page(url => $url, retries => 4)) # Try hard to fetch main page
+  my ($page, $success, $statusMessage) = get_page(url => $url, retries => 4);# Try hard to fetch main page
+  unless ($success)
   {
       print "Unable to fetch region page. No connectivity? Exiting.\n";
       print stats(1);
-      die "Can't acquire region cookie.\n";
+      die "Can't acquire region cookie. $statusMessage\n";
   }
 
   $dcount = 0;
@@ -607,7 +608,7 @@ sub timestats
 
 sub get_page
 {
-  my $ret = Shepherd::Common::get_url(@_);
+  my ($ret, $success, $statusMessage) = Shepherd::Common::get_url(@_);
   if ($stats{successful_requests} and $stats{failed_requests} > ($stats{successful_requests} * 5))
   {
       printf "Exiting: %d failed network requests vs %d successes.\n",
@@ -618,6 +619,10 @@ sub get_page
   $ret =~ s/&nbsp;/ /g if ($ret);
   $ret =~ s#[\x{2018}]#\'#g if ($ret);
   $ret =~ s#[\x{2019}]#\'#g if ($ret);
+  if (wantarray){
+      return ($ret, $success, $statusMessage);
+  }
+  return undef if (!$success);
   return $ret;
 }
 
