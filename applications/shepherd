@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.16';
+my $version = '1.9.17';
 
 # tv_grab_au
 # "Shepherd"
@@ -1517,7 +1517,8 @@ sub query_component_type
     foreach (keys %$components)
     {
 	if ($components->{$_}->{type} and $components->{$_}->{type} eq $progtype) {
-	    if (defined $conf) {
+	    next if ($_ eq 'yahoo7widget');
+		if (defined $conf) {
 		push (@ret, $_) if (query_config($_,$conf) eq $val);
 	    } else {
 		push (@ret, $_);
