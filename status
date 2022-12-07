@@ -9,7 +9,7 @@ reference		Shepherd/FreeviewHelper.pm	1.4
 reference       TMDB.pm             1.2.1.1
 grabber         oztivo              2.65
 grabber         sbsweb              5.05
-grabber         rex                 10.4.13
+grabber         rex                 10.4.14
 grabber         foxtel_swf          5.04
 grabber         abc_website         7.04
 #grabber         freeview            1.0.8
