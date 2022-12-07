@@ -11,7 +11,7 @@
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '5.04';
+my $version = '5.06';
 
 use strict;
 use warnings;
@@ -106,7 +106,7 @@ sub get_guide_data
 
 		my $url = "$URL/day/$daystr/location/$loc";
 		my $guidedata = &Shepherd::Common::get_url($url);
-		exit 11 unless ($guidedata);
+		last unless ($guidedata);
 
 		Encode::from_to($guidedata, "UTF-8", "iso-8859-1");
 
@@ -122,10 +122,12 @@ sub parse_guide
     &log("Parsing guide page (Day $day).") if ($debug);
 
     my $decoded_json;
+	my $line_found = 0;
     foreach my $line (split /^/, $guidedata)
     {
 		if ($line =~ /^\s*tv:(\s*\[\{.*),/)
 		{
+			$line_found = 1;
 			$line = '{ "tv": ' . $1 . '}';
 			#replace fancy characters to something that iso-8859-1 can encode
 			$line =~ s/\\u2018/\\u0027/g;#single quote
@@ -140,8 +142,8 @@ sub parse_guide
     }
     unless ($decoded_json)
     {
-		&log("ERROR: Unable to parse $daystr (Day $day)!");
-		exit 11;
+		&log("ERROR: Unable to parse $daystr (Day $day)! Line found: $line_found");
+		return;
     }
 
     my @channels = @{$decoded_json->{'tv'}};
