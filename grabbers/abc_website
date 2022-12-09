@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.04";
+my $version = "7.05";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
