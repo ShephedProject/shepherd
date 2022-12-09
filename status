@@ -10,7 +10,7 @@ reference       TMDB.pm             1.2.1.1
 grabber         oztivo              2.65
 grabber         sbsweb              5.06
 grabber         rex                 10.4.14
-grabber         foxtel_swf          5.05
+grabber         foxtel_swf          5.06
 grabber         abc_website         7.05
 #grabber         freeview            1.0.8
 reconciler      reconciler_mk2      0.58

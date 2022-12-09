@@ -10,7 +10,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.05";
+my $version = "5.06";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -520,20 +520,26 @@ sub channel_name_munger
     my $rchans;
 
     $rchans = {
-        'ABCComedy' => 'ABC COMEDY/ABC KIDS',
-        'ABCNews' => 'ABCNEWS',
-        'Channel9' => 'Nine',
-        'Channel7' => 'Seven',	
-	'7Flix' => '7flix',
-	'Channel10' => 'TEN',
-	'10HD' => '10 HD',
- 	'10BOLD' => '10 Bold',
-        '10Peach' => '10 Peach',	
-        'ABCHD' => 'ABC HD',
-        'RACINGCOM' => 'RACING.COM',
-        'SBSFood' => 'SBS Food',
-        'YourMoney' => 'Your Money',
-        'SBSHD' => 'SBS HD'
+		'ABC'              => 'ABC TV',
+		'ABCKids'          => 'ABC Kids/ABC TV Plus',
+		'ABCNews'          => 'ABCNEWS',
+		'Channel9'         => 'Nine',
+		'9GemHD'           => '9Gem HD',
+		'Channel7'         => 'Seven',
+		'7Flix'            => '7flix',
+		'Channel10'        => 'TEN',
+		'10HD'             => '10 HD',
+		'10BOLD'           => '10 BOLD',
+		'10Peach'          => '10 Peach',
+		'ABCTVHD'          => 'ABC TV HD',
+		'RACINGCOM'        => 'RACING.COM',
+		'SBSFood'          => 'SBS Food',
+		'YourMoney'        => 'Your Money',
+		'SBSHD'            => 'SBS HD',
+		'SBSWorldwatch'    => 'SBS World Watch',
+		'7mateHD'          => '7mate HD',
+		'SBSVicelandHD'    => 'SBSVICELANDHD',
+		'SBSWorldMoviesHD' => 'SBS World Movies'
         };
 
     return $chan unless ($rchans->{$chan});
