@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.04";
+my $version = "7.05";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -141,7 +141,7 @@ my %abc_channel_to_shep = (
 	"TENHD"    => "10 HD",
 	"ONE"      => "10 Bold",
 	"11"       => "10 Peach",
-	"SPREE"    => "SpreeTV",
+	"SPREE"    => "gecko",
 	"9"        => "Nine",
 	"YMON"     => "Your Money",
 	"GEM"      => "9Gem",
@@ -154,7 +154,10 @@ my %abc_channel_to_shep = (
 	"44"       => "44Adelaide",
 	"SC"       => "SCTV",
 	"SCHD"     => "SCTVHD",
-	"TDHD"     => "TDTHD"
+	"TDHD"     => "TDTHD",
+	"SBSWW"    => "SBS World Watch",
+	"SHAKE"    => "10 SHAKE",
+	"31"       => "Channel 31"
 );
 
 my %region_to_tz = (
@@ -420,6 +423,10 @@ sub get_day_data
 		&log("Data empty for $url");
 		return;
 	}
+	if ($data =~ m/<!DOCTYPE/i){
+		&log("got html instead of json for $url");
+		return;
+	}
 
 	$data =~ s/\\u2018/\\u0027/g;#single quote
 	$data =~ s/\\u2019/\\u0027/g;#single quote
@@ -437,7 +444,7 @@ sub get_day_data
 	foreach my $schedule (@{$decoded_data->{schedule}}){
 		my $chan = $schedule->{channel};
 		die "empty chan wut" if $chan eq "";
-		$chan = $abc_channel_to_shep{$chan} if defined $abc_channel_to_shep{$chan};
+		$chan = $abc_channel_to_shep{$chan} if (defined $abc_channel_to_shep{$chan} && !defined $channels->{$chan});
 		unless (defined $channels->{$chan} && ($do_all_fta || $chan =~ m/^ABC/i)){
 			&log("Skipping unwanted or unknown channel '$chan'");
 			next;
