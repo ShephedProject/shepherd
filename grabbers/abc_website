@@ -423,6 +423,10 @@ sub get_day_data
 		&log("Data empty for $url");
 		return;
 	}
+	if ($data =~ m/<!DOCTYPE/i){
+		&log("got html instead of json for $url");
+		return;
+	}
 
 	$data =~ s/\\u2018/\\u0027/g;#single quote
 	$data =~ s/\\u2019/\\u0027/g;#single quote
