@@ -43,7 +43,7 @@ use HTTP::Cache::Transparent (
 #
 my $progname = 'oztivo';
 my $nicename = 'OzTivo';
-my $version = '2.65';
+my $version = '2.66';
 my $config_file = "$progname.pw";
 my $output_file = undef;
 my $channels_file;
@@ -61,6 +61,223 @@ my $channels, my $opt_channels;
 #
 my $user;
 my $pw;
+
+
+################################################################################
+# Routine for forcing the timezone of a listing to the local time zone.
+# This has the effect of mimicing the time-shifting of national programmes
+# such as ABC2 for which there is a single programme in, say, Sydney time, but
+# where the programmes are broadcast at the same wall clock time everywhere in
+# Australia.  
+# Care is taken to use the local time zone at the time of the programme.
+#
+# Also defines a list of OzTivo channels names this kludge should be applied to.
+#
+sub force_local_timezone($) {
+	my $oztivoTime = shift;
+
+	# Split the given time into components ignoring the specified TZ
+	# Our input looks like "20080324183000 +1100"
+	#
+	my ($year, $mon, $mday, $hr, $min, $sec) = $oztivoTime =~ m/^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)/;
+
+	# Treat the time as being local and calculate the UNIX time
+	# This will account for DST in our time zone.
+	#
+	my $unixTime = timelocal($sec, $min, $hr, $mday, $mon-1, $year); # expects months 0..11
+
+	# Return a correctly formatted string
+	#
+	return strftime('%Y%m%d%H%M%S %z', localtime($unixTime));
+}
+
+my %force_timezone_set = map { $_ => 1 } ( values %{$s_to_o_map{'National'}} );
+
+
+################################################################################
+# Routines for configuring this grabber
+#
+sub please_configure_me
+{
+	print <<__EOM;
+If you wish to use $nicename, please run
+	tv_grab_au --configure $progname
+Configuration of $progname is required
+__EOM
+}
+
+sub configure
+{
+	print <<__EOM;
+Configuring...
+
+NOTE: This step is currently optional.
+
+You can create an OzTivo account here:
+  http://www.oztivo.net/twiki/bin/view/TWiki/TWikiRegistration
+... and select some channels here:
+  http://www.oztivo.net/tivo-bin/tvguide.pl
+When you're done, enter your username and password here, to
+enable this grabber to retrieve your guide data automatically:
+Username?
+__EOM
+
+	my $username = <>;
+	chomp $username;
+	unless ($username) {
+		print "No username supplied. Exiting configuration.\n";
+		exit 3;
+	}
+	print "Password?\n";
+	my $pw = <>;
+	chomp $pw;
+	unless ($pw) {
+		print "No password supplied. Exiting configuration.\n";
+		exit 3;
+	}
+	print "Creating config file $config_file...\n";
+	open (CONF, ">$config_file")
+		or die "Unable to create $config_file: $!";
+	print CONF "$username:$pw";
+	close CONF;
+
+	print "Done.\n";
+	exit 0;
+}
+
+sub load_config() {
+	unless (-r $config_file) {
+		print "Can't find $config_file!\n";
+		please_configure_me();
+		exit 1;
+	}
+
+	print "Reading configuration file $config_file.\n";
+
+	unless (open(CONF, $config_file)) {
+		print "Unable to read config file $config_file: $!\n";
+		please_configure_me();
+		exit 1;
+	}
+	my $line = <CONF>;
+	close CONF;
+
+	unless ($line =~ /^(.*):(.*)$/) {
+		print "Unable to parse config file!\n" .
+			  "It should be in the format: username:password\n";
+		please_configure_me();
+		exit 1;
+	}
+	($user, $pw) = ($1, $2);
+
+	unless ($user and $pw) {
+		print "Failed to extract a sensible username and password from config file.\n";
+		please_configure_me();
+		exit 1;
+	}
+}
+
+################################################################################
+# Local extension of the shared get_url() to cater for password authentication 
+# failure
+#
+# Returns the data as a string, or undef if data could not be retrieved
+#
+sub get_url($) {
+	my ($data, $success, $status, $bytes);
+
+	my $url = shift;
+
+	# Don't rely on Shepherd::Common::get_url()'s retry, because
+	# if we get a 401 (wrong password) there's no point in retrying.
+	my $max_tries = 3;
+	foreach my $tries (1 .. $max_tries) {
+		($data, $success, $status, $bytes) = Shepherd::Common::get_url(
+				url => $url,
+				referer => "Shepherd ".$nicename." grabber, version ".$version,
+				delay => "1-3",
+				retries => 0);
+
+		last if ($success);
+
+		print "Download failed: $status\n";
+		if ($status =~ /401/)
+		{
+			print <<__EOM;
+Your OzTivo username and/or password may be incorrect
+The username and password you supplied when configuring the oztivo grabber
+must match your registration details on the OzTivo.com site.
+If this error persists, try reconfiguring:
+	tv_grab_au --configure $progname
+__EOM
+			last;	# bail out of the retry loop
+		}
+
+		my $sleep = 47 + int(rand(120));
+		print "Sleeping for $sleep seconds before retrying...\n";
+		sleep($sleep);
+	}
+
+	# hack: if we don't get back something that looks like xml then try to
+	# ungzip it
+	if (substr($data,0,1) ne '<') {
+		print "Doesn't look like xml, attempting to gunzip.\n";
+		$data = Compress::Zlib::memGunzip($data);
+	}
+
+	return $data;
+} 
+
+
+
+################################################################################
+#
+$| = 1;
+
+GetOptions(
+	'config=s'			=> \$config_file,
+	'channels_file=s'	=> \$channels_file,
+	'output=s'			=> \$output_file,
+	'version'			=> \$ver,
+	'ready'				=> \$ready_check,
+	'configure'			=> \$configure,
+	'region=s'			=> \$region,
+	'days:i'			=> \$days,			# Optional
+);
+
+print "$nicename Grabber v$version\n";
+exit 0 if ($ver);	# Just print the version and leave
+
+# Do the configuration if requested
+# Load the configuration otherwise
+#
+configure() if ($configure);
+#load_config();
+
+exit 0 if ($ready_check);	# Just print the version and leave
+
+# Idiot checks on mandatory options
+#
+unless (defined($output_file)) {
+	die "No --output file specified.\n";
+}
+unless (defined($region)) {
+	die "No --region specified.\n";
+}
+
+# Import the Shepherd channels configuration
+#
+unless ($channels_file) { 
+	die "No --channels_file specified.\n";
+}
+unless( -r $channels_file) { 
+	die "Unable to read channels file $channels_file: $!";
+}
+{	# Block localises the variables
+	local (@ARGV, $/) = ($channels_file);
+	eval <>;
+	die "\nError in channels file!\nDetails:\n$@" if ($@);
+}
 
 my $state = Shepherd::Common::which_state($region);
 if ($state eq 'VIC') { $state = 'Vic' };
@@ -319,536 +536,318 @@ my %s_to_o_map = (
 		'Sky News'				=> 'SKYN',
 	},
 	'PAY' => {	# Pay channels
-		 '111funny2' => 'HITS+2',
-		 '111funny' => 'HITS',
-		 '13THSTREET' => '13THST',
-		 '13thSTREET2' => '13THST+2',
-		 'ACC' => 'ACC',
-		 #'' => 'ADULT',
-		 #'' => 'ADULT1',
-		 #'' => 'ADULT2',
-		 'Action' => 'FMACT',
-		 'Action2' => 'FMACT+2',
-		 #'ActionHD' => '',
-		 'AE' => 'AandE',
-		 #'AEHD' => '',
-		 #'AE2' => ''
-		 'AIR' => 'AIRACT',
-		 'AlJazeera' => 'ALJA',
-		 'AnimalPlanet' => 'ANIMAL',
-		 'AntennaPacific' => 'ANT',
-		 #'APAC' => 'A-PAC',
-		 #'' => 'ARCADE',
-		 'Arena' => 'ARNA',
-		 'Arena2' => 'ARNA+2',
-		 #'ArenaHD' => '',
-		 'Arts' => 'STUDIO',
-		 #'ArtsHD' => '',
-		 #'' => 'ART',
-		 'AURORA' => 'AUR',
-		 #'' => 'AV',
-		 'BBCFirst' => 'BBCF',
-		 #'BBCFirstHD' => ''
-		 'BBCKnowledge' => 'BBCK',
-		 #'BBCKnowledgeHD' => '',
-		 'BBCWorldNews' => 'BBC',
-		 #'beINSPORTS1'' => '',
-  		 #'beINSPORTS1HD' => '',
-		 #'beINSPORTS2' => '',
-         #'beINSPORTS2HD' => '',
-		 #'beINSPORTS3' => '',
-		 #'beINSPORTS3HD' => '',
-		 #'Binge' => '',
-		 #'BingeHD' => '',
-		 #'' => 'BETHTV',
-		 'Bio' => 'BIOG',
-		 'BloombergTelevision' => 'BLM',
-		 #'' => 'BNTV',
-		 'Boomerang' => 'BOOM',
-		 'BoxSets' => 'BOXS',
-		 #'BoxSetHD' => '',
-		 #'' => 'CANALSUR',
-		 'CartoonNetworkK' => 'CART',
-		 'Cbeebies' => 'CBEEB',
-		 #'' => 'CCTV4',
-		 #'CCD' => '',
-		 #'CCTV-9Doco' => '',
-		 'CCTVNews' => 'CCTVN',
-		 #'ChannelV' => 'V',
-		 #'' => 'Cinemax',
-		 #'' => 'CLUBV',
-		 #'ChelseaTV' => '',
-		 #'ChelseaTVHD' => '',
-		 'CMC' => 'CMC',
-		 #'' => 'CMTE',
-		 #'' => 'CMTER1',
-		 #'' => 'CMTER2',
-		 #'' => 'CMTER3',
-		 #'' => 'CMTER4',
-		 'CNBC' => 'CNBC',
-		 'CNN' => 'CNNI',
-		 #'' => 'CNNfn',
-		 'Comedy' => 'FMCOM',
-		 #'ComedyHD' => '',
-		 'TheComedyChannel' => 'CMDY',
-		 'ComedyCh2' => 'CMDY+2',
-		 'Crime' => 'CRIME',
-		 #'' => 'CVISION',
-		 #'' => 'D4NEWS',
-		 #'Daystar' => '',
-		 #'' => 'DAAI',
-		 #'' => 'DIG',
-		 #'' => 'Digital4',
-		 #'' => 'DIG-jazz',
-		 'Discovery2' => 'DISC+2',
-		 'DiscoveryChannel' => 'DISC',
-		 #'DiscoveryHD' => '',
-		 'DiscoveryHealth' => 'HEALTH',
-		 'DiscoveryKids' => 'DKIDS',
-		 #'DiscoveryRealTime' => 'DISCRT',
-		 'DiscoveryScience' => 'SCIENCE',
-		 'DiscoveryTurbo' => 'DTM',
-		 #'DiscoveryWorldHD' => '',
-		 'DiscoveryTurbo2' => 'DTM+2',
- 		 #'DisneyMov2'' => '',
-		 'DisneyChannel' => 'DISN',
-		 'DisneyJunior' => 'DJNR',
-		 #'DisneyMovies2' => '',
- 		 'DisneyXD' => 'DISXD',
-		 #'' => 'DWTV',
-		 'E!Entertainment' => 'E!',
-		 #'' => 'ENEWS-GE',
-		 #'' => 'ENEWSI',
-		 #'' => 'ENEWS-IT',
-		 #'' => 'ENEWSS',
-		 #'' => 'ENEWS-SP',
-		 #'' => 'ERITV',
-		 #'' => 'ERTW',
-		 'ESPN' => 'ESPN',
-		 'ESPN2' => 'ESPN2',
-		 #'ESPNHD' => '',
-		 #'ESPN2HD' => '',
-		 #'' => 'EURONEWS',
-		 'Eurosport' => 'EUROSPORT',
-		 #'EurosportHD' => '',
-		 'Eurosportnews' => 'ESNEWS',
-		 #'' => 'EWTN',
-		 'EXPO' => 'EXPO',
-		 'Family' => 'FMFAM',
-		 'Family2' => 'FMFAM+2',
-		 #'FamilyHD' => '',
-		 #'FashionTV' => 'FASH',
-		 #'FMC' => 'FMC',
-		 'FOX82' => 'FOX8+2',
-		 'FOX8' => 'FOX8',
-		 #'FOX8HD' => '',
-		 'FOXClassics2' => 'CLAS+2',
-		 'FOXClassics' => 'CLAS',
-		 'FoxFooty' => 'FFC',
-		 #'FoxFootyHD' => '',
-		 'FOXNews' => 'FOXN',
-		 'FoxSports1' => 'FS1',
-		 #'FoxSports1HD' => '',
-		 'FoxSports2' => 'FS2',
-		 #'FoxSports2HD' => '',
-		 'FoxSports3' => 'FS3',
-		 #'FoxSports3HD' => '',
-		 'FoxSports4' => 'FS4',
-		 #'FOXSPORTS4HD' => '',
-		 'FoxSports5' => 'FS5',
-		 #'FOXSPORTS4HD' => '',
-		 'FoxSportsNews' => 'FSN',
-		 #'FoxSportsNewsHD' => '',
-		 'DisneyMovies' => 'DISMOV',
-		 #'DisneyMoviesHD' => '',
-		 #'FOXSPORTSPLUS' => '',
-		 'FUELTV' => 'FUEL',
-		 'FX' => 'FX',
-		 'FX2' => 'FX+2',
-		 #'FXHD' => '',
-		 #'' => 'GUIDE',
-		 #'' => 'GWORLD',
-		 #'' => 'HIST+2',
-		 #'' => 'HOUSE',
-		 #'HOWTOChannel' => 'HOWTO',
-		 #'' => 'IMP',
-		 #'' => 'ISHTAR',
-		 #'' => 'JJJ',
-		 'KidsCo' => 'KIDSCO',
-		 #'' => 'LBC',
-		 #'' => 'LEONARDO',
-		 'LifestyleChannel' => 'LIFE',
-		 'LifestyleChannel2' => 'LIFE+2',
-		 #'LifestyleHD' => '',
-		 'LifestyleHome' => 'LHOME',
-		 'LifestyleFOOD2' => 'FOOD+2',
-		 'LifestyleFOOD' => 'FOOD',
-		 'LifestyleYOU' => 'LYOU',
-		 'LifstyleYOU2' => 'LYOU+2',
-		 #'LFCTV' => '',
-		 #'LFCTVHD' => '',
-		 #'' => 'LNTV',
-		 #'' => 'MACQD',
-		 #'' => 'MAIN',
-		 #'MainEvent' => '',
-   		 #'MUTV' => '',
-		 #'MUTVHD' => '',
-		 'Masterpiece' => 'FMMAST',
-		 #'MasterpieceHD' => '',
-		 'MAX' => 'max',
-		 #'MoreMovies' => '',
-		 #'MoreMoviesHD' => '',
-		 #'' => 'MCMTop',
-		 #'' => 'MCMTOP',
-		 #'' => 'MINDGAMES',
-		 #'MOVIEEXTRA' => 'MOVX',
-		 #'MOVIEGREATS' => 'MOVG',
-		 #'MOVIEONE' => 'MOV1',
-		 #'MOVIEONEHD' => '',
-		 #'MOVIETWO' => 'MOV1+2',
-		 #'MTVClassic' => 'MTVC',
-		 'MTV' => 'MTV',
-		 'MTVDance' => 'MTVD',
-		 #'MTVHits' => 'MTVH',
-		 'MTVMusic' => 'MTVM',
-		 #'MTVNLive' => 'MTVN',
-		 #'MTVNLiveHD' => '',
-		 #'' => 'NASIA',
-		 'NatGeoAdventure' => 'ADV1',
-		 #'NatGeoAdventure2' => '',
-		 'NatGeoWild' => 'NGW',
-		 #'NatGeoWildHD' => '',
-		 'NationalGeographic' => 'NGEO',
-		 'NatGeo2' => 'NGEO+2',
-		 'NatGeoPeople' => 'NGP',
-		 #'NatGeoHD' => '',
-		 #'' => 'NBN',
-		 #'' => 'NBN-GC',
-		 'NHKWorld' => 'HNKW',
-		 'Nickelodeon' => 'NICK',
-		 'NickJr' => 'NICKJR',
-		 'NITV' => 'NITV',
-		 #'' => 'ODY',
-		 #'' => 'OLY1',
-		 #'' => 'OLY2',
-		 #'' => 'OLY3',
-		 #'' => 'OLY4',
-		 #'' => 'OUT-TV',
-		 'Ovation' => 'OVAT',
-		 #'PlayhouseDisney' => 'PHDISN',
-		 'Premiere' => 'FMPREM',
-		 'Premiere2' => 'FMPREM+2',
-		 #'PremiereHD' => '',
-		 #'' => 'PREVIEW',
-		 #'RAI' => 'RAI',
-		 'Romance' => 'FMDRA',
-		 #'RomanceHD' => '',
-		 #'RussiaToday' => '',
-		 #'' => 'RMTV',
-		 #'' => 'RTPI',
-		 'SetantaSports' => 'STAS',
-		 #'' => 'SENATE',
-		 #'' => 'ServiceNSW',
-		 'showcase' => 'SHWC',
-		 #'showcaseHD' => '',
-		 'showcase2' => 'SHWC+2',
-		 #'showtimeaction' => 'SACT',
-		 #'showtimeactionHD' => '',
-		 #'showtimecomedy' => 'SCOM',
-		 #'showtimedrama' => 'SDRA',
-		 #'showtimepremiere' => 'SHOW',
-		 #'ShowPremiereHD' => '',
-		 #'showtimetwo' => 'SHW2',
-		 #'' => 'SHWGRTS',
-		 'SKYNewsBusiness' => 'SKYB',
-		 #'SkyBusinessHD' => '',
-		 #'SKYNewsLive' => 'SKYN',
-		 #'SKYNewsHD' => '',
-		 #'SKYRacing' => 'SKYR',
-		 #'SKYRacing2' => '',
-		 #'SKYRacingWorld' => '',
-		 #'SKYTbredCent' => '',
-		 #'SKYTbredCentHD' => '',
-     	 #'SKYNewsElection' => '',
-     	 #'SKYNewsElectionHD' => '',
-		 'SKYWeather' => 'SKYW',
-		 #'' => 'SPORTSEL',
-		 #'' => 'StarMovies',
-		 'SPEED' => 'SPEED',
-		 #'SPEEDHD' => '',
-		 #'STARPICS1' => 'SPICS',
-		 #'STARPICS1HD' => '',
-		 #'STARPICS2' => 'SPICS+2',
-		 #'STARPICS2HD' => '',
-		 #'' => 'StarWorld',
-		 #'' => 'STC',
-		 #'' => 'STV1',
-		 #'STVDIO' => 'STVDIO',
-		 'Style' => 'STYLE',
-		 'Syfy2' => 'Sci-Fi+2',
-		 'Syfy' => 'Sci-Fi',
-		 #'SyfyHD' => '',
-		 #'' => 'SYRIATV',
-		 #'' => 'TABNSW',
-		 'TCM' => 'TCM',
-		 #'' => 'TDT-Tas',
-		 'TheHistoryChannel' => 'HIST',
-		 #'HistoryHD' => '',
-		 #'TheLifeStyleChannel' => 'LIFE',
-		 'Thriller' => 'FMCRIM',
-		 #'ThrillerHD' => '',
-		 #'TheStyleNetwork' => 'STYLE',
-		 #'TheWeatherChannel' => 'TWC',
-		 'TLC' => 'TLC',
-		 'TLC2' => 'TLC+2',
-		 #'TSN' => '',
-		 #'' => 'TMF',
-		 'TVH!TS2' => 'TV1+2',
-		 'TVH!TS' => 'TV1',
-		 #'' => 'TV5',
-		 #'' => 'TVCHILE',
-		 #'' => 'TVE',
-		 'TVN' => 'TVN',
-		 #'' => 'TVS',
-		 'TVSN' => 'TVSN',
-		 'UKTV2' => 'UKTV+2',
-		 'UKTV' => 'UKTV',
-		 #'UKTVHD' => '',
-		 'Universal' => 'UNIV',
-		 'Universal2' => 'UNIV+2',
-		 #'UniversalHD' => '',
-		 #'FoxtelSmooth' => '',
-		 'VHITS' => 'VHITS',
-		 #'VHITS2' => '',
-		 #'' => 'VTV',
-		 #'' => 'WEIN',
-		 #'' => 'WINE',
-		 #'' => 'WLINK',
-		 'WORLDMOVIES' => 'WMOV',
-		 #'WorldMoviesHD' => '',
-		 #'' => 'WTV',
-		 #'' => 'WZONE',
-		 #'YesShop' => '',
+		'111funny2' => 'HITS+2',
+		'111funny' => 'HITS',
+		'13THSTREET' => '13THST',
+		'13thSTREET2' => '13THST+2',
+		'ACC' => 'ACC',
+		#'' => 'ADULT',
+		#'' => 'ADULT1',
+		#'' => 'ADULT2',
+		'Action' => 'FMACT',
+		'Action2' => 'FMACT+2',
+		#'ActionHD' => '',
+		'AE' => 'AandE',
+		#'AEHD' => '',
+		#'AE2' => ''
+		'AIR' => 'AIRACT',
+		'AlJazeera' => 'ALJA',
+		'AnimalPlanet' => 'ANIMAL',
+		'AntennaPacific' => 'ANT',
+		#'APAC' => 'A-PAC',
+		#'' => 'ARCADE',
+		'Arena' => 'ARNA',
+		'Arena2' => 'ARNA+2',
+		#'ArenaHD' => '',
+		'Arts' => 'STUDIO',
+		#'ArtsHD' => '',
+		#'' => 'ART',
+		'AURORA' => 'AUR',
+		#'' => 'AV',
+		'BBCFirst' => 'BBCF',
+		#'BBCFirstHD' => ''
+		'BBCKnowledge' => 'BBCK',
+		#'BBCKnowledgeHD' => '',
+		'BBCWorldNews' => 'BBC',
+		#'beINSPORTS1'' => '',
+		#'beINSPORTS1HD' => '',
+		#'beINSPORTS2' => '',
+		#'beINSPORTS2HD' => '',
+		#'beINSPORTS3' => '',
+		#'beINSPORTS3HD' => '',
+		#'Binge' => '',
+		#'BingeHD' => '',
+		#'' => 'BETHTV',
+		'Bio' => 'BIOG',
+		'BloombergTelevision' => 'BLM',
+		#'' => 'BNTV',
+		'Boomerang' => 'BOOM',
+		'BoxSets' => 'BOXS',
+		#'BoxSetHD' => '',
+		#'' => 'CANALSUR',
+		'CartoonNetworkK' => 'CART',
+		'Cbeebies' => 'CBEEB',
+		#'' => 'CCTV4',
+		#'CCD' => '',
+		#'CCTV-9Doco' => '',
+		'CCTVNews' => 'CCTVN',
+		#'ChannelV' => 'V',
+		#'' => 'Cinemax',
+		#'' => 'CLUBV',
+		#'ChelseaTV' => '',
+		#'ChelseaTVHD' => '',
+		'CMC' => 'CMC',
+		#'' => 'CMTE',
+		#'' => 'CMTER1',
+		#'' => 'CMTER2',
+		#'' => 'CMTER3',
+		#'' => 'CMTER4',
+		'CNBC' => 'CNBC',
+		'CNN' => 'CNNI',
+		#'' => 'CNNfn',
+		'Comedy' => 'FMCOM',
+		#'ComedyHD' => '',
+		'TheComedyChannel' => 'CMDY',
+		'ComedyCh2' => 'CMDY+2',
+		'Crime' => 'CRIME',
+		#'' => 'CVISION',
+		#'' => 'D4NEWS',
+		#'Daystar' => '',
+		#'' => 'DAAI',
+		#'' => 'DIG',
+		#'' => 'Digital4',
+		#'' => 'DIG-jazz',
+		'Discovery2' => 'DISC+2',
+		'DiscoveryChannel' => 'DISC',
+		#'DiscoveryHD' => '',
+		'DiscoveryHealth' => 'HEALTH',
+		'DiscoveryKids' => 'DKIDS',
+		#'DiscoveryRealTime' => 'DISCRT',
+		'DiscoveryScience' => 'SCIENCE',
+		'DiscoveryTurbo' => 'DTM',
+		#'DiscoveryWorldHD' => '',
+		'DiscoveryTurbo2' => 'DTM+2',
+		#'DisneyMov2'' => '',
+		'DisneyChannel' => 'DISN',
+		'DisneyJunior' => 'DJNR',
+		#'DisneyMovies2' => '',
+		'DisneyXD' => 'DISXD',
+		#'' => 'DWTV',
+		'E!Entertainment' => 'E!',
+		#'' => 'ENEWS-GE',
+		#'' => 'ENEWSI',
+		#'' => 'ENEWS-IT',
+		#'' => 'ENEWSS',
+		#'' => 'ENEWS-SP',
+		#'' => 'ERITV',
+		#'' => 'ERTW',
+		'ESPN' => 'ESPN',
+		'ESPN2' => 'ESPN2',
+		#'ESPNHD' => '',
+		#'ESPN2HD' => '',
+		#'' => 'EURONEWS',
+		'Eurosport' => 'EUROSPORT',
+		#'EurosportHD' => '',
+		'Eurosportnews' => 'ESNEWS',
+		#'' => 'EWTN',
+		'EXPO' => 'EXPO',
+		'Family' => 'FMFAM',
+		'Family2' => 'FMFAM+2',
+		#'FamilyHD' => '',
+		#'FashionTV' => 'FASH',
+		#'FMC' => 'FMC',
+		'FOX82' => 'FOX8+2',
+		'FOX8' => 'FOX8',
+		#'FOX8HD' => '',
+		'FOXClassics2' => 'CLAS+2',
+		'FOXClassics' => 'CLAS',
+		'FoxFooty' => 'FFC',
+		#'FoxFootyHD' => '',
+		'FOXNews' => 'FOXN',
+		'FoxSports1' => 'FS1',
+		#'FoxSports1HD' => '',
+		'FoxSports2' => 'FS2',
+		#'FoxSports2HD' => '',
+		'FoxSports3' => 'FS3',
+		#'FoxSports3HD' => '',
+		'FoxSports4' => 'FS4',
+		#'FOXSPORTS4HD' => '',
+		'FoxSports5' => 'FS5',
+		#'FOXSPORTS4HD' => '',
+		'FoxSportsNews' => 'FSN',
+		#'FoxSportsNewsHD' => '',
+		'DisneyMovies' => 'DISMOV',
+		#'DisneyMoviesHD' => '',
+		#'FOXSPORTSPLUS' => '',
+		'FUELTV' => 'FUEL',
+		'FX' => 'FX',
+		'FX2' => 'FX+2',
+		#'FXHD' => '',
+		#'' => 'GUIDE',
+		#'' => 'GWORLD',
+		#'' => 'HIST+2',
+		#'' => 'HOUSE',
+		#'HOWTOChannel' => 'HOWTO',
+		#'' => 'IMP',
+		#'' => 'ISHTAR',
+		#'' => 'JJJ',
+		'KidsCo' => 'KIDSCO',
+		#'' => 'LBC',
+		#'' => 'LEONARDO',
+		'LifestyleChannel' => 'LIFE',
+		'LifestyleChannel2' => 'LIFE+2',
+		#'LifestyleHD' => '',
+		'LifestyleHome' => 'LHOME',
+		'LifestyleFOOD2' => 'FOOD+2',
+		'LifestyleFOOD' => 'FOOD',
+		'LifestyleYOU' => 'LYOU',
+		'LifstyleYOU2' => 'LYOU+2',
+		#'LFCTV' => '',
+		#'LFCTVHD' => '',
+		#'' => 'LNTV',
+		#'' => 'MACQD',
+		#'' => 'MAIN',
+		#'MainEvent' => '',
+		#'MUTV' => '',
+		#'MUTVHD' => '',
+		'Masterpiece' => 'FMMAST',
+		#'MasterpieceHD' => '',
+		'MAX' => 'max',
+		#'MoreMovies' => '',
+		#'MoreMoviesHD' => '',
+		#'' => 'MCMTop',
+		#'' => 'MCMTOP',
+		#'' => 'MINDGAMES',
+		#'MOVIEEXTRA' => 'MOVX',
+		#'MOVIEGREATS' => 'MOVG',
+		#'MOVIEONE' => 'MOV1',
+		#'MOVIEONEHD' => '',
+		#'MOVIETWO' => 'MOV1+2',
+		#'MTVClassic' => 'MTVC',
+		'MTV' => 'MTV',
+		'MTVDance' => 'MTVD',
+		#'MTVHits' => 'MTVH',
+		'MTVMusic' => 'MTVM',
+		#'MTVNLive' => 'MTVN',
+		#'MTVNLiveHD' => '',
+		#'' => 'NASIA',
+		'NatGeoAdventure' => 'ADV1',
+		#'NatGeoAdventure2' => '',
+		'NatGeoWild' => 'NGW',
+		#'NatGeoWildHD' => '',
+		'NationalGeographic' => 'NGEO',
+		'NatGeo2' => 'NGEO+2',
+		'NatGeoPeople' => 'NGP',
+		#'NatGeoHD' => '',
+		#'' => 'NBN',
+		#'' => 'NBN-GC',
+		'NHKWorld' => 'HNKW',
+		'Nickelodeon' => 'NICK',
+		'NickJr' => 'NICKJR',
+		'NITV' => 'NITV',
+		#'' => 'ODY',
+		#'' => 'OLY1',
+		#'' => 'OLY2',
+		#'' => 'OLY3',
+		#'' => 'OLY4',
+		#'' => 'OUT-TV',
+		'Ovation' => 'OVAT',
+		#'PlayhouseDisney' => 'PHDISN',
+		'Premiere' => 'FMPREM',
+		'Premiere2' => 'FMPREM+2',
+		#'PremiereHD' => '',
+		#'' => 'PREVIEW',
+		#'RAI' => 'RAI',
+		'Romance' => 'FMDRA',
+		#'RomanceHD' => '',
+		#'RussiaToday' => '',
+		#'' => 'RMTV',
+		#'' => 'RTPI',
+		'SetantaSports' => 'STAS',
+		#'' => 'SENATE',
+		#'' => 'ServiceNSW',
+		'showcase' => 'SHWC',
+		#'showcaseHD' => '',
+		'showcase2' => 'SHWC+2',
+		#'showtimeaction' => 'SACT',
+		#'showtimeactionHD' => '',
+		#'showtimecomedy' => 'SCOM',
+		#'showtimedrama' => 'SDRA',
+		#'showtimepremiere' => 'SHOW',
+		#'ShowPremiereHD' => '',
+		#'showtimetwo' => 'SHW2',
+		#'' => 'SHWGRTS',
+		'SKYNewsBusiness' => 'SKYB',
+		#'SkyBusinessHD' => '',
+		#'SKYNewsLive' => 'SKYN',
+		#'SKYNewsHD' => '',
+		#'SKYRacing' => 'SKYR',
+		#'SKYRacing2' => '',
+		#'SKYRacingWorld' => '',
+		#'SKYTbredCent' => '',
+		#'SKYTbredCentHD' => '',
+		#'SKYNewsElection' => '',
+		#'SKYNewsElectionHD' => '',
+		'SKYWeather' => 'SKYW',
+		#'' => 'SPORTSEL',
+		#'' => 'StarMovies',
+		'SPEED' => 'SPEED',
+		#'SPEEDHD' => '',
+		#'STARPICS1' => 'SPICS',
+		#'STARPICS1HD' => '',
+		#'STARPICS2' => 'SPICS+2',
+		#'STARPICS2HD' => '',
+		#'' => 'StarWorld',
+		#'' => 'STC',
+		#'' => 'STV1',
+		#'STVDIO' => 'STVDIO',
+		'Style' => 'STYLE',
+		'Syfy2' => 'Sci-Fi+2',
+		'Syfy' => 'Sci-Fi',
+		#'SyfyHD' => '',
+		#'' => 'SYRIATV',
+		#'' => 'TABNSW',
+		'TCM' => 'TCM',
+		#'' => 'TDT-Tas',
+		'TheHistoryChannel' => 'HIST',
+		#'HistoryHD' => '',
+		#'TheLifeStyleChannel' => 'LIFE',
+		'Thriller' => 'FMCRIM',
+		#'ThrillerHD' => '',
+		#'TheStyleNetwork' => 'STYLE',
+		#'TheWeatherChannel' => 'TWC',
+		'TLC' => 'TLC',
+		'TLC2' => 'TLC+2',
+		#'TSN' => '',
+		#'' => 'TMF',
+		'TVH!TS2' => 'TV1+2',
+		'TVH!TS' => 'TV1',
+		#'' => 'TV5',
+		#'' => 'TVCHILE',
+		#'' => 'TVE',
+		'TVN' => 'TVN',
+		#'' => 'TVS',
+		'TVSN' => 'TVSN',
+		'UKTV2' => 'UKTV+2',
+		'UKTV' => 'UKTV',
+		#'UKTVHD' => '',
+		'Universal' => 'UNIV',
+		'Universal2' => 'UNIV+2',
+		#'UniversalHD' => '',
+		#'FoxtelSmooth' => '',
+		'VHITS' => 'VHITS',
+		#'VHITS2' => '',
+		#'' => 'VTV',
+		#'' => 'WEIN',
+		#'' => 'WINE',
+		#'' => 'WLINK',
+		'WORLDMOVIES' => 'WMOV',
+		#'WorldMoviesHD' => '',
+		#'' => 'WTV',
+		#'' => 'WZONE',
+		#'YesShop' => '',
 	}
 );
-
-
-################################################################################
-# Routine for forcing the timezone of a listing to the local time zone.
-# This has the effect of mimicing the time-shifting of national programmes
-# such as ABC2 for which there is a single programme in, say, Sydney time, but
-# where the programmes are broadcast at the same wall clock time everywhere in
-# Australia.  
-# Care is taken to use the local time zone at the time of the programme.
-#
-# Also defines a list of OzTivo channels names this kludge should be applied to.
-#
-sub force_local_timezone($) {
-	my $oztivoTime = shift;
-
-	# Split the given time into components ignoring the specified TZ
-	# Our input looks like "20080324183000 +1100"
-	#
-	my ($year, $mon, $mday, $hr, $min, $sec) = $oztivoTime =~ m/^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)/;
-
-	# Treat the time as being local and calculate the UNIX time
-	# This will account for DST in our time zone.
-	#
-	my $unixTime = timelocal($sec, $min, $hr, $mday, $mon-1, $year); # expects months 0..11
-
-	# Return a correctly formatted string
-	#
-	return strftime('%Y%m%d%H%M%S %z', localtime($unixTime));
-}
-
-my %force_timezone_set = map { $_ => 1 } ( values %{$s_to_o_map{'National'}} );
-
-
-################################################################################
-# Routines for configuring this grabber
-#
-sub please_configure_me
-{
-	print <<__EOM;
-If you wish to use $nicename, please run
-	tv_grab_au --configure $progname
-Configuration of $progname is required
-__EOM
-}
-
-sub configure
-{
-	print <<__EOM;
-Configuring...
-
-NOTE: This step is currently optional.
-
-You can create an OzTivo account here:
-  http://www.oztivo.net/twiki/bin/view/TWiki/TWikiRegistration
-... and select some channels here:
-  http://www.oztivo.net/tivo-bin/tvguide.pl
-When you're done, enter your username and password here, to
-enable this grabber to retrieve your guide data automatically:
-Username?
-__EOM
-
-	my $username = <>;
-	chomp $username;
-	unless ($username) {
-		print "No username supplied. Exiting configuration.\n";
-		exit 3;
-	}
-	print "Password?\n";
-	my $pw = <>;
-	chomp $pw;
-	unless ($pw) {
-		print "No password supplied. Exiting configuration.\n";
-		exit 3;
-	}
-	print "Creating config file $config_file...\n";
-	open (CONF, ">$config_file")
-		or die "Unable to create $config_file: $!";
-	print CONF "$username:$pw";
-	close CONF;
-
-	print "Done.\n";
-	exit 0;
-}
-
-sub load_config() {
-	unless (-r $config_file) {
-		print "Can't find $config_file!\n";
-		please_configure_me();
-		exit 1;
-	}
-
-	print "Reading configuration file $config_file.\n";
-
-	unless (open(CONF, $config_file)) {
-		print "Unable to read config file $config_file: $!\n";
-		please_configure_me();
-		exit 1;
-	}
-	my $line = <CONF>;
-	close CONF;
-
-	unless ($line =~ /^(.*):(.*)$/) {
-		print "Unable to parse config file!\n" .
-			  "It should be in the format: username:password\n";
-		please_configure_me();
-		exit 1;
-	}
-	($user, $pw) = ($1, $2);
-
-	unless ($user and $pw) {
-		print "Failed to extract a sensible username and password from config file.\n";
-		please_configure_me();
-		exit 1;
-	}
-}
-
-################################################################################
-# Local extension of the shared get_url() to cater for password authentication 
-# failure
-#
-# Returns the data as a string, or undef if data could not be retrieved
-#
-sub get_url($) {
-	my ($data, $success, $status, $bytes);
-
-	my $url = shift;
-
-	# Don't rely on Shepherd::Common::get_url()'s retry, because
-	# if we get a 401 (wrong password) there's no point in retrying.
-	my $max_tries = 3;
-	foreach my $tries (1 .. $max_tries) {
-		($data, $success, $status, $bytes) = Shepherd::Common::get_url(
-				url => $url,
-				referer => "Shepherd ".$nicename." grabber, version ".$version,
-				delay => "1-3",
-				retries => 0);
-
-		last if ($success);
-
-		print "Download failed: $status\n";
-		if ($status =~ /401/)
-		{
-			print <<__EOM;
-Your OzTivo username and/or password may be incorrect
-The username and password you supplied when configuring the oztivo grabber
-must match your registration details on the OzTivo.com site.
-If this error persists, try reconfiguring:
-	tv_grab_au --configure $progname
-__EOM
-			last;	# bail out of the retry loop
-		}
-
-		my $sleep = 47 + int(rand(120));
-		print "Sleeping for $sleep seconds before retrying...\n";
-		sleep($sleep);
-	}
-
-	# hack: if we don't get back something that looks like xml then try to
-	# ungzip it
-	if (substr($data,0,1) ne '<') {
-		print "Doesn't look like xml, attempting to gunzip.\n";
-		$data = Compress::Zlib::memGunzip($data);
-	}
-
-	return $data;
-} 
-
-
-
-################################################################################
-#
-$| = 1;
-
-GetOptions(
-	'config=s'			=> \$config_file,
-	'channels_file=s'	=> \$channels_file,
-	'output=s'			=> \$output_file,
-	'version'			=> \$ver,
-	'ready'				=> \$ready_check,
-	'configure'			=> \$configure,
-	'region=s'			=> \$region,
-	'days:i'			=> \$days,			# Optional
-);
-
-print "$nicename Grabber v$version\n";
-exit 0 if ($ver);	# Just print the version and leave
-
-# Do the configuration if requested
-# Load the configuration otherwise
-#
-configure() if ($configure);
-#load_config();
-
-exit 0 if ($ready_check);	# Just print the version and leave
-
-# Idiot checks on mandatory options
-#
-unless (defined($output_file)) {
-	die "No --output file specified.\n";
-}
-unless (defined($region)) {
-	die "No --region specified.\n";
-}
-
-# Import the Shepherd channels configuration
-#
-unless ($channels_file) { 
-	die "No --channels_file specified.\n";
-}
-unless( -r $channels_file) { 
-	die "Unable to read channels file $channels_file: $!";
-}
-{	# Block localises the variables
-	local (@ARGV, $/) = ($channels_file);
-	eval <>;
-	die "\nError in channels file!\nDetails:\n$@" if ($@);
-}
-
 
 # Create the in-memory form of the output file
 #
