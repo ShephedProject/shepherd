@@ -7,7 +7,7 @@ reference	    Shepherd/json_pp.pm 0.2	af7820870d7cdfd47a593929a14e06306e9fda7b	c
 reference		DateTimeFormat/XMLTV.pm		1.001	72dc2b212d733776e7f08a0e318ff5fea4e18b3a	c16512679b7051ae50ee025ea8e3225995a7e3ff
 reference		Shepherd/FreeviewHelper.pm	1.4	45a8ed942288d494668e48df2c5dbcc441125d84	74df0b400b01bd07c7932b27e46977bf5e3a2396
 reference       TMDB.pm             1.2.1.1	ce7621b4295c50bb93cb79f088cc0107807c1c0a	f49c6a479ae40bfa46ad64127b282a649fb6f314
-grabber         oztivo              2.66	00783671f4a4949e4b58ce7f8e6412be2c887ace	a6dbeedf51483f08588ae4014fcf9147a445fefe
+grabber         oztivo              2.66	00783671f4a4949e4b58ce7f8e6412be2c887ace	4aac1be7f2525cc13fb30a8f169641f8ecb3319f
 grabber         sbsweb              5.06	a4e72ca0de3ace9220948171c3455a6a4b3be50b	62b5cf5fc87b43a793ce582b8a4313f10659a1bc
 grabber         rex                 10.4.14	4ae53787498b74036bb6611ef260658a225e4842	c9b6c4d1c0c2d3ed9bb36e7d559318abc6f80142
 grabber         foxtel_swf          5.06	64b38cade7e38491a6712b3289887592d18b9f60	438a68eb4d45e5ffa15921811efecf667611c9a7
