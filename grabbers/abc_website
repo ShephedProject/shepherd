@@ -141,7 +141,7 @@ my %abc_channel_to_shep = (
 	"TENHD"    => "10 HD",
 	"ONE"      => "10 Bold",
 	"11"       => "10 Peach",
-	"SPREE"    => "SpreeTV",
+	"SPREE"    => "gecko",
 	"9"        => "Nine",
 	"YMON"     => "Your Money",
 	"GEM"      => "9Gem",
@@ -156,7 +156,8 @@ my %abc_channel_to_shep = (
 	"SCHD"     => "SCTVHD",
 	"TDHD"     => "TDTHD",
 	"SBSWW"    => "SBS World Watch",
-	"SHAKE"    => "10 SHAKE"
+	"SHAKE"    => "10 SHAKE",
+	"31"       => "Channel 31"
 );
 
 my %region_to_tz = (
