@@ -91,8 +91,6 @@ sub force_local_timezone($) {
 	return strftime('%Y%m%d%H%M%S %z', localtime($unixTime));
 }
 
-my %force_timezone_set = map { $_ => 1 } ( values %{$s_to_o_map{'National'}} );
-
 
 ################################################################################
 # Routines for configuring this grabber
@@ -848,6 +846,7 @@ my %s_to_o_map = (
 		#'YesShop' => '',
 	}
 );
+my %force_timezone_set = map { $_ => 1 } ( values %{$s_to_o_map{'National'}} );
 
 # Create the in-memory form of the output file
 #
