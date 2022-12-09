@@ -154,7 +154,9 @@ my %abc_channel_to_shep = (
 	"44"       => "44Adelaide",
 	"SC"       => "SCTV",
 	"SCHD"     => "SCTVHD",
-	"TDHD"     => "TDTHD"
+	"TDHD"     => "TDTHD",
+	"SBSWW"    => "SBS World Watch",
+	"SHAKE"    => "10 SHAKE"
 );
 
 my %region_to_tz = (
@@ -437,7 +439,7 @@ sub get_day_data
 	foreach my $schedule (@{$decoded_data->{schedule}}){
 		my $chan = $schedule->{channel};
 		die "empty chan wut" if $chan eq "";
-		$chan = $abc_channel_to_shep{$chan} if defined $abc_channel_to_shep{$chan};
+		$chan = $abc_channel_to_shep{$chan} if (defined $abc_channel_to_shep{$chan} && !defined $channels->{$chan});
 		unless (defined $channels->{$chan} && ($do_all_fta || $chan =~ m/^ABC/i)){
 			&log("Skipping unwanted or unknown channel '$chan'");
 			next;
