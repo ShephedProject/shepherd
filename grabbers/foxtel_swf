@@ -537,7 +537,7 @@ sub channel_name_munger
 		'YourMoney'        => 'Your Money',
 		'SBSHD'            => 'SBS HD',
 		'SBSWorldwatch'    => 'SBS World Watch',
-		'7mateHD'          => '7mate HD',
+		'7MateHD'          => '7mate HD',
 		'SBSVicelandHD'    => 'SBSVICELANDHD',
 		'SBSWorldMoviesHD' => 'SBS World Movies'
         };
