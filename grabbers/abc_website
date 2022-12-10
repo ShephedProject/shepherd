@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.05";
+my $version = "7.06";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -246,6 +246,7 @@ $writer->start( { 'source-info-name'   => "$progname $version", 'generator-info-
 my $today = DateTime->today();
 my $abc_region;
 my $do_all_fta = 1;
+my $have_written_program = 0;
 
 if ($region == 81){
 	$abc_region = "Adelaide";
@@ -425,7 +426,8 @@ sub get_day_data
 	}
 	if ($data =~ m/<!DOCTYPE/i){
 		&log("got html instead of json for $url");
-		return;
+		return if ($have_written_program);
+		die "No json retrieved from $url";
 	}
 
 	$data =~ s/\\u2018/\\u0027/g;#single quote
@@ -514,6 +516,7 @@ sub get_day_data
 			$prog{'previously-shown'} = { } if defined $programme->{repeat} && $programme->{repeat};
 
 			$writer->write_programme(\%prog);
+			$have_written_program = 1;
 		}
 	}
 }
