@@ -11,7 +11,7 @@
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '5.07';
+my $version = '5.08';
 
 use strict;
 use warnings;
@@ -42,6 +42,11 @@ my $shows;
 my $runtime = time;
 my $zerohr;
 my $loc;
+
+my %chan_mappings = {
+	'SBS VICELAND'   => 'SBSVICELANDHD',
+	'SBS WorldWatch' => 'SBS World Watch'
+};
 
 # ---------------------------------------------------------------------------
 # --- Setup
@@ -154,6 +159,7 @@ sub parse_guide
     foreach my $chan (@channels)
     {
 		my $channel_name = $chan->{name};
+		$channel_name = $chan_mappings{$channel_name} if defined($chan_mappings{$channel_name});
 		my $chanid = $channels->{$channel_name};
 		unless ($chanid)
 		{
