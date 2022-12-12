@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.17';
+my $version = '1.9.18';
 
 # tv_grab_au
 # "Shepherd"
@@ -4450,7 +4450,7 @@ sub soak_up_data
 	    $this_plugin->{valid} = 0;
 	    $components_used .= '[failed_unparseable]';
 	    $this_plugin->{failure_reason} = 
-		sprintf "Unparseable: %d ch, %d shows, %d dur, %d slots, %d invalid_date, %d too_long, %d too_short, %d outside_window, %d unknown_channel, %d optional",
+		sprintf "Unparseable: %d ch, %d shows, %d dur, %d slots, %d invalid_date, %d too_long, %d too_short, %d outside_window, %d unknown_channel, %d optional, earliest_seen: %d, latest_seen: %d, policy_start: %d, policy_end: %d",
 		    $seen_channels_with_data, 
 		    $this_plugin->{programmes},
 		    $this_plugin->{total_duration},
@@ -4460,7 +4460,12 @@ sub soak_up_data
 		    $this_plugin->{progs_too_short},
 		    $this_plugin->{progs_outside_window},
 		    $this_plugin->{progs_with_unknown_channel},
-		    $this_plugin->{progs_optional};
+		    $this_plugin->{progs_optional},
+			$this_plugin->{earliest_data_seen},
+			$this_plugin->{latest_data_seen},
+			$policy{starttime},
+			$policy{endtime}
+		;
 	}
     }
 
