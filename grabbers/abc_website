@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.06.1";
+my $version = "7.07";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -243,7 +243,7 @@ $writer_args{OUTPUT} = $fh;
 $writer = new XMLTV::Writer(%writer_args);
 $writer->start( { 'source-info-name'   => "$progname $version", 'generator-info-name' => "$progname $version"} );
 
-my $today = DateTime->today();
+my $today = DateTime->today(time_zone => $local_tz);
 my $abc_region;
 my $do_all_fta = 1;
 my $have_written_program = 0;
