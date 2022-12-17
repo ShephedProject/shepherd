@@ -8,7 +8,7 @@ reference		DateTimeFormat/XMLTV.pm		1.001
 reference		Shepherd/FreeviewHelper.pm	1.4
 reference       TMDB.pm             1.2.1.1
 grabber         oztivo              2.66
-grabber         sbsweb              5.08
+grabber         sbsweb              5.08.1
 grabber         rex                 10.4.14
 grabber         foxtel_swf          5.06
 grabber         abc_website         7.07.1

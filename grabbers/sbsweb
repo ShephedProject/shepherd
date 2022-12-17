@@ -11,7 +11,7 @@
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '5.08';
+my $version = '5.08.1';
 
 use strict;
 use warnings;
@@ -38,7 +38,7 @@ my $channels;
 my $opt_channels;
 my $opt = { };
 my %stats;
-my $shows;
+my $shows ={};
 my $runtime = time;
 my $zerohr;
 my $loc;
