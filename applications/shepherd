@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.18';
+my $version = '1.9.19';
 
 # tv_grab_au
 # "Shepherd"
@@ -24,7 +24,7 @@ my $version = '1.9.18';
 #           (e.g. flag HDTV programmes, augment with IMDb etc.)
 #  stage 5: write final XMLTV out
 
-BEGIN { *CORE::GLOBAL::die = \&my_die; }
+#BEGIN { *CORE::GLOBAL::die = \&my_die; }
 
 use strict;
 no strict 'refs';
