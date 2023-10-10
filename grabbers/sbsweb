@@ -11,7 +11,7 @@
 # to test this file run like this:
 # perl -I /var/lib/mythtv/.shepherd/references/ ~mythtv/.shepherd/grabbers/sbsweb/sbsweb  --channels_file /var/lib/mythtv/.shepherd/channels.conf
 
-my $version = '5.08.1';
+my $version = '5.08.2';
 
 use strict;
 use warnings;
@@ -30,7 +30,7 @@ use HTML::Entities;
 
 my $progname = "sbsweb";
 
-my $DATASOURCE = "sbs.com.au";
+my $DATASOURCE = "8b103a6b-36b1-44b3-be25-ea3678edabac.sites.quantcdn.io";
 my $URL = "http://$DATASOURCE/guide";
 my $lang = 'en';
 my $debug = 0;
