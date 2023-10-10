@@ -10,7 +10,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.06";
+my $version = "5.07";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -385,7 +385,11 @@ sub get_reference_data
 
 	Shepherd::Common::log("DEBUG: get_reference_data got: $data") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 
-	my $parsed_xml = XMLin($data);
+	my $parsed_xml = eval { XMLin($data) };
+	if ($@) {
+		$@ =~ s/\r?\n/\\n/g;
+		die "Failed to parse ReferenceData: $@\n";
+	}
 
 	die "Failed to retrieve valid ReferenceData\n"
 	  if (!defined $parsed_xml->{'SOAP-ENV:Body'}->{'ns2:InitialiseEpgOut'});
