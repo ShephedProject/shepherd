@@ -10,7 +10,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.07";
+my $version = "5.08";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -166,7 +166,7 @@ $d->{chosen_state} = Shepherd::Common::which_state($opt->{region});
 
 &read_cache;
 
-&get_initial_page;
+#&get_initial_page;
 &get_reference_data();
 &start_writing_xmltv;
 &choose_channel_lineup();
@@ -350,6 +350,7 @@ sub start_writing_xmltv
 
 ##############################################################################
 
+#no longer used, does nothing useful anyway
 sub get_initial_page
 {
 	my $data;
