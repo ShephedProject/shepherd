@@ -10,7 +10,7 @@ reference       TMDB.pm             1.2.1.1	ce7621b4295c50bb93cb79f088cc0107807c
 grabber         oztivo              2.66	00783671f4a4949e4b58ce7f8e6412be2c887ace	4aac1be7f2525cc13fb30a8f169641f8ecb3319f
 grabber         sbsweb              5.08.2	b5af382dac3bd49a5a79dd955bc56e94d3ab0143	6d8eee9f4638df7953c00955dc9eda31183266cb
 grabber         rex                 10.4.14	4ae53787498b74036bb6611ef260658a225e4842	c9b6c4d1c0c2d3ed9bb36e7d559318abc6f80142
-grabber         foxtel_swf          5.08	64b38cade7e38491a6712b3289887592d18b9f60	8cf6184b61517c18c157de4abcd7780453846d3b
+grabber         foxtel_swf          5.09	64b38cade7e38491a6712b3289887592d18b9f60	81da2c33b163fc37f8c0eb53ed5cbbfbe363f45d
 grabber         abc_website         7.07.1	c878497419e7ad183c27f93b0104c79539416f3d	086b195b07cb1168684c1faa95cf719a5db3f61f
 reconciler      reconciler_mk2      0.58	53c4c0647abf244d0b22e7620bf1247e37abf689	8f8ee5f905bf4e844b67a557baa2b0403fb263c4
 postprocessor   metacritic          1.1	5e30f527c03bbddc31a2d649c5c5c50f63848c16	59fe1817de57012e3d449e807f3941ff9e683973
