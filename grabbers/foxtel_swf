@@ -172,41 +172,35 @@ $d->{chosen_state} = Shepherd::Common::which_state($opt->{region});
 &choose_channel_lineup();
 
 if (!defined $opt->{gaps_file}) {
-  my $starttime;
-  my $endtime;
-  my $gotime;
-  my ($nnow);
+	my $starttime;
+	my $endtime;
+	my $gotime;
 
-  if (defined $opt->{daynum}) {
-  
-  	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($script_start_time);
-    	$nnow = localtime($script_start_time);
-    	 #print("   Now is: $nnow\n");
-	$sec = 0; $hour = 0; $min = 0;
-	$gotime = timelocal($sec,$min,$hour,$mday,$mon,$year);
+	if (defined $opt->{daynum}) {
 
-    	$nnow = localtime( $gotime);
-    	#print(" Go time:  $nnow\n");
-    
-    	$starttime = $gotime + ( $opt->{daynum} * 86400);
+		my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime($script_start_time);
+		$sec = 0;
+		$hour = 0;
+		$min = 0;
+		$gotime = timelocal($sec, $min, $hour, $mday, $mon, $year);
 
-    	$opt->{getdays} = 1 if (! defined $opt->{getdays});
-    	$endtime = $starttime + ($opt->{getdays} * 86400)-1;
-    
-    	$nnow = localtime( $starttime); #print(" Start:  $nnow");
-    	$nnow = localtime( $endtime); 	#print(" End:  $nnow\n");
-    	$first_start_time = $starttime;
-	&get_program_window($starttime, $endtime);
+		$starttime = $gotime + ($opt->{daynum} * 86400);
 
-  }
-  else {
-	$starttime = $script_start_time;
-	$endtime = $starttime + ($opt->{days} * 86400);
-	$starttime += ($opt->{offset} * 86400) if (defined $opt->{offset});
+		$opt->{getdays} = 1 if (!defined $opt->{getdays});
+		$endtime = $starttime + ($opt->{getdays} * 86400) - 1;
 
-	&get_program_window($starttime, $endtime);
+		$first_start_time = $starttime;
+		&get_program_window($starttime, $endtime);
 	}
-} else {
+	else {
+		$starttime = $script_start_time;
+		$endtime = $starttime + ($opt->{days} * 86400);
+		$starttime += ($opt->{offset} * 86400) if (defined $opt->{offset});
+
+		&get_program_window($starttime, $endtime);
+	}
+}
+else {
 	Shepherd::Common::log("microgaps not yet supported."); # TODO: microgaps
 }
 
