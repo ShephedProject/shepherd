@@ -176,14 +176,13 @@ if (!defined $opt->{gaps_file}) {
 	my $endtime;
 	my $gotime;
 
+	my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime($script_start_time);
+	$sec = 0;
+	$hour = 0;
+	$min = 0;
+	$gotime = timelocal($sec, $min, $hour, $mday, $mon, $year);
+
 	if (defined $opt->{daynum}) {
-
-		my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime($script_start_time);
-		$sec = 0;
-		$hour = 0;
-		$min = 0;
-		$gotime = timelocal($sec, $min, $hour, $mday, $mon, $year);
-
 		$starttime = $gotime + ($opt->{daynum} * 86400);
 
 		$opt->{getdays} = 1 if (!defined $opt->{getdays});
@@ -193,7 +192,7 @@ if (!defined $opt->{gaps_file}) {
 		&get_program_window($starttime, $endtime);
 	}
 	else {
-		$starttime = $script_start_time;
+		$starttime = $gotime;
 		$endtime = $starttime + ($opt->{days} * 86400);
 		$starttime += ($opt->{offset} * 86400) if (defined $opt->{offset});
 
