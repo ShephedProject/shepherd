@@ -10,7 +10,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.08";
+my $version = "5.09";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -246,13 +246,13 @@ EOF
 sub get_url
 {
 	my %cnf = @_;
-	my ($html_data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts) = Shepherd::Common::get_url(%cnf);
+	my ($html_data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) = Shepherd::Common::get_url(%cnf);
 
 	$stats{failed_requests} += $failed_attempts;
 	$stats{slept_for} += $seconds_slept;
 	$stats{bytes_fetched} += $bytes_fetched;
 
-	return ($html_data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts) if wantarray;
+	return ($html_data, $success, $status_msg, $bytes_fetched, $seconds_slept, $failed_attempts, $response) if wantarray;
 	return undef if ((!$html_data) || (!$success));
 	return $html_data;
 }
@@ -583,11 +583,6 @@ sub get_program_window
 		}
 
 		$curr_start = $curr_stop;
-
-		my $waittime = 6 + int(rand(5));
-		$waittime = 2 if (defined $opt->{fast});
-		$stats{slept_for} += $waittime;
-		sleep($waittime);
 	}
 }
 
@@ -1199,16 +1194,46 @@ sub window_channel_is_within_microgap
 
 ##############################################################################
 
+sub do_wait
+{
+	my $waittime = 6 + int(rand(5));
+	$waittime = 2 if (defined $opt->{fast});
+	$stats{slept_for} += $waittime;
+	sleep($waittime);
+}
+
 sub soap_request
 {
 	my ($soap_action, $postvars) = @_;
 	my @additional_headers;
+	my @cached_response;
 	
 	push(@additional_headers, "Content-type: text/xml; charset=utf-8");
 	push(@additional_headers, "SOAPAction: http://epg.foxtel.com.au/$soap_action");
 	
 # print "Posting: $postvars\n" if ((defined $opt->{debug}) && ($opt->{debug} > 1));
 
+	@cached_response = &get_url(
+		url => "https://shepherd-foxtel.victory.id.au/",
+		retries => 0,
+		method => "POST",
+		postvars => $postvars,
+		headers => \@additional_headers);
+
+	if ($cached_response[0] && $cached_response[1]) { #success
+		unless ($cached_response[6]->header("x-foxtel-cache-hit") eq "1") {
+			&do_wait;
+		} else {
+			Shepherd::Common::log("DEBUG: skipping wait due to cached data") if ((defined $opt->{debug}) && ($opt->{debug} > 0));
+		}
+		return @cached_response if wantarray;
+		return $cached_response[0];
+	}
+
+	Shepherd::Common::log("DEBUG: cached request failed, falling back to direct") if ((defined $opt->{debug}) && ($opt->{debug} > 1));
+	&do_wait;#force a wait
+
+	#fallback to direct
 	return &get_url(
 		url => "https://epg.foxtel.com.au/epg-service/epg/EpgServiceV2",
 		retries => 0,
