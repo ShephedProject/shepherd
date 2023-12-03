@@ -91,19 +91,19 @@ foreach my $region (sort {$a <=> $b} keys %$region_channels) {
 	} else {
 		my $freeview_url = sprintf $DATASOURCE_freeview, $Shepherd::FreeviewHelper::SHEP_ID_TO_STATE{$region};
 		$content = &Shepherd::Common::get_url($freeview_url);
-		unless ($content) {
-			die "Couldn't retrive $freeview_url successfully";
-		}
-		my $freeview_data = JSON::cut_down_PP::decode_json($content);
+		if ($content) {
+			my $freeview_data = JSON::cut_down_PP::decode_json($content);
 
-		foreach my $chandata (@{$freeview_data->{data}}) {
-			if (defined $chandata->{channel_name}) {
-				my $mapped_name =  Shepherd::FreeviewHelper::clean_channel_name($chandata->{channel_name});
+			foreach my $chandata (@{$freeview_data->{data}}) {
+				if (defined $chandata->{channel_name}) {
+					my $mapped_name = Shepherd::FreeviewHelper::clean_channel_name($chandata->{channel_name});
 
-				push @freeview_channels, { 'name'=>$mapped_name, 'lcn'=>$chandata->{lcn}};
-				$freeview_by_lcn{$chandata->{lcn}} = $mapped_name;
-			} else {
-				die "no channel name";
+					push @freeview_channels, { 'name' => $mapped_name, 'lcn' => $chandata->{lcn} };
+					$freeview_by_lcn{$chandata->{lcn}} = $mapped_name;
+				}
+				else {
+					die "no channel name";
+				}
 			}
 		}
 	}
