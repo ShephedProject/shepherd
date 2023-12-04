@@ -10,7 +10,7 @@
 use strict;
 
 my $progname = "foxtel_swf";
-my $version = "5.09";
+my $version = "5.10";
 my $cache_file = $progname.".storable.cache";
 
 use XML::Simple;
@@ -537,7 +537,9 @@ sub channel_name_munger
 		'SBSWorldwatch'    => 'SBS World Watch',
 		'7MateHD'          => '7mate HD',
 		'SBSVicelandHD'    => 'SBSVICELANDHD',
-		'SBSWorldMoviesHD' => 'SBS World Movies'
+		'SBS Viceland'    => 'SBSVICELANDHD',#not HD, but no HD vs SD program data exists
+		'SBSWorldMoviesHD' => 'SBS World Movies',
+		'SBS World Movies SD'=>'SBS World Movies'
         };
 
     return $chan unless ($rchans->{$chan});
