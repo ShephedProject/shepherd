@@ -11,7 +11,7 @@ grabber         oztivo              2.66
 grabber         sbsweb              5.08.2
 grabber         rex                 10.4.14
 grabber         foxtel_swf          5.10
-grabber         abc_website         7.07.1
+grabber         abc_website         7.08
 #grabber         freeview            1.0.8
 reconciler      reconciler_mk2      0.58
 postprocessor   metacritic          1.1
