@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 our $progname = 'shepherd';
-my $version = '1.9.19';
+my $version = '1.9.20';
 
 # tv_grab_au
 # "Shepherd"
@@ -911,7 +911,10 @@ sub report_stats
     my $postvars = build_stats();
     return unless $postvars;
 
-    if ($opt->{nonotify} or $opt->{dontcallgrabbers})
+    if ($plugin_data->{tainted}) {
+		&log("Not posting usage statistics due to TAINTED status\n");
+	}
+	elsif ($opt->{nonotify} or $opt->{dontcallgrabbers})
     {
 	&log("Not posting usage statistics due to --" . ($opt->{nonotify} ? 'nonotify' : 'dontcallgrabbers' ) . " option.\n");
 	&log("Would have posted: ".Dumper($pending_messages)) if ($debug);
