@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.07.1";
+my $version = "7.08";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -154,10 +154,12 @@ my %abc_channel_to_shep = (
 	"44"       => "44Adelaide",
 	"SC"       => "SCTV",
 	"SCHD"     => "SCTVHD",
-	"TDHD"     => "TDTHD",
+	"TDHD"     => "10HD",
+	"TDT"      => "10",
 	"SBSWW"    => "SBS World Watch",
-	"SHAKE"    => "10 SHAKE",
-	"31"       => "Channel 31"
+	"SHAKE"    => "Nickelodeon",
+	"31"       => "Channel 31",
+	"7bravo"   => "7Bravo"
 );
 
 my %region_to_tz = (
