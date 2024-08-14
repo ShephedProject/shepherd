@@ -1,6 +1,6 @@
 application     shepherd            1.9.20
-reference       channel_list        152
-reference       Shepherd/Common.pm  1.34
+reference       channel_list        156
+reference       Shepherd/Common.pm  1.35
 reference       Shepherd/MythTV.pm  0.42
 reference       Shepherd/Configure.pm   0.43
 reference	    Shepherd/json_pp.pm 0.2
@@ -11,7 +11,7 @@ grabber         oztivo              2.66
 grabber         sbsweb              5.08.2
 grabber         rex                 10.4.14
 grabber         foxtel_swf          5.10
-grabber         abc_website         7.08.1
+grabber         abc_website         7.08.5
 #grabber         freeview            1.0.8
 reconciler      reconciler_mk2      0.58
 postprocessor   metacritic          1.1
