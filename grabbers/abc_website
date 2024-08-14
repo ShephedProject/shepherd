@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.08";
+my $version = "7.08.5";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -129,9 +129,9 @@ Shepherd::Common::setup_ua('agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; 
 
 my %abc_channel_to_shep = (
 	"ABC1"     => "ABC TV",
-	"ABC2"     => "ABC Kids/ABC TV Plus",
-	"ABC3"     => "ABCME",
-	"ABC4KIDS" => "ABC Kids/ABC TV Plus",
+	"ABC2"     => "ABC Kids/ABC Family",
+	"ABC3"     => "ABC Entertains",
+	"ABC4KIDS" => "ABC Kids/ABC Family",
 	"ABCHD"    => "ABC TV HD",
 	"ABCN"     => "ABCNEWS",
 	"7"        => "Seven",
@@ -139,8 +139,8 @@ my %abc_channel_to_shep = (
 	"7MATE"    => "7mate",
 	"RTV"      => "RACING.COM",
 	"TENHD"    => "10 HD",
-	"ONE"      => "10 BOLD",
-	"11"       => "10 Peach",
+	"ONE"      => "10 BOLD Drama",
+	"11"       => "10 Peach Comedy",
 	"SPREE"    => "gecko",
 	"9"        => "Nine",
 	"YMON"     => "Your Money",

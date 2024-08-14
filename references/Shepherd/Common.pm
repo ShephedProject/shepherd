@@ -1,7 +1,7 @@
 #
 # Shepherd::Common library
 
-my $version = '1.34';
+my $version = '1.35';
 
 #
 # This module provides some library functions for Shepherd components,
@@ -1164,7 +1164,7 @@ sub translate_channel_name
     my $rchans;
 
     $rchans = {
-        'ABC ME'                => 'ABCME',
+        'ABC ME'                => 'ABC Entertains',
         'SBS VICELAND'          => 'SBSVICELAND',
         'SBS VICELAND HD'       => 'SBSVICELANDHD',
         'WIN GOLD'              => 'WINGOLD',
