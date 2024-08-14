@@ -1,6 +1,6 @@
 application     shepherd            1.9.20	97eb6f54378516af58b6dcfcd721d27e076f0237	18eed0989e61fb0025dcc9443865c5b6375a8d9c
-reference       channel_list        152	98db7e8c3adfc08745e79d61b60a83dca2e797db	f07fcf1fa5648a0f7eec861a768e79793e617fca
-reference       Shepherd/Common.pm  1.34	b8e59c9f7e4a13517eba974c40ba5745f3688e76	c31ef6bb2148d46c5184ab695f776619cbbad818
+reference       channel_list        156	98db7e8c3adfc08745e79d61b60a83dca2e797db	2f7007d0d0bd3fc90062e554cadaa1e7dc0fae1e
+reference       Shepherd/Common.pm  1.35	b8e59c9f7e4a13517eba974c40ba5745f3688e76	2823b54e17d5c519572bd184862a8b114c80833f
 reference       Shepherd/MythTV.pm  0.42	85f83123706d06d99d896ee3d4767d6bdff71ca1	d5f6290d8b77d537f49f43d5167a54264b2599c7
 reference       Shepherd/Configure.pm   0.43	7666e8cf87e63ed27abac3c367c6862285db6028	6a957805346a47d0a14a8c8360e3caeb1c2a09b1
 reference	    Shepherd/json_pp.pm 0.2	af7820870d7cdfd47a593929a14e06306e9fda7b	ce32f3b0dbfbc1664b69c97faa2639461d5d8c18
@@ -11,7 +11,7 @@ grabber         oztivo              2.66	00783671f4a4949e4b58ce7f8e6412be2c887ac
 grabber         sbsweb              5.08.2	b5af382dac3bd49a5a79dd955bc56e94d3ab0143	6d8eee9f4638df7953c00955dc9eda31183266cb
 grabber         rex                 10.4.14	4ae53787498b74036bb6611ef260658a225e4842	c9b6c4d1c0c2d3ed9bb36e7d559318abc6f80142
 grabber         foxtel_swf          5.10	f80d8adb409ebb82a5471c1f417ee926f045fada	164a3b722ba5c2b46a299b43d936d608fd9a9f53
-grabber         abc_website         7.08.1	86da3a5d0c36a04a3387a16bf075fdac66c27fac	bc085233058e85e13d1ca95dc7a2116d0e54bf58
+grabber         abc_website         7.08.5	86da3a5d0c36a04a3387a16bf075fdac66c27fac	14e5b1108f90f49c9566d6a903cb58d2146be014
 reconciler      reconciler_mk2      0.58	53c4c0647abf244d0b22e7620bf1247e37abf689	8f8ee5f905bf4e844b67a557baa2b0403fb263c4
 postprocessor   metacritic          1.1	5e30f527c03bbddc31a2d649c5c5c50f63848c16	59fe1817de57012e3d449e807f3941ff9e683973
 postprocessor   augment_timezone    0.30	df61b40c0943bf7568442496081a4e90d9a30fed	8b8bf1be73c1d1f1d41c5ce5ae4ea038561cf3b3
