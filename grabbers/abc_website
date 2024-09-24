@@ -28,7 +28,7 @@ use strict;
 use warnings;
 
 my $progname = "abc_website";
-my $version = "7.08.5";
+my $version = "7.09";
 
 use XMLTV;
 use POSIX qw(strftime mktime);
@@ -41,7 +41,7 @@ use DateTimeFormat::XMLTV;
 #
 # constants
 #
-my $guide_url = "http://epg.abctv.net.au/processed/%s_%s.json";
+my $guide_url = "https://cdn.iview.abc.net.au/epg/processed/%s_%s.json";
 
 #
 # some initial cruft
